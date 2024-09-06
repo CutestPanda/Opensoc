@@ -36,6 +36,7 @@ XXX_IP<br>
 &emsp;&emsp;&emsp;&emsp;-examples<br>
 &emsp;&emsp;rtl<br>
 &emsp;&emsp;[其他]<br>
+***每个IP都有对应的文档, 位于doc文件夹内***
 ## 修订<br>
 |版本      | 日期      | 修订人 | 
 |:-------- |:----------|:--------|
