@@ -36,11 +36,12 @@ XXX_IP<br>
 &emsp;&emsp;&emsp;&emsp;-examples<br>
 &emsp;&emsp;rtl<br>
 &emsp;&emsp;[其他]<br>
-注:
-&emsp;&emsp;constraint -> 时序约束
-&emsp;&emsp;doc -> 使用说明文档
-&emsp;&emsp;firmware -> 驱动
-&emsp;&emsp;rtl -> RTL设计源码
+<br>
+注:<br>
+&emsp;&emsp;constraint -> 时序约束<br>
+&emsp;&emsp;doc -> 使用说明文档<br>
+&emsp;&emsp;firmware -> 驱动<br>
+&emsp;&emsp;rtl -> RTL设计源码<br>
 ## 修订<br>
 |版本      | 日期      | 修订人 | 
 |:-------- |:----------|:--------|
