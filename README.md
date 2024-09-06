@@ -36,7 +36,11 @@ XXX_IP<br>
 &emsp;&emsp;&emsp;&emsp;-examples<br>
 &emsp;&emsp;rtl<br>
 &emsp;&emsp;[其他]<br>
-***每个IP都有对应的文档, 位于doc文件夹内***
+注:
+&emsp;&emsp;constraint -> 时序约束
+&emsp;&emsp;doc -> 使用说明文档
+&emsp;&emsp;firmware -> 驱动
+&emsp;&emsp;rtl -> RTL设计源码
 ## 修订<br>
 |版本      | 日期      | 修订人 | 
 |:-------- |:----------|:--------|
