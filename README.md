@@ -30,12 +30,12 @@ AXI-通用DMA引擎<br>
 AXI-帧缓存(视频专用DMA)<br>
 ## 文件结构<br>
 XXX_IP<br>
-    --[constraint]<br>
-    --doc<br>
-    --[firmware]<br>
-        --examples<br>
-    --rtl<br>
-    --[其他]<br>
+&emsp;&emsp;[constraint]<br>
+&emsp;&emsp;doc<br>
+&emsp;&emsp;[firmware]<br>
+        -examples<br>
+&emsp;&emsp;rtl<br>
+&emsp;&emsp;[其他]<br>
 ## 修订<br>
 |版本      | 日期      | 修订人 | 
 |:-------- |:----------|:--------|
