@@ -33,7 +33,7 @@ XXX_IP<br>
 &emsp;&emsp;[constraint]<br>
 &emsp;&emsp;doc<br>
 &emsp;&emsp;[firmware]<br>
-        -examples<br>
+&emsp;&emsp;&emsp;&emsp;-examples<br>
 &emsp;&emsp;rtl<br>
 &emsp;&emsp;[其他]<br>
 ## 修订<br>
