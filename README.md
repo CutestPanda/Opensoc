@@ -12,6 +12,7 @@ APB-I2C<br>
 APB-音频播放器<br>
 通用BRAM控制器<br>
 AXI-SDRAM控制器<br>
+通用SDIO控制器<br>
 (2)__总线结构__<br>
 AHB/AXI-APB桥<br>
 (3)__基础__<br>
@@ -22,7 +23,6 @@ AMBA总线基本验证组件<br>
 (1)__外设__<br>
 APB-SPI<br>
 APB-TIMER<br>
-通用SDIO控制器<br>
 (2)__通用__<br>
 AXIS-位宽变换<br>
 AXIS-FIFO<br>
