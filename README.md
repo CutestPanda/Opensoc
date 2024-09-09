@@ -29,7 +29,7 @@ AMBA总线基本验证组件<br>
 (1)__外设__<br>
 APB-SPI<br>
 APB-TIMER<br>
-(2)__通用__<br>
+(2)__基础__<br>
 AXIS-位宽变换<br>
 AXIS-FIFO<br>
 (3)__DMA__<br>
