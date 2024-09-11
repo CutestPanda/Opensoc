@@ -22,6 +22,7 @@ AXI-SDRAM控制器<br>
 (2)__总线结构__<br>
 AHB/AXI-APB桥<br>
 (3)__基础__<br>
+AXIS-位宽变换<br>
 AXIS寄存器片<br>
 (4)__验证__<br>
 AMBA总线基本验证组件<br>
@@ -30,7 +31,6 @@ AMBA总线基本验证组件<br>
 APB-SPI<br>
 APB-TIMER<br>
 (2)__基础__<br>
-AXIS-位宽变换<br>
 AXIS-FIFO<br>
 (3)__DMA__<br>
 AXI-通用DMA引擎<br>
