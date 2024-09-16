@@ -212,13 +212,14 @@ interface AXIS #(
 	
     logic[data_width-1:0] data;
     logic[data_width/8-1:0] keep;
+	logic[data_width/8-1:0] strb;
     logic last;
     logic[user_width-1:0] user;
     logic valid;
     logic ready;
     
     clocking cb_master @(posedge clk);
-        output #out_drive_t data, keep, last, user, valid;
+        output #out_drive_t data, keep, strb, last, user, valid;
     endclocking
     
     clocking cb_slave @(posedge clk);
@@ -233,14 +234,14 @@ interface AXIS #(
     
     modport slave(
 		input clk, rst_n,
-        input data, keep, last, user,
+        input data, keep, strb, last, user,
         input valid, ready,
         clocking cb_slave
     );
     
     modport monitor(
 		input clk, rst_n,
-        input data, keep, last, user,
+        input data, keep, strb, last, user,
         input valid, ready
     );
     

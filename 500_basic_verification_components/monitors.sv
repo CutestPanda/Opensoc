@@ -4,7 +4,6 @@
 
 `define __MONITOR_H
 
-// 打开相应宏以启用monitor
 // `define AXIMon
 // `define APBMon
 // `define AXISMon
@@ -443,6 +442,7 @@ class AXISMonitor #(
 			begin // 监测到AXIS握手
 				tr.data.push_back(this.axis_if.data);
 				tr.keep.push_back(this.axis_if.keep);
+				tr.strb.push_back(this.axis_if.strb);
 				tr.user.push_back(this.axis_if.user);
 				tr.last.push_back(this.axis_if.last);
 				

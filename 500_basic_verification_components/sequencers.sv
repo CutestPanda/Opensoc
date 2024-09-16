@@ -6,7 +6,6 @@
 
 `include "transactions.sv"
 
-// 打开相应宏以启用sequencer
 // `define BlkCtrlSeqr
 // `define AXISeqr
 // `define APBSeqr

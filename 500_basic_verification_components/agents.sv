@@ -4,7 +4,6 @@
 
 `define __AGENT_H
 
-// 打开相应宏以启用agent
 // `define BlkCtrlMstAgt
 // `define AXIMstAgt
 // `define AXISlvAgt

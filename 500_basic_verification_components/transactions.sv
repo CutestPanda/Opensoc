@@ -141,6 +141,7 @@ class AXISTrans #(
 	// 主机
 	rand bit[data_width-1:0] data[$];
     rand bit[data_width/8-1:0] keep[$];
+	rand bit[data_width/8-1:0] strb[$];
     rand bit[user_width-1:0] user[$];
 	rand bit last[$];
 	
@@ -152,6 +153,7 @@ class AXISTrans #(
 		`uvm_field_int(data_n, UVM_ALL_ON)
 		`uvm_field_queue_int(data, UVM_ALL_ON)
 		`uvm_field_queue_int(keep, UVM_ALL_ON)
+		`uvm_field_queue_int(strb, UVM_ALL_ON)
 		`uvm_field_queue_int(user, UVM_ALL_ON)
 		`uvm_field_array_int(wait_period_n, UVM_ALL_ON)
 	`uvm_object_utils_end

@@ -6,7 +6,6 @@
 
 `include "transactions.sv"
 
-// 打开相应宏以启用driver
 // `define BlkCtrlDriver
 // `define AXIDriver
 // `define APBDriver
@@ -763,6 +762,7 @@ class AXISMasterDriver #(
 		// 初始化总线为无效状态
 		this.axis_if.cb_master.data <= {data_width{1'bx}};
 		this.axis_if.cb_master.keep <= {(data_width/8){1'bx}};
+		this.axis_if.cb_master.strb <= {(data_width/8){1'bx}};
 		this.axis_if.cb_master.last <= 1'bx;
 		// this.axis_if.cb_master.user <= {user_width{1'bx}};
 		this.axis_if.cb_master.valid <= 1'b0;
@@ -787,6 +787,7 @@ class AXISMasterDriver #(
 			// 给出有效数据
 			this.axis_if.cb_master.data <= tr.data[i];
 			this.axis_if.cb_master.keep <= tr.keep[i];
+			this.axis_if.cb_master.strb <= tr.strb[i];
 			this.axis_if.cb_master.last <= tr.last[i];
 			this.axis_if.cb_master.user <= tr.user[i];
 			this.axis_if.cb_master.valid <= 1'b1;
@@ -801,6 +802,7 @@ class AXISMasterDriver #(
 			// 总线恢复到无效状态
 			this.axis_if.cb_master.data <= {data_width{1'bx}};
 			this.axis_if.cb_master.keep <= {(data_width/8){1'bx}};
+			this.axis_if.cb_master.strb <= {(data_width/8){1'bx}};
 			this.axis_if.cb_master.last <= 1'bx;
 			// this.axis_if.cb_master.user <= {user_width{1'bx}};
 			this.axis_if.cb_master.valid <= 1'b0;
