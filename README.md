@@ -44,7 +44,7 @@ XXX_IP<br>
 &emsp;&emsp;[firmware]<br>
 &emsp;&emsp;&emsp;&emsp;examples<br>
 &emsp;&emsp;rtl<br>
-&emsp;&emsp;tb<br>
+&emsp;&emsp;[tb]<br>
 &emsp;&emsp;[其他]<br>
 <br>
 注:<br>
