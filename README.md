@@ -25,7 +25,9 @@ AHB/AXI-APB桥<br>
 AXIS-位宽变换<br>
 AXIS寄存器片<br>
 基于RAM/FF的移位寄存器<br>
-(4)__验证__<br>
+(4)__DMA__<br>
+AXI-帧缓存(视频专用DMA)<br>
+(5)__验证__<br>
 AMBA总线基本验证组件<br>
 ## 待整理的IP<br>
 (1)__外设__<br>
@@ -35,7 +37,6 @@ APB-TIMER<br>
 AXIS-FIFO<br>
 (3)__DMA__<br>
 AXI-通用DMA引擎<br>
-AXI-帧缓存(视频专用DMA)<br>
 ## 文件结构<br>
 XXX_IP<br>
 &emsp;&emsp;[constraint]<br>
@@ -43,6 +44,7 @@ XXX_IP<br>
 &emsp;&emsp;[firmware]<br>
 &emsp;&emsp;&emsp;&emsp;examples<br>
 &emsp;&emsp;rtl<br>
+&emsp;&emsp;tb<br>
 &emsp;&emsp;[其他]<br>
 <br>
 注:<br>
@@ -50,6 +52,7 @@ XXX_IP<br>
 &emsp;&emsp;doc -> 使用说明文档<br>
 &emsp;&emsp;firmware -> 驱动<br>
 &emsp;&emsp;rtl -> RTL设计源码<br>
+&emsp;&emsp;tb -> 测试平台<br>
 ## 修订<br>
 |版本      | 日期      | 修订人 |  内容 | 
 |:-------- |:----------|:--------|:--------|
@@ -57,3 +60,4 @@ XXX_IP<br>
 |alpha0.50  |2024.09.07 |陈家耀  |发布了通用SDIO控制器|
 |alpha0.55  |2024.09.11 |陈家耀  |发布了AXIS位宽变换|
 |alpha0.56  |2024.09.12 |陈家耀  |发布了基于RAM/FF的移位寄存器|
+|alpha0.60  |2024.09.16 |陈家耀  |发布了AXI帧缓存|
