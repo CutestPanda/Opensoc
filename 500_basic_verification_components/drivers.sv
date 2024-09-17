@@ -46,6 +46,9 @@ class BlkCtrlMasterDriver #(
 		this.blk_ctrl_if.cb_master.start <= 1'b0;
 		this.blk_ctrl_if.cb_master.to_continue <= 1'b1;
 		
+		// 等待复位释放
+		@(posedge this.blk_ctrl_if.clk iff this.blk_ctrl_if.rst_n);
+		
 		forever
 		begin
             this.seq_item_port.get_next_item(this.req); // 获取下一事务
@@ -127,6 +130,9 @@ class AXIMasterDriver #(
 	
 	virtual task main_phase(uvm_phase phase);
 		super.main_phase(phase);
+		
+		// 等待复位释放
+		@(posedge this.axi_if.clk iff this.axi_if.rst_n);
 		
 		fork
 			drive_ar();
@@ -421,6 +427,9 @@ class AXISlaveDriver #(
 		this.axi_if.cb_slave.rvalid <= 1'b0;
 		this.axi_if.cb_slave.wready <= 1'b0;
 		
+		// 等待复位释放
+		@(posedge this.axi_if.clk iff this.axi_if.rst_n);
+		
 		fork
 			this.drive_ar_chn(); // 驱动AR通道
 			this.drive_aw_chn(); // 驱动AW通道
@@ -612,6 +621,9 @@ class APBMasterDriver #(
 		this.apb_if.cb_master.pwdata <= {data_width{1'bx}};
 		this.apb_if.cb_master.pstrb <= {(data_width/8){1'bx}};
 		
+		// 等待复位释放
+		@(posedge this.apb_if.clk iff this.apb_if.rst_n);
+		
 		forever
 		begin
             this.seq_item_port.get_next_item(this.req); // 获取下一事务
@@ -691,6 +703,9 @@ class APBSlaveDriver #(
 		this.apb_if.cb_slave.prdata <= {data_width{1'bx}};
 		this.apb_if.cb_slave.pslverr <= 1'bx;
 		
+		// 等待复位释放
+		@(posedge this.apb_if.clk iff this.apb_if.rst_n);
+		
 		forever
 		begin
             this.seq_item_port.get_next_item(this.req); // 获取下一事务
@@ -766,6 +781,9 @@ class AXISMasterDriver #(
 		this.axis_if.cb_master.last <= 1'bx;
 		// this.axis_if.cb_master.user <= {user_width{1'bx}};
 		this.axis_if.cb_master.valid <= 1'b0;
+		
+		// 等待复位释放
+		@(posedge this.axis_if.clk iff this.axis_if.rst_n);
 		
 		forever
 		begin
@@ -843,6 +861,9 @@ class AXISSlaveDriver #(
 	virtual task main_phase(uvm_phase phase);
 		// 初始化总线为无效状态
 		this.axis_if.cb_slave.ready <= 1'b0;
+		
+		// 等待复位释放
+		@(posedge this.axis_if.clk iff this.axis_if.rst_n);
 		
 		forever
 		begin
