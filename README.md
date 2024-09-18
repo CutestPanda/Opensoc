@@ -24,6 +24,7 @@ AHB/AXI-APB桥<br>
 (3)__基础__<br>
 AXIS-位宽变换<br>
 AXIS寄存器片<br>
+AXIS数据FIFO<br>
 基于RAM/FF的移位寄存器<br>
 (4)__DMA__<br>
 AXI-帧缓存(视频专用DMA)<br>
@@ -33,9 +34,7 @@ AMBA总线基本验证组件<br>
 (1)__外设__<br>
 APB-SPI<br>
 APB-TIMER<br>
-(2)__基础__<br>
-AXIS-FIFO<br>
-(3)__DMA__<br>
+(2)__DMA__<br>
 AXI-通用DMA引擎<br>
 ## 文件结构<br>
 XXX_IP<br>
@@ -61,3 +60,4 @@ XXX_IP<br>
 |alpha0.55  |2024.09.11 |陈家耀  |发布了AXIS位宽变换|
 |alpha0.56  |2024.09.12 |陈家耀  |发布了基于RAM/FF的移位寄存器|
 |alpha0.60  |2024.09.16 |陈家耀  |发布了AXI帧缓存|
+|alpha0.62  |2024.09.18 |陈家耀  |发布了AXIS数据fifo|
