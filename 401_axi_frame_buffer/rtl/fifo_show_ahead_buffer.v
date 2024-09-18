@@ -40,7 +40,7 @@ module fifo_show_ahead_buffer #(
     reg std_fifo_rvld; // 标准fifo有效读(指示)
     reg[fifo_data_width-1:0] regs_buffer[1:0]; // 寄存器buffer
     reg[2:0] buffer_data_cnt; // buffer存储计数(3'b001 -> 0, 3'b010 -> 1, 3'b100 -> 2)
-    wire[2:0] buffer_data_cnt_sub1; // buffer存储计数 - 1
+    wire[2:0] buffer_data_cnt_sub1; // buffer存储计数 - 1(3'b001 -> 0, 3'b010 -> 1, 3'b100 -> 2)
     
     assign buffer_data_cnt_sub1 = {buffer_data_cnt[0], buffer_data_cnt[2:1]};
     
@@ -78,7 +78,7 @@ module fifo_show_ahead_buffer #(
     end
     
     /** 标准fifo的读端口 **/
-    assign std_fifo_ren = (buffer_data_cnt[1] & fwft_fifo_ren) | buffer_data_cnt[0];
+    assign std_fifo_ren = buffer_data_cnt[0] | fwft_fifo_ren; // buffer存储计数==0或者FWFT-fifo读使能时标准fifo读使能有效
     
     /** FWFT fifo的读端口 **/
     reg fwft_fifo_empty_n_reg;
