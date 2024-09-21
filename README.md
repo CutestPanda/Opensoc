@@ -14,6 +14,7 @@ __欢迎贡献您的IP(参与开发请fork)__<br>
 APB-GPIO<br>
 APB-UART<br>
 APB-I2C<br>
+APB-TIMER<br>
 通用FSMC控制器<br>
 APB-音频播放器<br>
 通用BRAM控制器<br>
@@ -33,7 +34,6 @@ AMBA总线基本验证组件<br>
 ## 待整理的IP<br>
 (1)__外设__<br>
 APB-SPI<br>
-APB-TIMER<br>
 (2)__DMA__<br>
 AXI-通用DMA引擎<br>
 ## 文件结构<br>
@@ -61,3 +61,4 @@ XXX_IP<br>
 |alpha0.56  |2024.09.12 |陈家耀  |发布了基于RAM/FF的移位寄存器|
 |alpha0.60  |2024.09.16 |陈家耀  |发布了AXI帧缓存|
 |alpha0.62  |2024.09.18 |陈家耀  |发布了AXIS数据fifo|
+|alpha0.65  |2024.09.21 |陈家耀  |发布了APB-TIMER|
