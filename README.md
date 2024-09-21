@@ -1,7 +1,6 @@
 # Opensoc<br>
 ![LOGO](./img/logo.png)<br>
-包含了SOC设计中的通用IP，如外设、总线结构、基础、验证等<br>
-本项目源自于第八届全国大学生集成电路创新创业大赛ARM杯一等奖作品<br>
+包含了SOC设计中的通用IP，如外设与控制器、总线结构、基础、DMA、验证等<br>
 __本项目持续更新中__<br>
 __欢迎交流学习__<br>
 __欢迎贡献您的IP(参与开发请fork)__<br>
@@ -36,6 +35,10 @@ AMBA总线基本验证组件<br>
 APB-SPI<br>
 (2)__DMA__<br>
 AXI-通用DMA引擎<br>
+## 准备开发的IP<br>
+RV32处理器(I[M])
+AXI-DDR3控制器
+AXI-系统缓存
 ## 文件结构<br>
 XXX_IP<br>
 &emsp;&emsp;[constraint]<br>
