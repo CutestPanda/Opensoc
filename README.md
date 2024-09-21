@@ -36,9 +36,9 @@ APB-SPI<br>
 (2)__DMA__<br>
 AXI-通用DMA引擎<br>
 ## 准备开发的IP<br>
-RV32处理器(I[M])
-AXI-DDR3控制器
-AXI-系统缓存
+RV32处理器(I[M])<br>
+AXI-DDR3控制器<br>
+AXI-系统缓存<br>
 ## 文件结构<br>
 XXX_IP<br>
 &emsp;&emsp;[constraint]<br>
