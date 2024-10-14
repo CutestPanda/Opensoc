@@ -31,12 +31,13 @@ AXI-帧缓存(视频专用DMA)<br>
 (5)__验证__<br>
 AMBA总线基本验证组件<br>
 ## 待整理的IP<br>
-(1)__外设__<br>
 APB-SPI<br>
-(2)__DMA__<br>
+## 正在开发的IP<br>
+(1)__DMA__<br>
 AXI-通用DMA引擎<br>
-## 准备开发的IP<br>
+(2)__CPU__<br>
 RV32处理器(I[M])<br>
+## 准备开发的IP<br>
 AXI-DDR3控制器<br>
 AXI-系统缓存<br>
 ## 文件结构<br>
