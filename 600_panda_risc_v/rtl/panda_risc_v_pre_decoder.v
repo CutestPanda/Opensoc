@@ -43,7 +43,10 @@ module panda_risc_v_pre_decoder(
 	output wire rd_vld, // 是否需要写rd
 	output wire[11:0] csr_addr, // CSR寄存器地址
 	output wire[4:0] rs1_id, // rs1索引
-	output wire illegal_inst // 非法指令(标志)
+	output wire illegal_inst, // 非法指令(标志)
+	
+	// 打包的预译码信息
+	output wire[63:0] pre_decoding_msg_packeted
 );
 	
 	/** 常量 **/
@@ -59,6 +62,20 @@ module panda_risc_v_pre_decoder(
 	localparam OPCODE_ARTH_REG = 7'b0110011;
 	localparam OPCODE_FENCE = 7'b0001111;
 	localparam OPCODE_ENV_CSR = 7'b1110011;
+	
+	/** 打包的预译码信息 **/
+	assign pre_decoding_msg_packeted = {
+		19'dx,
+		// CSR寄存器地址(12bit)
+		csr_addr,
+		// 读写通用寄存器堆标志(3bit)
+		rs1_vld, rs2_vld, rd_vld,
+		// 跳转偏移量立即数(21bit)
+		jump_ofs_imm,
+		// 指令类型标志(9bit)
+		is_b_inst, is_jal_inst, is_jalr_inst, is_csr_rw_inst, is_load_inst,
+		is_store_inst, is_mul_inst, is_div_inst, is_rem_inst
+	};
 	
 	/** 指令类型预译码 **/
 	assign is_b_inst = inst[6:0] == OPCODE_B;

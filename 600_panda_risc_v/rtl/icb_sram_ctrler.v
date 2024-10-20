@@ -21,6 +21,7 @@ MEM MASTER
 
 module icb_sram_ctrler #(
 	parameter en_unaligned_transfer = "true", // 是否允许非对齐传输
+	parameter wt_trans_imdt_resp = "false", // 是否允许写传输立即响应
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -87,7 +88,7 @@ module icb_sram_ctrler #(
 	assign s_icb_rsp_rdata = bram_dout;
 	assign s_icb_rsp_err = 1'b0;
 	assign s_icb_rsp_valid = bram_rw_pending 
-		| (s_icb_cmd_valid & (~s_icb_cmd_read)); // 写传输的响应在本clk立即给出
+		| ((wt_trans_imdt_resp == "true") & s_icb_cmd_valid & (~s_icb_cmd_read)); // 写传输的响应在本clk立即给出
 	
 	assign on_finish_bram_rw = s_icb_rsp_valid & s_icb_rsp_ready;
 	

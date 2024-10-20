@@ -4,9 +4,10 @@
 
 描述:
 接收指令存储器访问请求, 返回读数据和错误类型
+对于ICB主机, 仅允许2个滞外传输(outstanding)
 
 注意：
-PC地址非对齐时不发起ICB传输, 且当没有滞外传输时立即返回应答
+PC地址非对齐时不发起ICB传输, 且允许在没有处理中的传输时立即返回应答
 若发生指令总线响应超时, 则不再接受新的指令存储器访问请求, 指令ICB主机停止传输
 
 协议:
@@ -20,6 +21,7 @@ ICB MASTER
 module panda_risc_v_ibus_ctrler #(
 	parameter integer imem_access_timeout_th = 16, // 指令总线访问超时周期数(必须>=1)
 	parameter integer inst_addr_alignment_width = 32, // 指令地址对齐位宽(16 | 32)
+	parameter pc_unaligned_imdt_resp = "false", // 是否允许PC地址非对齐时立即响应
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -51,7 +53,10 @@ module panda_risc_v_ibus_ctrler #(
 	input wire[31:0] m_icb_rsp_rdata,
 	input wire m_icb_rsp_err,
 	input wire m_icb_rsp_valid,
-	output wire m_icb_rsp_ready
+	output wire m_icb_rsp_ready,
+	
+	// 指令总线访问超时标志
+	output wire ibus_timeout
 );
 	
     // 计算bit_depth的最高有效位编号(即位数-1)
@@ -75,6 +80,7 @@ module panda_risc_v_ibus_ctrler #(
 	wire on_trans_start; // 启动传输(指示)
 	wire on_trans_finish; // 传输完成(指示)
 	reg[1:0] trans_n_processing; // 正在处理的传输个数(计数器)
+	reg no_trans_processing; // 没有正在处理的传输(标志)
 	// 指令地址对齐(标志)
 	wire pc_aligned;
 	// 传输信息fifo
@@ -88,10 +94,12 @@ module panda_risc_v_ibus_ctrler #(
 	assign on_trans_start = imem_access_req_valid & imem_access_req_ready;
 	assign on_trans_finish = imem_access_resp_valid;
 	
-	assign pc_aligned = (inst_addr_alignment_width == 16) ? (~imem_access_req_addr[0]):(imem_access_req_addr[1:0] == 2'b00);
+	assign pc_aligned = imem_access_req_addr[(inst_addr_alignment_width == 32):0] == 0;
 	
-	assign trans_msg_fifo_wen = on_trans_start & (~((trans_n_processing == 2'b00) & (~pc_aligned)));
-	assign trans_msg_fifo_ren = on_trans_finish & (~((trans_n_processing == 2'b00) & (~pc_aligned)));
+	assign trans_msg_fifo_wen = on_trans_start & ((pc_unaligned_imdt_resp == "false")
+		| (~((trans_n_processing == 2'b00) & (~pc_aligned))));
+	assign trans_msg_fifo_ren = on_trans_finish & ((pc_unaligned_imdt_resp == "false")
+		| (~((trans_n_processing == 2'b00) & (~pc_aligned))));
 	assign trans_msg_fifo_pc_unaligned_flag_dout = 
 		(trans_msg_fifo_rptr[0] & trans_msg_fifo_pc_unaligned_flag[0])
 		| (trans_msg_fifo_rptr[1] & trans_msg_fifo_pc_unaligned_flag[1]);
@@ -105,6 +113,15 @@ module panda_risc_v_ibus_ctrler #(
 			trans_n_processing <= # simulation_delay {2{~clr_all_trans}}
 				// on_trans_start ? (trans_n_processing + 2'b01):(trans_n_processing - 2'b01)
 				& (trans_n_processing + {~on_trans_start, 1'b1});
+	end
+	// 没有正在处理的传输(标志)
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			no_trans_processing <= 1'b1;
+		else if(clr_all_trans | (on_trans_start ^ on_trans_finish))
+			// clr_all_trans ? 1'b1:(on_trans_start ? 1'b0:(trans_n_processing == 2'b01))
+			no_trans_processing <= # simulation_delay clr_all_trans | ((~on_trans_start) & (~trans_n_processing[1]));
 	end
 	
 	// 传输信息fifo写指针(独热码)
@@ -142,8 +159,7 @@ module panda_risc_v_ibus_ctrler #(
 	reg m_icb_timeout_flag; // 指令ICB主机访问超时标志
 	reg m_icb_timeout_idct; // 指令ICB主机访问超时指示
 	
-	assign m_icb_cmd_addr = (inst_addr_alignment_width == 16) ?
-		{imem_access_req_addr[31:1], 1'b0}:{imem_access_req_addr[31:2], 2'b00};
+	assign m_icb_cmd_addr = imem_access_req_addr;
 	assign m_icb_cmd_read = imem_access_req_read;
 	assign m_icb_cmd_wdata = imem_access_req_wdata;
 	assign m_icb_cmd_wmask = imem_access_req_wmask;
@@ -156,6 +172,8 @@ module panda_risc_v_ibus_ctrler #(
 	assign imem_access_req_ready = (~m_icb_timeout_flag)
 		& (~trans_n_processing[1]) & ((~pc_aligned) | m_icb_cmd_ready);
 	
+	assign ibus_timeout = m_icb_timeout_flag;
+	
 	assign clr_all_trans = m_icb_timeout_idct;
 	
 	// 指令ICB主机访问超时计数器
@@ -163,7 +181,8 @@ module panda_risc_v_ibus_ctrler #(
 	begin
 		if(~resetn)
 			m_icb_timeout_cnt <= 0;
-		else if((~m_icb_timeout_flag) & ((trans_n_processing != 2'b00) | on_trans_finish))
+		else if((~m_icb_timeout_flag) & ((~no_trans_processing) | on_trans_finish))
+			// on_trans_finish ? 0:(m_icb_timeout_cnt + 1)
 			m_icb_timeout_cnt <= # simulation_delay {(clogb2(imem_access_timeout_th-1)+1){~on_trans_finish}}
 				& (m_icb_timeout_cnt + 1);
 	end
@@ -173,7 +192,7 @@ module panda_risc_v_ibus_ctrler #(
 		if(~resetn)
 			m_icb_timeout_flag <= 1'b0;
 		else if(~m_icb_timeout_flag)
-			m_icb_timeout_flag <= # simulation_delay (trans_n_processing != 2'b00)
+			m_icb_timeout_flag <= # simulation_delay (~no_trans_processing)
 				& (m_icb_timeout_cnt == (imem_access_timeout_th - 1));
 	end
 	// 指令ICB主机访问超时指示
@@ -183,7 +202,7 @@ module panda_risc_v_ibus_ctrler #(
 			m_icb_timeout_idct <= 1'b0;
 		else
 			m_icb_timeout_idct <= # simulation_delay (~m_icb_timeout_flag)
-				& (trans_n_processing != 2'b00) & (m_icb_timeout_cnt == (imem_access_timeout_th - 1));
+				& (~no_trans_processing) & (m_icb_timeout_cnt == (imem_access_timeout_th - 1));
 	end
 	
 	/** 指令ICB主机响应通道 **/
@@ -201,13 +220,13 @@ module panda_risc_v_ibus_ctrler #(
 	
 	assign resp_with_normal = m_icb_rsp_valid & m_icb_rsp_ready & (~m_icb_rsp_err);
 	assign resp_with_pc_unaligned = (~m_icb_timeout_flag)
-		& (((trans_n_processing != 2'b00) & trans_msg_fifo_pc_unaligned_flag_dout)
-			| ((trans_n_processing == 2'b00) & (~pc_aligned) & imem_access_req_valid));
+		& (((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout)
+			| ((pc_unaligned_imdt_resp == "true") & no_trans_processing & (~pc_aligned) & imem_access_req_valid));
 	assign resp_with_bus_err = m_icb_rsp_valid & m_icb_rsp_ready & m_icb_rsp_err;
 	assign resp_with_timeout = m_icb_timeout_idct;
 	
 	// 握手条件: m_icb_rsp_valid & (~m_icb_timeout_flag)
-	//     & (~(trans_msg_fifo_pc_unaligned_flag_dout & (trans_n_processing != 2'b00)))
-	assign m_icb_rsp_ready = (~m_icb_timeout_flag) & (~(trans_msg_fifo_pc_unaligned_flag_dout & (trans_n_processing != 2'b00)));
+	//     & (~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout))
+	assign m_icb_rsp_ready = (~m_icb_timeout_flag) & (~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout));
     
 endmodule
