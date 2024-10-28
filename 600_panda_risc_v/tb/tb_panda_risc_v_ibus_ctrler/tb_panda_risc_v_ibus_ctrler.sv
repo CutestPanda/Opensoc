@@ -18,6 +18,7 @@ module tb_panda_risc_v_ibus_ctrler();
 	// 待测模块配置
 	localparam integer imem_access_timeout_th = 16; // 指令总线访问超时周期数(必须>=1)
 	localparam integer inst_addr_alignment_width = 32; // 指令地址对齐位宽(16 | 32)
+	localparam pc_unaligned_imdt_resp = "false"; // 是否允许PC地址非对齐时立即响应
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
@@ -73,6 +74,7 @@ module tb_panda_risc_v_ibus_ctrler();
 	panda_risc_v_ibus_ctrler #(
 		.imem_access_timeout_th(imem_access_timeout_th),
 		.inst_addr_alignment_width(inst_addr_alignment_width),
+		.pc_unaligned_imdt_resp(pc_unaligned_imdt_resp),
 		.simulation_delay(simulation_delay)
 	)dut(
 		.clk(clk),

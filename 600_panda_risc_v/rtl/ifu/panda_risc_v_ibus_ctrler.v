@@ -94,12 +94,15 @@ module panda_risc_v_ibus_ctrler #(
 	assign on_trans_start = imem_access_req_valid & imem_access_req_ready;
 	assign on_trans_finish = imem_access_resp_valid;
 	
-	assign pc_aligned = imem_access_req_addr[(inst_addr_alignment_width == 32):0] == 0;
+	// imem_access_req_addr[(inst_addr_alignment_width == 32):0] == 0
+	assign pc_aligned = ~(|imem_access_req_addr[(inst_addr_alignment_width == 32):0]);
 	
 	assign trans_msg_fifo_wen = on_trans_start & ((pc_unaligned_imdt_resp == "false")
-		| (~((trans_n_processing == 2'b00) & (~pc_aligned))));
+		// (trans_n_processing == 2'b00) & (~pc_aligned)
+		| (~((~trans_n_processing[1]) & (~trans_n_processing[0]) & (~pc_aligned))));
 	assign trans_msg_fifo_ren = on_trans_finish & ((pc_unaligned_imdt_resp == "false")
-		| (~((trans_n_processing == 2'b00) & (~pc_aligned))));
+		// (trans_n_processing == 2'b00) & (~pc_aligned)
+		| (~((~trans_n_processing[1]) & (~trans_n_processing[0]) & (~pc_aligned))));
 	assign trans_msg_fifo_pc_unaligned_flag_dout = 
 		(trans_msg_fifo_rptr[0] & trans_msg_fifo_pc_unaligned_flag[0])
 		| (trans_msg_fifo_rptr[1] & trans_msg_fifo_pc_unaligned_flag[1]);
@@ -110,9 +113,9 @@ module panda_risc_v_ibus_ctrler #(
 		if(~resetn)
 			trans_n_processing <= 2'b00;
 		else if(clr_all_trans | (on_trans_start ^ on_trans_finish))
-			trans_n_processing <= # simulation_delay {2{~clr_all_trans}}
+			trans_n_processing <= # simulation_delay 
 				// on_trans_start ? (trans_n_processing + 2'b01):(trans_n_processing - 2'b01)
-				& (trans_n_processing + {~on_trans_start, 1'b1});
+				{2{~clr_all_trans}} & (trans_n_processing + {~on_trans_start, 1'b1});
 	end
 	// 没有正在处理的传输(标志)
 	always @(posedge clk or negedge resetn)
@@ -159,18 +162,24 @@ module panda_risc_v_ibus_ctrler #(
 	reg m_icb_timeout_flag; // 指令ICB主机访问超时标志
 	reg m_icb_timeout_idct; // 指令ICB主机访问超时指示
 	
+	// 指令存储器访问请求AXIS握手条件: imem_access_req_valid & (~m_icb_timeout_flag)
+	//     & (~trans_n_processing[1]) & ((~pc_aligned) | m_icb_cmd_ready)
+	assign imem_access_req_ready = 
+		(~m_icb_timeout_flag) & // ICB主机访问超时后不再允许新的访问请求
+		(~trans_n_processing[1]) & // 必须保证正在处理的传输个数 <= 2
+		((~pc_aligned) | m_icb_cmd_ready); // 若当前请求的地址是对齐的, 必须等待命令通道就绪
+	
 	assign m_icb_cmd_addr = imem_access_req_addr;
 	assign m_icb_cmd_read = imem_access_req_read;
 	assign m_icb_cmd_wdata = imem_access_req_wdata;
 	assign m_icb_cmd_wmask = imem_access_req_wmask;
-	// 握手条件: imem_access_req_valid & (~m_icb_timeout_flag) & pc_aligned
-	//     & (~trans_n_processing[1]) & m_icb_cmd_ready
-	assign m_icb_cmd_valid = imem_access_req_valid & (~m_icb_timeout_flag) & pc_aligned
-		& (~trans_n_processing[1]);
-	// 握手条件: imem_access_req_valid & (~m_icb_timeout_flag)
-	//     & (~trans_n_processing[1]) & ((~pc_aligned) | m_icb_cmd_ready)
-	assign imem_access_req_ready = (~m_icb_timeout_flag)
-		& (~trans_n_processing[1]) & ((~pc_aligned) | m_icb_cmd_ready);
+	// ICB主机命令通道握手条件: imem_access_req_valid & m_icb_cmd_ready & (~m_icb_timeout_flag) & 
+	//     (~trans_n_processing[1]) & pc_aligned
+	assign m_icb_cmd_valid = 
+		imem_access_req_valid & // 等待有效的访问请求
+		(~m_icb_timeout_flag) & // ICB主机访问超时后不再允许新的访问请求
+		(~trans_n_processing[1]) & // 必须保证正在处理的传输个数 <= 2
+		pc_aligned; // 若当前请求的地址是非对齐的, 不向命令通道发起传输
 	
 	assign ibus_timeout = m_icb_timeout_flag;
 	
@@ -212,21 +221,30 @@ module panda_risc_v_ibus_ctrler #(
 	wire resp_with_timeout; // 返回响应(访问超时)
 	
 	assign imem_access_resp_rdata = m_icb_rsp_rdata;
-	assign imem_access_resp_err = ({2{resp_with_normal}} & IMEM_ACCESS_NORMAL)
+	assign imem_access_resp_err = 
+		({2{resp_with_normal}} & IMEM_ACCESS_NORMAL)
 		| ({2{resp_with_pc_unaligned}} & IMEM_ACCESS_PC_UNALIGNED)
 		| ({2{resp_with_bus_err}} & IMEM_ACCESS_BUS_ERR)
-		| ({2{resp_with_timeout}} & IMEM_ACCESS_TIMEOUT);
-	assign imem_access_resp_valid = resp_with_normal | resp_with_pc_unaligned | resp_with_bus_err | resp_with_timeout;
+		| ({2{resp_with_timeout}} & IMEM_ACCESS_TIMEOUT); // 将"响应超时"编码为2'b11, 使得"响应超时"的优先级最高
+	assign imem_access_resp_valid = 
+		(m_icb_rsp_valid & m_icb_rsp_ready) | // ICB主机响应通道上完成传输
+		resp_with_pc_unaligned | // 给出当前的地址非对齐请求的响应
+		resp_with_timeout; // ICB主机访问超时
 	
 	assign resp_with_normal = m_icb_rsp_valid & m_icb_rsp_ready & (~m_icb_rsp_err);
-	assign resp_with_pc_unaligned = (~m_icb_timeout_flag)
-		& (((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout)
-			| ((pc_unaligned_imdt_resp == "true") & no_trans_processing & (~pc_aligned) & imem_access_req_valid));
+	assign resp_with_pc_unaligned = 
+		((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout)
+		// 允许PC地址非对齐时立即响应
+		| ((pc_unaligned_imdt_resp == "true") & (~m_icb_timeout_flag)
+			& no_trans_processing & (~pc_aligned) & imem_access_req_valid);
 	assign resp_with_bus_err = m_icb_rsp_valid & m_icb_rsp_ready & m_icb_rsp_err;
 	assign resp_with_timeout = m_icb_timeout_idct;
 	
-	// 握手条件: m_icb_rsp_valid & (~m_icb_timeout_flag)
+	// ICB主机响应握手条件: m_icb_rsp_valid & (~m_icb_timeout_flag)
 	//     & (~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout))
-	assign m_icb_rsp_ready = (~m_icb_timeout_flag) & (~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout));
+	assign m_icb_rsp_ready = 
+		(~m_icb_timeout_flag) & // ICB主机访问超时后不再允许新的访问请求
+		// 当给出当前的地址非对齐请求的响应时, 镇压ICB主机的响应通道
+		(~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout));
     
 endmodule

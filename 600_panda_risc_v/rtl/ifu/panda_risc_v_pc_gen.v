@@ -31,11 +31,11 @@ module panda_risc_v_pc_gen #(
 	// 当前的PC
 	input wire[31:0] now_pc,
 	
-	// 复位请求
-	input wire rst_req,
-	// 冲刷请求
-	input wire flush_req,
-	input wire[31:0] flush_addr,
+	// 复位状态
+	input wire to_rst,
+	// 冲刷状态
+	input wire to_flush,
+	input wire[31:0] flush_addr_hold,
 	
 	// RS1读结果
 	input wire[31:0] rs1_v,
@@ -75,9 +75,9 @@ module panda_risc_v_pc_gen #(
 	wire[20:0] pc_add_op2; // 用于生成下一PC的加法器的操作数2
 	wire[31:0] pc_nxt; // 下一PC
 	
-	assign new_pc = rst_req ? RST_PC:
-					flush_req ? flush_addr:
-						pc_nxt;
+	assign new_pc = to_rst ? RST_PC: // 复位请求优先级最高
+					(to_flush ? flush_addr_hold: // 冲刷请求优先级次之
+						pc_nxt);
 	
 	assign pc_add_op1 = to_jump ? prdt_pc_add_op1:now_pc;
 	assign pc_add_op2 = to_jump ? prdt_pc_add_op2:pc_self_incr_ofs;

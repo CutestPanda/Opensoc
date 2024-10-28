@@ -6,6 +6,8 @@
 由外部复位输入, 输出异步复位、同步释放的系统复位, 并在复位释放后的第1个clk
 	产生复位请求
 
+系统复位请求 = 上电复位请求 | 软件复位请求
+
 注意：
 本模块无法处理抖动的外部复位输入
 
@@ -26,6 +28,9 @@ module panda_risc_v_reset #(
 	// 外部复位输入
 	input wire ext_resetn,
 	
+	// 软件复位请求
+	input wire sw_reset,
+	
 	// 系统复位输出
 	output wire sys_resetn,
 	// 系统复位请求
@@ -36,7 +41,7 @@ module panda_risc_v_reset #(
 	reg reset_req;
 	
 	assign sys_resetn = rst_n_d[3];
-	assign sys_reset_req = reset_req;
+	assign sys_reset_req = reset_req | sw_reset;
 	
 	always @(posedge clk or negedge ext_resetn)
 	begin

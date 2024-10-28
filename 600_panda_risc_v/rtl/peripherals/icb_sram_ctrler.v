@@ -61,7 +61,8 @@ module icb_sram_ctrler #(
 	wire on_start_bram_rw; // 启动BRAM读写传输(指示)
 	wire on_finish_bram_rw; // BRAM读写传输完成(指示)
 	
-	assign s_icb_cmd_ready = (~bram_rw_pending) | on_finish_bram_rw;
+	// (~bram_rw_pending) | on_finish_bram_rw
+	assign s_icb_cmd_ready = (~bram_rw_pending) | s_icb_rsp_ready;
 	
 	assign bram_en = on_start_bram_rw;
 	assign bram_wen = {4{~s_icb_cmd_read}} & s_icb_cmd_wmask & 
@@ -74,6 +75,7 @@ module icb_sram_ctrler #(
 	assign bram_din = s_icb_cmd_wdata;
 	
 	assign on_start_bram_rw = s_icb_cmd_valid & s_icb_cmd_ready;
+	assign on_finish_bram_rw = s_icb_rsp_valid & s_icb_rsp_ready;
 	
 	// BRAM读写传输进行中(标志)
 	always @(posedge s_icb_aclk or negedge s_icb_aresetn)
@@ -88,8 +90,6 @@ module icb_sram_ctrler #(
 	assign s_icb_rsp_rdata = bram_dout;
 	assign s_icb_rsp_err = 1'b0;
 	assign s_icb_rsp_valid = bram_rw_pending 
-		| ((wt_trans_imdt_resp == "true") & s_icb_cmd_valid & (~s_icb_cmd_read)); // 写传输的响应在本clk立即给出
-	
-	assign on_finish_bram_rw = s_icb_rsp_valid & s_icb_rsp_ready;
+		| ((wt_trans_imdt_resp == "true") & s_icb_cmd_valid & (~s_icb_cmd_read)); // 允许写传输立即响应
 	
 endmodule

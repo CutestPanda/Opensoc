@@ -17,6 +17,7 @@ module tb_icb_sram_ctrler();
 	/** 配置参数 **/
 	// 待测模块配置
 	localparam en_unaligned_transfer = "true"; // 是否允许非对齐传输
+	localparam wt_trans_imdt_resp = "false"; // 是否允许写传输立即响应
 	// 仿真模型配置
 	localparam integer bram_depth = 2048; // Bram深度
 	// 时钟和复位配置
@@ -73,6 +74,7 @@ module tb_icb_sram_ctrler();
 	
 	icb_sram_ctrler #(
 		.en_unaligned_transfer(en_unaligned_transfer),
+		.wt_trans_imdt_resp(wt_trans_imdt_resp),
 		.simulation_delay(simulation_delay)
 	)dut(
 		.s_icb_aclk(clk),

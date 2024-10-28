@@ -34,6 +34,9 @@ module panda_risc_v_ifu #(
 	// 外部复位输入
 	input wire ext_resetn,
 	
+	// 软件复位请求
+	input wire sw_reset,
+	
 	// 冲刷请求
 	input wire flush_req,
 	input wire[31:0] flush_addr,
@@ -64,11 +67,11 @@ module panda_risc_v_ifu #(
 	input wire m_icb_rsp_inst_valid,
 	output wire m_icb_rsp_inst_ready,
 	
-	// 取指结果(AXIS主机)
-	output wire[127:0] m_axis_if_res_data, // {打包的预译码信息(64bit), 指令对应的PC(32bit), 取到的指令(32bit)}
-	output wire[3:0] m_axis_if_res_user, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
-	output wire m_axis_if_res_valid,
-	input wire m_axis_if_res_ready,
+	// 取指结果
+	output wire[127:0] if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
+	output wire[3:0] if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	output wire if_res_valid,
+	input wire if_res_ready,
 	
 	// 指令总线访问超时标志
 	output wire ibus_timeout
@@ -88,6 +91,8 @@ module panda_risc_v_ifu #(
 		.clk(clk),
 		
 		.ext_resetn(ext_resetn),
+		
+		.sw_reset(sw_reset),
 		
 		.sys_resetn(sys_resetn),
 		.sys_reset_req(sys_reset_req)
@@ -177,10 +182,16 @@ module panda_risc_v_ifu #(
 	);
 	
 	/** 指令存储器访问控制 **/
+	wire to_rst; // 当前正在复位
+	wire to_flush; // 当前正在冲刷
+	wire[31:0] flush_addr_hold; // 保持的冲刷地址
 	wire[31:0] now_pc; // 当前的PC
 	wire[31:0] new_pc; // 新的PC
-	wire jalr_baseaddr_vld; // JALR指令基址读完成
 	wire to_jump; // 是否预测跳转
+	wire[31:0] rs1_v; // RS1读结果
+	wire vld_inst_gotten; // 获取到有效的指令(指示)
+	wire jalr_baseaddr_vld; // JALR指令基址读完成(指示)
+	wire[31:0] jalr_baseaddr_v; // 基址读结果
 	
 	panda_risc_v_imem_access_ctrler #(
 		.simulation_delay(simulation_delay)
@@ -188,17 +199,26 @@ module panda_risc_v_ifu #(
 		.clk(clk),
 		.resetn(sys_resetn),
 		
+		.rst_req(sys_reset_req),
+		.flush_req(flush_req),
+		.flush_addr(flush_addr),
+		
+		.to_rst(to_rst),
+		.to_flush(to_flush),
+		.flush_addr_hold(flush_addr_hold),
 		.now_pc(now_pc),
 		.new_pc(new_pc),
-		.now_inst(now_inst),
+		.to_jump(to_jump),
+		.rs1_v(rs1_v),
 		
+		.now_inst(now_inst),
 		.is_jalr_inst(is_jalr_inst),
 		.illegal_inst(illegal_inst),
 		.pre_decoding_msg_packeted(pre_decoding_msg_packeted),
 		
+		.vld_inst_gotten(vld_inst_gotten),
 		.jalr_baseaddr_vld(jalr_baseaddr_vld),
-		
-		.to_jump(to_jump),
+		.jalr_baseaddr_v(jalr_baseaddr_v),
 		
 		.imem_access_req_addr(imem_access_req_addr),
 		.imem_access_req_read(imem_access_req_read),
@@ -211,23 +231,21 @@ module panda_risc_v_ifu #(
 		.imem_access_resp_err(imem_access_resp_err),
 		.imem_access_resp_valid(imem_access_resp_valid),
 		
-		.m_axis_if_res_data(m_axis_if_res_data),
-		.m_axis_if_res_user(m_axis_if_res_user),
-		.m_axis_if_res_valid(m_axis_if_res_valid),
-		.m_axis_if_res_ready(m_axis_if_res_ready)
+		.if_res_data(if_res_data),
+		.if_res_msg(if_res_msg),
+		.if_res_valid(if_res_valid),
+		.if_res_ready(if_res_ready)
 	);
 	
 	/** 下一PC生成 **/
-	wire[31:0] rs1_v; // RS1读结果
-	
 	panda_risc_v_pc_gen #(
 		.RST_PC(RST_PC)
 	)panda_risc_v_pc_gen_u(
 		.now_pc(now_pc),
 		
-		.rst_req(sys_reset_req),
-		.flush_req(flush_req),
-		.flush_addr(flush_addr),
+		.to_rst(to_rst),
+		.to_flush(to_flush),
+		.flush_addr_hold(flush_addr_hold),
 		
 		.rs1_v(rs1_v),
 		
@@ -249,6 +267,9 @@ module panda_risc_v_ifu #(
 		.clk(clk),
 		.resetn(sys_resetn),
 		
+		.to_rst(to_rst),
+		.to_flush(to_flush),
+		
 		.rs1_raw_dpc(rs1_raw_dpc),
 		
 		.rs1_id(rs1_id),
@@ -259,10 +280,10 @@ module panda_risc_v_ifu #(
 		.jalr_reg_file_rd_p0_grant(jalr_reg_file_rd_p0_grant),
 		.jalr_reg_file_rd_p0_dout(jalr_reg_file_rd_p0_dout),
 		
-		.imem_access_resp_valid(imem_access_resp_valid),
+		.vld_inst_gotten(vld_inst_gotten),
 		.is_jalr_inst(is_jalr_inst),
 		.jalr_baseaddr_vld(jalr_baseaddr_vld),
-		.jalr_baseaddr_v(rs1_v)
+		.jalr_baseaddr_v(jalr_baseaddr_v)
 	);
 	
 endmodule
