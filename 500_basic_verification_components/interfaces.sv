@@ -462,3 +462,101 @@ interface FIFO #(
     );
 
 endinterface
+
+/** 接口:req-ack **/
+interface ReqAck #(
+    real out_drive_t = 1, // 输出驱动延迟量
+    integer req_payload_width = 32, // 请求数据位宽
+	integer resp_payload_width = 32 // 响应数据位宽
+)(
+    input clk,
+	input rst_n
+);
+	
+	logic req;
+	logic[req_payload_width-1:0] req_payload;
+	
+	logic ack;
+	logic[resp_payload_width-1:0] resp_payload;
+	
+	clocking cb_master @(posedge clk);
+        output #out_drive_t req, req_payload;
+    endclocking
+	
+	clocking cb_slave @(posedge clk);
+        output #out_drive_t ack, resp_payload;
+    endclocking
+	
+	modport master(
+		input clk, rst_n, 
+        input ack, resp_payload, 
+        clocking cb_master
+    );
+	
+	modport slave(
+		input clk, rst_n, 
+		input req, req_payload, 
+        clocking cb_slave
+    );
+	
+	modport monitor(
+		input clk, rst_n, 
+		input req, req_payload, 
+        input ack, resp_payload
+    );
+	
+endinterface
+
+/** 接口:ICB **/
+interface ICB #(
+    real out_drive_t = 1, // 输出驱动延迟量
+    integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)(
+    input clk,
+	input rst_n
+);
+	
+	logic[addr_width-1:0] cmd_addr;
+	logic cmd_read;
+	logic[data_width-1:0] cmd_wdata;
+	logic[data_width/8-1:0] cmd_wmask;
+	logic cmd_valid;
+	logic cmd_ready;
+	
+	logic[data_width-1:0] rsp_rdata;
+	logic rsp_err;
+	logic rsp_valid;
+	logic rsp_ready;
+	
+	clocking cb_master @(posedge clk);
+        output #out_drive_t cmd_addr, cmd_read, cmd_wdata, cmd_wmask, cmd_valid;
+		output #out_drive_t rsp_ready;
+    endclocking
+	
+	clocking cb_slave @(posedge clk);
+        output #out_drive_t cmd_ready;
+		output #out_drive_t rsp_rdata, rsp_err, rsp_valid;
+    endclocking
+	
+	modport master(
+		input clk, rst_n, 
+        input cmd_valid, cmd_ready, 
+		input rsp_rdata, rsp_err, rsp_valid, rsp_ready,
+        clocking cb_master
+    );
+	
+	modport slave(
+		input clk, rst_n, 
+		input cmd_addr, cmd_read, cmd_wdata, cmd_wmask, cmd_valid, cmd_ready, 
+		input rsp_valid, rsp_ready, 
+        clocking cb_slave
+    );
+	
+	modport monitor(
+		input clk, rst_n, 
+		input cmd_addr, cmd_read, cmd_wdata, cmd_wmask, cmd_valid, cmd_ready, 
+		input rsp_rdata, rsp_err, rsp_valid, rsp_ready
+    );
+	
+endinterface

@@ -221,4 +221,56 @@ class AHBTrans #(
 	
 endclass
 
+/** 事务:req-ack **/
+class ReqAckTrans #(
+	integer req_payload_width = 32, // 请求数据位宽
+	integer resp_payload_width = 32 // 响应数据位宽
+)extends uvm_sequence_item;
+	
+	// 请求
+	rand bit[req_payload_width-1:0] req_payload; // 数据
+	rand byte unsigned req_wait_period_n; // 等待周期数
+	
+	// 响应
+	rand bit[resp_payload_width-1:0] resp_payload; // 数据
+	rand byte unsigned resp_wait_period_n; // 等待周期数
+	
+	`uvm_object_param_utils_begin(ReqAckTrans #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)))
+		`uvm_field_int(req_payload, UVM_ALL_ON)
+		`uvm_field_int(req_wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(resp_payload, UVM_ALL_ON)
+		`uvm_field_int(resp_wait_period_n, UVM_ALL_ON)
+	`uvm_object_utils_end
+	
+endclass
+
+/** 事务:ICB **/
+class ICBTrans #(
+	integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)extends uvm_sequence_item;
+	
+	rand bit[addr_width-1:0] cmd_addr;
+	rand bit cmd_read;
+	rand bit[data_width-1:0] cmd_wdata;
+	rand bit[data_width/8-1:0] cmd_wmask;
+	rand byte unsigned cmd_wait_period_n; // 等待周期数
+	
+	rand bit[data_width-1:0] rsp_rdata;
+	rand bit rsp_err;
+	rand byte unsigned rsp_wait_period_n; // 等待周期数
+	
+	`uvm_object_param_utils_begin(ICBTrans #(.addr_width(addr_width), .data_width(data_width)))
+		`uvm_field_int(cmd_addr, UVM_ALL_ON)
+		`uvm_field_int(cmd_read, UVM_ALL_ON)
+		`uvm_field_int(cmd_wdata, UVM_ALL_ON)
+		`uvm_field_int(cmd_wmask, UVM_ALL_ON)
+		`uvm_field_int(cmd_wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(rsp_rdata, UVM_ALL_ON)
+		`uvm_field_int(rsp_err, UVM_ALL_ON)
+		`uvm_field_int(rsp_wait_period_n, UVM_ALL_ON)
+	`uvm_object_utils_end
+	
+endclass
+
 `endif

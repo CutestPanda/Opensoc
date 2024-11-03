@@ -4,6 +4,7 @@
 
 `define __AGENT_H
 
+// 打开以下宏以启用agent
 // `define BlkCtrlMstAgt
 // `define AXIMstAgt
 // `define AXISlvAgt
@@ -12,6 +13,9 @@
 // `define APBSlvAgt
 // `define APBMstAgt
 // `define AHBMstAgt
+// `define ReqAckMstAgt
+// `define ICBMstAgt
+// `define ICBSlvAgt
 
 `include "transactions.sv"
 `include "sequencers.sv"
@@ -434,6 +438,171 @@ class AHBMasterAgent #(
 			this.driver.seq_item_port.connect(this.sequencer.seq_item_export); // 连接sequence-port
 		
 		this.ahb_analysis_port = this.monitor.in_analysis_port;
+	endfunction
+	
+endclass
+`endif
+
+/** 代理:req-ack主机 **/
+`ifdef ReqAckMstAgt
+class ReqAckMasterAgent #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer req_payload_width = 32, // 请求数据位宽
+	integer resp_payload_width = 32 // 响应数据位宽
+)extends uvm_agent;
+	
+	// 组件
+	local ReqAckSequencer #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)) sequencer; // 序列发生器
+	local ReqAckMasterDriver #(.out_drive_t(out_drive_t), 
+		.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)) driver; // 驱动器
+	local ReqAckMonitor #(.out_drive_t(out_drive_t), 
+		.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)) monitor; // 监测器
+	
+	// 通信端口
+	uvm_analysis_port #(ReqAckTrans #(.req_payload_width(req_payload_width), 
+		.resp_payload_width(resp_payload_width))) req_ack_analysis_port;
+	
+	// 注册component
+	`uvm_component_param_utils(ReqAckMasterAgent #(.out_drive_t(out_drive_t), .req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)))
+	
+	function new(string name = "ReqAckMasterAgent", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase);
+		super.build_phase(phase);
+		
+		if (this.is_active == UVM_ACTIVE)
+		begin
+		  this.sequencer = ReqAckSequencer #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width))
+			::type_id::create("sqr", this); // 创建sequencer
+		  this.driver = ReqAckMasterDriver #(.out_drive_t(out_drive_t), 
+			.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width))
+			::type_id::create("drv", this); // 创建driver
+		end
+		
+		this.monitor = ReqAckMonitor #(.out_drive_t(out_drive_t), 
+			.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width))
+			::type_id::create("mon", this); // 创建monitor
+		
+		`uvm_info("ReqAckMasterAgent", "ReqAckMasterAgent built!", UVM_LOW)
+	endfunction
+	
+	virtual function void connect_phase(uvm_phase phase);
+		super.connect_phase(phase);
+		
+		if(this.is_active == UVM_ACTIVE)
+			this.driver.seq_item_port.connect(this.sequencer.seq_item_export); // 连接sequence-port
+		
+		this.req_ack_analysis_port = this.monitor.in_analysis_port;
+	endfunction
+	
+endclass
+`endif
+
+/** 代理:ICB主机 **/
+`ifdef ICBMstAgt
+class ICBMasterAgent #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)extends uvm_agent;
+	
+	// 组件
+	local ICBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
+	local ICBMasterDriver #(.out_drive_t(out_drive_t), 
+		.addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
+	local ICBMonitor #(.out_drive_t(out_drive_t), 
+		.addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
+	
+	// 通信端口
+	uvm_analysis_port #(ICBTrans #(.addr_width(addr_width), .data_width(data_width))) icb_analysis_port;
+	
+	// 注册component
+	`uvm_component_param_utils(ICBMasterAgent #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)))
+	
+	function new(string name = "ICBMasterAgent", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase);
+		super.build_phase(phase);
+		
+		if (this.is_active == UVM_ACTIVE)
+		begin
+		  this.sequencer = ICBSequencer #(.addr_width(addr_width), .data_width(data_width))
+			::type_id::create("sqr", this); // 创建sequencer
+		  this.driver = ICBMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width))
+			::type_id::create("drv", this); // 创建driver
+		end
+		
+		this.monitor = ICBMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width))
+			::type_id::create("mon", this); // 创建monitor
+		
+		`uvm_info("ICBMasterAgent", "ICBMasterAgent built!", UVM_LOW)
+	endfunction
+	
+	virtual function void connect_phase(uvm_phase phase);
+		super.connect_phase(phase);
+		
+		if(this.is_active == UVM_ACTIVE)
+			this.driver.seq_item_port.connect(this.sequencer.seq_item_export); // 连接sequence-port
+		
+		this.icb_analysis_port = this.monitor.in_analysis_port;
+	endfunction
+	
+endclass
+`endif
+
+/** 代理:ICB从机 **/
+`ifdef ICBSlvAgt
+class ICBSlaveAgent #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)extends uvm_agent;
+	
+	// 组件
+	local ICBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
+	local ICBSlaveDriver #(.out_drive_t(out_drive_t), 
+		.addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
+	local ICBMonitor #(.out_drive_t(out_drive_t), 
+		.addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
+	
+	// 通信端口
+	uvm_analysis_port #(ICBTrans #(.addr_width(addr_width), .data_width(data_width))) icb_analysis_port;
+	
+	// 注册component
+	`uvm_component_param_utils(ICBSlaveAgent #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)))
+	
+	function new(string name = "ICBSlaveAgent", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase);
+		super.build_phase(phase);
+		
+		if (this.is_active == UVM_ACTIVE)
+		begin
+		  this.sequencer = ICBSequencer #(.addr_width(addr_width), .data_width(data_width))
+			::type_id::create("sqr", this); // 创建sequencer
+		  this.driver = ICBSlaveDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width))
+			::type_id::create("drv", this); // 创建driver
+		end
+		
+		this.monitor = ICBMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width))
+			::type_id::create("mon", this); // 创建monitor
+		
+		`uvm_info("ICBSlaveAgent", "ICBSlaveAgent built!", UVM_LOW)
+	endfunction
+	
+	virtual function void connect_phase(uvm_phase phase);
+		super.connect_phase(phase);
+		
+		if(this.is_active == UVM_ACTIVE)
+			this.driver.seq_item_port.connect(this.sequencer.seq_item_export); // 连接sequence-port
+		
+		this.icb_analysis_port = this.monitor.in_analysis_port;
 	endfunction
 	
 endclass

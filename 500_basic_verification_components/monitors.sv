@@ -4,10 +4,13 @@
 
 `define __MONITOR_H
 
+// 打开以下宏以启用monitor
 // `define AXIMon
 // `define APBMon
 // `define AXISMon
 // `define AHBMon
+// `define ReqAckMon
+// `define ICBMon
 
 `include "transactions.sv"
 
@@ -579,6 +582,179 @@ class AHBMonitor #(
 			// `uvm_info("AHBMonitor", $sformatf("AHBMonitor got transaction(i = %d)!", this.trans_i), UVM_LOW)
 			// this.ahb_trans.print();
 			this.trans_i++;
+		end
+	endtask
+	
+endclass
+`endif
+
+`ifdef ReqAckMon
+/** 监测器: req-ack **/
+class ReqAckMonitor #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer req_payload_width = 32, // 请求数据位宽
+	integer resp_payload_width = 32 // 响应数据位宽
+)extends uvm_monitor;
+	
+	// req-ack虚接口
+	local virtual ReqAck #(.out_drive_t(out_drive_t), 
+		.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)).monitor req_ack_if;
+	
+	local int unsigned trans_i; // 事务id
+	
+	local ReqAckTrans #(.req_payload_width(req_payload_width), 
+		.resp_payload_width(resp_payload_width)) req_ack_trans; // req-ack事务
+	
+	// 通信端口
+	uvm_analysis_port #(ReqAckTrans #(.req_payload_width(req_payload_width), 
+		.resp_payload_width(resp_payload_width))) in_analysis_port;
+	
+	// 注册component
+	`uvm_component_param_utils(ReqAckMonitor #(.out_drive_t(out_drive_t), .req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)))
+	
+	function new(string name = "ReqAckMonitor", uvm_component parent = null);
+		super.new(name, parent);
+		
+		this.trans_i = 0;
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase);
+		super.build_phase(phase);
+		
+		// 获取虚接口
+		if(!uvm_config_db #(virtual ReqAck #(.out_drive_t(out_drive_t), 
+			.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)).monitor)::
+			get(this, "", "req_ack_if", this.req_ack_if))
+		begin
+			`uvm_fatal("ReqAckMonitor", "virtual interface must be set for req_ack_if!!!")
+		end
+		
+		// 创建通信端口
+		this.in_analysis_port = new("monitor_in_analysis_port", this);
+		
+		`uvm_info("ReqAckMonitor", "ReqAckMonitor built!", UVM_LOW)
+	endfunction
+	
+	virtual task main_phase(uvm_phase phase);
+		@(posedge this.req_ack_if.clk iff this.req_ack_if.rst_n); // 等待复位释放
+		
+		forever
+		begin
+			// 等待响应
+			while(!(this.req_ack_if.req & this.req_ack_if.ack))
+			begin
+				@(posedge this.req_ack_if.clk iff this.req_ack_if.rst_n);
+			end
+			
+			// 创建req-ack事务
+			this.req_ack_trans = new();
+			this.req_ack_trans.req_payload = this.req_ack_if.req_payload;
+			this.req_ack_trans.resp_payload = this.req_ack_if.resp_payload;
+			
+			// 传递req-ack事务
+			this.in_analysis_port.write(this.req_ack_trans);
+			
+			// 打印req-ack事务
+			// `uvm_info("ReqAckMonitor", $sformatf("ReqAckMonitor got transaction(i = %d)!", this.trans_i), UVM_LOW)
+			// this.req_ack_trans.print();
+			this.trans_i++;
+			
+			// 等待1clk
+			@(posedge this.req_ack_if.clk iff this.req_ack_if.rst_n);
+		end
+	endtask
+	
+endclass
+`endif
+
+`ifdef ICBMon
+/** 监测器:ICB **/
+class ICBMonitor #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)extends uvm_monitor;
+	
+	// ICB虚接口
+	local virtual ICB #(.out_drive_t(out_drive_t), 
+		.addr_width(addr_width), .data_width(data_width)).monitor icb_if;
+	
+	local int unsigned trans_i; // 事务id
+	
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_cmd_trans; // ICB命令通道事务
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_cmd_trans_fifo[$]; // ICB命令通道事务fifo
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_trans; // ICB命令通道事务
+	
+	// 通信端口
+	uvm_analysis_port #(ICBTrans #(.addr_width(addr_width), .data_width(data_width))) in_analysis_port;
+	
+	// 注册component
+	`uvm_component_param_utils(ICBMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)))
+	
+	function new(string name = "ICBMonitor", uvm_component parent = null);
+		super.new(name, parent);
+		
+		this.trans_i = 0;
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase);
+		super.build_phase(phase);
+		
+		// 获取虚接口
+		if(!uvm_config_db #(virtual ICB #(.out_drive_t(out_drive_t), 
+			.addr_width(addr_width), .data_width(data_width)).monitor)::
+			get(this, "", "icb_if", this.icb_if))
+		begin
+			`uvm_fatal("ICBMonitor", "virtual interface must be set for icb_if!!!")
+		end
+		
+		// 创建通信端口
+		this.in_analysis_port = new("monitor_in_analysis_port", this);
+		
+		`uvm_info("ICBMonitor", "ICBMonitor built!", UVM_LOW)
+	endfunction
+	
+	virtual task main_phase(uvm_phase phase);
+		@(posedge this.icb_if.clk iff this.icb_if.rst_n); // 等待复位释放
+		
+		forever
+		begin
+			if(this.icb_if.cmd_valid & this.icb_if.cmd_ready) // 命令通道握手
+			begin
+				this.icb_cmd_trans = new();
+				
+				this.icb_cmd_trans.cmd_addr = this.icb_if.cmd_addr;
+				this.icb_cmd_trans.cmd_read = this.icb_if.cmd_read;
+				this.icb_cmd_trans.cmd_wdata = this.icb_if.cmd_wdata;
+				this.icb_cmd_trans.cmd_wmask = this.icb_if.cmd_wmask;
+				
+				this.icb_cmd_trans_fifo.push_back(this.icb_cmd_trans);
+			end
+			
+			if(this.icb_if.rsp_valid)
+			begin
+				if(this.icb_cmd_trans_fifo.size() == 0) // 响应通道在命令通道握手之前有效
+				begin
+					`uvm_error("ICBMonitor", "RSP vld before CMD!")
+				end
+				else if(this.icb_if.rsp_ready) // 响应通道握手且ICB命令通道事务fifo非空
+				begin
+					this.icb_trans = this.icb_cmd_trans_fifo.pop_front();
+					
+					this.icb_trans.rsp_rdata = this.icb_if.rsp_rdata;
+					this.icb_trans.rsp_err = this.icb_if.rsp_err;
+					
+					// 传递ICB事务
+					this.in_analysis_port.write(this.icb_trans);
+					
+					// 打印ICB事务
+					// `uvm_info("ICBMonitor", $sformatf("ICBMonitor got transaction(i = %d)!", this.trans_i), UVM_LOW)
+					// this.icb_trans.print();
+					this.trans_i++;
+				end
+			end
+			
+			@(posedge this.icb_if.clk iff this.icb_if.rst_n);
 		end
 	endtask
 	

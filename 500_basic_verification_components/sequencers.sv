@@ -6,11 +6,14 @@
 
 `include "transactions.sv"
 
+// 打开以下宏以启用sequencer
 // `define BlkCtrlSeqr
 // `define AXISeqr
 // `define APBSeqr
 // `define AXISSeqr
 // `define AHBSeqr
+// `define ReqAckSeqr
+// `define ICBSeqr
 
 /** 序列发生器:块级控制 **/
 `ifdef BlkCtrlSeqr
@@ -94,6 +97,40 @@ class AHBSequencer #(
 	`uvm_component_param_utils(AHBSequencer #(.addr_width(addr_width), .data_width(data_width), .burst_width(burst_width), .prot_width(prot_width), .master_width(master_width)))
 	
 	function new(string name = "AHBSequencer", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+endclass
+`endif
+
+/** 序列发生器:req-ack **/
+`ifdef ReqAckSeqr
+class ReqAckSequencer #(
+    integer req_payload_width = 32, // 请求数据位宽
+	integer resp_payload_width = 32 // 响应数据位宽
+)extends uvm_sequencer #(ReqAckTrans #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)));
+	
+	// 注册component
+	`uvm_component_param_utils(ReqAckSequencer #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)))
+	
+	function new(string name = "ReqAckSequencer", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+endclass
+`endif
+
+/** 序列发生器:ICB **/
+`ifdef ICBSeqr
+class ICBSequencer #(
+	integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)extends uvm_sequencer #(ICBTrans #(.addr_width(addr_width), .data_width(data_width)));
+	
+	// 注册component
+	`uvm_component_param_utils(ICBSequencer #(.addr_width(addr_width), .data_width(data_width)))
+	
+	function new(string name = "ICBSequencer", uvm_component parent = null);
 		super.new(name, parent);
 	endfunction
 	

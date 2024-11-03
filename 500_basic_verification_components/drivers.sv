@@ -6,11 +6,14 @@
 
 `include "transactions.sv"
 
+// 打开以下宏以启用driver
 // `define BlkCtrlDriver
 // `define AXIDriver
 // `define APBDriver
 // `define AXISDriver
 // `define AHBDriver
+// `define ReqAckDriver
+// `define ICBDriver
 
 /** 驱动器:块级控制主机 **/
 `ifdef BlkCtrlDriver
@@ -1049,6 +1052,385 @@ class AHBMasterDriver #(
 		
 		this.ahb_if.cb_master.hwdata <= {data_width{1'bx}};
 		this.ahb_if.cb_master.hwstrb <= {(data_width/8){1'bx}};
+	endtask
+	
+endclass
+`endif
+
+`ifdef ReqAckDriver
+/** 驱动器:req-ack主机 **/
+class ReqAckMasterDriver #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer req_payload_width = 32, // 请求数据位宽
+	integer resp_payload_width = 32 // 响应数据位宽
+)extends uvm_driver #(ReqAckTrans #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)));
+	
+	// req-ack虚接口
+	local virtual ReqAck #(.out_drive_t(out_drive_t), 
+		.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)).master req_ack_if;
+	
+	// 注册component
+	`uvm_component_param_utils(ReqAckMasterDriver #(.out_drive_t(out_drive_t), .req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)))
+	
+	function new(string name = "ReqAckMasterDriver", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase); 
+		super.build_phase(phase);
+		
+		// 获取虚接口
+		if(!uvm_config_db #(virtual ReqAck #(.out_drive_t(out_drive_t), 
+			.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)).master)::
+			get(this, "", "req_ack_if", this.req_ack_if))
+		begin
+			`uvm_fatal("ReqAckMasterDriver", "virtual interface must be set for req_ack_if!!!")
+		end
+		
+		`uvm_info("ReqAckMasterDriver", "ReqAckMasterDriver built!", UVM_LOW)
+	endfunction
+	
+	virtual task main_phase(uvm_phase phase);
+		// 初始化总线为无效状态
+		this.rst_bus();
+		
+		// 等待复位释放
+		@(posedge this.req_ack_if.clk iff this.req_ack_if.rst_n);
+		
+		fork
+			forever
+			begin
+				this.seq_item_port.get_next_item(this.req); // 获取下一事务
+				// `uvm_info("ReqAckMasterDriver", "ReqAckMasterDriver got transaction!", UVM_LOW)
+				// this.req.print();
+				this.drive_item(this.req); // 驱动当前事务
+				this.seq_item_port.item_done(); // 发送信号:本事务已完成
+			end
+		join_none
+	endtask
+	
+	local task drive_item(ref ReqAckTrans #(.req_payload_width(req_payload_width), 
+		.resp_payload_width(resp_payload_width)) tr);
+		// 请求有效前等待
+		repeat(tr.req_wait_period_n)
+		begin
+			@(posedge this.req_ack_if.clk iff this.req_ack_if.rst_n);
+		end
+		
+		// 请求有效
+		this.req_ack_if.cb_master.req <= 1'b1;
+		this.req_ack_if.cb_master.req_payload <= tr.req_payload;
+		
+		// 等待响应有效
+		do
+		begin
+			@(posedge this.req_ack_if.clk iff this.req_ack_if.rst_n);
+		end
+		while(!this.req_ack_if.ack);
+		
+		// 复位总线
+		this.rst_bus();
+	endtask
+	
+	local task rst_bus();
+		this.req_ack_if.cb_master.req <= 1'b0;
+		this.req_ack_if.cb_master.req_payload <= {req_payload_width{1'bx}};
+	endtask
+	
+endclass
+`endif
+
+`ifdef ICBDriver
+/** 驱动器:ICB从机 **/
+class ICBSlaveDriver #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)extends uvm_driver #(ICBTrans #(.addr_width(addr_width), .data_width(data_width)));
+	
+	// ICB虚接口
+	local virtual ICB #(.out_drive_t(out_drive_t), 
+		.addr_width(addr_width), .data_width(data_width)).slave icb_if;
+	
+	// ICB事务
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_new_trans;
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_cmd_fifo[$];
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_rsp_fifo[$];
+	
+	// 注册component
+	`uvm_component_param_utils(ICBSlaveDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)))
+	
+	function new(string name = "ICBSlaveDriver", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase); 
+		super.build_phase(phase);
+		
+		// 获取虚接口
+		if(!uvm_config_db #(virtual ICB #(.out_drive_t(out_drive_t), 
+			.addr_width(addr_width), .data_width(data_width)).slave)::
+			get(this, "", "icb_if", this.icb_if))
+		begin
+			`uvm_fatal("ICBSlaveDriver", "virtual interface must be set for icb_if!!!")
+		end
+		
+		`uvm_info("ICBSlaveDriver", "ICBSlaveDriver built!", UVM_LOW)
+	endfunction
+	
+	virtual task main_phase(uvm_phase phase);
+		// 初始化总线为无效状态
+		this.icb_if.cb_slave.cmd_ready <= 1'b0;
+		this.icb_if.cb_slave.rsp_rdata <= {data_width{1'bx}};
+		this.icb_if.cb_slave.rsp_err <= 1'bx;
+		this.icb_if.cb_slave.rsp_valid <= 1'b0;
+		
+		// 等待复位释放
+		@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+		
+		fork
+			this.get_trans();
+			this.drive_cmd_chn();
+			this.drive_rsp_chn();
+		join_none
+	endtask
+	
+	local task get_trans();
+		forever
+		begin
+			wait((this.icb_cmd_fifo.size() <= 3) && (this.icb_rsp_fifo.size() <= 3));
+			
+			this.seq_item_port.get_next_item(this.req); // 获取下一事务
+			// `uvm_info("ICBSlaveDriver", "ICBSlaveDriver got transaction!", UVM_LOW)
+			// this.req.print();
+			
+			// 将ICB事务拆分装入命令和响应通道事务fifo
+			this.icb_new_trans = new();
+			this.icb_new_trans.cmd_wait_period_n = this.req.cmd_wait_period_n;
+			this.icb_cmd_fifo.push_back(this.icb_new_trans);
+			this.icb_new_trans = new();
+			this.icb_new_trans.rsp_rdata = this.req.rsp_rdata;
+			this.icb_new_trans.rsp_err = this.req.rsp_err;
+			this.icb_new_trans.rsp_wait_period_n = this.req.rsp_wait_period_n;
+			this.icb_rsp_fifo.push_back(this.icb_new_trans);
+			
+			this.seq_item_port.item_done(); // 发送信号:本事务已完成
+		end
+	endtask
+	
+	local task drive_cmd_chn();
+		forever
+		begin
+			automatic ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_trans;
+			
+			wait(this.icb_cmd_fifo.size() > 0);
+			
+			icb_trans = this.icb_cmd_fifo.pop_front();
+			
+			// ready前等待
+			repeat(icb_trans.cmd_wait_period_n)
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			
+			// 命令通道ready
+			this.icb_if.cb_slave.cmd_ready <= 1'b1;
+			
+			// 等待命令通道握手
+			do
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			while(!(this.icb_if.cmd_valid & this.icb_if.cmd_ready));
+			
+			// 复位命令通道
+			this.icb_if.cb_slave.cmd_ready <= 1'b0;
+		end
+	endtask
+	
+	local task drive_rsp_chn();
+		forever
+		begin
+			automatic ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_trans;
+			
+			wait(this.icb_rsp_fifo.size() > 0);
+			
+			icb_trans = this.icb_rsp_fifo.pop_front();
+			
+			// valid前等待
+			repeat(icb_trans.rsp_wait_period_n)
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			
+			// 响应通道valid
+			this.icb_if.cb_slave.rsp_rdata <= icb_trans.rsp_rdata;
+			this.icb_if.cb_slave.rsp_err <= icb_trans.rsp_err;
+			this.icb_if.cb_slave.rsp_valid <= 1'b1;
+			
+			// 等待响应通道握手
+			do
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			while(!(this.icb_if.rsp_valid & this.icb_if.rsp_ready));
+			
+			// 复位响应通道
+			this.icb_if.cb_slave.rsp_rdata <= {data_width{1'bx}};
+			this.icb_if.cb_slave.rsp_err <= 1'bx;
+			this.icb_if.cb_slave.rsp_valid <= 1'b0;
+		end
+	endtask
+	
+endclass
+
+/** 驱动器:ICB主机 **/
+class ICBMasterDriver #(
+	real out_drive_t = 1, // 输出驱动延迟量
+    integer addr_width = 32, // 地址位宽
+	integer data_width = 32 // 数据位宽
+)extends uvm_driver #(ICBTrans #(.addr_width(addr_width), .data_width(data_width)));
+	
+	// ICB虚接口
+	local virtual ICB #(.out_drive_t(out_drive_t), 
+		.addr_width(addr_width), .data_width(data_width)).master icb_if;
+	
+	// ICB事务
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_new_trans;
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_cmd_fifo[$];
+	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_rsp_fifo[$];
+	
+	// 注册component
+	`uvm_component_param_utils(ICBMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)))
+	
+	function new(string name = "ICBMasterDriver", uvm_component parent = null);
+		super.new(name, parent);
+	endfunction
+	
+	virtual function void build_phase(uvm_phase phase); 
+		super.build_phase(phase);
+		
+		// 获取虚接口
+		if(!uvm_config_db #(virtual ICB #(.out_drive_t(out_drive_t), 
+			.addr_width(addr_width), .data_width(data_width)).master)::
+			get(this, "", "icb_if", this.icb_if))
+		begin
+			`uvm_fatal("ICBMasterDriver", "virtual interface must be set for icb_if!!!")
+		end
+		
+		`uvm_info("ICBMasterDriver", "ICBMasterDriver built!", UVM_LOW)
+	endfunction
+	
+	virtual task main_phase(uvm_phase phase);
+		// 初始化总线为无效状态
+		this.icb_if.cb_master.cmd_addr <= {addr_width{1'bx}};
+		this.icb_if.cb_master.cmd_read <= 1'bx;
+		this.icb_if.cb_master.cmd_wdata <= {data_width{1'bx}};
+		this.icb_if.cb_master.cmd_wmask <= {(data_width/8){1'bx}};
+		this.icb_if.cb_master.cmd_valid <= 1'b0;
+		this.icb_if.cb_master.rsp_ready <= 1'b0;
+		
+		// 等待复位释放
+		@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+		
+		fork
+			this.get_trans();
+			this.drive_cmd_chn();
+			this.drive_rsp_chn();
+		join_none
+	endtask
+	
+	local task get_trans();
+		forever
+		begin
+			wait((this.icb_cmd_fifo.size() <= 3) && (this.icb_rsp_fifo.size() <= 3));
+			
+			this.seq_item_port.get_next_item(this.req); // 获取下一事务
+			// `uvm_info("ICBMasterDriver", "ICBMasterDriver got transaction!", UVM_LOW)
+			// this.req.print();
+			
+			// 将ICB事务拆分装入命令和响应通道事务fifo
+			this.icb_new_trans = new();
+			this.icb_new_trans.cmd_addr = this.req.cmd_addr;
+			this.icb_new_trans.cmd_read = this.req.cmd_read;
+			this.icb_new_trans.cmd_wdata = this.req.cmd_wdata;
+			this.icb_new_trans.cmd_wmask = this.req.cmd_wmask;
+			this.icb_new_trans.cmd_wait_period_n = this.req.cmd_wait_period_n;
+			this.icb_cmd_fifo.push_back(this.icb_new_trans);
+			this.icb_new_trans = new();
+			this.icb_new_trans.rsp_wait_period_n = this.req.rsp_wait_period_n;
+			this.icb_rsp_fifo.push_back(this.icb_new_trans);
+			
+			this.seq_item_port.item_done(); // 发送信号:本事务已完成
+		end
+	endtask
+	
+	local task drive_cmd_chn();
+		forever
+		begin
+			automatic ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_trans;
+			
+			wait(this.icb_cmd_fifo.size() > 0);
+			
+			icb_trans = this.icb_cmd_fifo.pop_front();
+			
+			// valid前等待
+			repeat(icb_trans.cmd_wait_period_n)
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			
+			// 命令通道valid
+			this.icb_if.cb_master.cmd_addr <= icb_trans.cmd_addr;
+			this.icb_if.cb_master.cmd_read <= icb_trans.cmd_read;
+			this.icb_if.cb_master.cmd_wdata <= icb_trans.cmd_wdata;
+			this.icb_if.cb_master.cmd_wmask <= icb_trans.cmd_wmask;
+			this.icb_if.cb_master.cmd_valid <= 1'b1;
+			
+			// 等待命令通道握手
+			do
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			while(!(this.icb_if.cmd_valid & this.icb_if.cmd_ready));
+			
+			// 复位命令通道
+			this.icb_if.cb_master.cmd_addr <= {addr_width{1'bx}};
+			this.icb_if.cb_master.cmd_read <= 1'bx;
+			this.icb_if.cb_master.cmd_wdata <= {data_width{1'bx}};
+			this.icb_if.cb_master.cmd_wmask <= {(data_width/8){1'bx}};
+			this.icb_if.cb_master.cmd_valid <= 1'b0;
+		end
+	endtask
+	
+	local task drive_rsp_chn();
+		forever
+		begin
+			automatic ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_trans;
+			
+			wait(this.icb_rsp_fifo.size() > 0);
+			
+			icb_trans = this.icb_rsp_fifo.pop_front();
+			
+			// ready前等待
+			repeat(icb_trans.rsp_wait_period_n)
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			
+			// 响应通道ready
+			this.icb_if.cb_master.rsp_ready <= 1'b1;
+			
+			// 等待响应通道握手
+			do
+			begin
+				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
+			end
+			while(!(this.icb_if.rsp_valid & this.icb_if.rsp_ready));
+			
+			// 复位响应通道
+			this.icb_if.cb_master.rsp_ready <= 1'b0;
+		end
 	endtask
 	
 endclass
