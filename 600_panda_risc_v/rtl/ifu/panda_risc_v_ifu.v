@@ -33,6 +33,8 @@ module panda_risc_v_ifu #(
 	input wire clk,
 	// 外部复位输入
 	input wire ext_resetn,
+	// 系统复位输出
+	output wire sys_resetn,
 	
 	// 软件复位请求
 	input wire sw_reset,
@@ -82,7 +84,6 @@ module panda_risc_v_ifu #(
 	localparam pc_unaligned_imdt_resp = "false"; // 是否允许PC地址非对齐时立即响应
 	
 	/** 复位处理 **/
-	wire sys_resetn; // 系统复位输出
 	wire sys_reset_req; // 系统复位请求
 	
 	panda_risc_v_reset #(

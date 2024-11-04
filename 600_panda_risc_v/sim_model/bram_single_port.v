@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 /********************************************************************
-本模块: 单端口Bram(仿真模型)
+本模块: 单端口Bram
 
 描述: 
 可选读延迟1clk或2clk
@@ -22,6 +22,7 @@ module bram_single_port #(
     parameter integer mem_width = 32, // 存储器位宽
     parameter integer mem_depth = 4096, // 存储器深度
     parameter INIT_FILE = "no_init", // 初始化文件路径
+	parameter byte_write_mode = "false", // 是否使用字节使能模式(no_change模式下不可用)
     parameter integer simulation_delay = 1 // 仿真延时
 )
 (
@@ -30,7 +31,7 @@ module bram_single_port #(
     
     // mem read/write
     input wire en,
-    input wire wen,
+    input wire[((byte_write_mode == "true") ? (mem_width / 8):1)-1:0] wen,
     input wire[clogb2(mem_depth-1):0] addr,
     input wire[mem_width-1:0] din,
     output wire[mem_width-1:0] dout
@@ -73,7 +74,7 @@ module bram_single_port #(
     endgenerate
     
     // 读写控制逻辑
-    
+	genvar byte_lane_i;
     generate
         if(rw_mode == "no_change")
         begin
@@ -92,14 +93,32 @@ module bram_single_port #(
         else if(rw_mode == "read_first")
         begin
             // 读优先模式
-            always @(posedge clk)
-            begin
-                if(en)
-                begin
-                    if(wen)
-                        #simulation_delay mem[addr] <= din;
-                end
-            end
+			if(byte_write_mode == "true")
+			begin
+				for(byte_lane_i = 0;byte_lane_i < mem_width / 8;byte_lane_i = byte_lane_i + 1)
+				begin
+					always @(posedge clk)
+					begin
+						if(en)
+						begin
+							if(wen[byte_lane_i])
+								#simulation_delay mem[addr][byte_lane_i*8+7:byte_lane_i*8] <= 
+									din[byte_lane_i*8+7:byte_lane_i*8];
+						end
+					end
+				end
+			end
+			else
+			begin
+				always @(posedge clk)
+				begin
+					if(en)
+					begin
+						if(wen)
+							#simulation_delay mem[addr] <= din;
+					end
+				end
+			end
             
             always @(posedge clk)
             begin
@@ -110,14 +129,32 @@ module bram_single_port #(
         else
         begin
             // 写优先模式
-            always @(posedge clk)
-            begin
-                if(en)
-                begin
-                    if(wen)
-                        #simulation_delay mem[addr] <= din;
-                end
-            end
+			if(byte_write_mode == "true")
+			begin
+				for(byte_lane_i = 0;byte_lane_i < mem_width / 8;byte_lane_i = byte_lane_i + 1)
+				begin
+					always @(posedge clk)
+					begin
+						if(en)
+						begin
+							if(wen[byte_lane_i])
+								#simulation_delay mem[addr][byte_lane_i*8+7:byte_lane_i*8] <= 
+									din[byte_lane_i*8+7:byte_lane_i*8];
+						end
+					end
+				end
+			end
+			else
+			begin
+				always @(posedge clk)
+				begin
+					if(en)
+					begin
+						if(wen)
+							#simulation_delay mem[addr] <= din;
+					end
+				end
+			end
             
             always @(posedge clk)
             begin

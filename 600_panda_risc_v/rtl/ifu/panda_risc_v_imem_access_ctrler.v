@@ -3,7 +3,7 @@
 本模块: 指令存储器访问控制
 
 描述:
-将指令总线控制单元返回的取指结果存入深度为2的取指结果缓存区
+将指令总线控制单元返回的取指结果存入深度为3的取指结果缓存区
 发起指令存储器访问请求并更新PC
 
 延长复位/冲刷请求, 生成正在复位/冲刷标志
@@ -14,7 +14,7 @@ IMEM访问请求的生命周期:
 	发起IMEM访问请求 -> 指令总线控制单元返回取指结果 -> 指令被后级取走
 
 注意：
-无
+指令总线控制单元在接受请求后不应立即返回, 而应至少延迟1clk
 
 协议:
 无
@@ -105,9 +105,9 @@ module panda_risc_v_imem_access_ctrler #(
 	};
 	
 	/** 取指结果缓存区 **/
-	reg[2:0] if_res_buf_store_n; // 取指结果缓存区存储个数(3'b001 -> 0, 3'b010 -> 1, 3'b100 -> 2)
-	reg if_res_buf_wptr; // 取指结果缓存区写指针
-	reg if_res_buf_rptr; // 取指结果缓存区读指针
+	reg[3:0] if_res_buf_store_n; // 取指结果缓存区存储个数(4'b0001 -> 0, 4'b0010 -> 1, 4'b0100 -> 2, 4'b1000 -> 3)
+	reg[1:0] if_res_buf_wptr; // 取指结果缓存区写指针
+	reg[1:0] if_res_buf_rptr; // 取指结果缓存区读指针
 	wire if_res_buf_wen; // 取指结果缓存区写使能
 	wire if_res_buf_ren; // 取指结果缓存区读使能
 	wire if_res_buf_clr; // 取指结果缓存区清零使能
@@ -115,7 +115,7 @@ module panda_risc_v_imem_access_ctrler #(
 	wire if_res_buf_empty_n; // 取指结果缓存区空标志
 	// 取指结果缓存寄存器组({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit), 
 	//     打包的预译码信息(64bit), 取到的指令(32bit)})
-	reg[99:0] if_res_buf_regs[0:1];
+	reg[99:0] if_res_buf_regs[0:2];
 	
 	assign if_res_data[95:0] = (rst_req | flush_req) ? 
 		IF_RES_AT_RST_FLUSH:if_res_buf_regs[if_res_buf_rptr][95:0]; // 取指结果
@@ -127,42 +127,44 @@ module panda_risc_v_imem_access_ctrler #(
 	assign if_res_buf_wen = vld_inst_gotten; // 断言: 取指结果缓存区写使能有效时必定非满!
 	assign if_res_buf_ren = if_res_ready;
 	assign if_res_buf_clr = rst_req | flush_req; // 复位/冲刷时将取指结果缓存区中的每1项清零为NOP
-	assign if_res_buf_full_n = ~if_res_buf_store_n[2];
+	assign if_res_buf_full_n = ~if_res_buf_store_n[3];
 	assign if_res_buf_empty_n = ~if_res_buf_store_n[0];
 	
 	// 取指结果缓存区存储个数
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
-			if_res_buf_store_n <= 3'b001;
+			if_res_buf_store_n <= 4'b0001;
 		else if((if_res_buf_ren & if_res_buf_empty_n) ^ if_res_buf_wen)
 			if_res_buf_store_n <= # simulation_delay if_res_buf_wen ? 
-				{if_res_buf_store_n[1:0], if_res_buf_store_n[2]}: // 存储个数增加1
-				{if_res_buf_store_n[0], if_res_buf_store_n[2:1]}; // 存储个数减少1
+				{if_res_buf_store_n[2:0], if_res_buf_store_n[3]}: // 存储个数增加1
+				{if_res_buf_store_n[0], if_res_buf_store_n[3:1]}; // 存储个数减少1
 	end
 	
 	// 取指结果缓存区写指针
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
-			if_res_buf_wptr <= 1'b0;
+			if_res_buf_wptr <= 2'b00;
 		else if(if_res_buf_wen)
-			if_res_buf_wptr <= # simulation_delay ~if_res_buf_wptr;
+			// (if_res_buf_wptr == 2'b10) ? 2'b00:(if_res_buf_wptr + 2'b01)
+			if_res_buf_wptr <= # simulation_delay {2{~if_res_buf_wptr[1]}} & (if_res_buf_wptr + 2'b01);
 	end
 	// 取指结果缓存区读指针
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
-			if_res_buf_rptr <= 1'b0;
+			if_res_buf_rptr <= 2'b00;
 		else if(if_res_buf_ren & if_res_buf_empty_n)
-			if_res_buf_rptr <= # simulation_delay ~if_res_buf_rptr;
+			// (if_res_buf_rptr == 2'b10) ? 2'b00:(if_res_buf_rptr + 2'b01)
+			if_res_buf_rptr <= # simulation_delay {2{~if_res_buf_rptr[1]}} & (if_res_buf_rptr + 2'b01);
 	end
 	
 	// 取指结果缓存寄存器组
 	// 存储项#0
 	always @(posedge clk)
 	begin
-		if(if_res_buf_clr | (if_res_buf_wen & (~if_res_buf_wptr)))
+		if(if_res_buf_clr | (if_res_buf_wen & (if_res_buf_wptr == 2'b00)))
 			if_res_buf_regs[0] <= # simulation_delay if_res_buf_clr ? 
 			{
 				1'b0,
@@ -180,8 +182,26 @@ module panda_risc_v_imem_access_ctrler #(
 	// 存储项#1
 	always @(posedge clk)
 	begin
-		if(if_res_buf_clr | (if_res_buf_wen & if_res_buf_wptr))
+		if(if_res_buf_clr | (if_res_buf_wen & (if_res_buf_wptr == 2'b01)))
 			if_res_buf_regs[1] <= # simulation_delay if_res_buf_clr ? 
+			{
+				1'b0,
+				1'b0,
+				IMEM_ACCESS_NORMAL,
+				IF_RES_AT_RST_FLUSH
+			}:{
+				to_jump, 
+				illegal_inst, 
+				imem_access_resp_err, 
+				pre_decoding_msg_packeted, 
+				imem_access_resp_rdata
+			};
+	end
+	// 存储项#2
+	always @(posedge clk)
+	begin
+		if(if_res_buf_clr | (if_res_buf_wen & (if_res_buf_wptr == 2'b10)))
+			if_res_buf_regs[2] <= # simulation_delay if_res_buf_clr ? 
 			{
 				1'b0,
 				1'b0,
@@ -205,15 +225,14 @@ module panda_risc_v_imem_access_ctrler #(
 	reg[31:0] flush_addr_latched; // 锁存的冲刷地址
 	reg[1:0] processing_imem_access_req_n; // 滞外的IMEM访问请求(已发起但后级未取走指令的访问请求)个数
 	reg[31:0] pc_regs; // PC寄存器
-	reg[31:0] pc_buf_regs[0:1]; // 指令对应PC值缓存寄存器组
-	reg pc_buf_wptr; // 指令对应PC值缓存区写指针
+	reg[31:0] pc_buf_regs[0:2]; // 指令对应PC值缓存寄存器组
+	reg[2:0] pc_buf_wptr; // 指令对应PC值缓存区写指针
 	wire pc_buf_wen; // 指令对应PC值缓存区写使能
-	reg inst_suppress_buf_regs[0:1]; // 取指结果镇压标志缓存寄存器组
-	reg inst_suppress_buf_wptr; // 取指结果镇压标志缓存区写指针
+	reg inst_suppress_buf_regs[0:2]; // 取指结果镇压标志缓存寄存器组
+	reg[2:0] inst_suppress_buf_wptr; // 取指结果镇压标志缓存区写指针
 	wire inst_suppress_buf_wen; // 取指结果镇压标志缓存区写使能
-	reg inst_suppress_buf_rptr; // 取指结果镇压标志缓存区读指针
+	reg[1:0] inst_suppress_buf_rptr; // 取指结果镇压标志缓存区读指针
 	wire inst_suppress_buf_ren; // 取指结果镇压标志缓存区读使能
-	wire inst_suppress_buf_clr; // 取指结果镇压标志缓存区清零使能
 	wire jalr_allow; // 允许无条件间接跳转(标志)
 	
 	assign to_rst = rst_req | rst_imem_access_req_pending;
@@ -223,16 +242,15 @@ module panda_risc_v_imem_access_ctrler #(
 	
 	assign now_inst = common_imem_access_req_pending ? inst_latched:imem_access_resp_rdata;
 	
-	assign vld_inst_gotten = imem_access_resp_valid & 
-		(~(inst_suppress_buf_regs[inst_suppress_buf_rptr] | inst_suppress_buf_clr));
+	assign vld_inst_gotten = imem_access_resp_valid & (~inst_suppress_buf_regs[inst_suppress_buf_rptr]);
 	
 	assign imem_access_req_addr = new_pc;
 	assign imem_access_req_read = 1'b1;
 	assign imem_access_req_wdata = 32'hxxxx_xxxx;
 	assign imem_access_req_wmask = 4'b0000;
-	// 指令存储器访问请求握手条件: (~processing_imem_access_req_n[1]) & imem_access_req_ready & 
+	// 指令存储器访问请求握手条件: (processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
 	//     (to_rst | to_flush | (now_inst_vld & ((~is_jalr_inst) | jalr_allow)))
-	assign imem_access_req_valid = (~processing_imem_access_req_n[1]) & // 必须保证滞外请求个数 <= 2
+	assign imem_access_req_valid = (processing_imem_access_req_n != 2'b11) & 
 		(to_rst | to_flush | (now_inst_vld & ((~is_jalr_inst) | jalr_allow)));
 	
 	// 指令对应的PC
@@ -244,7 +262,6 @@ module panda_risc_v_imem_access_ctrler #(
 	
 	assign inst_suppress_buf_wen = imem_access_req_valid & imem_access_req_ready;
 	assign inst_suppress_buf_ren = imem_access_resp_valid;
-	assign inst_suppress_buf_clr = rst_req | flush_req; // 复位/冲刷时镇压已发起但未返回取指结果的访问请求
 	
 	// 待发起的复位IMEM访问请求标志
 	always @(posedge clk or negedge resetn)
@@ -255,12 +272,12 @@ module panda_risc_v_imem_access_ctrler #(
 			rst_imem_access_req_pending <= # simulation_delay 
 			/*
 				rst_imem_access_req_pending ? 
-					(~((~processing_imem_access_req_n[1]) & imem_access_req_ready)): // 等待指令存储器访问请求成功发起
-					(rst_req & (~((~processing_imem_access_req_n[1]) & 
+					(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready)): // 等待指令存储器访问请求成功发起
+					(rst_req & (~((processing_imem_access_req_n != 2'b11) & 
 						imem_access_req_ready))) // 复位请求不能被立即处理, 置位等待标志
 			*/
 				(rst_imem_access_req_pending | rst_req) & 
-				(~((~processing_imem_access_req_n[1]) & imem_access_req_ready));
+				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready));
 	end
 	// 待发起的冲刷IMEM访问请求标志
 	always @(posedge clk or negedge resetn)
@@ -271,12 +288,12 @@ module panda_risc_v_imem_access_ctrler #(
 			flush_imem_access_req_pending <= # simulation_delay 
 			/*
 				flush_imem_access_req_pending ? 
-					(~((~processing_imem_access_req_n[1]) & imem_access_req_ready)): // 等待指令存储器访问请求成功发起
-					(flush_req & (~((~processing_imem_access_req_n[1]) & 
+					(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready)): // 等待指令存储器访问请求成功发起
+					(flush_req & (~((processing_imem_access_req_n != 2'b11) & 
 						imem_access_req_ready))) // 冲刷请求不能被立即处理, 置位等待标志
 			*/
 				(flush_imem_access_req_pending | flush_req) & 
-				(~((~processing_imem_access_req_n[1]) & imem_access_req_ready));
+				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready));
 	end
 	// 待发起的普通IMEM访问请求标志
 	always @(posedge clk or negedge resetn)
@@ -288,18 +305,18 @@ module panda_risc_v_imem_access_ctrler #(
 			/*
 				common_imem_access_req_pending ? 
 					(~(rst_req | flush_req | 
-						((~processing_imem_access_req_n[1]) & imem_access_req_ready & 
+						((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
 						((~is_jalr_inst) | jalr_allow)))): // 等待指令存储器访问请求成功发起, 
 																  // 该等待标志可能会被复位/冲刷请求打断
 					((~rst_req) & (~rst_imem_access_req_pending) & (~flush_req) & (~flush_imem_access_req_pending) & 
-						vld_inst_gotten & (~((~processing_imem_access_req_n[1]) & imem_access_req_ready & 
+						vld_inst_gotten & (~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
 						((~is_jalr_inst) | jalr_allow)))) // 指令总线控制单元返回取指结果且当前不处于复位/冲刷状态, 
 						                                         // 新的IMEM访问请求不能被立即处理, 置位等待标志
 			*/
 				(~rst_req) & (~flush_req) & 
 				(common_imem_access_req_pending | 
 					((~rst_imem_access_req_pending) & (~flush_imem_access_req_pending) & vld_inst_gotten)) & 
-				(~((~processing_imem_access_req_n[1]) & imem_access_req_ready & ((~is_jalr_inst) | jalr_allow)));
+				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & ((~is_jalr_inst) | jalr_allow)));
 	end
 	
 	// 锁存的指令
@@ -338,55 +355,71 @@ module panda_risc_v_imem_access_ctrler #(
 	// 存储项#0
 	always @(posedge clk)
 	begin
-		if(pc_buf_wen & (~pc_buf_wptr))
+		if(pc_buf_wen & pc_buf_wptr[0])
 			pc_buf_regs[0] <= # simulation_delay new_pc;
 	end
 	// 存储项#1
 	always @(posedge clk)
 	begin
-		if(pc_buf_wen & pc_buf_wptr)
+		if(pc_buf_wen & pc_buf_wptr[1])
 			pc_buf_regs[1] <= # simulation_delay new_pc;
+	end
+	// 存储项#2
+	always @(posedge clk)
+	begin
+		if(pc_buf_wen & pc_buf_wptr[2])
+			pc_buf_regs[2] <= # simulation_delay new_pc;
 	end
 	
 	// 指令对应PC值缓存区写指针
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
-			pc_buf_wptr <= 1'b0;
+			pc_buf_wptr <= 3'b001;
 		else if(pc_buf_wen)
-			pc_buf_wptr <= # simulation_delay ~pc_buf_wptr;
+			pc_buf_wptr <= # simulation_delay {pc_buf_wptr[1:0], pc_buf_wptr[2]};
 	end
 	
 	// 取指结果镇压标志缓存寄存器组
 	// 存储项#0
 	always @(posedge clk)
 	begin
-		if(inst_suppress_buf_clr | (inst_suppress_buf_wen & (~inst_suppress_buf_wptr)))
-			inst_suppress_buf_regs[0] <= # simulation_delay inst_suppress_buf_clr;
+		if(inst_suppress_buf_wen & ((to_rst | to_flush) | inst_suppress_buf_wptr[0]))
+			// 保留复位/冲刷时发起的请求, 镇压其他请求
+			inst_suppress_buf_regs[0] <= # simulation_delay (to_rst | to_flush) & (~inst_suppress_buf_wptr[0]);
 	end
 	// 存储项#1
 	always @(posedge clk)
 	begin
-		if(inst_suppress_buf_clr | (inst_suppress_buf_wen & inst_suppress_buf_wptr))
-			inst_suppress_buf_regs[1] <= # simulation_delay inst_suppress_buf_clr;
+		if(inst_suppress_buf_wen & ((to_rst | to_flush) | inst_suppress_buf_wptr[1]))
+			// 保留复位/冲刷时发起的请求, 镇压其他请求
+			inst_suppress_buf_regs[1] <= # simulation_delay (to_rst | to_flush) & (~inst_suppress_buf_wptr[1]);
+	end
+	// 存储项#2
+	always @(posedge clk)
+	begin
+		if(inst_suppress_buf_wen & ((to_rst | to_flush) | inst_suppress_buf_wptr[2]))
+			// 保留复位/冲刷时发起的请求, 镇压其他请求
+			inst_suppress_buf_regs[2] <= # simulation_delay (to_rst | to_flush) & (~inst_suppress_buf_wptr[2]);
 	end
 	
 	// 取指结果镇压标志缓存区写指针
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
-			inst_suppress_buf_wptr <= 1'b0;
+			inst_suppress_buf_wptr <= 3'b001;
 		else if(inst_suppress_buf_wen)
-			inst_suppress_buf_wptr <= # simulation_delay ~inst_suppress_buf_wptr;
+			inst_suppress_buf_wptr <= # simulation_delay {inst_suppress_buf_wptr[1:0], inst_suppress_buf_wptr[2]};
 	end
 	
 	// 取指结果镇压标志缓存区读指针
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
-			inst_suppress_buf_rptr <= 1'b0;
+			inst_suppress_buf_rptr <= 2'b00;
 		else if(inst_suppress_buf_ren)
-			inst_suppress_buf_rptr <= # simulation_delay ~inst_suppress_buf_rptr;
+			// (inst_suppress_buf_rptr == 2'b10) ? 2'b00:(inst_suppress_buf_rptr + 2'b01)
+			inst_suppress_buf_rptr <= # simulation_delay {2{~inst_suppress_buf_rptr[1]}} & (inst_suppress_buf_rptr + 2'b01);
 	end
 	
 	/** JALR指令处理 **/
