@@ -32,6 +32,7 @@ AXI-帧缓存(视频专用DMA)<br>
 AMBA总线基本验证组件<br>
 ## 待整理的IP<br>
 APB-SPI<br>
+AXI-通用卷积加速器<br>
 ## 正在开发的IP<br>
 (1)__DMA__<br>
 AXI-通用DMA引擎<br>
