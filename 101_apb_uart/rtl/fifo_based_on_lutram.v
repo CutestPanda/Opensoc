@@ -100,14 +100,11 @@ module fifo_based_on_lutram #(
             data_cnt_regs <= 0;
             data_cnt_onehot_regs <= 1;
         end
-        else if(
-            (({fifo_wen, fifo_ren} == 2'b01) & fifo_empty_n_reg) | 
-            (({fifo_wen, fifo_ren} == 2'b10) & fifo_full_n_reg) |
-            (({fifo_wen, fifo_ren} == 2'b11) & (fifo_empty_n_reg ^ fifo_full_n_reg))
-        )begin
+        else if((fifo_wen & fifo_full_n_reg) ^ (fifo_ren & fifo_empty_n_reg))
+		begin
             # simulation_delay;
-        
-            if(({fifo_wen, fifo_ren} == 2'b10) | (({fifo_wen, fifo_ren} == 2'b11) & fifo_full_n_reg))
+			
+            if(fifo_wen & fifo_full_n_reg)
             begin
                 // fifo数据增加1个
                 fifo_empty_reg <= 1'b0;
