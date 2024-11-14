@@ -604,7 +604,7 @@ module axi_wchn_for_conv_out #(
 	endgenerate
 	
 	assign loading_last_of_feature_set = feature_upd_vec_cur[64/feature_data_width-1] | 
-		(wt_burst_last_trans & feature_upd_vec_match_trm_last_ft_id);
+		(last_feature & feature_upd_vec_match_trm_last_ft_id);
 	assign wt_burst_last_trans = wt_burst_data_id == wt_burst_msg_dout;
 	/*
 	({first_trans, last_feature} == 2'b00) ? 8'b1111_1111:

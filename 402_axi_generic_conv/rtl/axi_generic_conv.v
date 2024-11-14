@@ -47,20 +47,20 @@ AXI MASTER
 
 module axi_generic_conv #(
 	// 读请求描述子DMA配置
-	parameter integer max_rd_req_n = 1024, // 最大的读请求个数
+	parameter integer max_rd_req_n = 1024 * 1024, // 最大的读请求个数
 	parameter integer axi_rd_req_dsc_rchn_max_burst_len = 8, // AXI读通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter integer rd_req_dsc_buffer_depth = 512, // 读请求描述子buffer深度(256 | 512 | 1024 | ...)
 	// 写请求描述子DMA配置
-	parameter integer max_wt_req_n = 1024, // 最大的写请求个数
+	parameter integer max_wt_req_n = 1024 * 1024, // 最大的写请求个数
 	parameter integer axi_wt_req_dsc_rchn_max_burst_len = 8, // AXI读通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter integer wt_req_dsc_buffer_depth = 512, // 写请求描述子buffer深度(256 | 512 | 1024 | ...)
 	// 特征图与参数输入DMA配置
-	parameter integer conv_max_rd_btt = 4 * 512, // 最大的读传输字节数(256 | 512 | 1024 | ...)
+	parameter integer conv_max_rd_btt = 65536, // 最大的读传输字节数(256 | 512 | 1024 | ...)
 	parameter integer axi_conv_rchn_max_burst_len = 32, // AXI读通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter integer axi_conv_raddr_outstanding = 4, // AXI读地址缓冲深度(1 | 2 | 4)
 	parameter integer axi_conv_rdata_buffer_depth = 512, // AXI读数据buffer深度(0 -> 不启用 | 512 | 1024 | ...)
 	// 特征图输出DMA配置
-	parameter integer conv_max_wt_btt = 4 * 512, // 最大的写传输字节数(256 | 512 | 1024 | ...)
+	parameter integer conv_max_wt_btt = 65536, // 最大的写传输字节数(256 | 512 | 1024 | ...)
 	parameter integer axi_conv_wchn_max_burst_len = 32, // AXI写通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter integer axi_conv_waddr_outstanding = 4, // AXI写地址缓冲深度(1 | 2 | 4)
 	parameter integer axi_conv_wdata_buffer_depth = 512, // AXI写数据buffer深度(512 | 1024 | ...)
