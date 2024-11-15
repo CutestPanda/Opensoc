@@ -33,6 +33,7 @@
 	        31~16:卷积核个数 - 1                   RW
 	0x30    31~0:Relu激活系数c[31:0]               RW
 	0x34    31~0:Relu激活系数c[63:32]              RW
+	0x38    31~0:已完成的写请求个数                RW
 
 注意：
 无
@@ -101,6 +102,11 @@ module reg_if_for_generic_conv #(
 	output wire en_wt_req_fns_itr, // 是否使能写请求处理完成中断
 	output wire itr, // 中断信号
 	
+	// 已完成的写请求个数
+	output wire[3:0] to_set_wt_req_fns_n,
+	output wire[31:0] wt_req_fns_n_set_v,
+	input wire[31:0] wt_req_fns_n_cur_v,
+	
 	// 运行时参数
 	output wire[63:0] act_rate_c, // Relu激活系数c
 	output wire[31:0] rd_req_buf_baseaddr, // 读请求缓存区首地址
@@ -129,7 +135,7 @@ module reg_if_for_generic_conv #(
     endfunction
 	
 	/** 内部配置 **/
-	localparam integer REGS_N = 14; // 寄存器总数
+	localparam integer REGS_N = 15; // 寄存器总数
 	
 	/** 常量 **/
 	// 寄存器配置状态独热码编号
@@ -285,6 +291,9 @@ module reg_if_for_generic_conv #(
 	assign wt_req_itr_th = wt_req_itr_th_regs;
 	assign en_wt_req_fns_itr = global_itr_en_reg & itr_en_vec_regs[2];
 	
+	assign to_set_wt_req_fns_n = {4{regs_en & (regs_addr == 14)}} & regs_wen;
+	assign wt_req_fns_n_set_v = regs_din;
+	
 	assign act_rate_c = act_rate_c_regs;
 	assign rd_req_buf_baseaddr = rd_req_buf_baseaddr_regs;
 	assign rd_req_n = rd_req_n_regs;
@@ -365,6 +374,9 @@ module reg_if_for_generic_conv #(
 				};
 				13: regs_region_rd_out <= # simulation_delay {
 					act_rate_c_regs[63:32]
+				};
+				14: regs_region_rd_out <= # simulation_delay {
+					wt_req_fns_n_cur_v
 				};
 				default: regs_region_rd_out <= 32'dx;
 			endcase

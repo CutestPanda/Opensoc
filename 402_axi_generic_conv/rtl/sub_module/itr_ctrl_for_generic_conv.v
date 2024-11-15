@@ -31,6 +31,11 @@ module itr_ctrl_for_generic_conv #(
 	input wire wt_req_dsc_dma_blk_done, // 写请求描述子DMA请求处理完成(指示)
 	input wire wt_req_fns, // 完成写请求(指示)
 	
+	// 已完成的写请求个数
+	input wire[3:0] to_set_wt_req_fns_n,
+	input wire[31:0] wt_req_fns_n_set_v,
+	output wire[31:0] wt_req_fns_n_cur_v,
+	
 	// 中断使能
 	input wire en_wt_req_fns_itr, // 是否使能写请求处理完成中断
 	
@@ -44,10 +49,14 @@ module itr_ctrl_for_generic_conv #(
 	reg rd_req_dsc_dma_blk_done_d;
 	reg wt_req_dsc_dma_blk_done_d;
 	reg[31:0] wt_req_fns_n; // 已完成的写请求个数
+	wire[31:0] wt_req_fns_n_add1; // 已完成的写请求个数 + 1
 	reg wt_req_fns_itr_req; // 写完成中断请求
 	reg wt_req_fns_d;
 	
+	assign wt_req_fns_n_cur_v = wt_req_fns_n;
 	assign itr_req = {wt_req_fns_itr_req, wt_req_dsc_dma_blk_done_d, rd_req_dsc_dma_blk_done_d};
+	
+	assign wt_req_fns_n_add1 = wt_req_fns_n + 32'd1;
 	
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -66,13 +75,22 @@ module itr_ctrl_for_generic_conv #(
 	end
 	
 	// 已完成的写请求个数
-	always @(posedge clk)
-	begin
-		if((~en_wt_req_fns_itr) | wt_req_fns)
-			wt_req_fns_n <= # simulation_delay 
-				// ((~en_wt_req_fns_itr) | (wt_req_fns_n == wt_req_itr_th)) ? 32'd0:(wt_req_fns_n + 32'd1)
-				{32{en_wt_req_fns_itr & (wt_req_fns_n != wt_req_itr_th)}} & (wt_req_fns_n + 32'd1);
-	end
+	genvar wt_req_fns_n_i;
+	
+	generate
+		for(wt_req_fns_n_i = 0;wt_req_fns_n_i < 4;wt_req_fns_n_i = wt_req_fns_n_i + 1)
+		begin
+			always @(posedge clk or negedge rst_n)
+			begin
+				if(~rst_n)
+					wt_req_fns_n[wt_req_fns_n_i*8+7:wt_req_fns_n_i*8] <= 8'd0;
+				else if(to_set_wt_req_fns_n[wt_req_fns_n_i] | wt_req_fns)
+					wt_req_fns_n[wt_req_fns_n_i*8+7:wt_req_fns_n_i*8] <= # simulation_delay 
+						to_set_wt_req_fns_n[wt_req_fns_n_i] ? wt_req_fns_n_set_v[wt_req_fns_n_i*8+7:wt_req_fns_n_i*8]:
+							wt_req_fns_n_add1[wt_req_fns_n_i*8+7:wt_req_fns_n_i*8];
+			end
+		end
+	endgenerate
 	
 	// 写完成中断请求
 	always @(posedge clk or negedge rst_n)

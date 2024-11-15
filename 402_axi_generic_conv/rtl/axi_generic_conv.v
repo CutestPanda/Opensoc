@@ -202,6 +202,10 @@ module axi_generic_conv #(
 	wire[2:0] itr_req; // 中断请求({写请求处理完成中断请求, 
 	                   //     写请求描述子DMA请求处理完成中断请求, 读请求描述子DMA请求处理完成中断请求})
 	wire en_wt_req_fns_itr; // 是否使能写请求处理完成中断
+	// 已完成的写请求个数
+	wire[3:0] to_set_wt_req_fns_n;
+	wire[31:0] wt_req_fns_n_set_v;
+	wire[31:0] wt_req_fns_n_cur_v;
 	// 运行时参数
 	wire[feature_pars_data_width-1:0] act_rate_c; // Relu激活系数c
 	wire[31:0] rd_req_buf_baseaddr; // 读请求缓存区首地址
@@ -257,6 +261,10 @@ module axi_generic_conv #(
 		.en_wt_req_fns_itr(en_wt_req_fns_itr),
 		.itr(itr),
 		
+		.to_set_wt_req_fns_n(to_set_wt_req_fns_n),
+		.wt_req_fns_n_set_v(wt_req_fns_n_set_v),
+		.wt_req_fns_n_cur_v(wt_req_fns_n_cur_v),
+		
 		.act_rate_c(act_rate_c), // 位宽64与位宽feature_pars_data_width不符, 取低位!
 		.rd_req_buf_baseaddr(rd_req_buf_baseaddr),
 		.rd_req_n(rd_req_n),
@@ -287,6 +295,10 @@ module axi_generic_conv #(
 		.rd_req_dsc_dma_blk_done(rd_req_dsc_dma_blk_done),
 		.wt_req_dsc_dma_blk_done(wt_req_dsc_dma_blk_done),
 		.wt_req_fns(wt_req_fns),
+		
+		.to_set_wt_req_fns_n(to_set_wt_req_fns_n),
+		.wt_req_fns_n_set_v(wt_req_fns_n_set_v),
+		.wt_req_fns_n_cur_v(wt_req_fns_n_cur_v),
 		
 		.en_wt_req_fns_itr(en_wt_req_fns_itr),
 		
