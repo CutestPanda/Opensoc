@@ -71,11 +71,12 @@ module axis_single_chn_conv_cal_3x3 #(
     endfunction
 	
 	/** 特征图ROI生成 **/
+	// 卷积核参数缓存允许特征图ROI输出
+	wire kernal_buf_allow_ft_roi_in;
 	// 特征图ROI输出(AXIS主机)
 	// {x3y3, x2y3, x1y3, x3y2, x2y2, x1y2, x3y1, x2y1, x1y1}
 	wire[mul_add_width*9-1:0] m_axis_ft_roi_data;
 	wire m_axis_ft_roi_last; // 指示本行最后1个ROI
-	wire m_axis_ft_roi_user; // 表示最后1组特征图
 	wire m_axis_ft_roi_valid;
 	wire m_axis_ft_roi_ready;
 	// 特征图ROI生成
@@ -86,18 +87,19 @@ module axis_single_chn_conv_cal_3x3 #(
 	reg[3:0] ft_col_pos; // 特征图列位置(4'b0001 -> 第1列, 4'b0010 -> 第2列, 4'b0100 -> 第3列及以后, 4'b1000 -> 右填充)
 	wire need_left_padding; // 需要左填充(标志)
 	wire need_right_padding; // 需要右填充(标志)
-	reg last_ft_map_grp_flag; // 锁存的最后1组特征图(标志)
 	
 	/*
 	握手条件: 
 		(ft_col_pos[0] & s_axis_ft_col_valid) | 
 		(ft_col_pos[1] & s_axis_ft_col_valid & ((~need_left_padding) | m_axis_ft_roi_ready)) | 
-		(ft_col_pos[2] & s_axis_ft_col_valid & m_axis_ft_roi_ready)
+		(ft_col_pos[2] & s_axis_ft_col_valid & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in) & 
+		    m_axis_ft_roi_ready)
 	*/
 	assign s_axis_ft_col_ready = 
 		ft_col_pos[0] | 
 		(ft_col_pos[1] & ((~need_left_padding) | m_axis_ft_roi_ready)) | 
-		(ft_col_pos[2] & m_axis_ft_roi_ready);
+		// 最后1个特征列进入时必须保证下一卷积核已缓存
+		(ft_col_pos[2] & m_axis_ft_roi_ready & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in));
 	
 	assign m_axis_ft_roi_data = {
 		ft_roi[8], ft_roi[7], ft_roi[6], 
@@ -105,16 +107,17 @@ module axis_single_chn_conv_cal_3x3 #(
 		ft_roi[2], ft_roi[1], ft_roi[0]
 	};
 	assign m_axis_ft_roi_last = need_right_padding ? ft_col_pos[3]:s_axis_ft_col_last;
-	assign m_axis_ft_roi_user = need_right_padding ? last_ft_map_grp_flag:s_axis_ft_col_user;
 	/*
 	握手条件: 
 		(ft_col_pos[1] & s_axis_ft_col_valid & need_left_padding & m_axis_ft_roi_ready) | 
-		(ft_col_pos[2] & s_axis_ft_col_valid & m_axis_ft_roi_ready) | 
+		(ft_col_pos[2] & s_axis_ft_col_valid & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in) & 
+			m_axis_ft_roi_ready) | 
 		(ft_col_pos[3] & need_right_padding & m_axis_ft_roi_ready)
 	*/
 	assign m_axis_ft_roi_valid = 
 		(ft_col_pos[1] & s_axis_ft_col_valid & need_left_padding) | 
-		(ft_col_pos[2] & s_axis_ft_col_valid) | 
+		// 最后1个特征列进入时必须保证下一卷积核已缓存
+		(ft_col_pos[2] & s_axis_ft_col_valid & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in)) | 
 		(ft_col_pos[3] & need_right_padding);
 	
 	assign ft_roi[0] = ft_col_remaining_buf1[0]; // x1y1
@@ -159,16 +162,10 @@ module axis_single_chn_conv_cal_3x3 #(
 			ft_col_pos <= 4'b0001;
 		else if((ft_col_pos[0] & s_axis_ft_col_valid) | 
 			(ft_col_pos[1] & s_axis_ft_col_valid & ((~need_left_padding) | m_axis_ft_roi_ready)) | 
-			(ft_col_pos[2] & s_axis_ft_col_valid & m_axis_ft_roi_ready & s_axis_ft_col_last) | 
+			(ft_col_pos[2] & s_axis_ft_col_valid & m_axis_ft_roi_ready & 
+				s_axis_ft_col_last & (s_axis_ft_col_user | kernal_buf_allow_ft_roi_in)) | 
 			(ft_col_pos[3] & ((~need_right_padding) | m_axis_ft_roi_ready)))
 			ft_col_pos <= # simulation_delay {ft_col_pos[2:0], ft_col_pos[3]};
-	end
-	
-	// 锁存的最后1组特征图(标志)
-	always @(posedge clk)
-	begin
-		if(ft_col_pos[2] & s_axis_ft_col_valid & m_axis_ft_roi_ready & s_axis_ft_col_last)
-			last_ft_map_grp_flag <= # simulation_delay s_axis_ft_col_user;
 	end
 	
 	/** 卷积计算数据通路 **/
@@ -247,16 +244,16 @@ module axis_single_chn_conv_cal_3x3 #(
 	reg kernal_buffered; // 卷积核已缓存(标志)
 	reg kernal_updating; // 正在更新卷积核(标志)
 	
-	// 握手条件: m_axis_ft_roi_valid & (~(to_init_kernal | on_init_kernal)) & 
-	//     ((~m_axis_ft_roi_last) | m_axis_ft_roi_user | (kernal_buffered & (~kernal_updating)))
+	// 握手条件: m_axis_ft_roi_valid & (~(to_init_kernal | on_init_kernal))
 	assign m_axis_ft_roi_ready = 
-		(~(to_init_kernal | on_init_kernal)) & // 等待加载初始的卷积核
-		((~m_axis_ft_roi_last) | m_axis_ft_roi_user | (kernal_buffered & (~kernal_updating))); // 本行最后1个ROI进入计算单元时必须确保卷积核已缓存
+		~(to_init_kernal | on_init_kernal); // 等待加载初始的卷积核
 	// 握手条件: s_axis_kernal_valid & ((~kernal_buffered) | to_init_kernal | (multiplier_in_vld[2] & multiplier_in_last[2]))
 	assign s_axis_kernal_ready = 
 		(~kernal_buffered) | 
 		to_init_kernal | // 加载初始的卷积核时缓存区可用
 		(multiplier_in_vld[2] & multiplier_in_last[2]); // 更新第2级乘法器的卷积核时缓存区可用
+	
+	assign kernal_buf_allow_ft_roi_in = kernal_buffered & (~kernal_updating);
 	
 	assign kernal_attach_s0_ce = {3{s_axis_kernal_valid & s_axis_kernal_ready}};
 	assign kernal_attach_s1_ce = {3{on_init_kernal}} | // 加载初始的卷积核
