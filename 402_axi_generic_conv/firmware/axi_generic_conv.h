@@ -40,6 +40,7 @@ typedef struct{
 	uint32_t kernal_c_n;
 	uint32_t act_rate_c_0;
 	uint32_t act_rate_c_1;
+	uint32_t wt_req_fns_n;
 }AXIGenericConvHw;
 
 // ÀàĞÍ¶¨Òå: Í¨ÓÃ¾í»ı¼ÆËãµ¥ÔªµÄÔËĞĞÊ±²ÎÊı
@@ -78,8 +79,10 @@ uint32_t axi_generic_conv_get_itr_sts(AXIGenericConv* axi_conv); // »ñÈ¡AXIÍ¨ÓÃ¾
 void axi_generic_conv_clear_itr_flag(AXIGenericConv* axi_conv); // Çå³ıAXIÍ¨ÓÃ¾í»ı¼ÓËÙÆ÷µÄÖĞ¶Ï±êÖ¾
 int axi_generic_conv_post_rd_req_dsc(AXIGenericConv* axi_conv, uint32_t rd_req_buf_baseaddr, uint32_t rd_req_n); // ÏòAXIÍ¨ÓÃ¾í»ı¼ÓËÙÆ÷Ìá½»¶ÁÇëÇóÃèÊö×Ó
 int axi_generic_conv_post_wt_req_dsc(AXIGenericConv* axi_conv, uint32_t wt_req_buf_baseaddr, uint32_t wt_req_n); // ÏòAXIÍ¨ÓÃ¾í»ı¼ÓËÙÆ÷Ìá½»Ğ´ÇëÇóÃèÊö×Ó
+void axi_generic_conv_set_wt_req_fns_n(AXIGenericConv* axi_conv, uint32_t wt_req_fns_n); //ÉèÖÃAXIÍ¨ÓÃ¾í»ı¼ÓËÙÆ÷ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı
 uint8_t axi_generic_conv_is_rd_req_dsc_dma_busy(AXIGenericConv* axi_conv); // ÅĞ¶ÏAXIÍ¨ÓÃ¾í»ı¼ÓËÙÆ÷µÄ¶ÁÇëÇóÃèÊö×ÓDMAÊÇ·ñÃ¦Âµ
 uint8_t axi_generic_conv_is_wt_req_dsc_dma_busy(AXIGenericConv* axi_conv); // ÅĞ¶ÏAXIÍ¨ÓÃ¾í»ı¼ÓËÙÆ÷µÄĞ´ÇëÇóÃèÊö×ÓDMAÊÇ·ñÃ¦Âµ
+uint32_t axi_generic_conv_get_wt_req_fns_n(AXIGenericConv* axi_conv); //»ñÈ¡AXIÍ¨ÓÃ¾í»ı¼ÓËÙÆ÷ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı
 
 // Éú³É¶ÁÇëÇóÃèÊö×Ó
 uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
@@ -87,7 +90,8 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 	uint32_t kernal_n, uint8_t prl_kernal_n,
 	uint32_t ft_map_chn_n, uint8_t prl_chn_n,
 	uint32_t in_ft_map_w, uint32_t in_ft_map_h,
-	uint8_t en_top_padding, uint8_t en_bottom_padding);
+	uint8_t en_top_padding, uint8_t en_bottom_padding,
+	KernalType kernal_type);
 // Éú³ÉĞ´ÇëÇóÃèÊö×Ó
 uint32_t axi_generic_conv_generate_wt_req_dsc(
 	uint32_t* wt_req_dsc_buf_ptr,

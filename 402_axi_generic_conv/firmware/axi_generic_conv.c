@@ -196,6 +196,18 @@ int axi_generic_conv_post_wt_req_dsc(AXIGenericConv* axi_conv, uint32_t wt_req_b
 }
 
 /*************************
+@cfg
+@public
+@brief  设置AXI通用卷积加速器已完成的写请求个数
+@param  axi_conv AXI通用卷积加速器(结构体指针)
+		wt_req_fns_n 已完成的写请求个数
+@return none
+*************************/
+void axi_generic_conv_set_wt_req_fns_n(AXIGenericConv* axi_conv, uint32_t wt_req_fns_n){
+	axi_conv->hardware->wt_req_fns_n = wt_req_fns_n;
+}
+
+/*************************
 @sts
 @public
 @brief  判断AXI通用卷积加速器的读请求描述子DMA是否忙碌
@@ -218,6 +230,17 @@ uint8_t axi_generic_conv_is_wt_req_dsc_dma_busy(AXIGenericConv* axi_conv){
 }
 
 /*************************
+@sts
+@public
+@brief  获取AXI通用卷积加速器已完成的写请求个数
+@param  axi_conv AXI通用卷积加速器(结构体指针)
+@return 已完成的写请求个数
+*************************/
+uint32_t axi_generic_conv_get_wt_req_fns_n(AXIGenericConv* axi_conv){
+	return axi_conv->hardware->wt_req_fns_n;
+}
+
+/*************************
 @logic
 @public
 @brief  生成读请求描述子
@@ -234,6 +257,7 @@ uint8_t axi_generic_conv_is_wt_req_dsc_dma_busy(AXIGenericConv* axi_conv){
 		in_ft_map_h 输入特征图高度
 		en_top_padding 是否使能上填充
 		en_bottom_padding 是否使能下填充
+		kernal_type 卷积核类型
 @return 读请求个数
 *************************/
 uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
@@ -241,16 +265,17 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 	uint32_t kernal_n, uint8_t prl_kernal_n,
 	uint32_t ft_map_chn_n, uint8_t prl_chn_n,
 	uint32_t in_ft_map_w, uint32_t in_ft_map_h,
-	uint8_t en_top_padding, uint8_t en_bottom_padding){
+	uint8_t en_top_padding, uint8_t en_bottom_padding,
+	KernalType kernal_type){
 	uint32_t rd_req_n = 0;
 
 	// 线性参数A
 	rd_req_dsc_buf_ptr[rd_req_n * 2] = linear_a_buf_baseaddr;
-	rd_req_dsc_buf_ptr[rd_req_n * 2 + 1] = 0x00000000 | 0x00000008 | ((ft_map_chn_n * 2) << 4);
+	rd_req_dsc_buf_ptr[rd_req_n * 2 + 1] = 0x00000000 | 0x00000008 | ((kernal_n * 2) << 4);
 	rd_req_n++;
 	// 线性参数B
 	rd_req_dsc_buf_ptr[rd_req_n * 2] = linear_b_buf_baseaddr;
-	rd_req_dsc_buf_ptr[rd_req_n * 2 + 1] = 0x00000000 | 0x0000000C | ((ft_map_chn_n * 2) << 4);
+	rd_req_dsc_buf_ptr[rd_req_n * 2 + 1] = 0x00000000 | 0x0000000C | ((kernal_n * 2) << 4);
 	rd_req_n++;
 
 	int ft_map_repeat_n = kernal_n / prl_kernal_n + ((kernal_n % prl_kernal_n) ? 1:0);
@@ -259,15 +284,16 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 	for(int i = 0;i < ft_map_repeat_n;i++){
 		// 卷积核
 		for(int j = 0;j < prl_chn_n;j++){
-			rd_req_dsc_buf_ptr[rd_req_n * 2] = kernal_buf_baseaddr + 9 * ft_map_chn_n * (i * prl_kernal_n + j) * 2;
+			rd_req_dsc_buf_ptr[rd_req_n * 2] = kernal_buf_baseaddr + ((kernal_type == TYPE_3x3) ? 9:1) * ft_map_chn_n * (i * prl_kernal_n + j) * 2;
 			rd_req_dsc_buf_ptr[rd_req_n * 2 + 1] = 0x00000001 | (((i * prl_kernal_n + j) >= kernal_n) ? 0x00000000:0x00000008) |
-				((9 * ft_map_chn_n * 2) << 4);
+				((((kernal_type == TYPE_3x3) ? 9:1) * ft_map_chn_n * 2) << 4);
 			rd_req_n++;
 		}
 
 		// 输入特征图
 		for(int j = 0;j < in_ft_map_h;j++){
-			if(((j == 0) && (!en_top_padding)) || ((j == (in_ft_map_h - 1)) && (!en_bottom_padding))){
+			if(((j == 0) && (!en_top_padding) && (kernal_type == TYPE_3x3)) ||
+				((j == (in_ft_map_h - 1)) && (!en_bottom_padding) && (kernal_type == TYPE_3x3))){
 				continue;
 			}
 
