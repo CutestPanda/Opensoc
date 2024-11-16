@@ -242,6 +242,7 @@ module reg_if_for_generic_conv #(
 	// 中断控制
 	wire global_itr_req; // 全局中断请求
 	// 寄存器区读数据
+	wire[31:0] regs_region_rd_out_nxt;
 	reg[31:0] regs_region_rd_out;
 	// 0x00
 	reg rst_linear_pars_buf_reg; // 复位线性参数缓存区
@@ -310,77 +311,103 @@ module reg_if_for_generic_conv #(
 	
 	assign global_itr_req = (|(itr_req & itr_en_vec_regs)) & global_itr_en_reg & (~global_itr_flag_reg);
 	
+	assign regs_region_rd_out_nxt = 
+		({32{regs_addr == 0}} & {
+			8'dx, 
+			6'dx, wt_req_dsc_dma_blk_idle_reg, rd_req_dsc_dma_blk_idle_reg, 
+			8'dx, 
+			8'dx
+		}) | 
+		({32{regs_addr == 1}} & {
+			8'dx, 
+			8'dx, 
+			5'dx, itr_en_vec_regs, 
+			7'dx, global_itr_en_reg
+		}) | 
+		({32{regs_addr == 2}} & {
+			8'dx, 
+			8'dx, 
+			5'dx, itr_flag_vec_regs, 
+			7'dx, global_itr_flag_reg
+		}) | 
+		({32{regs_addr == 3}} & {
+			wt_req_itr_th_regs[31:24], 
+			wt_req_itr_th_regs[23:16], 
+			wt_req_itr_th_regs[15:8], 
+			wt_req_itr_th_regs[7:0]
+		}) | 
+		({32{regs_addr == 4}} & {
+			8'dx, 
+			8'dx, 
+			8'dx, 
+			7'dx, en_conv_cal_reg
+		}) | 
+		({32{regs_addr == 5}} & {
+			8'dx, 
+			8'dx, 
+			4'dx, padding_en_regs, 
+			7'dx, kernal_type_reg
+		}) | 
+		({32{regs_addr == 6}} & {
+			rd_req_buf_baseaddr_regs[31:24], 
+			rd_req_buf_baseaddr_regs[23:16], 
+			rd_req_buf_baseaddr_regs[15:8], 
+			rd_req_buf_baseaddr_regs[7:0]
+		}) | 
+		({32{regs_addr == 7}} & {
+			rd_req_n_regs[31:24], 
+			rd_req_n_regs[23:16], 
+			rd_req_n_regs[15:8], 
+			rd_req_n_regs[7:0]
+		}) | 
+		({32{regs_addr == 8}} & {
+			wt_req_buf_baseaddr_regs[31:24], 
+			wt_req_buf_baseaddr_regs[23:16], 
+			wt_req_buf_baseaddr_regs[15:8], 
+			wt_req_buf_baseaddr_regs[7:0]
+		}) | 
+		({32{regs_addr == 9}} & {
+			wt_req_n_regs[31:24], 
+			wt_req_n_regs[23:16], 
+			wt_req_n_regs[15:8], 
+			wt_req_n_regs[7:0]
+		}) | 
+		({32{regs_addr == 10}} & {
+			feature_map_h_regs[15:8], 
+			feature_map_h_regs[7:0], 
+			feature_map_w_regs[15:8], 
+			feature_map_w_regs[7:0]
+		}) | 
+		({32{regs_addr == 11}} & {
+			kernal_n_regs[15:8], 
+			kernal_n_regs[7:0], 
+			feature_map_chn_n_regs[15:8], 
+			feature_map_chn_n_regs[7:0]
+		}) | 
+		({32{regs_addr == 12}} & {
+			act_rate_c_regs[31:24], 
+			act_rate_c_regs[23:16], 
+			act_rate_c_regs[15:8], 
+			act_rate_c_regs[7:0]
+		}) | 
+		({32{regs_addr == 13}} & {
+			act_rate_c_regs[63:56], 
+			act_rate_c_regs[55:48], 
+			act_rate_c_regs[47:40], 
+			act_rate_c_regs[39:32]
+		}) | 
+		({32{regs_addr == 14}} & {
+			wt_req_fns_n_cur_v[31:24], 
+			wt_req_fns_n_cur_v[23:16], 
+			wt_req_fns_n_cur_v[15:8], 
+			wt_req_fns_n_cur_v[7:0]
+		});
+	
 	// 寄存器区读数据
 	always @(posedge clk)
 	begin
-		if(regs_en)
-		begin
-			case(regs_addr)
-				0: regs_region_rd_out <= # simulation_delay {
-					8'dx, 
-					6'dx, wt_req_dsc_dma_blk_idle_reg, rd_req_dsc_dma_blk_idle_reg, 
-					8'dx, 
-					8'dx
-				};
-				1: regs_region_rd_out <= # simulation_delay {
-					8'dx, 
-					8'dx, 
-					5'dx, itr_en_vec_regs, 
-					7'dx, global_itr_en_reg
-				};
-				2: regs_region_rd_out <= # simulation_delay {
-					8'dx, 
-					8'dx, 
-					5'dx, itr_flag_vec_regs, 
-					7'dx, global_itr_flag_reg
-				};
-				3: regs_region_rd_out <= # simulation_delay {
-					wt_req_itr_th_regs
-				};
-				4: regs_region_rd_out <= # simulation_delay {
-					8'dx, 
-					8'dx, 
-					8'dx, 
-					7'dx, en_conv_cal_reg
-				};
-				5: regs_region_rd_out <= # simulation_delay {
-					8'dx, 
-					8'dx, 
-					4'dx, padding_en_regs, 
-					7'dx, kernal_type_reg
-				};
-				6: regs_region_rd_out <= # simulation_delay {
-					rd_req_buf_baseaddr_regs
-				};
-				7: regs_region_rd_out <= # simulation_delay {
-					rd_req_n_regs
-				};
-				8: regs_region_rd_out <= # simulation_delay {
-					wt_req_buf_baseaddr_regs
-				};
-				9: regs_region_rd_out <= # simulation_delay {
-					wt_req_n_regs
-				};
-				10: regs_region_rd_out <= # simulation_delay {
-					feature_map_h_regs, 
-					feature_map_w_regs
-				};
-				11: regs_region_rd_out <= # simulation_delay {
-					kernal_n_regs, 
-					feature_map_chn_n_regs
-				};
-				12: regs_region_rd_out <= # simulation_delay {
-					act_rate_c_regs[31:0]
-				};
-				13: regs_region_rd_out <= # simulation_delay {
-					act_rate_c_regs[63:32]
-				};
-				14: regs_region_rd_out <= # simulation_delay {
-					wt_req_fns_n_cur_v
-				};
-				default: regs_region_rd_out <= 32'dx;
-			endcase
-		end
+		if(regs_en & (~is_write))
+			regs_region_rd_out <= # simulation_delay regs_region_rd_out_nxt;
 	end
 	
 	// 0x00, 1~0
