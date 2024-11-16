@@ -60,19 +60,19 @@ module panda_risc_v_pc_gen #(
 	
 	/** 生成预测地址的加法器的操作数 **/
 	wire[31:0] prdt_pc_add_op1; // 用于生成预测地址的加法器的操作数1
-	wire[20:0] prdt_pc_add_op2; // 用于生成预测地址的加法器的操作数2
+	wire[31:0] prdt_pc_add_op2; // 用于生成预测地址的加法器的操作数2
 	
 	assign prdt_pc_add_op1 = (is_b_inst | is_jal_inst) ? now_pc:rs1_v;
-	assign prdt_pc_add_op2 = jump_ofs_imm;
+	assign prdt_pc_add_op2 = {{11{jump_ofs_imm[20]}}, jump_ofs_imm}; // 对21位跳转偏移量立即数进行符号位拓展
 	
 	/** 生成顺序取指地址的加法器的操作数 **/
-	wire[20:0] pc_self_incr_ofs; // PC自增值
+	wire[31:0] pc_self_incr_ofs; // PC自增值
 	
-	assign pc_self_incr_ofs = inst_len_type ? 21'd4:21'd2;
+	assign pc_self_incr_ofs = inst_len_type ? 32'd4:32'd2;
 	
 	/** 生成新的PC **/
 	wire[31:0] pc_add_op1; // 用于生成下一PC的加法器的操作数1
-	wire[20:0] pc_add_op2; // 用于生成下一PC的加法器的操作数2
+	wire[31:0] pc_add_op2; // 用于生成下一PC的加法器的操作数2
 	wire[31:0] pc_nxt; // 下一PC
 	
 	assign new_pc = to_rst ? RST_PC: // 复位请求优先级最高
@@ -83,7 +83,7 @@ module panda_risc_v_pc_gen #(
 	assign pc_add_op2 = to_jump ? prdt_pc_add_op2:pc_self_incr_ofs;
 	
 	/*
-		   op1(32位)  +  op2(21位)
+		   op1(32位)  +  op2(32位)
 	------------------------------------
 		    当前PC     跳转偏移量立即数
 		  RS1读结果       PC自增值

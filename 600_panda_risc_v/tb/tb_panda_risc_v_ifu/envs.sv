@@ -79,7 +79,7 @@ class PandaRiscVIfuEnv extends uvm_env;
 		$display("Rs1Vld: %d", trans.data[0][64]);
 		$display("Rs2Vld: %d", trans.data[0][63]);
 		$display("RdVld: %d", trans.data[0][62]);
-		$display("JumpOfsImm: %d", trans.data[0][61:41]);
+		$display("JumpOfsImm: %d", $signed(trans.data[0][61:41]));
 		$display("IsBInst: %b", trans.data[0][40]);
 		$display("IsJalInst: %b", trans.data[0][39]);
 		$display("IsJalrInst: %b", trans.data[0][38]);
