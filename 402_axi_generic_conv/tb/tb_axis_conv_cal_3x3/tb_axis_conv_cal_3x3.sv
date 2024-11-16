@@ -20,19 +20,19 @@ module tb_axis_conv_cal_3x3();
 	localparam integer quaz_acc = 10; // 量化精度(必须在范围[1, mul_add_width-1]内)
 	localparam integer add_3_input_ext_int_width = 4; // 三输入加法器额外考虑的整数位数(必须<=(mul_add_width-quaz_acc))
 	localparam integer add_3_input_ext_frac_width = 4; // 三输入加法器额外考虑的小数位数(必须<=quaz_acc)
-	localparam integer in_feature_map_buffer_rd_prl_n = 2; // 读输入特征图缓存的并行个数(1 | 2 | 4 | 8 | 16)
-	localparam integer kernal_pars_buffer_n = 4; // 卷积核参数缓存个数
-	localparam integer kernal_prl_n = 2; // 多通道卷积核的并行个数(1 | 2 | 4 | 8 | 16)
+	localparam integer in_feature_map_buffer_rd_prl_n = 4; // 读输入特征图缓存的并行个数(1 | 2 | 4 | 8 | 16)
+	localparam integer kernal_pars_buffer_n = 8; // 卷积核参数缓存个数
+	localparam integer kernal_prl_n = 4; // 多通道卷积核的并行个数(1 | 2 | 4 | 8 | 16)
 	localparam integer max_feature_map_w = 512; // 最大的输入特征图宽度
 	localparam integer max_feature_map_h = 512; // 最大的输入特征图高度
 	localparam integer max_feature_map_chn_n = 512; // 最大的输入特征图通道数
 	localparam integer max_kernal_n = 512; // 最大的卷积核个数
-	localparam integer out_buffer_n = 4; // 多通道卷积结果缓存个数
+	localparam integer out_buffer_n = 8; // 多通道卷积结果缓存个数
 	// 运行时参数配置
 	localparam bit kernal_type = 1'b1; // 卷积核类型(1'b0 -> 1x1, 1'b1 -> 3x3)
 	localparam bit[3:0] padding_en = 4'b1111; // 外拓填充使能(仅当卷积核类型为3x3时可用, {上, 下, 左, 右})
-	localparam bit[15:0] feature_map_w = 16'd4; // 输入特征图宽度 - 1
-	localparam bit[15:0] feature_map_h = 16'd6; // 输入特征图高度 - 1
+	localparam bit[15:0] feature_map_w = 16'd2; // 输入特征图宽度 - 1
+	localparam bit[15:0] feature_map_h = 16'd2; // 输入特征图高度 - 1
 	localparam bit[15:0] feature_map_chn_n = 16'd2; // 输入特征图通道数 - 1
 	localparam bit[15:0] kernal_n = 16'd4; // 卷积核个数 - 1
 	// 时钟和复位配置
@@ -90,7 +90,7 @@ module tb_axis_conv_cal_3x3();
 			"uvm_test_top.env.agt3.mon", "axis_if", s_axis_if.monitor);
 		
 		// 启动testcase
-		run_test("AxisConvCalCase0Test");
+		run_test("AxisConvCalCase1Test");
 	end
 	
 	/** 待测模块 **/
@@ -175,6 +175,8 @@ module tb_axis_conv_cal_3x3();
 		
 		.en_conv_cal(1'b1),
 		
+		.kernal_type(kernal_type),
+		.padding_en(padding_en[1:0]),
 		.i_ft_map_w(feature_map_w),
 		.o_ft_map_h(o_ft_map_h),
 		.kernal_n(kernal_n),

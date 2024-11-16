@@ -22,8 +22,8 @@ class AxisConvCalEnv #(
 	localparam integer add_3_input_ext_int_width = 4; // 三输入加法器额外考虑的整数位数(必须<=(mul_add_width-quaz_acc))
 	localparam integer add_3_input_ext_frac_width = 4; // 三输入加法器额外考虑的小数位数(必须<=quaz_acc)
 	localparam int unsigned ift_map_chn = 3; // 输入特征图通道数
-	localparam int unsigned oft_map_w = 5; // 输出特征图宽度
-	localparam int unsigned oft_map_h = 7; // 输出特征图高度
+	localparam int unsigned oft_map_w = 3; // 输出特征图宽度
+	localparam int unsigned oft_map_h = 3; // 输出特征图高度
 	localparam int unsigned oft_map_chn = 5; // 输出特征图通道数
 	localparam bit en_left_padding = 1'b1; // 是否使能左填充
 	localparam bit en_right_padding = 1'b1; // 是否使能右填充
