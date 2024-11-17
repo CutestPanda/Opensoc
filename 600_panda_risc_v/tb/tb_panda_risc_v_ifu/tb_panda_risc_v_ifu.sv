@@ -65,10 +65,12 @@ module tb_panda_risc_v_ifu();
 	end
 	
 	/** 待测模块 **/
-	// 系统复位输出
-	wire sys_resetn;
 	// 软件复位请求
 	reg sw_reset;
+	// 系统复位输入
+	wire sys_resetn;
+	// 系统复位请求
+	wire sys_reset_req;
 	// 冲刷请求
 	reg flush_req;
 	reg[31:0] flush_addr;
@@ -109,7 +111,7 @@ module tb_panda_risc_v_ifu();
 		
 		forever
 		begin
-			@(posedge clk iff rst_n);
+			@(posedge clk iff sys_resetn);
 			
 			randcase
 				5: rs1_raw_dpc <= # simulation_delay 1'b0;
@@ -138,6 +140,18 @@ module tb_panda_risc_v_ifu();
 		flush_addr <= 0;
 	end
 	
+	panda_risc_v_reset #(
+		.simulation_delay(simulation_delay)
+	)panda_risc_v_reset_u(
+		.clk(clk),
+		
+		.ext_resetn(rst_n),
+		.sw_reset(sw_reset),
+		
+		.sys_resetn(sys_resetn),
+		.sys_reset_req(sys_reset_req)
+	);
+	
 	panda_risc_v_ifu #(
 		.imem_access_timeout_th(imem_access_timeout_th),
 		.inst_addr_alignment_width(inst_addr_alignment_width),
@@ -145,11 +159,9 @@ module tb_panda_risc_v_ifu();
 		.simulation_delay(simulation_delay)
 	)dut(
 		.clk(clk),
-		.ext_resetn(rst_n),
 		.sys_resetn(sys_resetn),
 		
-		.sw_reset(sw_reset),
-		
+		.sys_reset_req(sys_reset_req),
 		.flush_req(flush_req),
 		.flush_addr(flush_addr),
 		
@@ -242,7 +254,7 @@ module tb_panda_risc_v_ifu();
 		.simulation_delay(simulation_delay)
 	)req_grant_model_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(sys_resetn),
 		
 		.req(jalr_reg_file_rd_p0_req),
 		.grant(jalr_reg_file_rd_p0_grant),

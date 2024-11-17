@@ -31,14 +31,11 @@ module panda_risc_v_ifu #(
 )(
 	// 时钟
 	input wire clk,
-	// 外部复位输入
-	input wire ext_resetn,
-	// 系统复位输出
-	output wire sys_resetn,
+	// 系统复位输入
+	input wire sys_resetn,
 	
-	// 软件复位请求
-	input wire sw_reset,
-	
+	// 系统复位请求
+	input wire sys_reset_req,
 	// 冲刷请求
 	input wire flush_req,
 	input wire[31:0] flush_addr,
@@ -82,22 +79,6 @@ module panda_risc_v_ifu #(
 	/** 内部配置 **/
 	// 指令总线控制单元配置
 	localparam pc_unaligned_imdt_resp = "false"; // 是否允许PC地址非对齐时立即响应
-	
-	/** 复位处理 **/
-	wire sys_reset_req; // 系统复位请求
-	
-	panda_risc_v_reset #(
-		.simulation_delay(simulation_delay)
-	)panda_risc_v_reset_u(
-		.clk(clk),
-		
-		.ext_resetn(ext_resetn),
-		
-		.sw_reset(sw_reset),
-		
-		.sys_resetn(sys_resetn),
-		.sys_reset_req(sys_reset_req)
-	);
 	
 	/** 指令总线控制单元 **/
 	// 指令存储器访问请求
