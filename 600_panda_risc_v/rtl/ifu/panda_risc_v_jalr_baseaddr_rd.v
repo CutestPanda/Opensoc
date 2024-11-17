@@ -110,6 +110,7 @@ module panda_risc_v_jalr_baseaddr_rd #(
 	end
 	
 	/** JALR指令基址读结果 **/
+	// 提示:可以把jalr_baseaddr_vld和jalr_baseaddr_v打1拍以改善时序, 只导致些许的取指性能损失!
 	assign jalr_baseaddr_vld = 
 		(~(to_rst | to_flush)) & 
 		(vld_inst_gotten | to_continue_req_for_reg_file_rd_p0 | to_continue_rd_x1)

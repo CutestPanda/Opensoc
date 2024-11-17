@@ -74,7 +74,7 @@ module tb_panda_risc_v_ifu();
 	reg[31:0] flush_addr;
 	// 数据相关性
 	wire[4:0] rs1_id; // rs1索引
-	wire rs1_raw_dpc; // RS1有RAW相关性(标志)
+	reg rs1_raw_dpc; // RS1有RAW相关性(标志)
 	// 专用于JALR指令的通用寄存器堆读端口
 	wire[31:0] jalr_x1_v; // 通用寄存器#1读结果
 	// JALR指令读基址给出的通用寄存器读端口#0
@@ -100,11 +100,23 @@ module tb_panda_risc_v_ifu();
 	
 	assign s_axis_if.last = 1'b1;
 	
-	assign rs1_raw_dpc = 1'b0;
+	assign jalr_x1_v = imem_depth * 2;
 	
-	assign jalr_x1_v = imem_depth / 2;
-	assign jalr_reg_file_rd_p0_grant = jalr_reg_file_rd_p0_req;
-	assign jalr_reg_file_rd_p0_dout = imem_depth / 2;
+	// RS1有RAW相关性(标志)
+	initial
+	begin
+		rs1_raw_dpc <= 1'b0;
+		
+		forever
+		begin
+			@(posedge clk iff rst_n);
+			
+			randcase
+				5: rs1_raw_dpc <= # simulation_delay 1'b0;
+				3: rs1_raw_dpc <= # simulation_delay 1'b1;
+			endcase
+		end
+	end
 	
 	// 软件复位/冲刷请求
 	initial
@@ -115,7 +127,7 @@ module tb_panda_risc_v_ifu();
 		
 		# simulation_delay;
 		
-		# (clk_p * 20);
+		# (clk_p * 40);
 		
 		flush_req <= 1'b1;
 		flush_addr <= 124;
@@ -225,6 +237,18 @@ module tb_panda_risc_v_ifu();
 		.dout(bram_dout)
 	);
 	
+	req_grant_model #(
+		.payload_width(32),
+		.simulation_delay(simulation_delay)
+	)req_grant_model_u(
+		.clk(clk),
+		.rst_n(rst_n),
+		
+		.req(jalr_reg_file_rd_p0_req),
+		.grant(jalr_reg_file_rd_p0_grant),
+		.payload(jalr_reg_file_rd_p0_dout)
+	);
+	
 	/** 生成待测指令 **/
 	RiscVInstTrans inst_trans;
 	integer fid;
@@ -236,16 +260,30 @@ module tb_panda_risc_v_ifu();
 		
 		for(int i = 0;i < imem_depth;i++)
 		begin
+			automatic bit is_jalr = ($urandom() % 8) == 0;
+			
 			assert(inst_trans.randomize() with{
 				csr_addr <= 15;
 				
-				if((inst_type == JAL) || (inst_type == JALR) || 
+				if(is_jalr)
+					inst_type == JALR;
+				
+				if((inst_type == JAL) || 
 					(inst_type == BEQ) || (inst_type == BNE) || 
 					(inst_type == BLT) || (inst_type == BGE) || 
 					(inst_type == BLTU) || (inst_type == BGEU))
-					(imm >= -i) && (imm <= (imem_depth - 1 - i)) && (imm[1:0] == 2'b00);
+					(imm >= -(i * 4)) && (imm <= (imem_depth - 1 - i) * 4) && (imm[1:0] == 2'b00) && (imm != 0);
+				else if(inst_type == JALR){
+					if(rs1 == 0)
+						(imm >= 0) && (imm <= 256) && (imm[1:0] == 2'b00);
+					else
+						(imm >= -256) && (imm <= 256) && (imm[1:0] == 2'b00);
+				}
 				else
-					(imm >= -256) && (imm <= 255);
+					(imm >= -1024) && (imm <= 1023);
+				
+				if(inst_type == JALR)
+					rs1 dist {0:/1, 1:/3, [1:31]:/6};
 			}) else $fatal("inst_trans failed to randomize!");
 			
 			bram_single_port_u.mem[i] = inst_trans.inst;
