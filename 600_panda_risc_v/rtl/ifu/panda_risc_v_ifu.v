@@ -67,10 +67,10 @@ module panda_risc_v_ifu #(
 	output wire m_icb_rsp_inst_ready,
 	
 	// 取指结果
-	output wire[127:0] if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	output wire[3:0] if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
-	output wire if_res_valid,
-	input wire if_res_ready,
+	output wire[127:0] m_if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
+	output wire[3:0] m_if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	output wire m_if_res_valid,
+	input wire m_if_res_ready,
 	
 	// 指令总线访问超时标志
 	output wire ibus_timeout
@@ -213,10 +213,10 @@ module panda_risc_v_ifu #(
 		.imem_access_resp_err(imem_access_resp_err),
 		.imem_access_resp_valid(imem_access_resp_valid),
 		
-		.if_res_data(if_res_data),
-		.if_res_msg(if_res_msg),
-		.if_res_valid(if_res_valid),
-		.if_res_ready(if_res_ready)
+		.if_res_data(m_if_res_data),
+		.if_res_msg(m_if_res_msg),
+		.if_res_valid(m_if_res_valid),
+		.if_res_ready(m_if_res_ready)
 	);
 	
 	/** 下一PC生成 **/

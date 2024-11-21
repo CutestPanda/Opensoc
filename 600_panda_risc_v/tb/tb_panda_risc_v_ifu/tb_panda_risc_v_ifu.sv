@@ -185,10 +185,10 @@ module tb_panda_risc_v_ifu();
 		.m_icb_rsp_inst_valid(m_icb_rsp_inst_valid),
 		.m_icb_rsp_inst_ready(m_icb_rsp_inst_ready),
 		
-		.if_res_data(s_axis_if.data),
-		.if_res_msg(s_axis_if.user),
-		.if_res_valid(s_axis_if.valid),
-		.if_res_ready(s_axis_if.ready),
+		.m_if_res_data(s_axis_if.data),
+		.m_if_res_msg(s_axis_if.user),
+		.m_if_res_valid(s_axis_if.valid),
+		.m_if_res_ready(s_axis_if.ready),
 		
 		.ibus_timeout(ibus_timeout)
 	);

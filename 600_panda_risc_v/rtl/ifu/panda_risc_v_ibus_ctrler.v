@@ -73,6 +73,8 @@ module panda_risc_v_ibus_ctrler #(
 	localparam IMEM_ACCESS_PC_UNALIGNED = 2'b01; // 指令地址非对齐
 	localparam IMEM_ACCESS_BUS_ERR = 2'b10; // 指令总线访问错误
 	localparam IMEM_ACCESS_TIMEOUT = 2'b11; // 响应超时
+	// 空指令
+	localparam NOP_INST = 32'h0000_0013;
 	
 	/** 传输缓存区 **/
 	// 传输缓存控制
@@ -220,7 +222,8 @@ module panda_risc_v_ibus_ctrler #(
 	wire resp_with_bus_err; // 返回响应(总线错误)
 	wire resp_with_timeout; // 返回响应(访问超时)
 	
-	assign imem_access_resp_rdata = m_icb_rsp_rdata;
+	assign imem_access_resp_rdata = 
+		resp_with_normal ? m_icb_rsp_rdata:NOP_INST;
 	assign imem_access_resp_err = 
 		({2{resp_with_normal}} & IMEM_ACCESS_NORMAL)
 		| ({2{resp_with_pc_unaligned}} & IMEM_ACCESS_PC_UNALIGNED)
