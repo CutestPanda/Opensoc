@@ -36,14 +36,14 @@ module panda_risc_v_jalr_baseaddr_rd #(
 	// 数据相关性
 	input wire rs1_raw_dpc, // RS1有RAW相关性(标志)
 	
-	// rs1索引
+	// RS1索引
 	input wire[4:0] rs1_id,
 	
 	// 专用于JALR指令的通用寄存器堆读端口
 	input wire[31:0] jalr_x1_v, // 通用寄存器#1读结果
-	// JALR指令读基址给出的通用寄存器读端口#0
+	// JALR指令读基址给出的通用寄存器堆读端口#0
 	output wire jalr_reg_file_rd_p0_req, // 读请求
-	output wire[4:0] jalr_rd_p0_addr, // 读地址
+	output wire[4:0] jalr_reg_file_rd_p0_addr, // 读地址
 	input wire jalr_reg_file_rd_p0_grant, // 读许可
 	input wire[31:0] jalr_reg_file_rd_p0_dout, // 读数据
 	
@@ -62,7 +62,7 @@ module panda_risc_v_jalr_baseaddr_rd #(
 		(~(to_rst | to_flush)) & 
 		(vld_inst_gotten | to_continue_req_for_reg_file_rd_p0) & 
 		now_inst_need_baseaddr_from_p0 & (~rs1_raw_dpc);
-	assign jalr_rd_p0_addr = rs1_id;
+	assign jalr_reg_file_rd_p0_addr = rs1_id;
 	
 	assign now_inst_need_baseaddr_from_p0 = is_jalr_inst & (rs1_id != 5'd0) & (rs1_id != 5'd1);
 	

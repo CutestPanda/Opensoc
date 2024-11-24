@@ -42,7 +42,7 @@ module panda_risc_v_pre_decoder(
 	output wire rs2_vld, // 是否需要读rs2
 	output wire rd_vld, // 是否需要写rd
 	output wire[11:0] csr_addr, // CSR寄存器地址
-	output wire[4:0] rs1_id, // rs1索引
+	output wire[4:0] rs1_id, // RS1索引
 	output wire illegal_inst, // 非法指令(标志)
 	
 	// 打包的预译码信息

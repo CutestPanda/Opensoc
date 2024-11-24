@@ -38,10 +38,9 @@ module panda_risc_v_ifu_with_imem(
 	input wire[31:0] jalr_x1_v, // 通用寄存器#1读结果
 	// JALR指令读基址给出的通用寄存器读端口#0
 	output wire jalr_reg_file_rd_p0_req, // 读请求
-	output wire[4:0] jalr_rd_p0_addr, // 读地址
+	output wire[4:0] jalr_reg_file_rd_p0_addr, // 读地址
 	input wire jalr_reg_file_rd_p0_grant, // 读许可
 	input wire[31:0] jalr_reg_file_rd_p0_dout, // 读数据
-
 	
 	// 取指结果
 	output wire[127:0] m_if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
@@ -52,6 +51,22 @@ module panda_risc_v_ifu_with_imem(
 	// 指令总线访问超时标志
 	output wire ibus_timeout
 );
+    
+    // 计算bit_depth的最高有效位编号(即位数-1)
+    function integer clogb2(input integer bit_depth);
+    begin
+		if(bit_depth == 0)
+			clogb2 = 0;
+		else
+		begin
+			for(clogb2 = -1;bit_depth > 0;clogb2 = clogb2 + 1)
+				bit_depth = bit_depth >> 1;
+		end
+    end
+    endfunction
+    
+    /** 内部配置 **/
+    localparam integer IMEM_DEPTH = 4096; // 指令存储器深度
     
     // 系统复位输入
 	wire sys_resetn;
@@ -109,7 +124,7 @@ module panda_risc_v_ifu_with_imem(
 		
 		.jalr_x1_v(jalr_x1_v),
 		.jalr_reg_file_rd_p0_req(jalr_reg_file_rd_p0_req),
-		.jalr_rd_p0_addr(jalr_rd_p0_addr),
+		.jalr_reg_file_rd_p0_addr(jalr_reg_file_rd_p0_addr),
 		.jalr_reg_file_rd_p0_grant(jalr_reg_file_rd_p0_grant),
 		.jalr_reg_file_rd_p0_dout(jalr_reg_file_rd_p0_dout),
 		
@@ -165,7 +180,7 @@ module panda_risc_v_ifu_with_imem(
 		.style("LOW_LATENCY"),
 		.rw_mode("read_first"),
 		.mem_width(32),
-		.mem_depth(4096),
+		.mem_depth(IMEM_DEPTH),
 		.INIT_FILE("no_init"),
 		.byte_write_mode("true"),
 		.simulation_delay(1)
@@ -174,7 +189,7 @@ module panda_risc_v_ifu_with_imem(
 		
 		.en(bram_en),
 		.wen(bram_wen),
-		.addr(bram_addr),
+		.addr(bram_addr[clogb2(IMEM_DEPTH-1):0]),
 		.din(bram_din),
 		.dout(bram_dout)
 	);

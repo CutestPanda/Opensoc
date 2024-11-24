@@ -75,13 +75,12 @@ module req_grant_model #(
 		begin
 			wait((ready_wait_period_n_fifo.size() < 3) && (payload_fifo.size() < 3));
 			
-			payload_fifo.push_back(1984 + $urandom_range(0, 32) * 4);
+			payload_fifo.push_back($random());
 			
 			randcase
-				3: ready_wait_period_n_fifo.push_back(0);
-				1: ready_wait_period_n_fifo.push_back(1);
+				6: ready_wait_period_n_fifo.push_back(0);
+				2: ready_wait_period_n_fifo.push_back(1);
 				1: ready_wait_period_n_fifo.push_back(2);
-				1: ready_wait_period_n_fifo.push_back(3);
 			endcase
 		end
 	end

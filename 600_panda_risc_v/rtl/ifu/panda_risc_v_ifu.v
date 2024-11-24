@@ -15,7 +15,6 @@
 
 协议:
 ICB MASTER
-AXIS MASTER
 REQ/GRANT
 
 作者: 陈家耀
@@ -41,14 +40,14 @@ module panda_risc_v_ifu #(
 	input wire[31:0] flush_addr,
 	
 	// 数据相关性
-	output wire[4:0] rs1_id, // rs1索引
+	output wire[4:0] rs1_id, // RS1索引
 	input wire rs1_raw_dpc, // RS1有RAW相关性(标志)
 	
 	// 专用于JALR指令的通用寄存器堆读端口
 	input wire[31:0] jalr_x1_v, // 通用寄存器#1读结果
-	// JALR指令读基址给出的通用寄存器读端口#0
+	// JALR指令读基址给出的通用寄存器堆读端口#0
 	output wire jalr_reg_file_rd_p0_req, // 读请求
-	output wire[4:0] jalr_rd_p0_addr, // 读地址
+	output wire[4:0] jalr_reg_file_rd_p0_addr, // 读地址
 	input wire jalr_reg_file_rd_p0_grant, // 读许可
 	input wire[31:0] jalr_reg_file_rd_p0_dout, // 读数据
 	
@@ -258,7 +257,7 @@ module panda_risc_v_ifu #(
 		
 		.jalr_x1_v(jalr_x1_v),
 		.jalr_reg_file_rd_p0_req(jalr_reg_file_rd_p0_req),
-		.jalr_rd_p0_addr(jalr_rd_p0_addr),
+		.jalr_reg_file_rd_p0_addr(jalr_reg_file_rd_p0_addr),
 		.jalr_reg_file_rd_p0_grant(jalr_reg_file_rd_p0_grant),
 		.jalr_reg_file_rd_p0_dout(jalr_reg_file_rd_p0_dout),
 		
