@@ -32,6 +32,7 @@ module axi_rchn_for_conv_in #(
 	parameter integer axi_rchn_max_burst_len = 32, // AXI读通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter integer axi_raddr_outstanding = 4, // AXI读地址缓冲深度(1 | 2 | 4)
 	parameter integer axi_rdata_buffer_depth = 512, // AXI读数据buffer深度(0 -> 不启用 | 512 | 1024 | ...)
+	parameter en_4KB_boundary_protection = "true", // 是否使能4KB边界保护
 	parameter en_axi_ar_reg_slice = "true", // 是否使能AXI读地址通道AXIS寄存器片
 	parameter en_rdata_reg_slice = "true", // 是否使能读数据AXIS寄存器片
 	parameter real simulation_delay = 1 // 仿真延时
@@ -171,11 +172,18 @@ module axi_rchn_for_conv_in #(
 		trans_n_remaining:axi_rchn_max_burst_len;
 	assign min_trans_n_remaining_in_4kB_max_burst_len = (trans_n_remaining_in_4kB_sub1 <= (axi_rchn_max_burst_len - 1)) ? 
 		trans_n_remaining_in_4kB:axi_rchn_max_burst_len;
-	// 本次突发的传输数 = min(剩余传输数, 当前4KB区间剩余传输数, AXI读通道最大突发长度)
-	assign now_burst_trans_n = (min_trans_n_remaining_max_burst_len <= min_trans_n_remaining_in_4kB_max_burst_len) ? 
+	/*
+	使能4KB边界保护: 本次突发的传输数 = min(剩余传输数, 当前4KB区间剩余传输数, AXI读通道最大突发长度)
+	不使能4KB边界保护: 本次突发的传输数 = min(剩余传输数, AXI读通道最大突发长度)
+	*/
+	assign now_burst_trans_n = 
+		((en_4KB_boundary_protection == "false") | 
+			(min_trans_n_remaining_max_burst_len <= min_trans_n_remaining_in_4kB_max_burst_len)) ? 
 		min_trans_n_remaining_max_burst_len:min_trans_n_remaining_in_4kB_max_burst_len;
 	
-	assign last_burst = (trans_n_remaining <= axi_rchn_max_burst_len) & (trans_n_remaining <= trans_n_remaining_in_4kB);
+	assign last_burst = 
+		(trans_n_remaining <= axi_rchn_max_burst_len) & 
+		((en_4KB_boundary_protection == "false") | (trans_n_remaining <= trans_n_remaining_in_4kB));
 	
 	// 第1次突发(标志)
 	always @(posedge clk)

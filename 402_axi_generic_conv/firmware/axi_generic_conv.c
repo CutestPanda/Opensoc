@@ -283,7 +283,7 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 
 	for(int i = 0;i < ft_map_repeat_n;i++){
 		// ¾í»ýºË
-		for(int j = 0;j < prl_chn_n;j++){
+		for(int j = 0;j < prl_kernal_n;j++){
 			rd_req_dsc_buf_ptr[rd_req_n * 2] = kernal_buf_baseaddr + ((kernal_type == TYPE_3x3) ? 9:1) * ft_map_chn_n * (i * prl_kernal_n + j) * 2;
 			rd_req_dsc_buf_ptr[rd_req_n * 2 + 1] = 0x00000001 | (((i * prl_kernal_n + j) >= kernal_n) ? 0x00000000:0x00000008) |
 				((((kernal_type == TYPE_3x3) ? 9:1) * ft_map_chn_n * 2) << 4);

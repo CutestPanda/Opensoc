@@ -54,6 +54,8 @@ module axi_generic_conv #(
 	parameter integer max_wt_req_n = 1024 * 1024, // 最大的写请求个数
 	parameter integer axi_wt_req_dsc_rchn_max_burst_len = 8, // AXI读通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter integer wt_req_dsc_buffer_depth = 512, // 写请求描述子buffer深度(256 | 512 | 1024 | ...)
+	// 特征图与参数输入/特征图输出DMA是否使能4KB边界保护
+	parameter axi_conv_rw_chn_en_4KB_boundary_protection = "true", 
 	// 特征图与参数输入DMA配置
 	parameter integer conv_max_rd_btt = 65536, // 最大的读传输字节数(256 | 512 | 1024 | ...)
 	parameter integer axi_conv_rchn_max_burst_len = 32, // AXI读通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
@@ -474,6 +476,7 @@ module axi_generic_conv #(
 		.axi_rchn_max_burst_len(axi_conv_rchn_max_burst_len),
 		.axi_raddr_outstanding(axi_conv_raddr_outstanding),
 		.axi_rdata_buffer_depth(axi_conv_rdata_buffer_depth),
+		.en_4KB_boundary_protection(axi_conv_rw_chn_en_4KB_boundary_protection),
 		.en_axi_ar_reg_slice("true"),
 		.en_rdata_reg_slice("true"),
 		.simulation_delay(simulation_delay)
@@ -937,6 +940,7 @@ module axi_generic_conv #(
 		.axi_wchn_max_burst_len(axi_conv_wchn_max_burst_len),
 		.axi_waddr_outstanding(axi_conv_waddr_outstanding),
 		.axi_wdata_buffer_depth(axi_conv_wdata_buffer_depth),
+		.en_4KB_boundary_protection(axi_conv_rw_chn_en_4KB_boundary_protection),
 		.en_axi_aw_reg_slice("true"),
 		.simulation_delay(simulation_delay)
 	)axi_wchn_for_conv_out_u(

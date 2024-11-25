@@ -32,6 +32,7 @@ module axi_wchn_for_conv_out #(
 	parameter integer axi_wchn_max_burst_len = 32, // AXI写通道最大突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter integer axi_waddr_outstanding = 4, // AXI写地址缓冲深度(1 | 2 | 4)
 	parameter integer axi_wdata_buffer_depth = 512, // AXI写数据buffer深度(512 | 1024 | ...)
+	parameter en_4KB_boundary_protection = "true", // 是否使能4KB边界保护
 	parameter en_axi_aw_reg_slice = "true", // 是否使能AXI写地址通道AXIS寄存器片
 	parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -307,10 +308,18 @@ module axi_wchn_for_conv_out #(
 	reg last_wt_burst; // 最后1个写突发(标志)
 	/*
 	复用的最小值计算单元 -> 
-	               cycle#0                 cycle#1
-	op1    trans_n_remaining_in_4kB    trans_n_remaining
 	
-	op2   axi_wchn_max_burst_len - 1      前置最小值
+	使能4KB边界保护: 
+					   cycle#0                 cycle#1
+		op1    trans_n_remaining_in_4kB    trans_n_remaining
+		
+		op2   axi_wchn_max_burst_len - 1      前置最小值
+	
+	不使能4KB边界保护: 
+					   cycle#0                       cycle#1
+		op1       trans_n_remaining            trans_n_remaining
+		
+		op2   axi_wchn_max_burst_len - 1   axi_wchn_max_burst_len - 1
 	*/
 	wire[MIN_CAL_OP1_WIDTH-1:0] min_cal_op1;
 	wire[7:0] min_cal_op2;
@@ -327,8 +336,12 @@ module axi_wchn_for_conv_out #(
 	
 	assign aw_len = min_cal_res;
 	
-	assign min_cal_op1 = aw_msg_upd_sts[STS_WAIT_ALLOW_AW_VLD] ? trans_n_remaining_in_4kB:trans_n_remaining;
-	assign min_cal_op2 = aw_msg_upd_sts[STS_WAIT_ALLOW_AW_VLD] ? (axi_wchn_max_burst_len - 1):min_cal_res;
+	assign min_cal_op1 = 
+		(aw_msg_upd_sts[STS_WAIT_ALLOW_AW_VLD] & (en_4KB_boundary_protection == "true")) ? 
+			trans_n_remaining_in_4kB:trans_n_remaining;
+	assign min_cal_op2 = 
+		(aw_msg_upd_sts[STS_WAIT_ALLOW_AW_VLD] | (en_4KB_boundary_protection == "false")) ? 
+			(axi_wchn_max_burst_len - 1):min_cal_res;
 	assign min_cal_op1_leq_op2 = min_cal_op1 <= min_cal_op2;
 	
 	// 写地址信息更新状态
@@ -384,7 +397,8 @@ module axi_wchn_for_conv_out #(
 	// 复用的最小值计算单元(结果寄存器)
 	always @(posedge clk)
 	begin
-		if((aw_msg_upd_sts[STS_WAIT_ALLOW_AW_VLD] & to_allow_aw_vld) | aw_msg_upd_sts[STS_GEN_AW_LEN])
+		if(((en_4KB_boundary_protection == "true") & aw_msg_upd_sts[STS_WAIT_ALLOW_AW_VLD] & to_allow_aw_vld) | 
+			aw_msg_upd_sts[STS_GEN_AW_LEN])
 			min_cal_res <= # simulation_delay min_cal_op1_leq_op2 ? min_cal_op1[7:0]:min_cal_op2;
 	end
 	
