@@ -90,7 +90,7 @@ module axi_generic_conv #(
 )(
     // 时钟和复位
 	input wire clk,
-	input wire rst_n,
+	input wire resetn,
 	
 	// 寄存器配置接口(AXI-Lite从机)
     // 读地址通道
@@ -124,6 +124,7 @@ module axi_generic_conv #(
     output wire[1:0] m_axi_conv_arburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_conv_arlen,
     output wire[2:0] m_axi_conv_arsize, // const -> 3'b011
+	output wire[3:0] m_axi_conv_arcache, // const -> 4'b0011
     output wire m_axi_conv_arvalid,
     input wire m_axi_conv_arready,
     // R
@@ -137,6 +138,7 @@ module axi_generic_conv #(
     output wire[1:0] m_axi_conv_awburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_conv_awlen,
     output wire[2:0] m_axi_conv_awsize, // const -> 3'b011
+	output wire[3:0] m_axi_conv_awcache, // const -> 4'b0011
     output wire m_axi_conv_awvalid,
     input wire m_axi_conv_awready,
     // B
@@ -156,6 +158,7 @@ module axi_generic_conv #(
     output wire[1:0] m_axi_rw_req_dsc_arburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_rw_req_dsc_arlen,
     output wire[2:0] m_axi_rw_req_dsc_arsize, // const -> 3'b011
+	output wire[3:0] m_axi_rw_req_dsc_arcache, // const -> 4'b0011
     output wire m_axi_rw_req_dsc_arvalid,
     input wire m_axi_rw_req_dsc_arready,
     // R
@@ -170,6 +173,7 @@ module axi_generic_conv #(
     output wire[7:0] m_axi_rw_req_dsc_awlen, // not care
     output wire[2:0] m_axi_rw_req_dsc_awsize, // const -> 3'b011
     output wire m_axi_rw_req_dsc_awvalid, // const -> 1'b0
+	output wire[3:0] m_axi_rw_req_dsc_awcache, // const -> 4'b0011
     input wire m_axi_rw_req_dsc_awready, // ignored
     // B
     input wire[1:0] m_axi_rw_req_dsc_bresp, // ignored
@@ -225,7 +229,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)reg_if_for_generic_conv_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.s_axi_lite_araddr(s_axi_lite_araddr),
 		.s_axi_lite_arprot(s_axi_lite_arprot),
@@ -292,7 +296,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)itr_ctrl_for_generic_conv_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.rd_req_dsc_dma_blk_done(rd_req_dsc_dma_blk_done),
 		.wt_req_dsc_dma_blk_done(wt_req_dsc_dma_blk_done),
@@ -336,7 +340,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axi_rd_req_dsc_dma_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.req_buf_baseaddr(rd_req_buf_baseaddr),
 		.req_n(rd_req_n),
@@ -390,7 +394,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axi_wt_req_dsc_dma_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.req_buf_baseaddr(wt_req_buf_baseaddr),
 		.req_n(wt_req_n),
@@ -440,7 +444,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axis_rd_req_distributor_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.s_axis_dsc_data(s_axis_rd_req_dsc_data),
 		.s_axis_dsc_valid(s_axis_rd_req_dsc_valid),
@@ -482,7 +486,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axi_rchn_for_conv_in_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.s_axis_rd_req_data(s_axis_rd_req_data),
 		.s_axis_rd_req_valid(s_axis_rd_req_valid),
@@ -498,6 +502,7 @@ module axi_generic_conv #(
 		.m_axi_arburst(m_axi_conv_arburst),
 		.m_axi_arlen(m_axi_conv_arlen),
 		.m_axi_arsize(m_axi_conv_arsize),
+		.m_axi_arcache(m_axi_conv_arcache),
 		.m_axi_arvalid(m_axi_conv_arvalid),
 		.m_axi_arready(m_axi_conv_arready),
 		
@@ -612,7 +617,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axis_in_feature_map_buffer_group_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.feature_map_w(feature_map_w),
 		
@@ -661,7 +666,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axis_kernal_params_buffer_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.kernal_type(kernal_type),
 		
@@ -711,7 +716,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axis_linear_params_buffer_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.rst_linear_pars_buf(rst_linear_pars_buf),
 		.linear_pars_buf_load_completed(linear_pars_buf_load_completed),
@@ -766,7 +771,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axis_conv_cal_3x3_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.rst_kernal_buf(rst_cal_path_kernal_buf),
 		
@@ -834,7 +839,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axis_conv_out_buffer_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.en_conv_cal(en_conv_cal),
 		
@@ -888,7 +893,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axis_linear_act_cal_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.act_rate_c(act_rate_c),
 		
@@ -945,7 +950,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axi_wchn_for_conv_out_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.wt_req_fns(wt_req_fns),
 		
@@ -962,6 +967,7 @@ module axi_generic_conv #(
 		.m_axi_awburst(m_axi_conv_awburst),
 		.m_axi_awlen(m_axi_conv_awlen),
 		.m_axi_awsize(m_axi_conv_awsize),
+		.m_axi_awcache(m_axi_conv_awcache),
 		.m_axi_awvalid(m_axi_conv_awvalid),
 		.m_axi_awready(m_axi_conv_awready),
 		
@@ -977,10 +983,13 @@ module axi_generic_conv #(
 	);
 	
 	/** 读/写请求描述子AXI读通道仲裁 **/
+	assign m_axi_rw_req_dsc_arcache = 4'b0011;
+	
 	assign m_axi_rw_req_dsc_awaddr = 32'dx;
 	assign m_axi_rw_req_dsc_awburst = 2'b01;
 	assign m_axi_rw_req_dsc_awlen = 8'dx;
 	assign m_axi_rw_req_dsc_awsize = 3'b011;
+	assign m_axi_rw_req_dsc_awcache = 4'b0011;
 	assign m_axi_rw_req_dsc_awvalid = 1'b0;
 	
 	assign m_axi_rw_req_dsc_bready = 1'b1;
@@ -995,7 +1004,7 @@ module axi_generic_conv #(
 		.simulation_delay(simulation_delay)
 	)axi_arb_for_rw_req_dsc_u(
 		.clk(clk),
-		.rst_n(rst_n),
+		.rst_n(resetn),
 		
 		.s_axi_rd_req_dsc_araddr(m_axi_rd_req_dsc_araddr),
 		.s_axi_rd_req_dsc_arburst(m_axi_rd_req_dsc_arburst),

@@ -68,6 +68,7 @@ typedef struct{
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void init_axi_generic_conv(AXIGenericConv* axi_conv, uint32_t baseaddr); // 初始化AXI通用卷积加速器
+
 void axi_generic_conv_set_conv_params(AXIGenericConv* axi_conv, AXIGenericConvCfg* cfg); // 配置AXI通用卷积加速器的运行时参数
 void axi_generic_conv_start(AXIGenericConv* axi_conv); // 启动AXI通用卷积加速器
 void axi_generic_conv_resume(AXIGenericConv* axi_conv); // 继续运行AXI通用卷积加速器

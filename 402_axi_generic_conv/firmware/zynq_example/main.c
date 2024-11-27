@@ -11,8 +11,8 @@
 
 #define KERNAL_TYPE 1 // 卷积核类型(1 -> 3x3, 0 -> 1x1)
 
-#define PRL_KERNAL_N 4 // 核并行数
-#define PRL_CHN_N 4 // 通道并行数
+#define PRL_KERNAL_N 2 // 核并行数
+#define PRL_CHN_N 2 // 通道并行数
 
 #define FT_MAP_W 13 // 特征图宽度
 #define FT_MAP_H 13 // 特征图高度
@@ -29,6 +29,8 @@
 
 #define MAX_RD_REQ_N 1024 * 1024 * 16 // 最大的读请求个数
 #define MAX_WT_REQ_N 65536 // 最大的写请求个数
+
+#define USE_ACP_PORT // 使用ACP接口
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -113,16 +115,16 @@ int main(void){
 	// 生成写请求描述子
 	wt_req_n = axi_generic_conv_generate_wt_req_dsc(wt_req_dsc_buf_ptr, (uint32_t)out_ft_map_buf, KERNAL_N, PRL_KERNAL_N, FT_MAP_W, FT_MAP_H);
 
+#ifndef USE_ACP_PORT
 	// 刷新数据Cache
 	Xil_DCacheFlushRange((INTPTR)in_ft_map_buf, (FT_MAP_W * FT_MAP_H * FT_MAP_CHN + 4) * 2);
+	Xil_DCacheFlushRange((INTPTR)out_ft_map_buf, (FT_MAP_W * FT_MAP_H * FT_MAP_CHN + 4) * 2);
 	Xil_DCacheFlushRange((INTPTR)kernal_buf, (3 * 3 * FT_MAP_CHN * KERNAL_N + 4) * 2);
 	Xil_DCacheFlushRange((INTPTR)linear_a_buf, (FT_MAP_CHN + 4) * 2);
 	Xil_DCacheFlushRange((INTPTR)linear_b_buf, (FT_MAP_CHN + 4) * 2);
 	Xil_DCacheFlushRange((INTPTR)rd_req_dsc_buf, (MAX_RD_REQ_N * 2 + 64) * 4);
 	Xil_DCacheFlushRange((INTPTR)wt_req_dsc_buf, (MAX_WT_REQ_N * 2 + 64) * 4);
-
-	// 启动AXI通用卷积加速器
-	axi_generic_conv_start(&axi_conv);
+#endif
 
 	// 配置AXI通用卷积加速器的中断
 	if(gic_conn_config_itr(&gic, NULL, axi_generic_conv_intr_handler, XPAR_FABRIC_AXI_GENERIC_CONV_0_ITR_INTR,
@@ -131,6 +133,9 @@ int main(void){
 	}
 	axi_generic_conv_set_wt_req_itr_th(&axi_conv, FT_MAP_H * KERNAL_N);
 	axi_generic_conv_enable_itr(&axi_conv, AXI_GENERIC_CONV_ITR_WT_FNS);
+
+	// 启动AXI通用卷积加速器
+	axi_generic_conv_start(&axi_conv);
 
 	// 提交读请求描述子
 	if(axi_generic_conv_post_rd_req_dsc(&axi_conv, (uint32_t)rd_req_dsc_buf_ptr, rd_req_n)){
@@ -173,7 +178,9 @@ void axi_generic_conv_intr_handler(void* callback_ref){
 
 	if(itr_sts & AXI_GENERIC_CONV_ITR_WT_FNS){
 		// 写请求处理完成中断
+#ifndef USE_ACP_PORT
 		Xil_DCacheFlushRange((INTPTR)out_ft_map_buf, (FT_MAP_W * FT_MAP_H * KERNAL_N + 4) * 2);
+#endif
 	}
 
 	axi_generic_conv_clear_itr_flag(&axi_conv); // 清除中断标志
@@ -317,7 +324,10 @@ int check_conv_res(void){
 	uint8_t success = 1;
 
 	for(int i = 0;i < FT_MAP_W * FT_MAP_H * KERNAL_N;i++){
-		if(out_ft_map_buf[i] != golden_ref_buf[i]){
+		uint16_t res = out_ft_map_buf[i];
+		uint16_t ref = golden_ref_buf[i];
+
+		if(res != ref){
 			success = 0;
 		}
 	}

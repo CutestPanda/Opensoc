@@ -59,6 +59,7 @@ module axi_rchn_for_conv_in #(
     output wire[1:0] m_axi_arburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_arlen,
     output wire[2:0] m_axi_arsize, // const -> 3'b011
+	output wire[3:0] m_axi_arcache, // const -> 4'b0011
     output wire m_axi_arvalid,
     input wire m_axi_arready,
     // R
@@ -157,6 +158,7 @@ module axi_rchn_for_conv_in #(
 	assign m_axi_arburst = 2'b01;
 	assign m_axi_arlen = m_axis_ar_reg_slice_user;
 	assign m_axi_arsize = 3'b011;
+	assign m_axi_arcache = 4'b0011;
 	assign m_axi_arvalid = m_axis_ar_reg_slice_valid;
 	assign m_axis_ar_reg_slice_ready = m_axi_arready;
 	

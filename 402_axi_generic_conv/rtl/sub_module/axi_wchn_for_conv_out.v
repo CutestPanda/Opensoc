@@ -60,6 +60,7 @@ module axi_wchn_for_conv_out #(
     output wire[1:0] m_axi_awburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_awlen,
     output wire[2:0] m_axi_awsize, // const -> 3'b011
+	output wire[3:0] m_axi_awcache, // const -> 4'b0011
     output wire m_axi_awvalid,
     input wire m_axi_awready,
     // B
@@ -165,6 +166,7 @@ module axi_wchn_for_conv_out #(
 	assign m_axi_awburst = 2'b01;
 	assign m_axi_awlen = m_axis_aw_user;
 	assign m_axi_awsize = 3'b011;
+	assign m_axi_awcache = 4'b0011;
 	assign m_axi_awvalid = m_axis_aw_valid;
 	assign m_axis_aw_ready = m_axi_awready;
 	
