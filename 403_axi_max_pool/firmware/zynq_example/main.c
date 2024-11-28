@@ -110,19 +110,56 @@ int main(void){
 		return XST_FAILURE;
 	}
 
-	while(1){
-		if(max_pool_itr_flag){
-			int check_res = check_max_pool_res();
+	// 等待第1次测试返回结果
+	while(!max_pool_itr_flag);
 
-			if(check_res){
-				xil_printf("max_pool res checked unsuccessfully!");
-			}else{
-				xil_printf("max_pool res checked successfully!");
-			}
+	int check_res = check_max_pool_res();
 
-			max_pool_itr_flag = 0;
-		}
+	if(check_res){
+		xil_printf("max_pool res checked unsuccessfully!");
+	}else{
+		xil_printf("max_pool res checked successfully!");
 	}
+
+	max_pool_itr_flag = 0;
+
+	// 清零输出特征图缓存区以准备第2次测试
+	memset(out_ft_map_buf, 0, (FT_MAP_W * FT_MAP_H * FT_MAP_CHN + 512) * 2);
+
+	// 启动AXI最大池化单元的DMA读通道
+	if(axi_max_pool_start_dma_rchn(&axi_max_pool, (uint32_t)in_ft_map_buf_ptr, (FT_MAP_W * FT_MAP_H * FT_MAP_CHN) * 2)){
+		return XST_FAILURE;
+	}
+#if STEP_TYPE == 0
+	// 启动AXI最大池化单元的DMA写通道
+	if(axi_max_pool_start_dma_wchn(&axi_max_pool, (uint32_t)out_ft_map_buf_ptr, (FT_MAP_W * FT_MAP_H * FT_MAP_CHN) * 2)){
+		return XST_FAILURE;
+	}
+#else
+	// 启动AXI最大池化单元的DMA写通道
+	if(axi_max_pool_start_dma_wchn(&axi_max_pool, (uint32_t)out_ft_map_buf_ptr, (FT_MAP_W * FT_MAP_H * FT_MAP_CHN) / 2)){
+		return XST_FAILURE;
+	}
+#endif
+	// 启动AXI最大池化单元的计算
+	if(axi_max_pool_start_cal(&axi_max_pool)){
+		return XST_FAILURE;
+	}
+
+	// 等待第2次测试返回结果
+	while(!max_pool_itr_flag);
+
+	check_res = check_max_pool_res();
+
+	if(check_res){
+		xil_printf("max_pool res checked unsuccessfully!");
+	}else{
+		xil_printf("max_pool res checked successfully!");
+	}
+
+	max_pool_itr_flag = 0;
+
+	while(1);
 
 	return XST_SUCCESS;
 }

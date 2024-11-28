@@ -146,19 +146,48 @@ int main(void){
 		return XST_FAILURE;
 	}
 
-	while(1){
-		if(conv_itr_flag){
-			int check_res = check_conv_res();
+	// 等待第1次测试返回结果
+	while(!conv_itr_flag);
 
-			if(check_res){
-				xil_printf("conv res checked unsuccessfully!");
-			}else{
-				xil_printf("conv res checked successfully!");
-			}
+	int check_res = check_conv_res();
 
-			conv_itr_flag = 0;
-		}
+	if(check_res){
+		xil_printf("conv res checked unsuccessfully!");
+	}else{
+		xil_printf("conv res checked successfully!");
 	}
+
+	conv_itr_flag = 0;
+
+	// 清零输出特征图缓存区以准备第2次测试
+	memset(out_ft_map_buf, 0, (FT_MAP_W * FT_MAP_H * KERNAL_N + 4) * 2);
+
+	// 启动AXI通用卷积加速器
+	axi_generic_conv_start(&axi_conv);
+
+	// 提交读请求描述子
+	if(axi_generic_conv_post_rd_req_dsc(&axi_conv, (uint32_t)rd_req_dsc_buf_ptr, rd_req_n)){
+		return XST_FAILURE;
+	}
+	// 提交写请求描述子
+	if(axi_generic_conv_post_wt_req_dsc(&axi_conv, (uint32_t)wt_req_dsc_buf_ptr, wt_req_n)){
+		return XST_FAILURE;
+	}
+
+	// 等待第2次测试返回结果
+	while(!conv_itr_flag);
+
+	check_res = check_conv_res();
+
+	if(check_res){
+		xil_printf("conv res checked unsuccessfully!");
+	}else{
+		xil_printf("conv res checked successfully!");
+	}
+
+	conv_itr_flag = 0;
+
+	while(1);
 
 	return XST_SUCCESS;
 }
