@@ -196,7 +196,7 @@ void axi_max_pool_intr_handler(void* callback_ref){
 void generate_ft_map(void){
 	for(int i = 0;i < FT_MAP_CHN;i++){
 		for(int j = 0;j < FT_MAP_W * FT_MAP_H;j++){
-			in_ft_map_buf_ptr[i * FT_MAP_W * FT_MAP_H + j] = rand() % 10;
+			in_ft_map_buf_ptr[i * FT_MAP_W * FT_MAP_H + j] = rand();
 		}
 	}
 }
