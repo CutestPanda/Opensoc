@@ -9,7 +9,6 @@
 无
 
 协议:
-AXIS MASTER
 REQ/GRANT
 
 作者: 陈家耀
@@ -17,7 +16,7 @@ REQ/GRANT
 ********************************************************************/
 
 
-module panda_risc_v_ifu_with_imem(
+module panda_risc_v_ifu_eva(
     // 时钟
 	input wire clk,
 	// 外部复位输入

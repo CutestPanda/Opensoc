@@ -4,7 +4,9 @@
 
 描述:
 根据取指结果和源寄存器读结果进行译码, 生成指令类型标志、读写通用寄存器堆标志、
-	乘除法操作数、CSR原子读写操作信息、ALU操作信息
+	访存类型、乘除法操作数、CSR原子读写操作信息、ALU操作信息
+
+计算跳转后的PC(用于后级分支确认单元判定预测失败时生成冲刷地址)
 
 乘除法操作数均为33位有符号数
 
@@ -49,25 +51,38 @@ module panda_risc_v_decoder(
 	output wire is_div_inst, // 是否除法指令
 	output wire is_rem_inst, // 是否求余指令
 	
+	// 跳转后的PC
+	output wire[31:0] pc_jump,
+	
 	// 读写通用寄存器堆标志
 	output wire rs1_vld, // 是否需要读RS1
 	output wire rs2_vld, // 是否需要读RS2
 	output wire rd_vld, // 是否需要写RD
 	
+	// LSU操作信息
+	output wire[2:0] ls_type, // 访存类型
+	
 	// 乘除法操作数
-	output wire[32:0] mul_div_op_a,
-	output wire[32:0] mul_div_op_b,
+	output wire[32:0] mul_div_op_a, // 操作数A
+	output wire[32:0] mul_div_op_b, // 操作数B
+	output wire mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	
 	// CSR原子读写操作信息
 	output wire[11:0] csr_addr, // CSR地址
 	output wire[1:0] csr_upd_type, // CSR更新类型
-	output wire[31:0] csr_new_v, // CSR更新值
-	output wire[31:0] csr_upd_mask, // CSR更新掩码
+	output wire[31:0] csr_upd_mask_v, // CSR更新掩码或更新值
 	
 	// ALU操作信息
 	output wire[3:0] alu_op_mode, // 操作类型
 	output wire[31:0] alu_op1, // 操作数1
-	output wire[31:0] alu_op2 // 操作数2
+	output wire[31:0] alu_op2, // 操作数2
+	
+	// 打包的译码结果
+	output wire[6:0] dcd_res_inst_type_packeted, // 打包的指令类型标志
+	output wire[67:0] dcd_res_alu_op_msg_packeted, // 打包的ALU操作信息
+	output wire[2:0] dcd_res_lsu_op_msg_packeted, // 打包的LSU操作信息
+	output wire[45:0] dcd_res_csr_rw_op_msg_packeted, // 打包的CSR原子读写操作信息
+	output wire[66:0] dcd_res_mul_div_op_msg_packeted // 打包的乘除法操作信息
 );
 	
 	/** 常量 **/
@@ -113,6 +128,12 @@ module panda_risc_v_decoder(
 	localparam OPCODE_ARTH_REG = 7'b0110011;
 	localparam OPCODE_FENCE = 7'b0001111;
 	localparam OPCODE_ENV_CSR = 7'b1110011;
+	// 访存类型
+	localparam LS_TYPE_BYTE = 3'b000;
+	localparam LS_TYPE_HALF_WORD = 3'b001;
+	localparam LS_TYPE_WORD = 3'b010;
+	localparam LS_TYPE_BYTE_UNSIGNED = 3'b100;
+	localparam LS_TYPE_HALF_WORD_UNSIGNED = 3'b101;
 	// CSR更新类型
 	localparam CSR_UPD_TYPE_LOAD = 2'b00;
 	localparam CSR_UPD_TYPE_SET = 2'b01;
@@ -153,7 +174,7 @@ module panda_risc_v_decoder(
 	wire is_and_inst; // 是否AND指令
 	wire is_fence_inst; // 是否FENCE指令
 	wire is_fence_i_inst; // 是否FENCE.I指令
-	wire is_ecall_inst; // 是否ECALL指令s
+	wire is_ecall_inst; // 是否ECALL指令
 	wire is_ebreak_inst; // 是否EBREAK指令
 	wire is_csrrw_inst; // 是否CSRRW指令
 	wire is_csrrs_inst; // 是否CSRRS指令
@@ -162,14 +183,14 @@ module panda_risc_v_decoder(
 	wire is_csrrsi_inst; // 是否CSRRSI指令
 	wire is_csrrci_inst; // 是否CSRRCI指令
 	// 拓展M指令
-	wire is_mul_inst; // 是否MUL指令
-	wire is_mulh_inst; // 是否MULH指令
-	wire is_mulhsu_inst; // 是否MULHSU指令
-	wire is_mulhu_inst; // 是否MULHU指令
-	wire is_div_inst; // 是否DIV指令
-	wire is_divu_inst; // 是否DIVU指令
-	wire is_rem_inst; // 是否REM指令
-	wire is_remu_inst; // 是否REMU指令
+	wire is_mul_inst_acc; // 是否MUL指令(精确的)
+	wire is_mulh_inst_acc; // 是否MULH指令(精确的)
+	wire is_mulhsu_inst_acc; // 是否MULHSU指令(精确的)
+	wire is_mulhu_inst_acc; // 是否MULHU指令(精确的)
+	wire is_div_inst_acc; // 是否DIV指令(精确的)
+	wire is_divu_inst_acc; // 是否DIVU指令(精确的)
+	wire is_rem_inst_acc; // 是否REM指令(精确的)
+	wire is_remu_inst_acc; // 是否REMU指令(精确的)
 	
 	assign is_b_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_B_INST_SID];
 	assign is_csr_rw_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_CSR_RW_INST_SID];
@@ -222,14 +243,22 @@ module panda_risc_v_decoder(
 	assign is_csrrsi_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b110);
 	assign is_csrrci_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b111);
 	
-	assign is_mul_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b000) & inst[25];
-	assign is_mulh_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b001) & inst[25];
-	assign is_mulhsu_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b010) & inst[25];
-	assign is_mulhu_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b011) & inst[25];
-	assign is_div_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b100) & inst[25];
-	assign is_divu_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b101) & inst[25];
-	assign is_rem_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b110) & inst[25];
-	assign is_remu_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b111) & inst[25];
+	assign is_mul_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b000) & inst[25];
+	assign is_mulh_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b001) & inst[25];
+	assign is_mulhsu_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b010) & inst[25];
+	assign is_mulhu_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b011) & inst[25];
+	assign is_div_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b100) & inst[25];
+	assign is_divu_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b101) & inst[25];
+	assign is_rem_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b110) & inst[25];
+	assign is_remu_inst_acc = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b111) & inst[25];
+	
+	/** 跳转后的PC **/
+	wire[20:0] jump_ofs_imm; // 跳转偏移量立即数
+	
+	// 是否一定在译码单元里重新计算跳转后的PC, 能不能复用加法器???
+	assign pc_jump = pc_of_inst + {{11{jump_ofs_imm[20]}}, jump_ofs_imm};
+	
+	assign jump_ofs_imm = pre_decoding_msg_packeted[PRE_DCD_MSG_JUMP_OFS_IMM_SID+20:PRE_DCD_MSG_JUMP_OFS_IMM_SID];
 	
 	/** 读写通用寄存器堆标志 **/
 	assign rs1_vld = pre_decoding_msg_packeted[PRE_DCD_MSG_RS1_VLD_SID];
@@ -280,7 +309,11 @@ module panda_risc_v_decoder(
 		({32{is_arth_imm_inst}} & arth_imm) | 
 		({32{is_b_inst | is_arth_regs_inst}} & rs2_v);
 	
+	/** 访存类型生成 **/
+	assign ls_type = inst[14:12];
+	
 	/** 乘除法操作数生成 **/
+	wire is_mul_inst_fast; // 是否MUL指令(在乘除法指令内快速区分)
 	wire is_mulhsu_inst_fast; // 是否MULHSU指令(在乘除法指令内快速区分)
 	wire is_mulhu_inst_fast; // 是否MULHU指令(在乘除法指令内快速区分)
 	wire is_divu_inst_fast; // 是否DIVU指令(在乘除法指令内快速区分)
@@ -288,7 +321,9 @@ module panda_risc_v_decoder(
 	
 	assign mul_div_op_a = {(~(is_divu_inst_fast | is_remu_inst_fast | is_mulhu_inst_fast)) & rs1_v[31], rs1_v};
 	assign mul_div_op_b = {(~(is_divu_inst_fast | is_remu_inst_fast | is_mulhu_inst_fast | is_mulhsu_inst_fast)) & rs2_v[31], rs2_v};
+	assign mul_res_sel = ~is_mul_inst_fast;
 	
+	assign is_mul_inst_fast = inst[14:12] == 3'b000;
 	assign is_mulhsu_inst_fast = inst[14:12] == 3'b010;
 	assign is_mulhu_inst_fast = inst[14:12] == 3'b011;
 	assign is_divu_inst_fast = inst[14:12] == 3'b101;
@@ -307,12 +342,9 @@ module panda_risc_v_decoder(
 		({2{is_csrrw_inst_fast | is_csrrwi_inst_fast}} & CSR_UPD_TYPE_LOAD) | 
 		({2{is_csrrs_inst_fast | is_csrrsi_inst_fast}} & CSR_UPD_TYPE_SET) | 
 		({2{is_csrrc_inst_fast | is_csrrci_inst_fast}} & CSR_UPD_TYPE_CLR);
-	assign csr_new_v = is_csrrw_inst_fast ? rs1_v:csr_upd_imm;
-	assign csr_upd_mask = 
-		// 置位
-		({32{is_csrrs_inst_fast}} & rs1_v) | 
-		({32{is_csrrsi_inst_fast}} & csr_upd_imm) | 
-		// 清零位
+	assign csr_upd_mask_v = 
+		({32{is_csrrs_inst_fast | is_csrrw_inst_fast}} & rs1_v) | 
+		({32{is_csrrsi_inst_fast | is_csrrwi_inst_fast}} & csr_upd_imm) | 
 		({32{is_csrrc_inst_fast}} & (~rs1_v)) | 
 		({32{is_csrrci_inst_fast}} & (~csr_upd_imm));
 	
@@ -322,5 +354,23 @@ module panda_risc_v_decoder(
 	assign is_csrrwi_inst_fast = inst[14:12] == 3'b101;
 	assign is_csrrsi_inst_fast = inst[14:12] == 3'b110;
 	assign is_csrrci_inst_fast = inst[14:12] == 3'b111;
+	
+	/** 打包的译码结果 **/
+	assign dcd_res_inst_type_packeted = {
+		is_b_inst, is_csr_rw_inst, is_load_inst, is_store_inst, 
+		is_mul_inst, is_div_inst, is_rem_inst
+	};
+	assign dcd_res_alu_op_msg_packeted = {
+		alu_op_mode, alu_op1, alu_op2
+	};
+	assign dcd_res_lsu_op_msg_packeted = {
+		ls_type
+	};
+	assign dcd_res_csr_rw_op_msg_packeted = {
+		csr_addr, csr_upd_type, csr_upd_mask_v
+	};
+	assign dcd_res_mul_div_op_msg_packeted = {
+		mul_div_op_a, mul_div_op_b, mul_res_sel
+	};
 	
 endmodule

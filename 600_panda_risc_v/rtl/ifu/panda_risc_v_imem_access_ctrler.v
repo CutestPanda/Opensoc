@@ -104,7 +104,12 @@ module panda_risc_v_imem_access_ctrler #(
 		NOP_INST
 	};
 	
-	/** 取指结果缓存区 **/
+	/**
+	取指结果缓存区
+	
+	从指令总线上取得的指令需要先缓存到深度为3的寄存器fifo, 
+	这里未实现fifo空时的取指结果立即旁路, 因此会造成额外的时延, 但可以切分时序路径
+	**/
 	reg[3:0] if_res_buf_store_n; // 取指结果缓存区存储个数(4'b0001 -> 0, 4'b0010 -> 1, 4'b0100 -> 2, 4'b1000 -> 3)
 	reg[1:0] if_res_buf_wptr; // 取指结果缓存区写指针
 	reg[1:0] if_res_buf_rptr; // 取指结果缓存区读指针
@@ -307,11 +312,11 @@ module panda_risc_v_imem_access_ctrler #(
 					(~(rst_req | flush_req | 
 						((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
 						((~is_jalr_inst) | jalr_allow)))): // 等待指令存储器访问请求成功发起, 
-																  // 该等待标志可能会被复位/冲刷请求打断
+														   // 该等待标志可能会被复位/冲刷请求打断
 					((~rst_req) & (~rst_imem_access_req_pending) & (~flush_req) & (~flush_imem_access_req_pending) & 
 						vld_inst_gotten & (~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
 						((~is_jalr_inst) | jalr_allow)))) // 指令总线控制单元返回取指结果且当前不处于复位/冲刷状态, 
-						                                         // 新的IMEM访问请求不能被立即处理, 置位等待标志
+						                                  // 新的IMEM访问请求不能被立即处理, 置位等待标志
 			*/
 				(~rst_req) & (~flush_req) & 
 				(common_imem_access_req_pending | 

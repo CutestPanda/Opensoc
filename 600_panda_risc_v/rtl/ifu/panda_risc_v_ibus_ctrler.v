@@ -223,7 +223,7 @@ module panda_risc_v_ibus_ctrler #(
 	wire resp_with_timeout; // 返回响应(访问超时)
 	
 	assign imem_access_resp_rdata = 
-		resp_with_normal ? m_icb_rsp_rdata:NOP_INST;
+		resp_with_normal ? m_icb_rsp_rdata:NOP_INST; // 除非返回正常响应, 否则输出NOP指令
 	assign imem_access_resp_err = 
 		({2{resp_with_normal}} & IMEM_ACCESS_NORMAL)
 		| ({2{resp_with_pc_unaligned}} & IMEM_ACCESS_PC_UNALIGNED)
