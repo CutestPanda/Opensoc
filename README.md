@@ -35,6 +35,7 @@ APB-SPI<br>
 AXI-通用卷积加速器<br>
 AXI-最大池化单元<br>
 AXI-上采样单元<br>
+AXIS-浮点计算单元<br>
 ## 正在开发的IP<br>
 (1)__DMA__<br>
 AXI-通用DMA引擎<br>
