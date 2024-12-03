@@ -3,7 +3,7 @@
 本模块: 全流水的单精度浮点加法器
 
 描述:
-3级流水线完成对阶、尾数相加、标准化
+4级流水线完成对阶、尾数相加、标准化
 
 标准化进行右规时有效尾数的末位恒置1
 
@@ -47,6 +47,7 @@ module float_add_pipelined #(
 	/**
 	第1级流水线
 	
+	将定点尾数从原码转为补码
 	对阶: 小阶向大阶看齐
 	**/
 	wire signed[27:0] float_a_frac_fixed; // 浮点数A定点化后的尾数({双符号位, 24位定点尾数, 双保护位})
@@ -62,7 +63,7 @@ module float_add_pipelined #(
 	reg signed[27:0] float_b_frac_fixed_rsh; // 做算术右移后的浮点数B定点尾数({双符号位, 24位定点尾数, 双保护位})
 	reg float_in_valid_d; // 延迟1clk的浮点乘法器输入有效指示
 	
-	// 定点尾数 = 1.XXX或-1.XXX
+	// 定点尾数 = 1.XXX或-1.XXX, 需要将原码转换为补码
 	assign float_a_frac_fixed[27:25] = {{2{in_float_sgn[0]}}, ~in_float_sgn[0]};
 	assign float_a_frac_fixed[24:2] = ({23{in_float_sgn[0]}} ^ in_float_frac[0]) + in_float_sgn[0];
 	assign float_a_frac_fixed[1:0] = 2'b00;
@@ -209,24 +210,23 @@ module float_add_pipelined #(
 	/**
 	第3级流水线
 	
-	标准化: 左规/右规
+	标准化: 预左规(左归1~6位或7~23位), 预右规
 	**/
 	wire signed[9:0] exp_nml_incr; // 标准化阶码增量
 	wire signed[9:0] float_exp_nml; // 标准化后的阶码
 	wire float_up_ovf_flag; // 上溢标志
 	wire float_down_ovf_flag; // 下溢标志
-	wire[4:0] left_nml_n; // 左规位数
-	wire signed[27:0] float_frac_nml; // 标准化后的尾数({26位定点尾数(Q23, 范围为(-2, -1] U [1, 2)), 双保护位})
-	wire[27:0] float_frac_nml_abs; // 取绝对值后的标准化尾数
-	reg out_float_sgn; // 输出浮点数的符号位
 	reg[7:0] out_float_exp; // 输出浮点数的阶码
-	reg[22:0] out_float_frac; // 输出浮点数的尾数
 	reg[1:0] out_float_ovf; // 输出浮点数的溢出标志({上溢标志, 下溢标志})
+	wire[42:0] lmnl_mul_res; // 左归乘法器输出
+	wire signed[27:0] float_frac_lnml_7_to_23; // 左归7~23位的定点尾数
+	reg signed[27:0] float_frac_lnml_1_to_6; // 左归1~6位的定点尾数
+	reg signed[27:0] float_frac_rnml_1; // 右归1位的定点尾数
+	reg signed[27:0] float_frac_org; // 原始的定点尾数
+	reg float_frac_fixed_too_small_d; // 延迟1clk的定点尾数过小(标志)
+	reg float_frac_fixed_add_res_ovf_d; // 延迟1clk的定点尾数相加结果溢出(标志)
+	reg lnml_n_gth_6; // 左归位数 > 6(标志)
 	reg float_in_valid_d3; // 延迟3clk的浮点乘法器输入有效指示
-	
-	assign float_out = {out_float_sgn, out_float_exp, out_float_frac};
-	assign float_ovf = out_float_ovf;
-	assign float_out_valid = float_in_valid_d3;
 	
 	assign exp_nml_incr = 
 		// 溢出时右规1位
@@ -260,56 +260,13 @@ module float_add_pipelined #(
 	assign float_up_ovf_flag = float_exp_nml[9:8] == 2'b01;
 	assign float_down_ovf_flag = float_exp_nml[9] | float_frac_fixed_zero;
 	
-	assign left_nml_n = 
-		({5{float_lsh_n_onehot[0]}} & (5'd1)) | 
-		({5{float_lsh_n_onehot[1]}} & (5'd2)) | 
-		({5{float_lsh_n_onehot[2]}} & (5'd3)) | 
-		({5{float_lsh_n_onehot[3]}} & (5'd4)) | 
-		({5{float_lsh_n_onehot[4]}} & (5'd5)) | 
-		({5{float_lsh_n_onehot[5]}} & (5'd6)) | 
-		({5{float_lsh_n_onehot[6]}} & (5'd7)) | 
-		({5{float_lsh_n_onehot[7]}} & (5'd8)) | 
-		({5{float_lsh_n_onehot[8]}} & (5'd9)) | 
-		({5{float_lsh_n_onehot[9]}} & (5'd10)) | 
-		({5{float_lsh_n_onehot[10]}} & (5'd11)) | 
-		({5{float_lsh_n_onehot[11]}} & (5'd12)) | 
-		({5{float_lsh_n_onehot[12]}} & (5'd13)) | 
-		({5{float_lsh_n_onehot[13]}} & (5'd14)) | 
-		({5{float_lsh_n_onehot[14]}} & (5'd15)) | 
-		({5{float_lsh_n_onehot[15]}} & (5'd16)) | 
-		({5{float_lsh_n_onehot[16]}} & (5'd17)) | 
-		({5{float_lsh_n_onehot[17]}} & (5'd18)) | 
-		({5{float_lsh_n_onehot[18]}} & (5'd19)) | 
-		({5{float_lsh_n_onehot[19]}} & (5'd20)) | 
-		({5{float_lsh_n_onehot[20]}} & (5'd21)) | 
-		({5{float_lsh_n_onehot[21]}} & (5'd22)) | 
-		({5{float_lsh_n_onehot[22]}} & (5'd23));
-	
-	assign float_frac_nml = 
-		({28{float_frac_fixed_add_res_ovf}} & ((float_frac_fixed_add_res >>> 1) | {26'h000_0001, 2'b00})) | // 右规, 有效尾数的末位恒置1
-		({28{float_frac_fixed_too_small}} & (float_frac_fixed_add_res << left_nml_n)) | // 左规
-		({28{(~float_frac_fixed_add_res_ovf) & (~float_frac_fixed_too_small)}} & float_frac_fixed_add_res); // 不变
-	assign float_frac_nml_abs = ({28{float_frac_nml[27]}} ^ float_frac_nml) + float_frac_nml[27];
-	
-	// 输出浮点数的符号位
-	always @(posedge clk)
-	begin
-		if(float_in_valid_d2)
-			out_float_sgn <= # simulation_delay float_frac_nml[27];
-	end
+	assign float_frac_lnml_7_to_23 = {lmnl_mul_res[20:0], 7'd0};
 	
 	// 输出浮点数的阶码
 	always @(posedge clk)
 	begin
 		if(float_in_valid_d2)
 			out_float_exp <= # simulation_delay {8{~float_down_ovf_flag}} & ({8{float_up_ovf_flag}} | float_exp_nml[7:0]);
-	end
-	
-	// 输出浮点数的尾数
-	always @(posedge clk)
-	begin
-		if(float_in_valid_d2)
-			out_float_frac <= # simulation_delay {23{~float_down_ovf_flag}} & ({23{float_up_ovf_flag}} | float_frac_nml_abs[24:2]);
 	end
 	
 	// 输出浮点数的溢出标志
@@ -319,6 +276,55 @@ module float_add_pipelined #(
 			out_float_ovf <= # simulation_delay {float_up_ovf_flag, float_down_ovf_flag};
 	end
 	
+	// 左归1~6位的定点尾数
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d2)
+			float_frac_lnml_1_to_6 <= # simulation_delay 
+				({28{float_lsh_n_onehot[0]}} & (float_frac_fixed_add_res << 1)) | 
+				({28{float_lsh_n_onehot[1]}} & (float_frac_fixed_add_res << 2)) | 
+				({28{float_lsh_n_onehot[2]}} & (float_frac_fixed_add_res << 3)) | 
+				({28{float_lsh_n_onehot[3]}} & (float_frac_fixed_add_res << 4)) | 
+				({28{float_lsh_n_onehot[4]}} & (float_frac_fixed_add_res << 5)) | 
+				({28{float_lsh_n_onehot[5]}} & (float_frac_fixed_add_res << 6));
+	end
+	
+	// 右归1位的定点尾数
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d2)
+			// 右规时有效尾数的末位恒置1
+			float_frac_rnml_1 <= # simulation_delay (float_frac_fixed_add_res >>> 1) | {26'h000_0001, 2'b00};
+	end
+	
+	// 原始的定点尾数
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d2)
+			float_frac_org <= # simulation_delay float_frac_fixed_add_res;
+	end
+	
+	// 延迟1clk的定点尾数过小(标志)
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d2)
+			float_frac_fixed_too_small_d <= # simulation_delay float_frac_fixed_too_small;
+	end
+	
+	// 延迟1clk的定点尾数相加结果溢出(标志)
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d2)
+			float_frac_fixed_add_res_ovf_d <= # simulation_delay float_frac_fixed_add_res_ovf;
+	end
+	
+	// 左归位数 > 6(标志)
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d2)
+			lnml_n_gth_6 <= # simulation_delay ~(|float_lsh_n_onehot[5:0]);
+	end
+	
 	// 延迟3clk的浮点乘法器输入有效指示
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -326,6 +332,85 @@ module float_add_pipelined #(
 			float_in_valid_d3 <= 1'b0;
 		else
 			float_in_valid_d3 <= # simulation_delay float_in_valid_d2;
+	end
+	
+	// 左归乘法器
+	mul #(
+		.op_a_width(25),
+		.op_b_width(18),
+		.output_width(43),
+		.simulation_delay(simulation_delay)
+	)lmnl_mul(
+		.clk(clk),
+		
+		.ce_s0_mul(float_in_valid_d2),
+		
+		// 左规7~23位
+		.op_a({4'd0, float_frac_fixed_add_res[20:0]}),
+		.op_b({1'b0, float_lsh_n_onehot[22:6]}),
+		
+		.res(lmnl_mul_res)
+	);
+	
+	/**
+	第4级流水线
+	
+	标准化: 左规/右规
+	**/
+	reg[7:0] out_float_exp_d; // 延迟1clk的输出浮点数的阶码
+	reg[1:0] out_float_ovf_d; // 延迟1clk的输出浮点数的溢出标志({上溢标志, 下溢标志})
+	wire signed[27:0] float_frac_nml; // 标准化后的尾数({26位定点尾数(Q23, 范围为(-2, -1] U [1, 2)), 双保护位})
+	wire[27:0] float_frac_nml_abs; // 取绝对值后的标准化尾数
+	reg out_float_sgn; // 输出浮点数的符号位
+	reg[22:0] out_float_frac; // 输出浮点数的尾数
+	reg float_in_valid_d4; // 延迟4clk的浮点乘法器输入有效指示
+	
+	assign float_out = {out_float_sgn, out_float_exp_d, out_float_frac};
+	assign float_ovf = out_float_ovf_d;
+	assign float_out_valid = float_in_valid_d4;
+	
+	assign float_frac_nml = 
+		({28{float_frac_fixed_add_res_ovf_d}} & float_frac_rnml_1) | // 右规
+		({28{float_frac_fixed_too_small_d & lnml_n_gth_6}} & float_frac_lnml_7_to_23) | // 左归7~23位
+		({28{float_frac_fixed_too_small_d & (~lnml_n_gth_6)}} & float_frac_lnml_1_to_6) | // 左归1~6位
+		({28{(~float_frac_fixed_add_res_ovf_d) & (~float_frac_fixed_too_small_d)}} & float_frac_org); // 不变
+	assign float_frac_nml_abs = ({28{float_frac_nml[27]}} ^ float_frac_nml) + float_frac_nml[27]; // 取绝对值, 将补码转换为原码
+	
+	// 输出浮点数的符号位
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d3)
+			out_float_sgn <= # simulation_delay float_frac_nml[27];
+	end
+	
+	// 延迟1clk的输出浮点数的阶码
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d3)
+			out_float_exp_d <= # simulation_delay out_float_exp;
+	end
+	
+	// 输出浮点数的尾数
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d3)
+			out_float_frac <= # simulation_delay {23{~out_float_ovf[0]}} & ({23{out_float_ovf[1]}} | float_frac_nml_abs[24:2]);
+	end
+	
+	// 延迟1clk的输出浮点数的溢出标志
+	always @(posedge clk)
+	begin
+		if(float_in_valid_d3)
+			out_float_ovf_d <= # simulation_delay out_float_ovf;
+	end
+	
+	// 延迟4clk的浮点乘法器输入有效指示
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			float_in_valid_d4 <= 1'b0;
+		else
+			float_in_valid_d4 <= # simulation_delay float_in_valid_d3;
 	end
 	
 endmodule
