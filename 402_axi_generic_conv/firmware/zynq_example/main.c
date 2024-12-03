@@ -16,8 +16,8 @@
 
 #define FT_MAP_W 13 // 特征图宽度
 #define FT_MAP_H 13 // 特征图高度
-#define FT_MAP_CHN 32 // 特征图通道数
-#define KERNAL_N 64 // 卷积核个数
+#define FT_MAP_CHN 128 // 特征图通道数
+#define KERNAL_N 256 // 卷积核个数
 
 #define ACT_RATE_C (1 << 13) // Relu激活系数
 
@@ -26,9 +26,6 @@
 #define CONV_RES_EXT_INT_WIDTH 4 // 卷积结果额外考虑的整数位数
 #define AB_QUAZ_ACC 12 // a/b系数量化精度
 #define C_QUAZ_ACC 14 // c系数量化精度
-
-#define MAX_RD_REQ_N 1024 * 1024 * 16 // 最大的读请求个数
-#define MAX_WT_REQ_N 65536 // 最大的写请求个数
 
 #define USE_ACP_PORT // 使用ACP接口
 
@@ -332,11 +329,42 @@ void generate_golden_ref(void){
 					conv_res &= ((1 << (16 + CONV_RES_EXT_INT_WIDTH + CONV_RES_EXT_FRAC_WIDTH)) - 1);
 				}
 
-				// 舍入
+				// 舍入和溢出判断
+				uint8_t is_neg = (conv_res & (1 << (16 + CONV_RES_EXT_INT_WIDTH + CONV_RES_EXT_FRAC_WIDTH - 1))) ? 1:0;
+
+#if CONV_RES_EXT_INT_WIDTH > 2
+				int64_t ext_int = (conv_res >> (16 + CONV_RES_EXT_FRAC_WIDTH)) & (~(1 << (CONV_RES_EXT_INT_WIDTH - 1)));
+
+				if((!is_neg) && (ext_int != 0)){
+					// 上溢
+					conv_res = 0x7FFF;
+				}else if(is_neg && (ext_int != ((1 << (CONV_RES_EXT_INT_WIDTH - 1)) - 1))){
+					// 下溢
+					conv_res = 0x8000;
+				}else{
+					conv_res >>= CONV_RES_EXT_FRAC_WIDTH;
+					conv_res &= ((1 << 16) - 1);
+
+					if(is_neg){
+						conv_res |= 0x8000;
+					}else{
+						conv_res &= 0x7FFF;
+					}
+				}
+
+				golden_ref_buf[i * FT_MAP_W * FT_MAP_H + y * FT_MAP_W + x] = conv_res;
+#else
 				conv_res >>= CONV_RES_EXT_FRAC_WIDTH;
 				conv_res &= ((1 << 16) - 1);
 
+				if(is_neg){
+					conv_res |= 0x8000;
+				}else{
+					conv_res &= 0x7FFF;
+				}
+
 				golden_ref_buf[i * FT_MAP_W * FT_MAP_H + y * FT_MAP_W + x] = conv_res;
+#endif
 			}
 		}
 	}

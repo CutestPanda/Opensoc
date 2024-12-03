@@ -155,7 +155,7 @@ void axi_generic_conv_clear_itr_flag(AXIGenericConv* axi_conv){
 @return 是否成功
 *************************/
 int axi_generic_conv_post_rd_req_dsc(AXIGenericConv* axi_conv, uint32_t rd_req_buf_baseaddr, uint32_t rd_req_n){
-	if(rd_req_buf_baseaddr % RD_REQ_BUF_ALIGNMENT){
+	if((rd_req_buf_baseaddr % RD_REQ_BUF_ALIGNMENT) || (rd_req_n > MAX_RD_REQ_N)){
 		return -1;
 	}
 
@@ -180,7 +180,7 @@ int axi_generic_conv_post_rd_req_dsc(AXIGenericConv* axi_conv, uint32_t rd_req_b
 @return 是否成功
 *************************/
 int axi_generic_conv_post_wt_req_dsc(AXIGenericConv* axi_conv, uint32_t wt_req_buf_baseaddr, uint32_t wt_req_n){
-	if(wt_req_buf_baseaddr % WT_REQ_BUF_ALIGNMENT){
+	if((wt_req_buf_baseaddr % WT_REQ_BUF_ALIGNMENT) || (wt_req_n > MAX_WT_REQ_N)){
 		return -1;
 	}
 

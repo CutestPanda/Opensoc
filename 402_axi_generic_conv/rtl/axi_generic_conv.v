@@ -918,6 +918,10 @@ module axi_generic_conv #(
 	);
 	
 	/** 特征图输出DMA **/
+	// 最终算得的特征点
+	wire[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1:0] feature_point_final;
+	wire feature_point_final_up_ovg; // 上溢标志
+	wire feature_point_final_down_ovg; // 下溢标志
 	// 计算结果写请求
 	wire[63:0] s_axis_wt_req_data; // {待写入的字节数(32bit), 基地址(32bit)}
 	wire s_axis_wt_req_valid;
@@ -933,11 +937,37 @@ module axi_generic_conv #(
 	assign m_axis_wt_req_dsc_ready = s_axis_wt_req_ready;
 	
 	// 将线性乘加与激活得到的结果右移conv_res_ext_frac_width位, 得到量化精度为in_ft_quaz_acc的输出特征点
-	assign s_axis_res_data = 
-		m_axis_linear_act_res_data[conv_res_ext_frac_width+feature_pars_data_width-1:conv_res_ext_frac_width];
+	assign s_axis_res_data[feature_pars_data_width-1] = 
+		feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1];
+	assign s_axis_res_data[feature_pars_data_width-2:0] = 
+		{(feature_pars_data_width-1){~feature_point_final_down_ovg}} & // 下溢
+		({(feature_pars_data_width-1){feature_point_final_up_ovg}} | // 上溢
+			feature_point_final[conv_res_ext_frac_width+feature_pars_data_width-2:conv_res_ext_frac_width]);
 	assign s_axis_res_last = m_axis_linear_act_res_last;
 	assign s_axis_res_valid = m_axis_linear_act_res_valid;
 	assign m_axis_linear_act_res_ready = s_axis_res_ready;
+	
+	assign feature_point_final = m_axis_linear_act_res_data[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1:0];
+	
+	generate
+		if(conv_res_ext_int_width >= 2)
+			assign feature_point_final_up_ovg = 
+				(~feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1]) & 
+				(|feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-2:
+					feature_pars_data_width+conv_res_ext_frac_width]);
+		else
+			assign feature_point_final_up_ovg = 1'b0;
+	endgenerate
+	
+	generate
+		if(conv_res_ext_int_width >= 2)
+			assign feature_point_final_down_ovg = 
+				feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1] & 
+				(~(&feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-2:
+					feature_pars_data_width+conv_res_ext_frac_width]));
+		else
+			assign feature_point_final_down_ovg = 1'b0;
+	endgenerate
 	
 	axi_wchn_for_conv_out #(
 		.feature_data_width(feature_pars_data_width),
