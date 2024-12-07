@@ -73,6 +73,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire m_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
 	output wire[2:0] m_ls_type, // 访存类型
 	output wire[4:0] m_rd_id_for_ld, // 用于加载的目标寄存器的索引
+	output wire[31:0] m_ls_din, // 写数据
 	output wire m_lsu_valid,
 	input wire m_lsu_ready,
 	
@@ -177,6 +178,7 @@ module panda_risc_v_dcd_dsptc #(
 	wire[6:0] m_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] m_dispatch_req_pc_of_inst; // 指令对应的PC
 	wire[31:0] m_dispatch_req_pc_jump; // 跳转后的PC
+	wire[31:0] m_dispatch_req_store_din; // 用于写存储映射的数据
 	wire[4:0] m_dispatch_req_rd_id; // RD索引
 	wire m_dispatch_req_rd_vld; // 是否需要写RD
 	wire m_dispatch_req_valid;
@@ -224,6 +226,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_dispatch_req_inst_type_packeted(m_dispatch_req_inst_type_packeted),
 		.m_dispatch_req_pc_of_inst(m_dispatch_req_pc_of_inst),
 		.m_dispatch_req_pc_jump(m_dispatch_req_pc_jump),
+		.m_dispatch_req_store_din(m_dispatch_req_store_din),
 		.m_dispatch_req_rd_id(m_dispatch_req_rd_id),
 		.m_dispatch_req_rd_vld(m_dispatch_req_rd_vld),
 		.m_dispatch_req_valid(m_dispatch_req_valid),
@@ -246,6 +249,7 @@ module panda_risc_v_dcd_dsptc #(
 	wire[6:0] s_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] s_dispatch_req_pc_of_inst; // 指令对应的PC
 	wire[31:0] s_dispatch_req_pc_jump; // 跳转后的PC
+	wire[31:0] s_dispatch_req_store_din; // 用于写存储映射的数据
 	wire[4:0] s_dispatch_req_rd_id; // RD索引
 	wire s_dispatch_req_rd_vld; // 是否需要写RD
 	wire s_dispatch_req_valid;
@@ -255,6 +259,7 @@ module panda_risc_v_dcd_dsptc #(
 	assign s_dispatch_req_inst_type_packeted = m_dispatch_req_inst_type_packeted;
 	assign s_dispatch_req_pc_of_inst = m_dispatch_req_pc_of_inst;
 	assign s_dispatch_req_pc_jump = m_dispatch_req_pc_jump;
+	assign s_dispatch_req_store_din = m_dispatch_req_store_din;
 	assign s_dispatch_req_rd_id = m_dispatch_req_rd_id;
 	assign s_dispatch_req_rd_vld = m_dispatch_req_rd_vld;
 	assign s_dispatch_req_valid = m_dispatch_req_valid;
@@ -271,6 +276,7 @@ module panda_risc_v_dcd_dsptc #(
 		.s_dispatch_req_inst_type_packeted(s_dispatch_req_inst_type_packeted),
 		.s_dispatch_req_pc_of_inst(s_dispatch_req_pc_of_inst),
 		.s_dispatch_req_pc_jump(s_dispatch_req_pc_jump),
+		.s_dispatch_req_store_din(s_dispatch_req_store_din),
 		.s_dispatch_req_rd_id(s_dispatch_req_rd_id),
 		.s_dispatch_req_rd_vld(s_dispatch_req_rd_vld),
 		.s_dispatch_req_valid(s_dispatch_req_valid),
@@ -292,6 +298,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_ls_sel(m_ls_sel),
 		.m_ls_type(m_ls_type),
 		.m_rd_id_for_ld(m_rd_id_for_ld),
+		.m_ls_din(m_ls_din),
 		.m_lsu_valid(m_lsu_valid),
 		.m_lsu_ready(m_lsu_ready),
 		

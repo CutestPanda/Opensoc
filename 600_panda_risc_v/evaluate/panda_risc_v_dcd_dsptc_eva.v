@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2024/12/01
+日期: 2024/12/07
 ********************************************************************/
 
 
@@ -73,6 +73,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire m_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
 	output wire[2:0] m_ls_type, // 访存类型
 	output wire[4:0] m_rd_id_for_ld, // 用于加载的目标寄存器的索引
+	output wire[31:0] m_ls_din, // 写数据
 	output wire m_lsu_valid,
 	input wire m_lsu_ready,
 	
@@ -162,6 +163,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_ls_sel(m_ls_sel),
 		.m_ls_type(m_ls_type),
 		.m_rd_id_for_ld(m_rd_id_for_ld),
+		.m_ls_din(m_ls_din),
 		.m_lsu_valid(m_lsu_valid),
 		.m_lsu_ready(m_lsu_ready),
 		

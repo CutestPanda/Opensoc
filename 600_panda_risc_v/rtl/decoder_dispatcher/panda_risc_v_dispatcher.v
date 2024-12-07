@@ -41,6 +41,7 @@ module panda_risc_v_dispatcher(
 	input wire[6:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	input wire[31:0] s_dispatch_req_pc_of_inst, // 指令对应的PC
 	input wire[31:0] s_dispatch_req_pc_jump, // 跳转后的PC
+	input wire[31:0] s_dispatch_req_store_din, // 用于写存储映射的数据
 	input wire[4:0] s_dispatch_req_rd_id, // RD索引
 	input wire s_dispatch_req_rd_vld, // 是否需要写RD
 	input wire s_dispatch_req_valid,
@@ -65,6 +66,7 @@ module panda_risc_v_dispatcher(
 	output wire m_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
 	output wire[2:0] m_ls_type, // 访存类型
 	output wire[4:0] m_rd_id_for_ld, // 用于加载的目标寄存器的索引
+	output wire[31:0] m_ls_din, // 写数据
 	output wire m_lsu_valid,
 	input wire m_lsu_ready,
 	
@@ -194,6 +196,7 @@ module panda_risc_v_dispatcher(
 	assign m_ls_sel = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID];
 	assign m_ls_type = dispatch_msg_lsu_op_msg_packeted[LSU_OP_MSG_LS_TYPE+2:LSU_OP_MSG_LS_TYPE];
 	assign m_rd_id_for_ld = s_dispatch_req_rd_id;
+	assign m_ls_din = s_dispatch_req_store_din;
 	assign m_lsu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令

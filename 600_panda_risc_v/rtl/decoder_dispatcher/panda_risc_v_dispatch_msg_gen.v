@@ -14,7 +14,7 @@ IFU取指结果 -> 向通用寄存器读控制提交请求 -> 译码单元 -> �
 无
 
 作者: 陈家耀
-日期: 2024/12/01
+日期: 2024/12/07
 ********************************************************************/
 
 
@@ -64,6 +64,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	output wire[6:0] m_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	output wire[31:0] m_dispatch_req_pc_of_inst, // 指令对应的PC
 	output wire[31:0] m_dispatch_req_pc_jump, // 跳转后的PC
+	output wire[31:0] m_dispatch_req_store_din, // 用于写存储映射的数据
 	output wire[4:0] m_dispatch_req_rd_id, // RD索引
 	output wire m_dispatch_req_rd_vld, // 是否需要写RD
 	output wire m_dispatch_req_valid,
@@ -239,6 +240,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	reg[6:0] dispatch_inst_type_packeted; // 打包的指令类型标志
 	reg[31:0] dispatch_pc_of_inst; // 指令对应的PC
 	reg[31:0] dispatch_pc_jump; // 跳转后的PC
+	reg[31:0] dispatch_store_din; // 用于写存储映射的数据
 	reg[4:0] dispatch_rd_id; // RD索引
 	reg dispatch_rd_vld; // 是否需要写RD
 	reg dispatch_msg_valid; // 派遣信息有效标志
@@ -247,6 +249,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	assign m_dispatch_req_inst_type_packeted = dispatch_inst_type_packeted;
 	assign m_dispatch_req_pc_of_inst = dispatch_pc_of_inst;
 	assign m_dispatch_req_pc_jump = dispatch_pc_jump;
+	assign m_dispatch_req_store_din = dispatch_store_din;
 	assign m_dispatch_req_rd_id = dispatch_rd_id;
 	assign m_dispatch_req_rd_vld = dispatch_rd_vld;
 	assign m_dispatch_req_valid = dispatch_msg_valid & (~on_flush_rst);
@@ -292,6 +295,12 @@ module panda_risc_v_dispatch_msg_gen #(
 	begin
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
 			dispatch_pc_jump <= # simulation_delay pc_jump;
+	end
+	// 用于写存储映射的数据
+	always @(posedge clk)
+	begin
+		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
+			dispatch_store_din <= # simulation_delay rs2_v;
 	end
 	// RD索引
 	always @(posedge clk)
