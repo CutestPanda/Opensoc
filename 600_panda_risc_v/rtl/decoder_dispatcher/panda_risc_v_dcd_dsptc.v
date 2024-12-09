@@ -64,7 +64,7 @@ module panda_risc_v_dcd_dsptc #(
 	
 	// 分支确认单元执行请求
 	output wire[31:0] m_bcu_pc_of_inst, // 指令对应的PC
-	output wire[31:0] m_bcu_pc_jump, // 跳转后的PC
+	output wire[31:0] m_bcu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_bcu_prdt_jump, // 是否预测跳转
 	output wire m_bcu_valid,
 	input wire m_bcu_ready,
@@ -177,7 +177,7 @@ module panda_risc_v_dcd_dsptc #(
 	wire[70:0] m_dispatch_req_msg_reused; // 复用的派遣信息
 	wire[6:0] m_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] m_dispatch_req_pc_of_inst; // 指令对应的PC
-	wire[31:0] m_dispatch_req_pc_jump; // 跳转后的PC
+	wire[31:0] m_dispatch_req_brc_pc_upd; // 分支预测失败时修正的PC
 	wire[31:0] m_dispatch_req_store_din; // 用于写存储映射的数据
 	wire[4:0] m_dispatch_req_rd_id; // RD索引
 	wire m_dispatch_req_rd_vld; // 是否需要写RD
@@ -225,7 +225,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_dispatch_req_msg_reused(m_dispatch_req_msg_reused),
 		.m_dispatch_req_inst_type_packeted(m_dispatch_req_inst_type_packeted),
 		.m_dispatch_req_pc_of_inst(m_dispatch_req_pc_of_inst),
-		.m_dispatch_req_pc_jump(m_dispatch_req_pc_jump),
+		.m_dispatch_req_brc_pc_upd(m_dispatch_req_brc_pc_upd),
 		.m_dispatch_req_store_din(m_dispatch_req_store_din),
 		.m_dispatch_req_rd_id(m_dispatch_req_rd_id),
 		.m_dispatch_req_rd_vld(m_dispatch_req_rd_vld),
@@ -248,7 +248,7 @@ module panda_risc_v_dcd_dsptc #(
 	wire[70:0] s_dispatch_req_msg_reused; // 复用的派遣信息
 	wire[6:0] s_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] s_dispatch_req_pc_of_inst; // 指令对应的PC
-	wire[31:0] s_dispatch_req_pc_jump; // 跳转后的PC
+	wire[31:0] s_dispatch_req_brc_pc_upd; // 分支预测失败时修正的PC
 	wire[31:0] s_dispatch_req_store_din; // 用于写存储映射的数据
 	wire[4:0] s_dispatch_req_rd_id; // RD索引
 	wire s_dispatch_req_rd_vld; // 是否需要写RD
@@ -258,7 +258,7 @@ module panda_risc_v_dcd_dsptc #(
 	assign s_dispatch_req_msg_reused = m_dispatch_req_msg_reused;
 	assign s_dispatch_req_inst_type_packeted = m_dispatch_req_inst_type_packeted;
 	assign s_dispatch_req_pc_of_inst = m_dispatch_req_pc_of_inst;
-	assign s_dispatch_req_pc_jump = m_dispatch_req_pc_jump;
+	assign s_dispatch_req_brc_pc_upd = m_dispatch_req_brc_pc_upd;
 	assign s_dispatch_req_store_din = m_dispatch_req_store_din;
 	assign s_dispatch_req_rd_id = m_dispatch_req_rd_id;
 	assign s_dispatch_req_rd_vld = m_dispatch_req_rd_vld;
@@ -275,7 +275,7 @@ module panda_risc_v_dcd_dsptc #(
 		.s_dispatch_req_msg_reused(s_dispatch_req_msg_reused),
 		.s_dispatch_req_inst_type_packeted(s_dispatch_req_inst_type_packeted),
 		.s_dispatch_req_pc_of_inst(s_dispatch_req_pc_of_inst),
-		.s_dispatch_req_pc_jump(s_dispatch_req_pc_jump),
+		.s_dispatch_req_brc_pc_upd(s_dispatch_req_brc_pc_upd),
 		.s_dispatch_req_store_din(s_dispatch_req_store_din),
 		.s_dispatch_req_rd_id(s_dispatch_req_rd_id),
 		.s_dispatch_req_rd_vld(s_dispatch_req_rd_vld),
@@ -290,7 +290,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_alu_ready(m_alu_ready),
 		
 		.m_bcu_pc_of_inst(m_bcu_pc_of_inst),
-		.m_bcu_pc_jump(m_bcu_pc_jump),
+		.m_bcu_brc_pc_upd(m_bcu_brc_pc_upd),
 		.m_bcu_prdt_jump(m_bcu_prdt_jump),
 		.m_bcu_valid(m_bcu_valid),
 		.m_bcu_ready(m_bcu_ready),

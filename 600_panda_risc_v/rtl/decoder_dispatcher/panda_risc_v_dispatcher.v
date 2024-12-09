@@ -40,7 +40,7 @@ module panda_risc_v_dispatcher(
 	input wire[70:0] s_dispatch_req_msg_reused, // 复用的派遣信息
 	input wire[6:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	input wire[31:0] s_dispatch_req_pc_of_inst, // 指令对应的PC
-	input wire[31:0] s_dispatch_req_pc_jump, // 跳转后的PC
+	input wire[31:0] s_dispatch_req_brc_pc_upd, // 分支预测失败时修正的PC
 	input wire[31:0] s_dispatch_req_store_din, // 用于写存储映射的数据
 	input wire[4:0] s_dispatch_req_rd_id, // RD索引
 	input wire s_dispatch_req_rd_vld, // 是否需要写RD
@@ -57,7 +57,7 @@ module panda_risc_v_dispatcher(
 	
 	// 分支确认单元执行请求
 	output wire[31:0] m_bcu_pc_of_inst, // 指令对应的PC
-	output wire[31:0] m_bcu_pc_jump, // 跳转后的PC
+	output wire[31:0] m_bcu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_bcu_prdt_jump, // 是否预测跳转
 	output wire m_bcu_valid,
 	input wire m_bcu_ready,
@@ -184,7 +184,7 @@ module panda_risc_v_dispatcher(
 	
 	// 派遣给分支确认单元
 	assign m_bcu_pc_of_inst = s_dispatch_req_pc_of_inst; // 指令对应的PC
-	assign m_bcu_pc_jump = s_dispatch_req_pc_jump; // 跳转后的PC
+	assign m_bcu_brc_pc_upd = s_dispatch_req_brc_pc_upd; // 分支预测失败时修正的PC
 	assign m_bcu_prdt_jump = dispatch_req_prdt_jump; // 是否预测跳转
 	assign m_bcu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令

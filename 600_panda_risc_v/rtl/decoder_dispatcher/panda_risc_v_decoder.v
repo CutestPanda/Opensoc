@@ -37,6 +37,8 @@ module panda_risc_v_decoder(
 	input wire[63:0] pre_decoding_msg_packeted,
 	// 指令对应的PC
 	input wire[31:0] pc_of_inst,
+	// 指令长度类型(1'b0 -> 16位, 1'b1 -> 32位)
+	input wire inst_len_type,
 	
 	// 源寄存器读结果
 	input wire[31:0] rs1_v,
@@ -51,8 +53,9 @@ module panda_risc_v_decoder(
 	output wire is_div_inst, // 是否除法指令
 	output wire is_rem_inst, // 是否求余指令
 	
-	// 跳转后的PC
-	output wire[31:0] pc_jump,
+	// 分支预测回退处理
+	input wire prdt_jump, // 是否预测跳转
+	output wire[31:0] brc_pc_upd, // 分支预测失败时修正的PC
 	
 	// 读写通用寄存器堆标志
 	output wire rs1_vld, // 是否需要读RS1
@@ -255,8 +258,10 @@ module panda_risc_v_decoder(
 	/** 跳转后的PC **/
 	wire[20:0] jump_ofs_imm; // 跳转偏移量立即数
 	
-	// 是否一定在译码单元里重新计算跳转后的PC, 能不能复用加法器???
-	assign pc_jump = pc_of_inst + {{11{jump_ofs_imm[20]}}, jump_ofs_imm};
+	// 是否一定要在译码单元里重新计算分支预测失败时修正的PC, 能不能复用加法器???
+	assign brc_pc_upd = pc_of_inst + 
+		(prdt_jump ? (32'd2 << inst_len_type): // 预测跳转, 预测失败时修正到(PC + 指令长度)
+			{{11{jump_ofs_imm[20]}}, jump_ofs_imm}); // 预测不跳, 预测失败时修正到(PC + 跳转偏移量)
 	
 	assign jump_ofs_imm = pre_decoding_msg_packeted[PRE_DCD_MSG_JUMP_OFS_IMM_SID+20:PRE_DCD_MSG_JUMP_OFS_IMM_SID];
 	

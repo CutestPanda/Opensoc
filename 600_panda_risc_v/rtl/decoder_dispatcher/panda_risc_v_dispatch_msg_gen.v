@@ -63,7 +63,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	output wire[70:0] m_dispatch_req_msg_reused, // 复用的派遣信息
 	output wire[6:0] m_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	output wire[31:0] m_dispatch_req_pc_of_inst, // 指令对应的PC
-	output wire[31:0] m_dispatch_req_pc_jump, // 跳转后的PC
+	output wire[31:0] m_dispatch_req_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire[31:0] m_dispatch_req_store_din, // 用于写存储映射的数据
 	output wire[4:0] m_dispatch_req_rd_id, // RD索引
 	output wire m_dispatch_req_rd_vld, // 是否需要写RD
@@ -162,8 +162,8 @@ module panda_risc_v_dispatch_msg_gen #(
 	// 源寄存器读结果
 	wire[31:0] rs1_v;
 	wire[31:0] rs2_v;
-	// 跳转后的PC
-	wire[31:0] pc_jump;
+	// 分支预测失败时修正的PC
+	wire[31:0] brc_pc_upd;
 	// 读写通用寄存器堆标志
 	wire rs1_vld; // 是否需要读RS1
 	wire rs2_vld; // 是否需要读RS2
@@ -186,6 +186,7 @@ module panda_risc_v_dispatch_msg_gen #(
 		.inst(inst_to_dcd),
 		.pre_decoding_msg_packeted(pre_decoding_msg_packeted_to_dcd),
 		.pc_of_inst(pc_of_inst_to_dcd),
+		.inst_len_type(1'b1), // 指令长度类型(1'b0 -> 16位, 1'b1 -> 32位)
 		
 		.rs1_v(rs1_v),
 		.rs2_v(rs2_v),
@@ -198,7 +199,8 @@ module panda_risc_v_dispatch_msg_gen #(
 		.is_div_inst(),
 		.is_rem_inst(),
 		
-		.pc_jump(pc_jump),
+		.prdt_jump(if_res_prdt_jump),
+		.brc_pc_upd(brc_pc_upd),
 		
 		.rs1_vld(rs1_vld),
 		.rs2_vld(rs2_vld),
@@ -239,7 +241,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	reg[70:0] dispatch_msg_reused; // 复用的派遣信息
 	reg[6:0] dispatch_inst_type_packeted; // 打包的指令类型标志
 	reg[31:0] dispatch_pc_of_inst; // 指令对应的PC
-	reg[31:0] dispatch_pc_jump; // 跳转后的PC
+	reg[31:0] dispatch_brc_pc_upd; // 分支预测失败时修正的PC
 	reg[31:0] dispatch_store_din; // 用于写存储映射的数据
 	reg[4:0] dispatch_rd_id; // RD索引
 	reg dispatch_rd_vld; // 是否需要写RD
@@ -248,7 +250,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	assign m_dispatch_req_msg_reused = dispatch_msg_reused;
 	assign m_dispatch_req_inst_type_packeted = dispatch_inst_type_packeted;
 	assign m_dispatch_req_pc_of_inst = dispatch_pc_of_inst;
-	assign m_dispatch_req_pc_jump = dispatch_pc_jump;
+	assign m_dispatch_req_brc_pc_upd = dispatch_brc_pc_upd;
 	assign m_dispatch_req_store_din = dispatch_store_din;
 	assign m_dispatch_req_rd_id = dispatch_rd_id;
 	assign m_dispatch_req_rd_vld = dispatch_rd_vld;
@@ -261,15 +263,19 @@ module panda_risc_v_dispatch_msg_gen #(
 	begin
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
 			dispatch_msg_reused <= # simulation_delay 
+				// L/S指令
 				({71{dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_LOAD_INST_SID] | 
 					dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID]}} & 
 					{dcd_res_lsu_op_msg_packeted, dcd_res_alu_op_msg_packeted}) | 
+				// CSR读写指令
 				({71{dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_CSR_RW_INST_SID]}} & 
 					{25'dx, dcd_res_csr_rw_op_msg_packeted}) | 
+				// 乘除指令
 				({71{dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_MUL_INST_SID] | 
 					dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_DIV_INST_SID] | 
 					dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID]}} & 
 					{4'dx, dcd_res_mul_div_op_msg_packeted}) | 
+				// 其他指令
 				({71{(~dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_LOAD_INST_SID]) & 
 					(~dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID]) & 
 					(~dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_CSR_RW_INST_SID]) & 
@@ -290,11 +296,11 @@ module panda_risc_v_dispatch_msg_gen #(
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
 			dispatch_pc_of_inst <= # simulation_delay if_res_pc_of_inst;
 	end
-	// 跳转后的PC
+	// 分支预测失败时修正的PC
 	always @(posedge clk)
 	begin
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
-			dispatch_pc_jump <= # simulation_delay pc_jump;
+			dispatch_brc_pc_upd <= # simulation_delay brc_pc_upd;
 	end
 	// 用于写存储映射的数据
 	always @(posedge clk)

@@ -64,7 +64,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	
 	// 分支确认单元执行请求
 	output wire[31:0] m_bcu_pc_of_inst, // 指令对应的PC
-	output wire[31:0] m_bcu_pc_jump, // 跳转后的PC
+	output wire[31:0] m_bcu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_bcu_prdt_jump, // 是否预测跳转
 	output wire m_bcu_valid,
 	input wire m_bcu_ready,
@@ -155,7 +155,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_alu_ready(m_alu_ready),
 		
 		.m_bcu_pc_of_inst(m_bcu_pc_of_inst),
-		.m_bcu_pc_jump(m_bcu_pc_jump),
+		.m_bcu_brc_pc_upd(m_bcu_brc_pc_upd),
 		.m_bcu_prdt_jump(m_bcu_prdt_jump),
 		.m_bcu_valid(m_bcu_valid),
 		.m_bcu_ready(m_bcu_ready),
