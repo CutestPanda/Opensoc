@@ -20,7 +20,7 @@ IMEM访问请求的生命周期:
 无
 
 作者: 陈家耀
-日期: 2024/10/28
+日期: 2024/12/09
 ********************************************************************/
 
 
@@ -122,16 +122,16 @@ module panda_risc_v_imem_access_ctrler #(
 	//     打包的预译码信息(64bit), 取到的指令(32bit)})
 	reg[99:0] if_res_buf_regs[0:2];
 	
-	assign if_res_data[95:0] = (rst_req | flush_req) ? 
+	assign if_res_data[95:0] = if_res_buf_clr ? 
 		IF_RES_AT_RST_FLUSH:if_res_buf_regs[if_res_buf_rptr][95:0]; // 取指结果
-	assign if_res_msg = (rst_req | flush_req) ? 
+	assign if_res_msg = if_res_buf_clr ? 
 		{1'b0, 1'b0, IMEM_ACCESS_NORMAL}:if_res_buf_regs[if_res_buf_rptr][99:96]; // 取指附加信息
 	// 取指结果握手条件: if_res_buf_empty_n & if_res_ready
 	assign if_res_valid = if_res_buf_empty_n;
 	
 	assign if_res_buf_wen = vld_inst_gotten; // 断言: 取指结果缓存区写使能有效时必定非满!
 	assign if_res_buf_ren = if_res_ready;
-	assign if_res_buf_clr = rst_req | flush_req; // 复位/冲刷时将取指结果缓存区中的每1项清零为NOP
+	assign if_res_buf_clr = rst_req | flush_req;
 	assign if_res_buf_full_n = ~if_res_buf_store_n[3];
 	assign if_res_buf_empty_n = ~if_res_buf_store_n[0];
 	
@@ -140,10 +140,11 @@ module panda_risc_v_imem_access_ctrler #(
 	begin
 		if(~resetn)
 			if_res_buf_store_n <= 4'b0001;
-		else if((if_res_buf_ren & if_res_buf_empty_n) ^ if_res_buf_wen)
-			if_res_buf_store_n <= # simulation_delay if_res_buf_wen ? 
-				{if_res_buf_store_n[2:0], if_res_buf_store_n[3]}: // 存储个数增加1
-				{if_res_buf_store_n[0], if_res_buf_store_n[3:1]}; // 存储个数减少1
+		else if(if_res_buf_clr | ((if_res_buf_ren & if_res_buf_empty_n) ^ if_res_buf_wen))
+			if_res_buf_store_n <= # simulation_delay 
+				if_res_buf_clr ? 4'b0001: // 清零取指结果缓存区
+					(if_res_buf_wen ? {if_res_buf_store_n[2:0], if_res_buf_store_n[3]}: // 存储个数增加1
+						{if_res_buf_store_n[0], if_res_buf_store_n[3:1]}); // 存储个数减少1
 	end
 	
 	// 取指结果缓存区写指针
@@ -151,75 +152,38 @@ module panda_risc_v_imem_access_ctrler #(
 	begin
 		if(~resetn)
 			if_res_buf_wptr <= 2'b00;
-		else if(if_res_buf_wen)
-			// (if_res_buf_wptr == 2'b10) ? 2'b00:(if_res_buf_wptr + 2'b01)
-			if_res_buf_wptr <= # simulation_delay {2{~if_res_buf_wptr[1]}} & (if_res_buf_wptr + 2'b01);
+		else if(if_res_buf_clr | if_res_buf_wen)
+			// ((if_res_buf_wptr == 2'b10) | if_res_buf_clr) ? 2'b00:(if_res_buf_wptr + 2'b01)
+			if_res_buf_wptr <= # simulation_delay {2{~(if_res_buf_wptr[1] | if_res_buf_clr)}} & (if_res_buf_wptr + 2'b01);
 	end
 	// 取指结果缓存区读指针
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
 			if_res_buf_rptr <= 2'b00;
-		else if(if_res_buf_ren & if_res_buf_empty_n)
+		else if(if_res_buf_clr | (if_res_buf_ren & if_res_buf_empty_n))
 			// (if_res_buf_rptr == 2'b10) ? 2'b00:(if_res_buf_rptr + 2'b01)
-			if_res_buf_rptr <= # simulation_delay {2{~if_res_buf_rptr[1]}} & (if_res_buf_rptr + 2'b01);
+			if_res_buf_rptr <= # simulation_delay {2{~(if_res_buf_rptr[1] | if_res_buf_clr)}} & (if_res_buf_rptr + 2'b01);
 	end
 	
-	// 取指结果缓存寄存器组
-	// 存储项#0
-	always @(posedge clk)
-	begin
-		if(if_res_buf_clr | (if_res_buf_wen & (if_res_buf_wptr == 2'b00)))
-			if_res_buf_regs[0] <= # simulation_delay if_res_buf_clr ? 
-			{
-				1'b0,
-				1'b0,
-				IMEM_ACCESS_NORMAL,
-				IF_RES_AT_RST_FLUSH
-			}:{
-				to_jump, 
-				illegal_inst, 
-				imem_access_resp_err, 
-				pre_decoding_msg_packeted, 
-				imem_access_resp_rdata
-			};
-	end
-	// 存储项#1
-	always @(posedge clk)
-	begin
-		if(if_res_buf_clr | (if_res_buf_wen & (if_res_buf_wptr == 2'b01)))
-			if_res_buf_regs[1] <= # simulation_delay if_res_buf_clr ? 
-			{
-				1'b0,
-				1'b0,
-				IMEM_ACCESS_NORMAL,
-				IF_RES_AT_RST_FLUSH
-			}:{
-				to_jump, 
-				illegal_inst, 
-				imem_access_resp_err, 
-				pre_decoding_msg_packeted, 
-				imem_access_resp_rdata
-			};
-	end
-	// 存储项#2
-	always @(posedge clk)
-	begin
-		if(if_res_buf_clr | (if_res_buf_wen & (if_res_buf_wptr == 2'b10)))
-			if_res_buf_regs[2] <= # simulation_delay if_res_buf_clr ? 
-			{
-				1'b0,
-				1'b0,
-				IMEM_ACCESS_NORMAL,
-				IF_RES_AT_RST_FLUSH
-			}:{
-				to_jump, 
-				illegal_inst, 
-				imem_access_resp_err, 
-				pre_decoding_msg_packeted, 
-				imem_access_resp_rdata
-			};
-	end
+	// 写取指结果缓存寄存器组
+	genvar if_res_buf_regs_i;
+	generate
+		for(if_res_buf_regs_i = 0;if_res_buf_regs_i < 3;if_res_buf_regs_i = if_res_buf_regs_i + 1)
+		begin
+			always @(posedge clk)
+			begin
+				if(if_res_buf_wen & (if_res_buf_wptr == if_res_buf_regs_i))
+					if_res_buf_regs[if_res_buf_regs_i] <= # simulation_delay {
+						to_jump, 
+						illegal_inst, 
+						imem_access_resp_err, 
+						pre_decoding_msg_packeted, 
+						imem_access_resp_rdata
+					};
+			end
+		end
+	endgenerate
 	
 	/** 发起指令存储器访问请求 **/
 	reg rst_imem_access_req_pending; // 待发起的复位IMEM访问请求标志
@@ -356,25 +320,18 @@ module panda_risc_v_imem_access_ctrler #(
 			pc_regs <= # simulation_delay new_pc;
 	end
 	
-	// 指令对应PC值缓存寄存器组
-	// 存储项#0
-	always @(posedge clk)
-	begin
-		if(pc_buf_wen & pc_buf_wptr[0])
-			pc_buf_regs[0] <= # simulation_delay new_pc;
-	end
-	// 存储项#1
-	always @(posedge clk)
-	begin
-		if(pc_buf_wen & pc_buf_wptr[1])
-			pc_buf_regs[1] <= # simulation_delay new_pc;
-	end
-	// 存储项#2
-	always @(posedge clk)
-	begin
-		if(pc_buf_wen & pc_buf_wptr[2])
-			pc_buf_regs[2] <= # simulation_delay new_pc;
-	end
+	// 写指令对应PC值缓存寄存器组
+	genvar pc_buf_regs_i;
+	generate
+		for(pc_buf_regs_i = 0;pc_buf_regs_i < 3;pc_buf_regs_i = pc_buf_regs_i + 1)
+		begin
+			always @(posedge clk)
+			begin
+				if(pc_buf_wen & pc_buf_wptr[pc_buf_regs_i])
+					pc_buf_regs[pc_buf_regs_i] <= # simulation_delay new_pc;
+			end
+		end
+	endgenerate
 	
 	// 指令对应PC值缓存区写指针
 	always @(posedge clk or negedge resetn)
@@ -385,28 +342,20 @@ module panda_risc_v_imem_access_ctrler #(
 			pc_buf_wptr <= # simulation_delay {pc_buf_wptr[1:0], pc_buf_wptr[2]};
 	end
 	
-	// 取指结果镇压标志缓存寄存器组
-	// 存储项#0
-	always @(posedge clk)
-	begin
-		if(inst_suppress_buf_wen & ((to_rst | to_flush) | inst_suppress_buf_wptr[0]))
-			// 保留复位/冲刷时发起的请求, 镇压其他请求
-			inst_suppress_buf_regs[0] <= # simulation_delay (to_rst | to_flush) & (~inst_suppress_buf_wptr[0]);
-	end
-	// 存储项#1
-	always @(posedge clk)
-	begin
-		if(inst_suppress_buf_wen & ((to_rst | to_flush) | inst_suppress_buf_wptr[1]))
-			// 保留复位/冲刷时发起的请求, 镇压其他请求
-			inst_suppress_buf_regs[1] <= # simulation_delay (to_rst | to_flush) & (~inst_suppress_buf_wptr[1]);
-	end
-	// 存储项#2
-	always @(posedge clk)
-	begin
-		if(inst_suppress_buf_wen & ((to_rst | to_flush) | inst_suppress_buf_wptr[2]))
-			// 保留复位/冲刷时发起的请求, 镇压其他请求
-			inst_suppress_buf_regs[2] <= # simulation_delay (to_rst | to_flush) & (~inst_suppress_buf_wptr[2]);
-	end
+	// 写取指结果镇压标志缓存寄存器组
+	genvar inst_suppress_buf_regs_i;
+	generate
+		for(inst_suppress_buf_regs_i = 0;inst_suppress_buf_regs_i < 3;inst_suppress_buf_regs_i = inst_suppress_buf_regs_i + 1)
+		begin
+			always @(posedge clk)
+			begin
+				if(inst_suppress_buf_wen & ((to_rst | to_flush) | inst_suppress_buf_wptr[inst_suppress_buf_regs_i]))
+					// 保留复位/冲刷时发起的请求, 镇压其他请求
+					inst_suppress_buf_regs[inst_suppress_buf_regs_i] <= # simulation_delay 
+						(to_rst | to_flush) & (~inst_suppress_buf_wptr[inst_suppress_buf_regs_i]);
+			end
+		end
+	endgenerate
 	
 	// 取指结果镇压标志缓存区写指针
 	always @(posedge clk or negedge resetn)
