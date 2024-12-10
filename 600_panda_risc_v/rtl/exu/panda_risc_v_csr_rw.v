@@ -19,12 +19,12 @@
 
 module panda_risc_v_csr_rw #(
 	parameter en_expt_vec_vectored = "false", // 是否使能异常处理的向量链接模式
+	parameter en_performance_monitor = "false", // 是否使能性能监测相关的CSR
 	parameter init_mtvec_base = 30'd0, // mtvec状态寄存器BASE域复位值
 	parameter init_mcause_interrupt = 1'b0, // mcause状态寄存器Interrupt域复位值
 	parameter init_mcause_exception_code = 31'd16, // mcause状态寄存器Exception Code域复位值
 	parameter init_misa_mxl = 2'b01, // misa状态寄存器MXL域复位值
-	// 问题: G位是否应预置为1'b1???
-	parameter init_misa_extensions = 26'b00_0000_0000_0001_0001_0100_0000, // misa状态寄存器Extensions域复位值
+	parameter init_misa_extensions = 26'b00_0000_0000_0001_0001_0000_0000, // misa状态寄存器Extensions域复位值
 	parameter init_mvendorid_bank = 25'h0_00_00_00, // mvendorid状态寄存器Bank域复位值
 	parameter init_mvendorid_offset = 7'h00, // mvendorid状态寄存器Offset域复位值
 	parameter init_marchid = 32'h00_00_00_00, // marchid状态寄存器复位值
@@ -55,6 +55,9 @@ module panda_risc_v_csr_rw #(
 	input wire itr_expt_ret, // 退出中断/异常(指示)
 	output wire[31:0] mepc_ret_addr, // mepc状态寄存器定义的中断/异常返回地址
 	
+	// 性能监测
+	input wire inst_retire_cnt_en, // 退休指令计数器的计数使能
+	
 	// 中断请求
 	// 注意: 中断请求保持有效直到中断清零!
 	input wire sw_itr_req, // 软件中断请求
@@ -78,10 +81,15 @@ module panda_risc_v_csr_rw #(
 	localparam CSR_MISA_ADDR = 12'h301;
 	localparam CSR_MIE_ADDR = 12'h304;
 	localparam CSR_MTVEC_ADDR = 12'h305;
+	localparam CSR_MSCRATCH_ADDR = 12'h340;
 	localparam CSR_MEPC_ADDR = 12'h341;
 	localparam CSR_MCAUSE_ADDR = 12'h342;
 	localparam CSR_MTVAL_ADDR = 12'h343;
 	localparam CSR_MIP_ADDR = 12'h344;
+	localparam CSR_MCYCLE_ADDR = 12'hB00;
+	localparam CSR_MINSTRET_ADDR = 12'hB02;
+	localparam CSR_MCYCLEH_ADDR = 12'hB80;
+	localparam CSR_MINSTRETH_ADDR = 12'hB82;
 	localparam CSR_MVENDORID_ADDR = 12'hF11;
 	localparam CSR_MARCHID_ADDR = 12'hF12;
 	localparam CSR_MIMPID_ADDR = 12'hF13;
@@ -103,6 +111,11 @@ module panda_risc_v_csr_rw #(
 	wire[31:0] marchid_dout;
 	wire[31:0] mimpid_dout;
 	wire[31:0] mhartid_dout;
+	wire[31:0] mscratch_dout;
+	wire[31:0] mcycle_dout;
+	wire[31:0] mcycleh_dout;
+	wire[31:0] minstret_dout;
+	wire[31:0] minstreth_dout;
 	
 	assign csr_atom_rw_dout = 
 		({32{csr_atom_rw_addr == CSR_MSTATUS_ADDR}} & mstatus_dout) | 
@@ -116,7 +129,12 @@ module panda_risc_v_csr_rw #(
 		({32{csr_atom_rw_addr == CSR_MVENDORID_ADDR}} & mvendorid_dout) | 
 		({32{csr_atom_rw_addr == CSR_MARCHID_ADDR}} & marchid_dout) | 
 		({32{csr_atom_rw_addr == CSR_MIMPID_ADDR}} & mimpid_dout) | 
-		({32{csr_atom_rw_addr == CSR_MHARTID_ADDR}} & mhartid_dout);
+		({32{csr_atom_rw_addr == CSR_MHARTID_ADDR}} & mhartid_dout) | 
+		({32{csr_atom_rw_addr == CSR_MSCRATCH_ADDR}} & mscratch_dout) | 
+		({32{csr_atom_rw_addr == CSR_MCYCLE_ADDR}} & mcycle_dout) | 
+		({32{csr_atom_rw_addr == CSR_MCYCLEH_ADDR}} & mcycleh_dout) | 
+		({32{csr_atom_rw_addr == CSR_MINSTRET_ADDR}} & minstret_dout) | 
+		({32{csr_atom_rw_addr == CSR_MINSTRETH_ADDR}} & minstreth_dout);
 	
 	/** 机器模式状态寄存器(mstatus) **/
 	reg mstatus_mie; // MIE域
@@ -436,5 +454,113 @@ module panda_risc_v_csr_rw #(
 	assign mhartid_dout = {
 		init_mhartid // Hart ID
 	};
+	
+	/** 机器模式擦写寄存器(mscratch) **/
+	reg[31:0] mscratch_mscratch; // MSCRATCH域
+	
+	assign mscratch_dout = {
+		mscratch_mscratch // mscratch
+	};
+	
+	// MSCRATCH域
+	always @(posedge clk)
+	begin
+		if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MSCRATCH_ADDR))
+			mscratch_mscratch <= # simulation_delay 
+				// 从CSR原子读写载入
+				(({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (mscratch_mscratch | csr_atom_rw_upd_mask_v)) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mscratch_mscratch & csr_atom_rw_upd_mask_v)));
+	end
+	
+	/** 周期计数器(mcycle, mcycleh) **/
+	reg[31:0] mcycle_mcycle; // MCYCLE域
+	reg[31:0] mcycleh_mcycleh; // MCYCLEH域
+	
+	assign mcycle_dout = 
+		(en_performance_monitor == "true") ? {
+			mcycle_mcycle
+		}:32'd0;
+	assign mcycleh_dout = 
+		(en_performance_monitor == "true") ? {
+			mcycleh_mcycleh
+		}:32'd0;
+	
+	// MCYCLE域
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			mcycle_mcycle <= 32'd0;
+		else
+			mcycle_mcycle <= # simulation_delay 
+				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLE_ADDR)) ? 
+					// 从CSR原子读写载入
+					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mcycle_mcycle | csr_atom_rw_upd_mask_v)) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mcycle_mcycle & csr_atom_rw_upd_mask_v))):
+					// 自增
+					(mcycle_mcycle + 32'd1);
+	end
+	
+	// MCYCLEH域
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			mcycleh_mcycleh <= 32'd0;
+		else if((&mcycle_mcycle) | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLEH_ADDR)))
+			mcycleh_mcycleh <= # simulation_delay 
+				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLE_ADDR)) ? 
+					// 从CSR原子读写载入
+					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mcycleh_mcycleh | csr_atom_rw_upd_mask_v)) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mcycleh_mcycleh & csr_atom_rw_upd_mask_v))):
+					// 自增
+					(mcycleh_mcycleh + 32'd1);
+	end
+	
+	/** 退休指令计数器(minstret, minstreth) **/
+	reg[31:0] minstret_minstret; // MINSTRET域
+	reg[31:0] minstreth_minstreth; // MINSTRETH域
+	
+	assign minstret_dout = 
+		(en_performance_monitor == "true") ? {
+			minstret_minstret
+		}:32'd0;
+	assign minstreth_dout = 
+		(en_performance_monitor == "true") ? {
+			minstreth_minstreth
+		}:32'd0;
+	
+	// MINSTRET域
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			minstret_minstret <= 32'd0;
+		else if(inst_retire_cnt_en | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRET_ADDR)))
+			minstret_minstret <= # simulation_delay 
+				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRET_ADDR)) ? 
+					// 从CSR原子读写载入
+					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (minstret_minstret | csr_atom_rw_upd_mask_v)) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (minstret_minstret & csr_atom_rw_upd_mask_v))):
+					// 自增
+					(minstret_minstret + 32'd1);
+	end
+	
+	// MINSTRETH域
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			minstreth_minstreth <= 32'd0;
+		else if((inst_retire_cnt_en & (&minstret_minstret)) | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRETH_ADDR)))
+			minstreth_minstreth <= # simulation_delay 
+				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRETH_ADDR)) ? 
+					// 从CSR原子读写载入
+					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (minstreth_minstreth | csr_atom_rw_upd_mask_v)) | 
+					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (minstreth_minstreth & csr_atom_rw_upd_mask_v))):
+					// 自增
+					(minstreth_minstreth + 32'd1);
+	end
 	
 endmodule
