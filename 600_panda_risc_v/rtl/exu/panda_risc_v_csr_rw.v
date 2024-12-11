@@ -236,9 +236,9 @@ module panda_risc_v_csr_rw #(
 		else if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MIE_ADDR))
 			mie_msie <= # simulation_delay 
 				// 从CSR原子读写载入
-				(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[3]) | 
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[3]) | 
 				({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mie_msie | csr_atom_rw_upd_mask_v[3])) | 
-				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mie_msie & csr_atom_rw_upd_mask_v[3])));
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mie_msie & csr_atom_rw_upd_mask_v[3]));
 	end
 	
 	// MTIE域
@@ -249,9 +249,9 @@ module panda_risc_v_csr_rw #(
 		else if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MIE_ADDR))
 			mie_mtie <= # simulation_delay 
 				// 从CSR原子读写载入
-				(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[7]) | 
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[7]) | 
 				({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mie_mtie | csr_atom_rw_upd_mask_v[7])) | 
-				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mie_mtie & csr_atom_rw_upd_mask_v[7])));
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mie_mtie & csr_atom_rw_upd_mask_v[7]));
 	end
 	
 	// MEIE域
@@ -262,9 +262,9 @@ module panda_risc_v_csr_rw #(
 		else if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MIE_ADDR))
 			mie_meie <= # simulation_delay 
 				// 从CSR原子读写载入
-				(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[11]) | 
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[11]) | 
 				({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mie_meie | csr_atom_rw_upd_mask_v[11])) | 
-				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mie_meie & csr_atom_rw_upd_mask_v[11])));
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mie_meie & csr_atom_rw_upd_mask_v[11]));
 	end
 	
 	/** 机器模式异常入口基地址寄存器(mtvec) **/
@@ -289,9 +289,9 @@ module panda_risc_v_csr_rw #(
 		else if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MTVEC_ADDR))
 			mtvec_mode <= # simulation_delay 
 				// 从CSR原子读写载入
-				(({2{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v[1:0]) | 
+				({2{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v[1:0]) | 
 				({2{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (mtvec_mode | csr_atom_rw_upd_mask_v[1:0])) | 
-				({2{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mtvec_mode & csr_atom_rw_upd_mask_v[1:0])));
+				({2{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mtvec_mode & csr_atom_rw_upd_mask_v[1:0]));
 	end
 	
 	// BASE域
@@ -302,9 +302,9 @@ module panda_risc_v_csr_rw #(
 		else if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MTVEC_ADDR))
 			mtvec_base <= # simulation_delay 
 				// 从CSR原子读写载入
-				(({30{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v[31:2]) | 
+				({30{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v[31:2]) | 
 				({30{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (mtvec_base | csr_atom_rw_upd_mask_v[31:2])) | 
-				({30{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mtvec_base & csr_atom_rw_upd_mask_v[31:2])));
+				({30{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mtvec_base & csr_atom_rw_upd_mask_v[31:2]));
 	end
 	
 	/** 机器模式异常PC寄存器(mepc) **/
@@ -468,9 +468,9 @@ module panda_risc_v_csr_rw #(
 		if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MSCRATCH_ADDR))
 			mscratch_mscratch <= # simulation_delay 
 				// 从CSR原子读写载入
-				(({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
 				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (mscratch_mscratch | csr_atom_rw_upd_mask_v)) | 
-				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mscratch_mscratch & csr_atom_rw_upd_mask_v)));
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mscratch_mscratch & csr_atom_rw_upd_mask_v));
 	end
 	
 	/** 周期计数器(mcycle, mcycleh) **/
@@ -509,7 +509,7 @@ module panda_risc_v_csr_rw #(
 			mcycleh_mcycleh <= 32'd0;
 		else if((&mcycle_mcycle) | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLEH_ADDR)))
 			mcycleh_mcycleh <= # simulation_delay 
-				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLE_ADDR)) ? 
+				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLEH_ADDR)) ? 
 					// 从CSR原子读写载入
 					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
 					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mcycleh_mcycleh | csr_atom_rw_upd_mask_v)) | 
