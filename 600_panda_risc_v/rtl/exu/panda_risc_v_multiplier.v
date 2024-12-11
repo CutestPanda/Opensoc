@@ -236,13 +236,13 @@ module panda_risc_v_multiplier #(
 	assign mul_res_s0_valid = mul_ctrl_onehot[6];
 	
 	assign mul_18_18_in_op_a = 
-		({18{mul_ctrl_onehot[0] | mul_ctrl_onehot[2]}} & {1'b0, mul_in_buf_dout[MUL_IN_MSG_OP_A+16:MUL_IN_MSG_OP_A]}) | 
-		({18{mul_ctrl_onehot[1] | mul_ctrl_onehot[3]}} & 
-			{{2{mul_in_buf_dout[MUL_IN_MSG_OP_A+32]}}, mul_in_buf_dout[MUL_IN_MSG_OP_A+32:MUL_IN_MSG_OP_A+17]});
+		(mul_ctrl_onehot[0] | mul_ctrl_onehot[2]) ? 
+			{1'b0, mul_in_buf_dout[MUL_IN_MSG_OP_A+16:MUL_IN_MSG_OP_A]}:
+			{{2{mul_in_buf_dout[MUL_IN_MSG_OP_A+32]}}, mul_in_buf_dout[MUL_IN_MSG_OP_A+32:MUL_IN_MSG_OP_A+17]};
 	assign mul_18_18_in_op_b = 
-		({18{mul_ctrl_onehot[0] | mul_ctrl_onehot[1]}} & {1'b0, mul_in_buf_dout[MUL_IN_MSG_OP_B+16:MUL_IN_MSG_OP_B]}) | 
-		({18{mul_ctrl_onehot[2] | mul_ctrl_onehot[3]}} & 
-			{{2{mul_in_buf_dout[MUL_IN_MSG_OP_B+32]}}, mul_in_buf_dout[MUL_IN_MSG_OP_B+32:MUL_IN_MSG_OP_B+17]});
+		(mul_ctrl_onehot[0] | mul_ctrl_onehot[1]) ? 
+			{1'b0, mul_in_buf_dout[MUL_IN_MSG_OP_B+16:MUL_IN_MSG_OP_B]}:
+			{{2{mul_in_buf_dout[MUL_IN_MSG_OP_B+32]}}, mul_in_buf_dout[MUL_IN_MSG_OP_B+32:MUL_IN_MSG_OP_B+17]};
 	assign mul_18_18_in_vld = 
 		(mul_ctrl_onehot[0] & mul_in_buf_empty_n) | 
 		mul_ctrl_onehot[1] | 
