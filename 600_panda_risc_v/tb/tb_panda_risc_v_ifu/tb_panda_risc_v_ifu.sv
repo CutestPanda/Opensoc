@@ -97,10 +97,19 @@ module tb_panda_risc_v_ifu();
 	wire m_icb_rsp_inst_err;
 	wire m_icb_rsp_inst_valid;
 	wire m_icb_rsp_inst_ready;
+	// 取指结果
+	wire[127:0] m_if_res_data; // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
+	wire[3:0] m_if_res_msg; // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	wire m_if_res_valid;
+	wire m_if_res_ready;
 	// 指令总线访问超时标志
 	wire ibus_timeout;
 	
+	assign s_axis_if.data = m_if_res_data;
+	assign s_axis_if.user = m_if_res_msg;
 	assign s_axis_if.last = 1'b1;
+	assign s_axis_if.valid = m_if_res_valid;
+	assign m_if_res_ready = s_axis_if.ready;
 	
 	assign jalr_x1_v = imem_depth * 2;
 	
@@ -133,6 +142,16 @@ module tb_panda_risc_v_ifu();
 		
 		flush_req <= 1'b1;
 		flush_addr <= 124;
+		
+		# clk_p;
+		
+		flush_req <= 1'b0;
+		flush_addr <= 0;
+		
+		# (clk_p * 60);
+		
+		flush_req <= 1'b1;
+		flush_addr <= 400;
 		
 		# clk_p;
 		
@@ -185,10 +204,10 @@ module tb_panda_risc_v_ifu();
 		.m_icb_rsp_inst_valid(m_icb_rsp_inst_valid),
 		.m_icb_rsp_inst_ready(m_icb_rsp_inst_ready),
 		
-		.m_if_res_data(s_axis_if.data),
-		.m_if_res_msg(s_axis_if.user),
-		.m_if_res_valid(s_axis_if.valid),
-		.m_if_res_ready(s_axis_if.ready),
+		.m_if_res_data(m_if_res_data),
+		.m_if_res_msg(m_if_res_msg),
+		.m_if_res_valid(m_if_res_valid),
+		.m_if_res_ready(m_if_res_ready),
 		
 		.ibus_timeout(ibus_timeout)
 	);
