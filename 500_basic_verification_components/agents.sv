@@ -188,9 +188,9 @@ class AXISMasterAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local AXISSequencer #(.data_width(data_width), .user_width(user_width)) sequencer; // 序列发生器
-	local AXISMasterDriver #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) driver; // 驱动器
-	local AXISMonitor #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) monitor; // 监测器
+	AXISSequencer #(.data_width(data_width), .user_width(user_width)) sequencer; // 序列发生器
+	AXISMasterDriver #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) driver; // 驱动器
+	AXISMonitor #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) monitor; // 监测器
 	
 	// 通信端口
 	uvm_analysis_port #(AXISTrans #(.data_width(data_width), .user_width(user_width))) axis_analysis_port;
@@ -239,9 +239,13 @@ class AXISSlaveAgent #(
     integer user_width = 0 // 用户数据位宽
 )extends uvm_agent;
 	
+	// 配置参数
+	bit use_sqr; // 是否使用Sequencer
+	
 	// 组件
-	local AXISSlaveDriver #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) driver; // 驱动器
-	local AXISMonitor #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) monitor; // 监测器
+	AXISSequencer #(.data_width(data_width), .user_width(user_width)) sequencer; // 序列发生器
+	AXISSlaveDriver #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) driver; // 驱动器
+	AXISMonitor #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width)) monitor; // 监测器
 	
 	// 通信端口
 	uvm_analysis_port #(AXISTrans #(.data_width(data_width), .user_width(user_width))) axis_analysis_port;
@@ -251,6 +255,8 @@ class AXISSlaveAgent #(
 	
 	function new(string name = "AXISSlaveAgent", uvm_component parent = null);
 		super.new(name, parent);
+		
+		this.use_sqr = 1'b0;
 	endfunction
 	
 	virtual function void build_phase(uvm_phase phase);
@@ -258,8 +264,15 @@ class AXISSlaveAgent #(
 		
 		if (this.is_active == UVM_ACTIVE)
 		begin
-		  this.driver = AXISSlaveDriver #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width))::
-			type_id::create("drv", this); // 创建driver
+			if(this.use_sqr)
+			begin
+				this.sequencer = AXISSequencer #(.data_width(data_width), .user_width(user_width))::
+					type_id::create("sqr", this); // 创建sequencer
+			end
+			
+			this.driver = AXISSlaveDriver #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width))::
+				type_id::create("drv", this); // 创建driver
+			this.driver.set_use_sqr(this.use_sqr);
 		end
 		
 		this.monitor = AXISMonitor #(.out_drive_t(out_drive_t), .data_width(data_width), .user_width(user_width))::
@@ -270,6 +283,9 @@ class AXISSlaveAgent #(
 	
 	virtual function void connect_phase(uvm_phase phase);
 		super.connect_phase(phase);
+		
+		if((this.is_active == UVM_ACTIVE) && this.use_sqr)
+			this.driver.seq_item_port.connect(this.sequencer.seq_item_export); // 连接sequence-port
 		
 		this.axis_analysis_port = this.monitor.in_analysis_port;
 	endfunction
@@ -563,10 +579,10 @@ class ICBSlaveAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local ICBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
-	local ICBSlaveDriver #(.out_drive_t(out_drive_t), 
+	ICBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
+	ICBSlaveDriver #(.out_drive_t(out_drive_t), 
 		.addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
-	local ICBMonitor #(.out_drive_t(out_drive_t), 
+	ICBMonitor #(.out_drive_t(out_drive_t), 
 		.addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
 	
 	// 通信端口
