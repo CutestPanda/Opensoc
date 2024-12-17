@@ -173,7 +173,7 @@ module panda_risc_v_imem_access_ctrler #(
 	reg[31:0] inst_latched; // 锁存的指令
 	reg[31:0] flush_addr_latched; // 锁存的冲刷地址
 	reg[1:0] processing_imem_access_req_n; // 滞外的IMEM访问请求(已发起但后级未取走指令的访问请求)个数
-	wire[1:0] processing_imem_access_req_n_with_rst_flush; // 考虑复位/冲刷的滞外的IMEM访问请求个数
+	wire[1:0] processing_imem_access_req_n_with_rst_flush; // 考虑复位/冲刷后的滞外的IMEM访问请求个数
 	reg[31:0] pc_regs; // PC寄存器
 	reg[31:0] pc_buf_regs[0:2]; // 指令对应PC值缓存寄存器组
 	reg[2:0] pc_buf_wptr; // 指令对应PC值缓存区写指针
@@ -185,19 +185,17 @@ module panda_risc_v_imem_access_ctrler #(
 	wire[2:0] inst_suppress_buf_rptr_add1; // 取指结果镇压标志缓存区读指针 + 1
 	wire inst_suppress_buf_ren; // 取指结果镇压标志缓存区读使能
 	wire jalr_allow; // 允许无条件间接跳转(标志)
+	wire on_now_inst_suppress; // 当前指令被镇压(指示)
 	
 	assign to_rst = rst_req | rst_imem_access_req_pending;
 	assign to_flush = flush_req | flush_imem_access_req_pending;
-	assign flush_addr_hold = flush_imem_access_req_pending ? flush_addr_latched:flush_addr;
+	assign flush_addr_hold = flush_req ? flush_addr:flush_addr_latched;
 	assign now_pc = pc_regs;
 	
 	assign now_inst = common_imem_access_req_pending ? inst_latched:imem_access_resp_rdata;
 	
 	assign vld_inst_gotten = imem_access_resp_valid & 
-		// 将尚未更新的取指结果镇压标志旁路出去
-		(~(inst_suppress_buf_wen & (to_rst | to_flush) & (|processing_imem_access_req_n_with_rst_flush))) & 
-		// 取出取指结果镇压标志
-		(~inst_suppress_buf_regs[inst_suppress_buf_rptr]);
+		(~(to_rst | to_flush | inst_suppress_buf_regs[inst_suppress_buf_rptr])); // 当前指令可能被镇压
 	
 	assign imem_access_req_addr = new_pc;
 	assign imem_access_req_read = 1'b1;
@@ -215,7 +213,7 @@ module panda_risc_v_imem_access_ctrler #(
 	assign now_inst_vld = vld_inst_gotten | common_imem_access_req_pending;
 	assign processing_imem_access_req_n_with_rst_flush = 
 		if_res_buf_clr ? 
-			// 复位/冲刷时清空取指结果缓存区, 
+			// 复位/冲刷时提前减去取指结果缓存区的存储个数
 			(processing_imem_access_req_n - 
 				(({2{if_res_buf_store_n[0]}} & 2'b00) | 
 				({2{if_res_buf_store_n[1]}} & 2'b01) | 
@@ -231,6 +229,8 @@ module panda_risc_v_imem_access_ctrler #(
 	};
 	assign inst_suppress_buf_wen = imem_access_req_valid & imem_access_req_ready;
 	assign inst_suppress_buf_ren = imem_access_resp_valid;
+	
+	assign on_now_inst_suppress = imem_access_resp_valid & (to_rst | to_flush | inst_suppress_buf_regs[inst_suppress_buf_rptr]);
 	
 	// 待发起的复位IMEM访问请求标志
 	always @(posedge clk or negedge resetn)
@@ -257,11 +257,12 @@ module panda_risc_v_imem_access_ctrler #(
 			flush_imem_access_req_pending <= # simulation_delay 
 			/*
 				flush_imem_access_req_pending ? 
-					(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready)): // 等待指令存储器访问请求成功发起
+					(~(rst_req | // 该等待标志可能会被复位请求打断
+						((processing_imem_access_req_n != 2'b11) & imem_access_req_ready))): // 等待指令存储器访问请求成功发起
 					(flush_req & (~((processing_imem_access_req_n != 2'b11) & 
 						imem_access_req_ready))) // 冲刷请求不能被立即处理, 置位等待标志
 			*/
-				(flush_imem_access_req_pending | flush_req) & 
+				(flush_imem_access_req_pending ? (~rst_req):flush_req) & 
 				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready));
 	end
 	// 待发起的普通IMEM访问请求标志
@@ -306,17 +307,18 @@ module panda_risc_v_imem_access_ctrler #(
 	begin
 		if(~resetn)
 			processing_imem_access_req_n <= 2'b00;
-		else if(if_res_buf_clr | ((imem_access_req_valid & imem_access_req_ready) ^ (if_res_valid & if_res_ready)))
+		else if(if_res_buf_clr | ((imem_access_req_valid & imem_access_req_ready) ^ ((if_res_valid & if_res_ready) | on_now_inst_suppress)))
 			processing_imem_access_req_n <= # simulation_delay 
 				/*
-				((imem_access_req_valid & imem_access_req_ready) ^ (if_res_valid & if_res_ready)) ? 
+				(((imem_access_req_valid & imem_access_req_ready) ^ (if_res_valid & if_res_ready)) ? 
 					((if_res_valid & if_res_ready) ? (processing_imem_access_req_n_with_rst_flush - 2'b01):
 						(processing_imem_access_req_n_with_rst_flush + 2'b01)):
-					processing_imem_access_req_n_with_rst_flush
+					processing_imem_access_req_n_with_rst_flush) + {2{on_now_inst_suppress}}
 				*/
 				processing_imem_access_req_n_with_rst_flush + 
 					({2{(imem_access_req_valid & imem_access_req_ready) ^ (if_res_valid & if_res_ready)}} & 
-					{if_res_valid & if_res_ready, 1'b1});
+					{if_res_valid & if_res_ready, 1'b1}) + 
+					{2{on_now_inst_suppress}};
 	end
 	
 	// PC寄存器
