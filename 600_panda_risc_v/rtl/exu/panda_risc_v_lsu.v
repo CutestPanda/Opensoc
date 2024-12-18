@@ -9,7 +9,6 @@
 注意：
 访存地址非对齐时不发起ICB传输, 且仅在访存信息表空时被接受
 若发生数据总线响应超时, 则不再接受新的访存请求, 数据ICB主机停止传输
-要求数据ICB主机的响应时延>=1clk, 不支持响应在命令握手的同时返回
 支持ICB滞外传输
 
 协议:
@@ -22,6 +21,7 @@ ICB MASTER
 
 module panda_risc_v_lsu #(
 	parameter integer dbus_access_timeout_th = 16, // 数据总线访问超时周期数(必须>=1)
+	parameter icb_zero_latency_supported = "false", // 是否支持零响应时延的ICB主机
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -212,22 +212,23 @@ module panda_risc_v_lsu #(
 	assign m_resp_err = ls_msg_table[ls_msg_table_rptr][LS_MSG_ERR_SID+1:LS_MSG_ERR_SID];
 	assign m_resp_valid = ls_task_life_cycle_vec[ls_msg_table_rptr][LS_TASK_DONE_STAGE_FID];
 	
-	assign m_icb_cmd_addr = ls_msg_table_empty_n ? 
+	assign m_icb_cmd_addr = ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID] ? 
 		ls_msg_table[ls_msg_table_cmd_stage_rptr][LS_MSG_ADDR_SID+31:LS_MSG_ADDR_SID]:
 		s_req_ls_addr; // 当访存信息表空时, 将访存请求直接旁路给数据ICB主机的命令通道
-	assign m_icb_cmd_read = ls_msg_table_empty_n ? 
+	assign m_icb_cmd_read = ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID] ? 
 		(~ls_msg_table[ls_msg_table_cmd_stage_rptr][LS_MSG_IS_STORE_SID]):
 		(~s_req_ls_sel); // 当访存信息表空时, 将访存请求直接旁路给数据ICB主机的命令通道
-	assign m_icb_cmd_wdata = ls_msg_table_empty_n ? 
+	assign m_icb_cmd_wdata = ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID] ? 
 		ls_msg_table[ls_msg_table_cmd_stage_rptr][LS_MSG_DIN_DOUT_SID+31:LS_MSG_DIN_DOUT_SID]:
 		store_din; // 当访存信息表空时, 将访存请求直接旁路给数据ICB主机的命令通道
-	assign m_icb_cmd_wmask = ls_msg_table_empty_n ? 
+	assign m_icb_cmd_wmask = ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID] ? 
 		ls_msg_table[ls_msg_table_cmd_stage_rptr][LS_MSG_WMASK_SID+3:LS_MSG_WMASK_SID]:
 		store_wmask; // 当访存信息表空时, 将访存请求直接旁路给数据ICB主机的命令通道
 	assign m_icb_cmd_valid = (~m_icb_timeout_flag) & // 发生数据总线响应超时后, 不再发起新的ICB传输
-		(ls_msg_table_empty_n ? ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID]:
-			(s_req_valid & ls_addr_aligned)); // 当访存信息表空时, 将访存请求直接旁路给数据ICB主机的命令通道, 
-			                                  // 访存地址非对齐时不发起ICB传输
+		(ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID] | 
+			(s_req_valid & ls_addr_aligned & ls_msg_table_full_n) // 若当前ICB主机的命令通道未被占用, 则将访存请求直接旁路出去, 
+			                                                      // 访存地址非对齐时不发起ICB传输
+		);
 	
 	assign m_icb_rsp_ready = ~m_icb_timeout_flag; // ICB响应通道的ready无需等待当前访存任务处于响应阶段; 
 	                                              // 发生数据总线响应超时后, 不再接受新的ICB响应
@@ -246,10 +247,11 @@ module panda_risc_v_lsu #(
 	assign ls_task_skip_cmd_stage = 
 		launch_new_ls_task & // 启动新的访存任务
 		ls_addr_aligned & // 访存地址对齐
-		(~ls_msg_table_empty_n) & m_icb_cmd_ready; // 旁路的访存请求被数据ICB主机的命令通道接受
+		(~ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID]) & // 当前ICB主机的命令通道未被占用时, 
+		m_icb_cmd_ready;                                                                // 旁路的访存请求被数据ICB主机的命令通道接受
 	assign ls_task_fns_cmd_stage = 
-		// 访存信息表非空时, 访存信息表项被数据ICB主机的命令通道接受
-		(~m_icb_timeout_flag) & ls_msg_table_empty_n & 
+		(~m_icb_timeout_flag) & 
+		// 当前ICB主机的命令通道被占用时, 访存信息表项被数据ICB主机的命令通道接受
 		ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID] & m_icb_cmd_ready;
 	assign icb_resp_gotten = 
 		(m_icb_rsp_valid & m_icb_rsp_ready) | // ICB主机返回响应
@@ -322,7 +324,7 @@ module panda_risc_v_lsu #(
 	begin
 		if(~resetn)
 			ls_msg_table_cmd_stage_rptr <= 2'b00;
-		else if(ls_task_fns_cmd_stage | (ls_task_skip_resp_stage_at_start & (~ls_msg_table_empty_n)) | ls_task_skip_cmd_stage)
+		else if(ls_task_fns_cmd_stage | ls_task_skip_resp_stage_at_start | ls_task_skip_cmd_stage)
 			ls_msg_table_cmd_stage_rptr <= # simulation_delay ls_msg_table_cmd_stage_rptr + 2'b01;
 	end
 	
@@ -331,7 +333,7 @@ module panda_risc_v_lsu #(
 	begin
 		if(~resetn)
 			ls_msg_table_resp_stage_wptr <= 4'b0001;
-		else if(ls_task_fns_resp_stage | (ls_task_skip_resp_stage_at_start & (~ls_msg_table_empty_n)))
+		else if(ls_task_fns_resp_stage | ls_task_skip_resp_stage_at_start)
 			ls_msg_table_resp_stage_wptr <= # simulation_delay 
 				{ls_msg_table_resp_stage_wptr[2:0], ls_msg_table_resp_stage_wptr[3]};
 	end
@@ -383,9 +385,10 @@ module panda_risc_v_lsu #(
 					((m_icb_rsp_valid & m_icb_rsp_ready) & ls_msg_table_resp_stage_wptr[ls_msg_table_i] & 
 						(~ls_msg_table[ls_msg_table_i][LS_MSG_IS_STORE_SID])))
 					ls_msg_table[ls_msg_table_i][LS_MSG_DIN_DOUT_SID+31:LS_MSG_DIN_DOUT_SID] <= # simulation_delay 
-						(launch_new_ls_task & ls_msg_table_wptr[ls_msg_table_i]) ? 
-							store_din: // 启动阶段载入写数据
-							m_icb_rsp_rdata; // 响应阶段载入读数据
+						(launch_new_ls_task & ls_msg_table_wptr[ls_msg_table_i] & 
+							((icb_zero_latency_supported == "false") | s_req_ls_sel)) ? 
+							store_din: // 若为写访存, 启动阶段载入写数据
+							m_icb_rsp_rdata; // 响应阶段[或对于立即完成ICB传输的读访存]载入读数据
 			end
 			
 			// 用于加载的目标寄存器的索引
@@ -448,14 +451,23 @@ module panda_risc_v_lsu #(
 						// 现处于开始阶段, 不跳过命令阶段
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_START_STAGE_FID] & 
 							(~ls_task_skip_cmd_stage) & (~ls_task_skip_resp_stage_at_start)}} & 4'b0010) | 
-						// 现处于开始阶段, 跳过命令阶段, 不跳过响应阶段, 在请求旁路到数据ICB主机命令通道并被立即接受时发生
+						// 现处于开始阶段, 跳过命令阶段, 不跳过响应阶段, 
+						// 在请求旁路到数据ICB主机命令通道并被立即接受[但响应未立即返回]时发生
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_START_STAGE_FID] & 
-							ls_task_skip_cmd_stage}} & 4'b0100) | 
-						// 现处于开始阶段, 跳过命令阶段, 跳过响应阶段, 在访存地址非对齐时发生
+							ls_task_skip_cmd_stage & ((icb_zero_latency_supported == "false") | 
+							(~(m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i])))}} & 4'b0100) | 
+						// 现处于开始阶段, 跳过命令阶段, 跳过响应阶段, 在访存地址非对齐[或旁路的请求立即完成ICB传输]时发生
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_START_STAGE_FID] & 
-							ls_task_skip_resp_stage_at_start}} & 4'b1000) | 
+							(ls_task_skip_resp_stage_at_start | ((icb_zero_latency_supported == "true") & 
+							m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i]))}} & 4'b1000) | 
 						// 现处于命令阶段, 直接更新为响应阶段
-						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_CMD_STAGE_FID]}} & 4'b0100) | 
+						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_CMD_STAGE_FID] & 
+							((icb_zero_latency_supported == "false") | 
+							(~(m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i])))}} & 4'b0100) | 
+						// [现处于命令阶段, 跳过响应阶段, 在响应立即返回时发生]
+						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_CMD_STAGE_FID] & 
+							(icb_zero_latency_supported == "true") & 
+							m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i]}} & 4'b1000) | 
 						// 现处于响应阶段, 直接更新为完成阶段
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_RESP_STAGE_FID]}} & 4'b1000) | 
 						// 现处于完成阶段, 直接更新为开始阶段

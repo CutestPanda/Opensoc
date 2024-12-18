@@ -18,6 +18,7 @@ module tb_panda_risc_v_lsu();
 	/** 配置参数 **/
 	// 待测模块配置
 	localparam integer dbus_access_timeout_th = 16; // 数据总线访问超时周期数(必须>=1)
+	localparam icb_zero_latency_supported = "false"; // 是否支持零响应时延的ICB主机
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
@@ -140,6 +141,7 @@ module tb_panda_risc_v_lsu();
 	
 	panda_risc_v_lsu #(
 		.dbus_access_timeout_th(dbus_access_timeout_th),
+		.icb_zero_latency_supported(icb_zero_latency_supported),
 		.simulation_delay(simulation_delay)
 	)dut(
 		.clk(clk),
