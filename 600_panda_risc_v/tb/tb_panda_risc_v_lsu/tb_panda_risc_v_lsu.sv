@@ -123,6 +123,7 @@ module tb_panda_risc_v_lsu();
 	
 	assign s_axis_if.user = {m_resp_err, m_resp_rd_id_for_ld, m_resp_ls_sel};
 	assign s_axis_if.data = {m_resp_ls_addr, m_resp_dout};
+	assign s_axis_if.last = 1'b1;
 	
 	assign s_axis_if.valid = m_resp_valid;
 	assign m_resp_ready = s_axis_if.ready;

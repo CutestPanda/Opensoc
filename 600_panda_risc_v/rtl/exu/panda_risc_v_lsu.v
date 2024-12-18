@@ -81,7 +81,7 @@ module panda_risc_v_lsu #(
 	localparam LS_TYPE_HALF_WORD_UNSIGNED = 3'b101;
 	// 访存应答错误类型
 	localparam DBUS_ACCESS_NORMAL = 2'b00; // 正常
-	localparam DBUS_ACCESS_PC_UNALIGNED = 2'b01; // 访存地址非对齐
+	localparam DBUS_ACCESS_LS_UNALIGNED = 2'b01; // 访存地址非对齐
 	localparam DBUS_ACCESS_BUS_ERR = 2'b10; // 数据总线访问错误
 	localparam DBUS_ACCESS_TIMEOUT = 2'b11; // 响应超时
 	// 访存信息各项的起始索引
@@ -360,7 +360,7 @@ module panda_risc_v_lsu #(
 					// 启动新的访存任务时直接跳过响应阶段
 					(ls_task_skip_resp_stage_at_start & ls_msg_table_wptr[ls_msg_table_i]))
 					ls_msg_table[ls_msg_table_i][LS_MSG_ERR_SID+1:LS_MSG_ERR_SID] <= # simulation_delay 
-						({2{ls_task_skip_resp_stage_at_start & ls_msg_table_wptr[ls_msg_table_i]}} & DBUS_ACCESS_PC_UNALIGNED) | 
+						({2{ls_task_skip_resp_stage_at_start & ls_msg_table_wptr[ls_msg_table_i]}} & DBUS_ACCESS_LS_UNALIGNED) | 
 						({2{m_icb_rsp_valid & m_icb_rsp_ready & m_icb_rsp_err & 
 							ls_msg_table_resp_stage_wptr[ls_msg_table_i]}} & DBUS_ACCESS_BUS_ERR) | 
 						({2{m_icb_rsp_valid & m_icb_rsp_ready & (~m_icb_rsp_err) & 

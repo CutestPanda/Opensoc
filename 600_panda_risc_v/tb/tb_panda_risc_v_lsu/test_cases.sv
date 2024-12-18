@@ -8,19 +8,68 @@
 `include "envs.sv"
 `include "vsqr.sv"
 
-class LsuCase0MAxisReqLsSeq extends uvm_sequence #(AXISTrans #(.data_width(64), .user_width(9)));
+class LsuCase0VSqr extends uvm_sequence;
+
+	local AXISTrans #(.data_width(64), .user_width(9)) m_req_axis_trans; // 访存请求AXIS主机事务
+	local AXISTrans #(.data_width(64), .user_width(8)) s_resp_axis_trans; // 访存响应AXIS从机事务
+	local ICBTrans #(.addr_width(32), .data_width(32)) s_icb_trans; // ICB从机事务
 	
-	local AXISTrans #(.data_width(64), .user_width(9)) m_axis_trans; // AXIS主机事务
+	local int unsigned test_n; // 测试访存次数
+	local int unsigned fns_m_req_axis_trans_n; // 完成的访存请求AXIS主机事务的个数
+	local int unsigned fns_s_resp_axis_trans_n; // 完成的访存响应AXIS从机事务的个数
+	local int unsigned fns_s_icb_trans_trans_n; // 完成的ICB从机事务的个数
+	local int unsigned s_icb_trans_n; // 可启动的ICB从机事务的个数
 	
 	// 注册object
-	`uvm_object_utils(LsuCase0MAxisReqLsSeq)
+	`uvm_object_utils(LsuCase0VSqr)
 	
-	function new(string name = "LsuCase0MAxisReqLsSeq");
-		super.new(name);
-	endfunction
+	// 声明p_sequencer
+	`uvm_declare_p_sequencer(LsuVsqr)
 	
 	virtual task body();
-		`uvm_do_with(this.m_axis_trans, {
+		if(this.starting_phase != null) 
+			this.starting_phase.raise_objection(this);
+		
+		this.test_n = 100;
+		this.fns_m_req_axis_trans_n = 0;
+		this.fns_s_resp_axis_trans_n = 0;
+		this.fns_s_icb_trans_trans_n = 0;
+		this.s_icb_trans_n = 0;
+		
+		fork
+			repeat(this.test_n)
+				this.drive_m_req_axis();
+			
+			repeat(this.test_n)
+				this.drive_s_resp_axis();
+			
+			forever
+			begin
+				this.drive_s_icb();
+				
+				if(this.fns_s_resp_axis_trans_n >= this.test_n)
+					break;
+			end
+		join
+		
+		`uvm_info("LsuCase0VSqr", $sformatf("fns_m_req_axis_trans_n = %d", this.fns_m_req_axis_trans_n), UVM_LOW)
+		`uvm_info("LsuCase0VSqr", $sformatf("fns_s_resp_axis_trans_n = %d", this.fns_s_resp_axis_trans_n), UVM_LOW)
+		`uvm_info("LsuCase0VSqr", $sformatf("fns_s_icb_trans_trans_n = %d", this.fns_s_icb_trans_trans_n), UVM_LOW)
+		
+		// 继续运行10us
+		# (10 ** 4);
+		
+		if(this.starting_phase != null) 
+			this.starting_phase.drop_objection(this);
+	endtask
+	
+	local task drive_m_req_axis();
+		automatic bit unalign_trans = $urandom_range(0, 5) == 5;
+		
+		if(!unalign_trans)
+			this.s_icb_trans_n++;
+		
+		`uvm_do_on_with(this.m_req_axis_trans, p_sequencer.m_axis_req_ls_sqr, {
 			data_n == 1;
 			
 			data.size() == 1;
@@ -36,95 +85,54 @@ class LsuCase0MAxisReqLsSeq extends uvm_sequence #(AXISTrans #(.data_width(64), 
 			
 			data[0][63:32] < 10;
 			data[0][31:2] < 1024;
-			data[0][1:0] dist {0:/3, [1:3]:/1};
+			
+			if(unalign_trans)
+				!((user[0][3:1] == 3'b000) || (user[0][3:1] == 3'b100) || 
+				(((user[0][3:1] == 3'b001) || (user[0][3:1] == 3'b101)) && (data[0][0] == 1'b0)) || 
+				((user[0][3:1] == 3'b010) && (data[0][1:0] == 2'b00)));
+			else
+				(user[0][3:1] == 3'b000) || (user[0][3:1] == 3'b100) || 
+				(((user[0][3:1] == 3'b001) || (user[0][3:1] == 3'b101)) && (data[0][0] == 1'b0)) || 
+				((user[0][3:1] == 3'b010) && (data[0][1:0] == 2'b00));
 			
 			last[0] == 1'b1;
 			wait_period_n[0] dist {0:/3, 1:/2, [2:4]:/1};
 		})
+		
+		this.fns_m_req_axis_trans_n++;
 	endtask
 	
-endclass
-
-class LsuCase0SAxisRespLsSeq extends uvm_sequence #(AXISTrans #(.data_width(64), .user_width(8)));
-	
-	local AXISTrans #(.data_width(64), .user_width(8)) s_axis_trans; // AXIS从机事务
-	
-	// 注册object
-	`uvm_object_utils(LsuCase0SAxisRespLsSeq)
-	
-	function new(string name = "LsuCase0SAxisRespLsSeq");
-		super.new(name);
-	endfunction
-	
-	virtual task body();
-		`uvm_do_with(this.s_axis_trans, {
+	local task drive_s_resp_axis();
+		`uvm_do_on_with(this.s_resp_axis_trans, p_sequencer.s_axis_resp_ls_sqr, {
 			wait_period_n.size() == 1;
 			
 			wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
 		})
+		
+		this.fns_s_resp_axis_trans_n++;
 	endtask
 	
-endclass
-
-class LsuCase0SDataIcbSeq extends uvm_sequence #(ICBTrans #(.addr_width(32), .data_width(32)));
-	
-	local ICBTrans #(.addr_width(32), .data_width(32)) s_icb_trans; // ICB从机事务
-	
-	// 注册object
-	`uvm_object_utils(LsuCase0SDataIcbSeq)
-	
-	function new(string name = "LsuCase0SDataIcbSeq");
-		super.new(name);
-	endfunction
-	
-	virtual task body();
-		`uvm_do_with(this.s_icb_trans, {
-			cmd_wait_period_n <= 2;
-			
-			rsp_rdata[7:0] < 10;
-			rsp_rdata[15:8] < 10;
-			rsp_rdata[23:16] < 10;
-			rsp_rdata[31:24] < 10;
-			
-			rsp_err dist {0:/3, 1:/1};
-			rsp_wait_period_n <= 4;
-		})
-	endtask
-	
-endclass
-
-class LsuCase0VSqr extends uvm_sequence;
-	
-	// 注册object
-	`uvm_object_utils(LsuCase0VSqr)
-	
-	// 声明p_sequencer
-	`uvm_declare_p_sequencer(LsuVsqr)
-	
-	virtual task body();
-		LsuCase0MAxisReqLsSeq req_seq;
-		LsuCase0SAxisRespLsSeq resp_seq;
-		LsuCase0SDataIcbSeq icb_seq;
+	local task drive_s_icb();
+		wait((this.s_icb_trans_n > 0) || (this.fns_s_resp_axis_trans_n >= this.test_n));
 		
-		if(this.starting_phase != null) 
-			this.starting_phase.raise_objection(this);
-		
-		fork
-			repeat(100)
-				`uvm_do_on(req_seq, p_sequencer.m_axis_req_ls_sqr)
+		if(this.fns_s_resp_axis_trans_n < this.test_n)
+		begin
+			this.s_icb_trans_n--;
 			
-			repeat(100)
-				`uvm_do_on(resp_seq, p_sequencer.s_axis_resp_ls_sqr)
+			`uvm_do_on_with(this.s_icb_trans, p_sequencer.s_data_icb_sqr, {
+				cmd_wait_period_n <= 2;
+				
+				rsp_rdata[7:0] < 10;
+				rsp_rdata[15:8] < 10;
+				rsp_rdata[23:16] < 10;
+				rsp_rdata[31:24] < 10;
+				
+				rsp_err dist {0:/3, 1:/1};
+				rsp_wait_period_n <= 4;
+			})
 			
-			repeat(100)
-				`uvm_do_on(icb_seq, p_sequencer.s_data_icb_sqr)
-		join
-		
-		// 继续运行100us
-		# (10 ** 5);
-		
-		if(this.starting_phase != null) 
-			this.starting_phase.drop_objection(this);
+			this.fns_s_icb_trans_trans_n++;
+		end
 	endtask
 	
 endclass
@@ -160,6 +168,12 @@ class LsuBaseTest #(
 		this.vsqr.m_axis_req_ls_sqr = this.env.m_axis_req_ls_agt.sequencer;
 		this.vsqr.s_axis_resp_ls_sqr = this.env.s_axis_resp_ls_agt.sequencer;
 		this.vsqr.s_data_icb_sqr = this.env.s_data_icb_agt.sequencer;
+	endfunction
+	
+	virtual function void report_phase(uvm_phase phase);
+		super.report_phase(phase);
+		
+		env.close_file();
 	endfunction
 	
 endclass
