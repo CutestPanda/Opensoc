@@ -72,6 +72,18 @@ module tb_panda_risc_v_reg_file_rd();
 	// 数据相关性
 	reg rs1_raw_dpc; // RS1有RAW相关性(标志)
 	reg rs2_raw_dpc; // RS2有RAW相关性(标志)
+	// 读通用寄存器堆请求
+	wire[4:0] s_reg_file_rd_req_rs1_id; // RS1索引
+	wire[4:0] s_reg_file_rd_req_rs2_id; // RS2索引
+	wire s_reg_file_rd_req_rs1_vld; // 是否需要读RS1(标志)
+	wire s_reg_file_rd_req_rs2_vld; // 是否需要读RS2(标志)
+	wire s_reg_file_rd_req_valid;
+	wire s_reg_file_rd_req_ready;
+	// 源寄存器读结果
+	wire[31:0] m_reg_file_rd_res_rs1_v; // RS1读结果
+	wire[31:0] m_reg_file_rd_res_rs2_v; // RS2读结果
+	wire m_reg_file_rd_res_valid;
+	wire m_reg_file_rd_res_ready;
 	// 译码器给出的通用寄存器堆读端口#0
 	wire dcd_reg_file_rd_p0_req; // 读请求
 	wire dcd_reg_file_rd_p0_grant; // 读许可
@@ -129,6 +141,15 @@ module tb_panda_risc_v_reg_file_rd();
 		flush_req <= 1'b0;
 	end
 	
+	assign {s_reg_file_rd_req_rs2_vld, s_reg_file_rd_req_rs1_vld, 
+		s_reg_file_rd_req_rs2_id, s_reg_file_rd_req_rs1_id} = m_axis_if.data[11:0];
+	assign s_reg_file_rd_req_valid = m_axis_if.valid;
+	assign m_axis_if.ready = s_reg_file_rd_req_ready;
+	
+	assign s_axis_if.data = {m_reg_file_rd_res_rs2_v, m_reg_file_rd_res_rs1_v};
+	assign s_axis_if.valid = m_reg_file_rd_res_valid;
+	assign m_reg_file_rd_res_ready = s_axis_if.ready;
+	
 	panda_risc_v_reg_file_rd #(
 		.simulation_delay(simulation_delay)
 	)dut(
@@ -143,17 +164,17 @@ module tb_panda_risc_v_reg_file_rd();
 		.raw_dpc_check_rs2_id(),
 		.rs2_raw_dpc(rs2_raw_dpc),
 		
-		.s_reg_file_rd_req_rs1_id(m_axis_if.data[4:0]),
-		.s_reg_file_rd_req_rs2_id(m_axis_if.data[9:5]),
-		.s_reg_file_rd_req_rs1_vld(m_axis_if.data[10]),
-		.s_reg_file_rd_req_rs2_vld(m_axis_if.data[11]),
-		.s_reg_file_rd_req_valid(m_axis_if.valid),
-		.s_reg_file_rd_req_ready(m_axis_if.ready),
+		.s_reg_file_rd_req_rs1_id(s_reg_file_rd_req_rs1_id),
+		.s_reg_file_rd_req_rs2_id(s_reg_file_rd_req_rs2_id),
+		.s_reg_file_rd_req_rs1_vld(s_reg_file_rd_req_rs1_vld),
+		.s_reg_file_rd_req_rs2_vld(s_reg_file_rd_req_rs2_vld),
+		.s_reg_file_rd_req_valid(s_reg_file_rd_req_valid),
+		.s_reg_file_rd_req_ready(s_reg_file_rd_req_ready),
 		
-		.m_reg_file_rd_res_rs1_v(s_axis_if.data[31:0]),
-		.m_reg_file_rd_res_rs2_v(s_axis_if.data[63:32]),
-		.m_reg_file_rd_res_valid(s_axis_if.valid),
-		.m_reg_file_rd_res_ready(s_axis_if.ready),
+		.m_reg_file_rd_res_rs1_v(m_reg_file_rd_res_rs1_v),
+		.m_reg_file_rd_res_rs2_v(m_reg_file_rd_res_rs2_v),
+		.m_reg_file_rd_res_valid(m_reg_file_rd_res_valid),
+		.m_reg_file_rd_res_ready(m_reg_file_rd_res_ready),
 		
 		.dcd_reg_file_rd_p0_req(dcd_reg_file_rd_p0_req),
 		.dcd_reg_file_rd_p0_addr(),

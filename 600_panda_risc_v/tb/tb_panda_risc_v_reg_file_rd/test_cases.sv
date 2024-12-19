@@ -34,7 +34,6 @@ class PandaRiscVRegFileRdCase0MAXISSeq extends uvm_sequence #(AXISTrans #(.data_
 				last.size() == 1;
 				wait_period_n.size() == 1;
 				
-				data[0][11:10] != 2'b00;
 				last[0] == 1'b1;
 				
 				wait_period_n[0] dist {0:/3, 1:/1, 2:/1};
