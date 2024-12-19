@@ -74,6 +74,10 @@ module tb_panda_risc_v_ifu();
 	// 冲刷请求
 	reg flush_req;
 	reg[31:0] flush_addr;
+	// 复位应答
+	wire rst_ack;
+	// 冲刷应答
+	wire flush_ack;
 	// 数据相关性
 	wire[4:0] rs1_id; // RS1索引
 	reg rs1_raw_dpc; // RS1有RAW相关性(标志)
@@ -183,6 +187,8 @@ module tb_panda_risc_v_ifu();
 		.sys_reset_req(sys_reset_req),
 		.flush_req(flush_req),
 		.flush_addr(flush_addr),
+		.rst_ack(rst_ack),
+		.flush_ack(flush_ack),
 		
 		.rs1_id(rs1_id),
 		.rs1_raw_dpc(rs1_raw_dpc),

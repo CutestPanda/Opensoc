@@ -36,6 +36,10 @@ module panda_risc_v_imem_access_ctrler #(
 	// 冲刷请求
 	input wire flush_req,
 	input wire[31:0] flush_addr,
+	// 复位应答
+	output wire rst_ack,
+	// 冲刷应答
+	output wire flush_ack,
 	
 	// PC生成和分支预测
 	output wire to_rst, // 当前正在复位
@@ -186,6 +190,9 @@ module panda_risc_v_imem_access_ctrler #(
 	wire inst_suppress_buf_ren; // 取指结果镇压标志缓存区读使能
 	wire jalr_allow; // 允许无条件间接跳转(标志)
 	wire on_now_inst_suppress; // 当前指令被镇压(指示)
+	
+	assign rst_ack = to_rst & (processing_imem_access_req_n != 2'b11) & imem_access_req_ready;
+	assign flush_ack = to_flush & (processing_imem_access_req_n != 2'b11) & imem_access_req_ready;
 	
 	assign to_rst = rst_req | rst_imem_access_req_pending;
 	assign to_flush = flush_req | flush_imem_access_req_pending;

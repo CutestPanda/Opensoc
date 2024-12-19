@@ -38,6 +38,10 @@ module panda_risc_v_ifu #(
 	// 冲刷请求
 	input wire flush_req,
 	input wire[31:0] flush_addr,
+	// 复位应答
+	output wire rst_ack,
+	// 冲刷应答
+	output wire flush_ack,
 	
 	// 数据相关性
 	output wire[4:0] rs1_id, // RS1索引
@@ -183,6 +187,8 @@ module panda_risc_v_ifu #(
 		.rst_req(sys_reset_req),
 		.flush_req(flush_req),
 		.flush_addr(flush_addr),
+		.rst_ack(rst_ack),
+		.flush_ack(flush_ack),
 		
 		.to_rst(to_rst),
 		.to_flush(to_flush),
