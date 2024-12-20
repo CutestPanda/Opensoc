@@ -20,7 +20,10 @@ ALU实现了以下运算:
 ********************************************************************/
 
 
-module panda_risc_v_alu(
+module panda_risc_v_alu #(
+	parameter en_shift_reuse = "true", // 是否复用移位器
+	parameter en_eq_cmp_reuse = "false" // 是否复用相等比较器
+)(
 	// ALU操作信息输入
 	input wire[3:0] op_mode, // 操作类型
 	input wire[31:0] op1, // 操作数1
@@ -89,24 +92,24 @@ module panda_risc_v_alu(
 	
 	/** 有符号/无符号比较是否大于等于/小于 **/
 	wire geq_lt_cmp_res;
-	wire geq_lt_comparer_out;
+	wire lt_comparer_out;
 	wire[32:0] op1_sign_ext;
 	wire[32:0] op2_sign_ext;
 	
-	assign geq_lt_cmp_res = geq_lt_comparer_out ^ is_cmp_geq; // is_cmp_geq ? (~geq_lt_comparer_out):geq_lt_comparer_out
+	assign geq_lt_cmp_res = lt_comparer_out ^ is_cmp_geq; // is_cmp_geq ? (~lt_comparer_out):lt_comparer_out
 	
-	assign geq_lt_comparer_out = $signed(op1_sign_ext) < $signed(op2_sign_ext);
+	assign lt_comparer_out = $signed(op1_sign_ext) < $signed(op2_sign_ext);
 	
 	assign op1_sign_ext = {is_cmp_sign & op1[31], op1};
 	assign op2_sign_ext = {is_cmp_sign & op2[31], op2};
 	
 	/** 比较是否相等/不等 **/
 	wire eq_neq_cmp_res;
-	wire eq_neq_comparer_out;
+	wire eq_comparer_out;
 	
-	assign eq_neq_cmp_res = eq_neq_comparer_out ^ is_cmp_neq; // is_cmp_neq ? (~eq_neq_comparer_out):eq_neq_comparer_out
+	assign eq_neq_cmp_res = eq_comparer_out ^ is_cmp_neq; // is_cmp_neq ? (~eq_comparer_out):eq_comparer_out
 	
-	assign eq_neq_comparer_out = adder_out == 32'd0;
+	assign eq_comparer_out = (en_eq_cmp_reuse == "true") ? (adder_out == 32'd0):(op1 == op2);
 	
 	/** 按位或 **/
 	wire[31:0] or_res;
@@ -127,7 +130,11 @@ module panda_risc_v_alu(
 	wire[31:0] shift_sign_mask;
 	wire[31:0] sra_mask;
 	
-	assign shift_res = sll_srl_res | sra_mask;
+	assign shift_res = (en_shift_reuse == "true") ? 
+		(sll_srl_res | sra_mask):
+		(({32{op_mode == OP_MODE_LG_LSH}} & (left_shifter_op1 << left_shifter_op2)) | 
+		({32{op_mode == OP_MODE_LG_RSH}} & (left_shifter_op1 >> left_shifter_op2)) | 
+		({32{op_mode == OP_MODE_ATH_RSH}} & ($signed(left_shifter_op1) >>> left_shifter_op2)));
 	
 	assign sll_srl_res = is_sll ? left_shifter_out:{
 		left_shifter_out[0], left_shifter_out[1], left_shifter_out[2], left_shifter_out[3], 
