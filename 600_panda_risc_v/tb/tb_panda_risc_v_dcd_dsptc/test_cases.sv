@@ -66,12 +66,12 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 	
 	local task drive_m_if_res();
 		automatic bit is_illegal_inst = $urandom_range(0, 6) == 6;
-		automatic bit[1:0] err_code = ($urandom_range(0, 5) == 5) ? $urandom_range(1, 3):2'b00;
+		automatic bit[1:0] err_code = ($urandom_range(0, 4) == 4) ? $urandom_range(1, 3):2'b00;
 		automatic RiscVDsptcMode mode;
 		
 		// 随机化取指结果
 		assert(this.inst_trans.randomize() with{
-			if(!((!is_illegal_inst) && (err_code == 2'b00)))
+			if((!is_illegal_inst) && (err_code != 2'b00))
 				inst == 32'h0000_0013;
 			
 			csr_addr <= 15;
