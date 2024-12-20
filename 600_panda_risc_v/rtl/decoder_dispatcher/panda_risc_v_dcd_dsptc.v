@@ -59,6 +59,8 @@ module panda_risc_v_dcd_dsptc #(
 	output wire[31:0] m_alu_op1, // 操作数1
 	output wire[31:0] m_alu_op2, // 操作数2
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
+	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
+	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -171,16 +173,18 @@ module panda_risc_v_dcd_dsptc #(
 	                     打包的ALU操作信息[67:0]}
 	  CSR读写       {打包的CSR原子读写操作信息[45:0]}
 	   乘除         {打包的乘除法操作信息[66:0]}
+	   非法指令     {取到的指令[31:0]}
 	   其他         {是否预测跳转, 
 	                     打包的ALU操作信息[67:0]}
 	*/
 	wire[70:0] m_dispatch_req_msg_reused; // 复用的派遣信息
 	wire[6:0] m_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] m_dispatch_req_pc_of_inst; // 指令对应的PC
-	wire[31:0] m_dispatch_req_brc_pc_upd; // 分支预测失败时修正的PC
-	wire[31:0] m_dispatch_req_store_din; // 用于写存储映射的数据
+	wire[31:0] m_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	wire[4:0] m_dispatch_req_rd_id; // RD索引
 	wire m_dispatch_req_rd_vld; // 是否需要写RD
+	wire[1:0] m_dispatch_req_err_code; // 错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
+	                                   //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
 	wire m_dispatch_req_valid;
 	wire m_dispatch_req_ready;
 	
@@ -225,10 +229,10 @@ module panda_risc_v_dcd_dsptc #(
 		.m_dispatch_req_msg_reused(m_dispatch_req_msg_reused),
 		.m_dispatch_req_inst_type_packeted(m_dispatch_req_inst_type_packeted),
 		.m_dispatch_req_pc_of_inst(m_dispatch_req_pc_of_inst),
-		.m_dispatch_req_brc_pc_upd(m_dispatch_req_brc_pc_upd),
-		.m_dispatch_req_store_din(m_dispatch_req_store_din),
+		.m_dispatch_req_brc_pc_upd_store_din(m_dispatch_req_brc_pc_upd_store_din),
 		.m_dispatch_req_rd_id(m_dispatch_req_rd_id),
 		.m_dispatch_req_rd_vld(m_dispatch_req_rd_vld),
+		.m_dispatch_req_err_code(m_dispatch_req_err_code),
 		.m_dispatch_req_valid(m_dispatch_req_valid),
 		.m_dispatch_req_ready(m_dispatch_req_ready)
 	);
@@ -242,26 +246,28 @@ module panda_risc_v_dcd_dsptc #(
 	                     打包的ALU操作信息[67:0]}
 	  CSR读写       {打包的CSR原子读写操作信息[45:0]}
 	   乘除         {打包的乘除法操作信息[66:0]}
+	   非法指令     {取到的指令[31:0]}
 	   其他         {是否预测跳转, 
 	                     打包的ALU操作信息[67:0]}
 	*/
 	wire[70:0] s_dispatch_req_msg_reused; // 复用的派遣信息
 	wire[6:0] s_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] s_dispatch_req_pc_of_inst; // 指令对应的PC
-	wire[31:0] s_dispatch_req_brc_pc_upd; // 分支预测失败时修正的PC
-	wire[31:0] s_dispatch_req_store_din; // 用于写存储映射的数据
+	wire[31:0] s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	wire[4:0] s_dispatch_req_rd_id; // RD索引
 	wire s_dispatch_req_rd_vld; // 是否需要写RD
+	wire[1:0] s_dispatch_req_err_code; // 错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
+	                                   //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
 	wire s_dispatch_req_valid;
 	wire s_dispatch_req_ready;
 	
 	assign s_dispatch_req_msg_reused = m_dispatch_req_msg_reused;
 	assign s_dispatch_req_inst_type_packeted = m_dispatch_req_inst_type_packeted;
 	assign s_dispatch_req_pc_of_inst = m_dispatch_req_pc_of_inst;
-	assign s_dispatch_req_brc_pc_upd = m_dispatch_req_brc_pc_upd;
-	assign s_dispatch_req_store_din = m_dispatch_req_store_din;
+	assign s_dispatch_req_brc_pc_upd_store_din = m_dispatch_req_brc_pc_upd_store_din;
 	assign s_dispatch_req_rd_id = m_dispatch_req_rd_id;
 	assign s_dispatch_req_rd_vld = m_dispatch_req_rd_vld;
+	assign s_dispatch_req_err_code = m_dispatch_req_err_code;
 	assign s_dispatch_req_valid = m_dispatch_req_valid;
 	assign m_dispatch_req_ready = s_dispatch_req_ready;
 	
@@ -275,10 +281,10 @@ module panda_risc_v_dcd_dsptc #(
 		.s_dispatch_req_msg_reused(s_dispatch_req_msg_reused),
 		.s_dispatch_req_inst_type_packeted(s_dispatch_req_inst_type_packeted),
 		.s_dispatch_req_pc_of_inst(s_dispatch_req_pc_of_inst),
-		.s_dispatch_req_brc_pc_upd(s_dispatch_req_brc_pc_upd),
-		.s_dispatch_req_store_din(s_dispatch_req_store_din),
+		.s_dispatch_req_brc_pc_upd_store_din(s_dispatch_req_brc_pc_upd_store_din),
 		.s_dispatch_req_rd_id(s_dispatch_req_rd_id),
 		.s_dispatch_req_rd_vld(s_dispatch_req_rd_vld),
+		.s_dispatch_req_err_code(s_dispatch_req_err_code),
 		.s_dispatch_req_valid(s_dispatch_req_valid),
 		.s_dispatch_req_ready(s_dispatch_req_ready),
 		
@@ -286,6 +292,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_alu_op1(m_alu_op1),
 		.m_alu_op2(m_alu_op2),
 		.m_alu_addr_gen_sel(m_alu_addr_gen_sel),
+		.m_alu_err_code(m_alu_err_code),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		

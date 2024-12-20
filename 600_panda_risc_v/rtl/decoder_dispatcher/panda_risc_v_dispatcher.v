@@ -5,6 +5,14 @@
 描述:
 将译码/读寄存器堆后的指令派遣给EXU(ALU/分支确认单元/LSU/CSR原子读写单元/乘法器/除法器)
 
+指令类型  派遣到ALU  派遣到BCU  派遣到LSU  派遣到CSR原子读写单元  派遣到乘法器  派遣到除法器
+   B         Yes        Yes
+ CSR读写                                            Yes
+   LS        Yes                   Yes
+  乘法                                                                 Yes
+除法/求余                                                                            Yes
+  其他       Yes
+
 注意：
 无
 
@@ -34,16 +42,18 @@ module panda_risc_v_dispatcher(
 	                     打包的ALU操作信息[67:0]}
 	  CSR读写       {打包的CSR原子读写操作信息[45:0]}
 	   乘除         {打包的乘除法操作信息[66:0]}
+	   非法指令     {取到的指令[31:0]}
 	   其他         {是否预测跳转, 
 	                     打包的ALU操作信息[67:0]}
 	*/
 	input wire[70:0] s_dispatch_req_msg_reused, // 复用的派遣信息
 	input wire[6:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	input wire[31:0] s_dispatch_req_pc_of_inst, // 指令对应的PC
-	input wire[31:0] s_dispatch_req_brc_pc_upd, // 分支预测失败时修正的PC
-	input wire[31:0] s_dispatch_req_store_din, // 用于写存储映射的数据
+	input wire[31:0] s_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
 	input wire[4:0] s_dispatch_req_rd_id, // RD索引
 	input wire s_dispatch_req_rd_vld, // 是否需要写RD
+	input wire[1:0] s_dispatch_req_err_code, // 错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
+	                                         //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
 	input wire s_dispatch_req_valid,
 	output wire s_dispatch_req_ready,
 	
@@ -52,6 +62,8 @@ module panda_risc_v_dispatcher(
 	output wire[31:0] m_alu_op1, // 操作数1
 	output wire[31:0] m_alu_op2, // 操作数2
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
+	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
+	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -130,12 +142,14 @@ module panda_risc_v_dispatcher(
 	wire[45:0] dispatch_msg_csr_rw_op_msg_packeted; // 打包的CSR原子读写操作信息
 	wire[66:0] dispatch_msg_mul_div_op_msg_packeted; // 打包的乘除法操作信息
 	wire dispatch_req_prdt_jump; // 是否预测跳转
+	wire[31:0] dispatch_msg_inst; // 取到的指令
 	
 	assign dispatch_msg_alu_op_msg_packeted = s_dispatch_req_msg_reused[67:0];
 	assign dispatch_msg_lsu_op_msg_packeted = s_dispatch_req_msg_reused[70:68];
 	assign dispatch_msg_csr_rw_op_msg_packeted = s_dispatch_req_msg_reused[45:0];
 	assign dispatch_msg_mul_div_op_msg_packeted = s_dispatch_req_msg_reused[66:0];
 	assign dispatch_req_prdt_jump = s_dispatch_req_msg_reused[68];
+	assign dispatch_msg_inst = s_dispatch_req_msg_reused[31:0];
 	
 	/** 指令类型标志 **/
 	wire is_b_inst; // 是否B指令
@@ -174,6 +188,7 @@ module panda_risc_v_dispatcher(
 	assign m_alu_op1 = dispatch_msg_alu_op_msg_packeted[ALU_OP_MSG_ALU_OP1+31:ALU_OP_MSG_ALU_OP1];
 	assign m_alu_op2 = dispatch_msg_alu_op_msg_packeted[ALU_OP_MSG_ALU_OP2+31:ALU_OP_MSG_ALU_OP2];
 	assign m_alu_addr_gen_sel = is_ls_inst;
+	assign m_alu_err_code = s_dispatch_req_err_code;
 	assign m_alu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
@@ -184,7 +199,7 @@ module panda_risc_v_dispatcher(
 	
 	// 派遣给分支确认单元
 	assign m_bcu_pc_of_inst = s_dispatch_req_pc_of_inst; // 指令对应的PC
-	assign m_bcu_brc_pc_upd = s_dispatch_req_brc_pc_upd; // 分支预测失败时修正的PC
+	assign m_bcu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
 	assign m_bcu_prdt_jump = dispatch_req_prdt_jump; // 是否预测跳转
 	assign m_bcu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
@@ -196,7 +211,7 @@ module panda_risc_v_dispatcher(
 	assign m_ls_sel = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID];
 	assign m_ls_type = dispatch_msg_lsu_op_msg_packeted[LSU_OP_MSG_LS_TYPE+2:LSU_OP_MSG_LS_TYPE];
 	assign m_rd_id_for_ld = s_dispatch_req_rd_id;
-	assign m_ls_din = s_dispatch_req_store_din;
+	assign m_ls_din = s_dispatch_req_brc_pc_upd_store_din; // 用于写存储映射的数据
 	assign m_lsu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
