@@ -57,7 +57,7 @@ module panda_risc_v_dcd_dsptc #(
 	// ALU执行请求
 	output wire[3:0] m_alu_op_mode, // 操作类型
 	output wire[31:0] m_alu_op1, // 操作数1
-	output wire[31:0] m_alu_op2, // 操作数2
+	output wire[31:0] m_alu_op2, // 操作数2或取到的指令(若当前是非法指令)
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
 	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
 	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
