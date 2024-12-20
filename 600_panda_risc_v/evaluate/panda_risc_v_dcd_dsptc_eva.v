@@ -35,7 +35,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	input wire rs2_raw_dpc, // RS2有RAW相关性(标志)
 	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
 	output wire[4:0] raw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
-	input wire rd_raw_dpc, // RD有WAW相关性(标志)
+	input wire rd_waw_dpc, // RD有WAW相关性(标志)
 	
 	// 译码器给出的通用寄存器堆读端口#0
 	output wire dcd_reg_file_rd_p0_req, // 读请求
@@ -59,6 +59,8 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[31:0] m_alu_op1, // 操作数1
 	output wire[31:0] m_alu_op2, // 操作数2
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
+	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
+	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -130,7 +132,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.raw_dpc_check_rs2_id(raw_dpc_check_rs2_id),
 		.rs2_raw_dpc(rs2_raw_dpc),
 		.raw_dpc_check_rd_id(raw_dpc_check_rd_id),
-		.rd_raw_dpc(rd_raw_dpc),
+		.rd_waw_dpc(rd_waw_dpc),
 		
 		.dcd_reg_file_rd_p0_req(dcd_reg_file_rd_p0_req),
 		.dcd_reg_file_rd_p0_addr(dcd_reg_file_rd_p0_addr),
@@ -151,6 +153,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_alu_op1(m_alu_op1),
 		.m_alu_op2(m_alu_op2),
 		.m_alu_addr_gen_sel(m_alu_addr_gen_sel),
+		.m_alu_err_code(m_alu_err_code),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		

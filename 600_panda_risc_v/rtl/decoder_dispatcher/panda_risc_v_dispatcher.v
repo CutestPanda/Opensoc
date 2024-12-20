@@ -32,7 +32,7 @@ module panda_risc_v_dispatcher(
 	// 数据相关性
 	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
 	output wire[4:0] raw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
-	input wire rd_raw_dpc, // RD有WAW相关性(标志)
+	input wire rd_waw_dpc, // RD有WAW相关性(标志)
 	
 	// 派遣请求
 	/*
@@ -175,7 +175,7 @@ module panda_risc_v_dispatcher(
 	// 派遣请求
 	assign s_dispatch_req_ready = 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
 		((is_csr_rw_inst | is_mul_inst | is_div_rem_inst | m_alu_ready) & // CSR读写指令、乘除法指令不经过ALU
 			((~is_b_inst) | m_bcu_ready) & // 仅B指令需要用到分支确认单元
 			((~is_ls_inst) | m_lsu_ready) & // 仅加载/存储指令需要用到LSU
@@ -191,7 +191,7 @@ module panda_risc_v_dispatcher(
 	assign m_alu_err_code = s_dispatch_req_err_code;
 	assign m_alu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
 		(~(is_csr_rw_inst | is_mul_inst | is_div_rem_inst)) & // CSR读写指令、乘除法指令不经过ALU
 		((is_b_inst & m_bcu_ready) | // 分支确认需要同时用到ALU, 因此需要确保ALU执行请求和分支确认单元执行请求同时握手
 			(is_ls_inst & m_lsu_ready) | // 加载/存储需要同时用到ALU, 因此需要确保ALU执行请求和LSU执行请求同时握手
@@ -203,7 +203,7 @@ module panda_risc_v_dispatcher(
 	assign m_bcu_prdt_jump = dispatch_req_prdt_jump; // 是否预测跳转
 	assign m_bcu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
 		is_b_inst & // 当前派遣B指令
 		m_alu_ready; // 分支确认需要同时用到ALU
 	
@@ -214,7 +214,7 @@ module panda_risc_v_dispatcher(
 	assign m_ls_din = s_dispatch_req_brc_pc_upd_store_din; // 用于写存储映射的数据
 	assign m_lsu_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
 		is_ls_inst & // 当前派遣加载/存储指令
 		m_alu_ready; // 加载/存储需要同时用到ALU
 	
@@ -224,7 +224,7 @@ module panda_risc_v_dispatcher(
 	assign m_csr_upd_mask_v = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_UPD_MASK_V+31:CSR_RW_OP_MSG_CSR_UPD_MASK_V];
 	assign m_csr_rw_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
 		is_csr_rw_inst; // 当前派遣CSR读写指令
 	
 	// 派遣给乘法器
@@ -233,7 +233,7 @@ module panda_risc_v_dispatcher(
 	assign m_mul_res_sel = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_RES_SEL];
 	assign m_mul_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
 		is_mul_inst; // 当前派遣乘法指令
 	
 	// 派遣给除法器
@@ -242,7 +242,7 @@ module panda_risc_v_dispatcher(
 	assign m_div_rem_sel = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID];
 	assign m_div_valid = s_dispatch_req_valid & 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_raw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
 		is_div_rem_inst; // 当前派遣除法/求余指令
 	
 endmodule

@@ -35,7 +35,7 @@ module panda_risc_v_dcd_dsptc #(
 	input wire rs2_raw_dpc, // RS2有RAW相关性(标志)
 	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
 	output wire[4:0] raw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
-	input wire rd_raw_dpc, // RD有WAW相关性(标志)
+	input wire rd_waw_dpc, // RD有WAW相关性(标志)
 	
 	// 译码器给出的通用寄存器堆读端口#0
 	output wire dcd_reg_file_rd_p0_req, // 读请求
@@ -276,7 +276,7 @@ module panda_risc_v_dcd_dsptc #(
 		.flush_req(flush_req),
 		
 		.raw_dpc_check_rd_id(raw_dpc_check_rd_id),
-		.rd_raw_dpc(rd_raw_dpc),
+		.rd_waw_dpc(rd_waw_dpc),
 		
 		.s_dispatch_req_msg_reused(s_dispatch_req_msg_reused),
 		.s_dispatch_req_inst_type_packeted(s_dispatch_req_inst_type_packeted),

@@ -29,6 +29,10 @@ module panda_risc_v_alu #(
 	input wire[31:0] op1, // 操作数1
 	input wire[31:0] op2, // 操作数2
 	
+	// 特定结果输出
+	output wire brc_cond_res, // 分支判定结果
+	output wire[31:0] ls_addr, // 访存地址
+	
 	// ALU计算结果输出
 	output wire[31:0] res // 计算结果
 );
@@ -168,6 +172,8 @@ module panda_risc_v_alu #(
 	wire is_shift_op;
 	wire[31:0] logic_res;
 	
+	assign brc_cond_res = is_eq_neq_cmp_op ? eq_neq_cmp_res:geq_lt_cmp_res;
+	assign ls_addr = add_sub_res;
 	assign res = 
 		({32{is_logic_op}} & logic_res) | 
 		({32{is_add_sub_op}} & add_sub_res) | 

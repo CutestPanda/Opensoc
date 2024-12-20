@@ -136,7 +136,7 @@ module tb_panda_risc_v_dcd_dsptc();
 	reg rs2_raw_dpc; // RS2有RAW相关性(标志)
 	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
 	wire[4:0] raw_dpc_check_rd_id; // 待检查WAW相关性的RD索引
-	reg rd_raw_dpc; // RD有WAW相关性(标志)
+	reg rd_waw_dpc; // RD有WAW相关性(标志)
 	// 译码器给出的通用寄存器堆读端口#0
 	wire dcd_reg_file_rd_p0_req; // 读请求
 	wire[4:0] dcd_reg_file_rd_p0_addr; // 读地址
@@ -243,7 +243,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.raw_dpc_check_rs2_id(raw_dpc_check_rs2_id),
 		.rs2_raw_dpc(rs2_raw_dpc),
 		.raw_dpc_check_rd_id(raw_dpc_check_rd_id),
-		.rd_raw_dpc(rd_raw_dpc),
+		.rd_waw_dpc(rd_waw_dpc),
 		
 		.dcd_reg_file_rd_p0_req(dcd_reg_file_rd_p0_req),
 		.dcd_reg_file_rd_p0_addr(dcd_reg_file_rd_p0_addr),
@@ -343,15 +343,15 @@ module tb_panda_risc_v_dcd_dsptc();
 	// RD有WAW相关性(标志)
 	initial
 	begin
-		rd_raw_dpc <= 1'b0;
+		rd_waw_dpc <= 1'b0;
 		
 		forever
 		begin
 			@(posedge clk iff sys_resetn);
 			
 			randcase
-				5: rd_raw_dpc <= # simulation_delay 1'b0;
-				3: rd_raw_dpc <= # simulation_delay 1'b1;
+				5: rd_waw_dpc <= # simulation_delay 1'b0;
+				3: rd_waw_dpc <= # simulation_delay 1'b1;
 			endcase
 		end
 	end
