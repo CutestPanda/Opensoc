@@ -10,7 +10,6 @@
 
 /** 枚举类型: 派遣类型 **/
 typedef enum{
-	MODE_B, 
 	MODE_CSRRW, 
 	MODE_LS, 
 	MODE_MUL, 
@@ -21,7 +20,7 @@ typedef enum{
 class DcdDsptcCase0VSqc extends uvm_sequence;
 	
 	local AXISTrans #(.data_width(128), .user_width(4)) m_if_res_axis_trans; // 取指结果AXIS主机事务
-	local AXISTrans #(.data_width(72), .user_width(0)) s_exu_axis_trans[0:1]; // 执行单元AXIS从机事务
+	local AXISTrans #(.data_width(144), .user_width(0)) s_exu_axis_trans[0:1]; // 执行单元AXIS从机事务
 	local RiscVInstTrans inst_trans; // RV32指令事务
 	
 	local int unsigned test_n; // 测试译码/派遣次数
@@ -95,14 +94,6 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 		}) else $fatal("inst_trans failed to randomize!");
 		
 		if((!is_illegal_inst) & 
-			((this.inst_trans.inst_type == BEQ) || (this.inst_trans.inst_type == BNE) || 
-			(this.inst_trans.inst_type == BLT) || (this.inst_trans.inst_type == BGE) || 
-			(this.inst_trans.inst_type == BLTU) || (this.inst_trans.inst_type == BGEU)))
-		begin
-			// B指令
-			mode = MODE_B;
-		end
-		else if((!is_illegal_inst) & 
 			((this.inst_trans.inst_type == CSRRW) || (this.inst_trans.inst_type == CSRRS) || 
 			(this.inst_trans.inst_type == CSRRC) || (this.inst_trans.inst_type == CSRRWI) || 
 			(this.inst_trans.inst_type == CSRRSI) || (this.inst_trans.inst_type == CSRRCI)))
@@ -170,7 +161,7 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 		begin
 			automatic RiscVDsptcMode mode = this.dispatch_fifo.pop_front();
 			
-			if(mode == MODE_B)
+			if(mode == MODE_CSRRW)
 			begin
 				fork
 					`uvm_do_on_with(this.s_exu_axis_trans[0], p_sequencer.s_axis_alu_sqr, {
@@ -179,20 +170,12 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 						wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
 					})
 					
-					`uvm_do_on_with(this.s_exu_axis_trans[1], p_sequencer.s_axis_bcu_sqr, {
+					`uvm_do_on_with(this.s_exu_axis_trans[1], p_sequencer.s_axis_csr_rw_sqr, {
 						wait_period_n.size() == 1;
 						
 						wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
 					})
 				join
-			end
-			else if(mode == MODE_CSRRW)
-			begin
-				`uvm_do_on_with(this.s_exu_axis_trans[0], p_sequencer.s_axis_csr_rw_sqr, {
-					wait_period_n.size() == 1;
-					
-					wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
-				})
 			end
 			else if(mode == MODE_LS)
 			begin
@@ -212,19 +195,35 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 			end
 			else if(mode == MODE_MUL)
 			begin
-				`uvm_do_on_with(this.s_exu_axis_trans[0], p_sequencer.s_axis_mul_sqr, {
-					wait_period_n.size() == 1;
+				fork
+					`uvm_do_on_with(this.s_exu_axis_trans[0], p_sequencer.s_axis_alu_sqr, {
+						wait_period_n.size() == 1;
+						
+						wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
+					})
 					
-					wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
-				})
+					`uvm_do_on_with(this.s_exu_axis_trans[1], p_sequencer.s_axis_mul_sqr, {
+						wait_period_n.size() == 1;
+						
+						wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
+					})
+				join
 			end
 			else if(mode == MODE_DIV)
 			begin
-				`uvm_do_on_with(this.s_exu_axis_trans[0], p_sequencer.s_axis_div_sqr, {
-					wait_period_n.size() == 1;
+				fork
+					`uvm_do_on_with(this.s_exu_axis_trans[0], p_sequencer.s_axis_alu_sqr, {
+						wait_period_n.size() == 1;
+						
+						wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
+					})
 					
-					wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
-				})
+					`uvm_do_on_with(this.s_exu_axis_trans[1], p_sequencer.s_axis_div_sqr, {
+						wait_period_n.size() == 1;
+						
+						wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
+					})
+				join
 			end
 			else if(mode == MODE_OTHER)
 			begin

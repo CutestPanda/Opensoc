@@ -3,15 +3,15 @@
 本模块: 派遣单元
 
 描述:
-将译码/读寄存器堆后的指令派遣给EXU(ALU/分支确认单元/LSU/CSR原子读写单元/乘法器/除法器)
+将译码/读寄存器堆后的指令派遣给EXU(ALU/LSU/CSR原子读写单元/乘法器/除法器)
 
-指令类型  派遣到ALU  派遣到BCU  派遣到LSU  派遣到CSR原子读写单元  派遣到乘法器  派遣到除法器
-   B         Yes        Yes
- CSR读写                                            Yes
-   LS        Yes                   Yes
-  乘法                                                                 Yes
-除法/求余                                                                            Yes
-  其他       Yes
+指令类型  |  派遣到ALU | 派遣到LSU | 派遣到CSR原子读写单元 | 派遣到乘法器 | 派遣到除法器
+-----------------------------------------------------------------------------------------
+ CSR读写  |    Yes     |           |          Yes          |              |             |
+   LS     |    Yes     |    Yes    |                       |              |             |
+  乘法    |    Yes     |           |                       |     Yes      |             |
+除法/求余 |    Yes     |           |                       |              |     Yes     |
+  其他    |    Yes     |           |                       |              |             |
 
 注意：
 无
@@ -20,7 +20,7 @@
 无
 
 作者: 陈家耀
-日期: 2024/11/30
+日期: 2024/12/22
 ********************************************************************/
 
 
@@ -64,15 +64,12 @@ module panda_risc_v_dispatcher(
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
 	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
 	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
+	output wire[31:0] m_alu_pc_of_inst, // 指令对应的PC
+	output wire m_alu_is_b_inst, // 是否B指令
+	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
+	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire m_alu_valid,
 	input wire m_alu_ready,
-	
-	// 分支确认单元执行请求
-	output wire[31:0] m_bcu_pc_of_inst, // 指令对应的PC
-	output wire[31:0] m_bcu_brc_pc_upd, // 分支预测失败时修正的PC
-	output wire m_bcu_prdt_jump, // 是否预测跳转
-	output wire m_bcu_valid,
-	input wire m_bcu_ready,
 	
 	// LSU执行请求
 	output wire m_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
@@ -134,7 +131,11 @@ module panda_risc_v_dispatcher(
 	assign on_flush_rst = sys_reset_req | flush_req;
 	
 	/** 数据相关性 **/
+	wire rd_waw_dpc_detected; // 检测到WAW相关性(标志)
+	
 	assign raw_dpc_check_rd_id = s_dispatch_req_rd_id;
+	
+	assign rd_waw_dpc_detected = s_dispatch_req_rd_vld & rd_waw_dpc;
 	
 	/** 复用的派遣信息 **/
 	wire[67:0] dispatch_msg_alu_op_msg_packeted; // 打包的ALU操作信息
@@ -175,13 +176,14 @@ module panda_risc_v_dispatcher(
 	// 派遣请求
 	assign s_dispatch_req_ready = 
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
-		((is_csr_rw_inst | is_mul_inst | is_div_rem_inst | m_alu_ready) & // CSR读写指令、乘除法指令不经过ALU
-			((~is_b_inst) | m_bcu_ready) & // 仅B指令需要用到分支确认单元
+		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
+		m_alu_ready & // 所有指令均经过ALU, 需要确保ALU就绪
+		(
 			((~is_ls_inst) | m_lsu_ready) & // 仅加载/存储指令需要用到LSU
 			((~is_csr_rw_inst) | m_csr_rw_ready) & // 仅CSR读写指令需要用到CSR原子读写单元
 			((~is_mul_inst) | m_mul_ready) & // 仅乘法指令需要用到乘法器
-			((~is_div_rem_inst) | m_div_ready)); // 仅乘法指令需要用到乘法器
+			((~is_div_rem_inst) | m_div_ready) // 仅除法/求余指令需要用到除法器
+		);
 	
 	// 派遣给ALU
 	assign m_alu_op_mode = dispatch_msg_alu_op_msg_packeted[ALU_OP_MSG_ALU_OP_MODE+3:ALU_OP_MSG_ALU_OP_MODE];
@@ -189,60 +191,65 @@ module panda_risc_v_dispatcher(
 	assign m_alu_op2 = dispatch_msg_alu_op_msg_packeted[ALU_OP_MSG_ALU_OP2+31:ALU_OP_MSG_ALU_OP2];
 	assign m_alu_addr_gen_sel = is_ls_inst;
 	assign m_alu_err_code = s_dispatch_req_err_code;
-	assign m_alu_valid = s_dispatch_req_valid & 
+	assign m_alu_pc_of_inst = s_dispatch_req_pc_of_inst;
+	assign m_alu_is_b_inst = is_b_inst;
+	assign m_alu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
+	assign m_alu_prdt_jump = dispatch_req_prdt_jump;
+	assign m_alu_valid = 
+		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
-		(~(is_csr_rw_inst | is_mul_inst | is_div_rem_inst)) & // CSR读写指令、乘除法指令不经过ALU
-		((is_b_inst & m_bcu_ready) | // 分支确认需要同时用到ALU, 因此需要确保ALU执行请求和分支确认单元执行请求同时握手
-			(is_ls_inst & m_lsu_ready) | // 加载/存储需要同时用到ALU, 因此需要确保ALU执行请求和LSU执行请求同时握手
-			((~is_b_inst) & (~is_ls_inst))); // 既不是B指令也不是加载/存储指令, 只需用到ALU
-	
-	// 派遣给分支确认单元
-	assign m_bcu_pc_of_inst = s_dispatch_req_pc_of_inst; // 指令对应的PC
-	assign m_bcu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
-	assign m_bcu_prdt_jump = dispatch_req_prdt_jump; // 是否预测跳转
-	assign m_bcu_valid = s_dispatch_req_valid & 
-		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
-		is_b_inst & // 当前派遣B指令
-		m_alu_ready; // 分支确认需要同时用到ALU
+		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
+		(
+			(is_ls_inst & m_lsu_ready) | // 若为加载/存储指令, 需要确保ALU执行请求和LSU执行请求同时握手
+			(is_csr_rw_inst & m_csr_rw_ready) | // 若为CSR读写指令, 需要确保ALU执行请求和CSR原子读写单元执行请求同时握手
+			(is_mul_inst & m_mul_ready) | // 若为乘法指令, 需要确保ALU执行请求和乘法器执行请求同时握手
+			(is_div_rem_inst & m_div_ready) | // 若为除法/求余指令, 需要确保ALU执行请求和除法器执行请求同时握手
+			(~(is_ls_inst | is_csr_rw_inst | is_mul_inst | is_div_rem_inst))
+		);
 	
 	// 派遣给LSU
 	assign m_ls_sel = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID];
 	assign m_ls_type = dispatch_msg_lsu_op_msg_packeted[LSU_OP_MSG_LS_TYPE+2:LSU_OP_MSG_LS_TYPE];
 	assign m_rd_id_for_ld = s_dispatch_req_rd_id;
 	assign m_ls_din = s_dispatch_req_brc_pc_upd_store_din; // 用于写存储映射的数据
-	assign m_lsu_valid = s_dispatch_req_valid & 
+	assign m_lsu_valid = 
+		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
+		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
 		is_ls_inst & // 当前派遣加载/存储指令
-		m_alu_ready; // 加载/存储需要同时用到ALU
+		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪
 	
 	// 派遣给CSR原子读写单元
 	assign m_csr_addr = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_ADDR+11:CSR_RW_OP_MSG_CSR_ADDR];
 	assign m_csr_upd_type = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_UPD_TYPE+1:CSR_RW_OP_MSG_CSR_UPD_TYPE];
 	assign m_csr_upd_mask_v = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_UPD_MASK_V+31:CSR_RW_OP_MSG_CSR_UPD_MASK_V];
-	assign m_csr_rw_valid = s_dispatch_req_valid & 
+	assign m_csr_rw_valid = 
+		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
-		is_csr_rw_inst; // 当前派遣CSR读写指令
+		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
+		is_csr_rw_inst & // 当前派遣CSR读写指令
+		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪
 	
 	// 派遣给乘法器
 	assign m_mul_op_a = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_A+32:MUL_DIV_OP_MSG_MUL_DIV_OP_A];
 	assign m_mul_op_b = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_B+32:MUL_DIV_OP_MSG_MUL_DIV_OP_B];
 	assign m_mul_res_sel = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_RES_SEL];
-	assign m_mul_valid = s_dispatch_req_valid & 
+	assign m_mul_valid = 
+		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
-		is_mul_inst; // 当前派遣乘法指令
+		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
+		is_mul_inst & // 当前派遣乘法指令
+		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪
 	
 	// 派遣给除法器
 	assign m_div_op_a = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_A+32:MUL_DIV_OP_MSG_MUL_DIV_OP_A];
 	assign m_div_op_b = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_B+32:MUL_DIV_OP_MSG_MUL_DIV_OP_B];
 	assign m_div_rem_sel = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID];
-	assign m_div_valid = s_dispatch_req_valid & 
+	assign m_div_valid = 
+		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
-		(~(s_dispatch_req_rd_vld & rd_waw_dpc)) & // RD存在WAW相关性时不派遣指令
-		is_div_rem_inst; // 当前派遣除法/求余指令
+		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
+		is_div_rem_inst & // 当前派遣除法/求余指令
+		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪
 	
 endmodule

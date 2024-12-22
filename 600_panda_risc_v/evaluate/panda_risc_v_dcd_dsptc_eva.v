@@ -61,15 +61,12 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
 	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
 	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
+	output wire[31:0] m_alu_pc_of_inst, // 指令对应的PC
+	output wire m_alu_is_b_inst, // 是否B指令
+	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
+	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire m_alu_valid,
 	input wire m_alu_ready,
-	
-	// 分支确认单元执行请求
-	output wire[31:0] m_bcu_pc_of_inst, // 指令对应的PC
-	output wire[31:0] m_bcu_brc_pc_upd, // 分支预测失败时修正的PC
-	output wire m_bcu_prdt_jump, // 是否预测跳转
-	output wire m_bcu_valid,
-	input wire m_bcu_ready,
 	
 	// LSU执行请求
 	output wire m_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
@@ -154,14 +151,12 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_alu_op2(m_alu_op2),
 		.m_alu_addr_gen_sel(m_alu_addr_gen_sel),
 		.m_alu_err_code(m_alu_err_code),
+		.m_alu_pc_of_inst(m_alu_pc_of_inst),
+		.m_alu_is_b_inst(m_alu_is_b_inst),
+		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
+		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
-		
-		.m_bcu_pc_of_inst(m_bcu_pc_of_inst),
-		.m_bcu_brc_pc_upd(m_bcu_brc_pc_upd),
-		.m_bcu_prdt_jump(m_bcu_prdt_jump),
-		.m_bcu_valid(m_bcu_valid),
-		.m_bcu_ready(m_bcu_ready),
 		
 		.m_ls_sel(m_ls_sel),
 		.m_ls_type(m_ls_type),

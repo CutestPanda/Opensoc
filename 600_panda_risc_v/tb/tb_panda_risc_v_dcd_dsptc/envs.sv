@@ -18,39 +18,35 @@ class DcdDsptcEnv #(
 	
 	// 组件
 	local AXISMasterAgent #(.out_drive_t(simulation_delay), .data_width(128), .user_width(4)) m_axis_if_res_agt; // 取指结果AXIS主机代理
-	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0)) s_axis_alu_agt; // ALU执行请求AXIS从机代理
-	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0)) s_axis_bcu_agt; // 分支确认单元执行请求AXIS从机代理
-	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0)) s_axis_lsu_agt; // LSU执行请求AXIS从机代理
-	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0)) s_axis_csr_rw_agt; // CSR原子读写单元执行请求AXIS从机代理
-	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0)) s_axis_mul_agt; // 乘法器执行请求AXIS从机代理
-	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0)) s_axis_div_agt; // 除法器执行请求AXIS从机代理
+	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s_axis_alu_agt; // ALU执行请求AXIS从机代理
+	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s_axis_lsu_agt; // LSU执行请求AXIS从机代理
+	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s_axis_csr_rw_agt; // CSR原子读写单元执行请求AXIS从机代理
+	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s_axis_mul_agt; // 乘法器执行请求AXIS从机代理
+	local AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s_axis_div_agt; // 除法器执行请求AXIS从机代理
 	
 	// 通信端口
 	local uvm_blocking_get_port #(AXISTrans #(.data_width(128), .user_width(4))) m_axis_if_res_trans_port;
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_alu_trans_port;
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_bcu_trans_port;
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_lsu_trans_port;
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_csr_rw_trans_port;
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_mul_trans_port;
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_div_trans_port;
+	local uvm_blocking_get_port #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_alu_trans_port;
+	local uvm_blocking_get_port #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_lsu_trans_port;
+	local uvm_blocking_get_port #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_csr_rw_trans_port;
+	local uvm_blocking_get_port #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_mul_trans_port;
+	local uvm_blocking_get_port #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_div_trans_port;
 	
 	// 通信fifo
 	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(128), .user_width(4))) m_axis_if_res_agt_fifo;
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_alu_agt_fifo;
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_bcu_agt_fifo;
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_lsu_agt_fifo;
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_csr_rw_agt_fifo;
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_mul_agt_fifo;
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(72), .user_width(0))) s_axis_div_agt_fifo;
+	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_alu_agt_fifo;
+	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_lsu_agt_fifo;
+	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_csr_rw_agt_fifo;
+	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_mul_agt_fifo;
+	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(144), .user_width(0))) s_axis_div_agt_fifo;
 	
 	// 事务
 	local AXISTrans #(.data_width(128), .user_width(4)) m_axis_if_res_trans;
-	local AXISTrans #(.data_width(72), .user_width(0)) s_axis_alu_trans;
-	local AXISTrans #(.data_width(72), .user_width(0)) s_axis_bcu_trans;
-	local AXISTrans #(.data_width(72), .user_width(0)) s_axis_lsu_trans;
-	local AXISTrans #(.data_width(72), .user_width(0)) s_axis_csr_rw_trans;
-	local AXISTrans #(.data_width(72), .user_width(0)) s_axis_mul_trans;
-	local AXISTrans #(.data_width(72), .user_width(0)) s_axis_div_trans;
+	local AXISTrans #(.data_width(144), .user_width(0)) s_axis_alu_trans;
+	local AXISTrans #(.data_width(144), .user_width(0)) s_axis_lsu_trans;
+	local AXISTrans #(.data_width(144), .user_width(0)) s_axis_csr_rw_trans;
+	local AXISTrans #(.data_width(144), .user_width(0)) s_axis_mul_trans;
+	local AXISTrans #(.data_width(144), .user_width(0)) s_axis_div_trans;
 	
 	// 注册component
 	`uvm_component_param_utils(DcdDsptcEnv #(.simulation_delay(simulation_delay)))
@@ -66,35 +62,30 @@ class DcdDsptcEnv #(
 		this.m_axis_if_res_agt = AXISMasterAgent #(.out_drive_t(simulation_delay), .data_width(128), .user_width(4))::
 			type_id::create("agt1", this);
 		this.m_axis_if_res_agt.is_active = UVM_ACTIVE;
-		this.s_axis_alu_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0))::
+		this.s_axis_alu_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0))::
 			type_id::create("agt2", this);
 		this.s_axis_alu_agt.is_active = UVM_ACTIVE;
 		this.s_axis_alu_agt.use_sqr = 1'b1;
-		this.s_axis_bcu_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0))::
+		this.s_axis_lsu_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0))::
 			type_id::create("agt3", this);
-		this.s_axis_bcu_agt.is_active = UVM_ACTIVE;
-		this.s_axis_bcu_agt.use_sqr = 1'b1;
-		this.s_axis_lsu_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0))::
-			type_id::create("agt4", this);
 		this.s_axis_lsu_agt.is_active = UVM_ACTIVE;
 		this.s_axis_lsu_agt.use_sqr = 1'b1;
-		this.s_axis_csr_rw_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0))::
-			type_id::create("agt5", this);
+		this.s_axis_csr_rw_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0))::
+			type_id::create("agt4", this);
 		this.s_axis_csr_rw_agt.is_active = UVM_ACTIVE;
 		this.s_axis_csr_rw_agt.use_sqr = 1'b1;
-		this.s_axis_mul_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0))::
-			type_id::create("agt6", this);
+		this.s_axis_mul_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0))::
+			type_id::create("agt5", this);
 		this.s_axis_mul_agt.is_active = UVM_ACTIVE;
 		this.s_axis_mul_agt.use_sqr = 1'b1;
-		this.s_axis_div_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(72), .user_width(0))::
-			type_id::create("agt7", this);
+		this.s_axis_div_agt = AXISSlaveAgent #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0))::
+			type_id::create("agt6", this);
 		this.s_axis_div_agt.is_active = UVM_ACTIVE;
 		this.s_axis_div_agt.use_sqr = 1'b1;
 		
 		// 创建通信端口
 		this.m_axis_if_res_trans_port = new("m_axis_if_res_trans_port", this);
 		this.s_axis_alu_trans_port = new("s_axis_alu_trans_port", this);
-		this.s_axis_bcu_trans_port = new("s_axis_bcu_trans_port", this);
 		this.s_axis_lsu_trans_port = new("s_axis_lsu_trans_port", this);
 		this.s_axis_csr_rw_trans_port = new("s_axis_csr_rw_trans_port", this);
 		this.s_axis_mul_trans_port = new("s_axis_mul_trans_port", this);
@@ -103,7 +94,6 @@ class DcdDsptcEnv #(
 		// 创建通信fifo
 		this.m_axis_if_res_agt_fifo = new("m_axis_if_res_agt_fifo", this);
 		this.s_axis_alu_agt_fifo = new("s_axis_alu_agt_fifo", this);
-		this.s_axis_bcu_agt_fifo = new("s_axis_bcu_agt_fifo", this);
 		this.s_axis_lsu_agt_fifo = new("s_axis_lsu_agt_fifo", this);
 		this.s_axis_csr_rw_agt_fifo = new("s_axis_csr_rw_agt_fifo", this);
 		this.s_axis_mul_agt_fifo = new("s_axis_mul_agt_fifo", this);
@@ -120,8 +110,6 @@ class DcdDsptcEnv #(
 		this.m_axis_if_res_trans_port.connect(this.m_axis_if_res_agt_fifo.blocking_get_export);
 		this.s_axis_alu_agt.axis_analysis_port.connect(this.s_axis_alu_agt_fifo.analysis_export);
 		this.s_axis_alu_trans_port.connect(this.s_axis_alu_agt_fifo.blocking_get_export);
-		this.s_axis_bcu_agt.axis_analysis_port.connect(this.s_axis_bcu_agt_fifo.analysis_export);
-		this.s_axis_bcu_trans_port.connect(this.s_axis_bcu_agt_fifo.blocking_get_export);
 		this.s_axis_lsu_agt.axis_analysis_port.connect(this.s_axis_lsu_agt_fifo.analysis_export);
 		this.s_axis_lsu_trans_port.connect(this.s_axis_lsu_agt_fifo.blocking_get_export);
 		this.s_axis_csr_rw_agt.axis_analysis_port.connect(this.s_axis_csr_rw_agt_fifo.analysis_export);
@@ -133,7 +121,6 @@ class DcdDsptcEnv #(
 		
 		this.vsqr.m_axis_if_res_sqr = this.m_axis_if_res_agt.sequencer;
 		this.vsqr.s_axis_alu_sqr = this.s_axis_alu_agt.sequencer;
-		this.vsqr.s_axis_bcu_sqr = this.s_axis_bcu_agt.sequencer;
 		this.vsqr.s_axis_lsu_sqr = this.s_axis_lsu_agt.sequencer;
 		this.vsqr.s_axis_csr_rw_sqr = this.s_axis_csr_rw_agt.sequencer;
 		this.vsqr.s_axis_mul_sqr = this.s_axis_mul_agt.sequencer;
@@ -153,11 +140,6 @@ class DcdDsptcEnv #(
 			begin
 				this.s_axis_alu_trans_port.get(this.s_axis_alu_trans);
 				// this.s_axis_alu_trans.print();
-			end
-			forever
-			begin
-				this.s_axis_bcu_trans_port.get(this.s_axis_bcu_trans);
-				// this.s_axis_bcu_trans.print();
 			end
 			forever
 			begin
