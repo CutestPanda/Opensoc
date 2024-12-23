@@ -16,7 +16,7 @@
 无
 
 作者: 陈家耀
-日期: 2024/12/11
+日期: 2024/12/23
 ********************************************************************/
 
 
@@ -31,11 +31,13 @@ module panda_risc_v_multiplier #(
 	input wire[32:0] s_mul_req_op_a, // 操作数A
 	input wire[32:0] s_mul_req_op_b, // 操作数B
 	input wire s_mul_req_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
+	input wire[4:0] s_mul_req_rd_id, // RD索引
 	input wire s_mul_req_valid,
 	output wire s_mul_req_ready,
 	
 	// 乘法器计算结果
 	output wire[31:0] m_mul_res_data, // 计算结果
+	output wire[4:0] m_mul_res_rd_id, // RD索引
 	output wire m_mul_res_valid,
 	input wire m_mul_res_ready
 );
@@ -45,28 +47,30 @@ module panda_risc_v_multiplier #(
 	localparam integer MUL_IN_MSG_RES_SEL = 0;
 	localparam integer MUL_IN_MSG_OP_A = 1;
 	localparam integer MUL_IN_MSG_OP_B = 34;
+	localparam integer MUL_IN_MSG_RD_ID = 67;
 	
     /** 乘法器输入缓存区 **/
 	// 缓存区写端口
 	wire mul_in_buf_wen;
-	wire[66:0] mul_in_buf_din;
+	wire[71:0] mul_in_buf_din;
 	wire mul_in_buf_full_n;
 	// 缓存区读端口
 	wire mul_in_buf_ren;
-	wire[66:0] mul_in_buf_dout;
+	wire[71:0] mul_in_buf_dout;
 	wire mul_in_buf_empty_n;
 	
 	assign mul_in_buf_wen = s_mul_req_valid;
 	assign mul_in_buf_din[MUL_IN_MSG_RES_SEL] = s_mul_req_res_sel;
 	assign mul_in_buf_din[MUL_IN_MSG_OP_A+32:MUL_IN_MSG_OP_A] = s_mul_req_op_a;
 	assign mul_in_buf_din[MUL_IN_MSG_OP_B+32:MUL_IN_MSG_OP_B] = s_mul_req_op_b;
+	assign mul_in_buf_din[MUL_IN_MSG_RD_ID+4:MUL_IN_MSG_RD_ID] = s_mul_req_rd_id;
 	assign s_mul_req_ready = mul_in_buf_full_n;
 	
 	// 寄存器fifo
 	fifo_based_on_regs #(
 		.fwft_mode("true"),
 		.fifo_depth(2),
-		.fifo_data_width(67),
+		.fifo_data_width(72),
 		.almost_full_th(1),
 		.almost_empty_th(0),
 		.simulation_delay(simulation_delay)
@@ -84,24 +88,33 @@ module panda_risc_v_multiplier #(
 	);
 	
 	/** 乘法结果 **/
-	wire[31:0] mul_res_s0_data;
+	wire[31:0] mul_res_s0_data; // 计算结果
+	wire[4:0] mul_res_s0_rd_id; // RD索引
 	wire mul_res_s0_valid;
 	wire mul_res_s0_ready;
-	reg[31:0] mul_res_s1_data;
+	reg[31:0] mul_res_s1_data; // 计算结果
+	reg[4:0] mul_res_s1_rd_id; // RD索引
 	reg mul_res_s1_valid;
 	wire mul_res_s1_ready;
 	
 	assign m_mul_res_data = mul_res_s1_data;
+	assign m_mul_res_rd_id = mul_res_s1_rd_id;
 	assign m_mul_res_valid = mul_res_s1_valid;
 	assign mul_res_s1_ready = m_mul_res_ready;
 	
 	assign mul_res_s0_ready = (~mul_res_s1_valid) | mul_res_s1_ready;
 	
-	// 乘法结果
+	// 计算结果
 	always @(posedge clk)
 	begin
 		if(mul_res_s0_valid & mul_res_s0_ready)
 			mul_res_s1_data <= # simulation_delay mul_res_s0_data;
+	end
+	// RD索引
+	always @(posedge clk)
+	begin
+		if(mul_res_s0_valid & mul_res_s0_ready)
+			mul_res_s1_rd_id <= # simulation_delay mul_res_s0_rd_id;
 	end
 	
 	// 乘法结果有效指示
@@ -183,6 +196,7 @@ module panda_risc_v_multiplier #(
 	
 	assign mul_res_s0_data = mul_in_buf_dout[MUL_IN_MSG_RES_SEL] ? 
 		mul_res[63:32]:mul_res[31:0];
+	assign mul_res_s0_rd_id = mul_in_buf_dout[MUL_IN_MSG_RD_ID+4:MUL_IN_MSG_RD_ID];
 	
 	assign accum_in = 
 	    ({48{accum_proc_onehot[0]}} & {29'd0, mul_18_18_out_res[35:17]}) | 
@@ -230,17 +244,19 @@ module panda_risc_v_multiplier #(
 	#6   选择乘法结果的低32位/高32位, 等待后级握手
 	**/
 	reg[6:0] mul_ctrl_onehot; // 乘法计算流程独热码
+	reg mul_18_18_in_op_a_sel; // 18位*18位有符号乘法器操作数a选择
+	reg mul_18_18_in_op_b_sel; // 18位*18位有符号乘法器操作数b选择
 	
 	assign mul_in_buf_ren = mul_ctrl_onehot[6] & mul_res_s0_ready;
 	
 	assign mul_res_s0_valid = mul_ctrl_onehot[6];
 	
 	assign mul_18_18_in_op_a = 
-		(mul_ctrl_onehot[0] | mul_ctrl_onehot[2]) ? 
+		mul_18_18_in_op_a_sel ? 
 			{1'b0, mul_in_buf_dout[MUL_IN_MSG_OP_A+16:MUL_IN_MSG_OP_A]}:
 			{{2{mul_in_buf_dout[MUL_IN_MSG_OP_A+32]}}, mul_in_buf_dout[MUL_IN_MSG_OP_A+32:MUL_IN_MSG_OP_A+17]};
 	assign mul_18_18_in_op_b = 
-		(mul_ctrl_onehot[0] | mul_ctrl_onehot[1]) ? 
+		mul_18_18_in_op_b_sel ? 
 			{1'b0, mul_in_buf_dout[MUL_IN_MSG_OP_B+16:MUL_IN_MSG_OP_B]}:
 			{{2{mul_in_buf_dout[MUL_IN_MSG_OP_B+32]}}, mul_in_buf_dout[MUL_IN_MSG_OP_B+32:MUL_IN_MSG_OP_B+17]};
 	assign mul_18_18_in_vld = 
@@ -261,6 +277,27 @@ module panda_risc_v_multiplier #(
 			((~mul_ctrl_onehot[0]) & (~mul_ctrl_onehot[6])) | 
 			(mul_ctrl_onehot[6] & mul_res_s0_ready))
 			mul_ctrl_onehot <= # simulation_delay {mul_ctrl_onehot[5:0], mul_ctrl_onehot[6]};
+	end
+	
+	// 18位*18位有符号乘法器操作数a选择
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			mul_18_18_in_op_a_sel <= 1'b1;
+		else if((mul_ctrl_onehot[0] & mul_in_buf_empty_n) | 
+			((~mul_ctrl_onehot[0]) & (~mul_ctrl_onehot[6])) | 
+			(mul_ctrl_onehot[6] & mul_res_s0_ready))
+			mul_18_18_in_op_a_sel <= # simulation_delay mul_ctrl_onehot[1] | mul_ctrl_onehot[6];
+	end
+	// 18位*18位有符号乘法器操作数b选择
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			mul_18_18_in_op_b_sel <= 1'b1;
+		else if((mul_ctrl_onehot[0] & mul_in_buf_empty_n) | 
+			((~mul_ctrl_onehot[0]) & (~mul_ctrl_onehot[6])) | 
+			(mul_ctrl_onehot[6] & mul_res_s0_ready))
+			mul_18_18_in_op_b_sel <= # simulation_delay mul_ctrl_onehot[0] | mul_ctrl_onehot[6];
 	end
 	
 endmodule

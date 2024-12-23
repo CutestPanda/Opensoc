@@ -20,7 +20,7 @@
 无
 
 作者: 陈家耀
-日期: 2024/12/22
+日期: 2024/12/23
 ********************************************************************/
 
 
@@ -68,6 +68,8 @@ module panda_risc_v_dispatcher(
 	output wire m_alu_is_b_inst, // 是否B指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
+	output wire[4:0] m_alu_rd_id, // RD索引
+	output wire m_alu_rd_vld, // 是否需要写RD
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -83,6 +85,7 @@ module panda_risc_v_dispatcher(
 	output wire[11:0] m_csr_addr, // CSR地址
 	output wire[1:0] m_csr_upd_type, // CSR更新类型
 	output wire[31:0] m_csr_upd_mask_v, // CSR更新掩码或更新值
+	output wire[4:0] m_csr_rw_rd_id, // RD索引
 	output wire m_csr_rw_valid,
 	input wire m_csr_rw_ready,
 	
@@ -90,6 +93,7 @@ module panda_risc_v_dispatcher(
 	output wire[32:0] m_mul_op_a, // 操作数A
 	output wire[32:0] m_mul_op_b, // 操作数B
 	output wire m_mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
+	output wire[4:0] m_mul_rd_id, // RD索引
 	output wire m_mul_valid,
 	input wire m_mul_ready,
 	
@@ -97,6 +101,7 @@ module panda_risc_v_dispatcher(
 	output wire[32:0] m_div_op_a, // 操作数A
 	output wire[32:0] m_div_op_b, // 操作数B
 	output wire m_div_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
+	output wire[4:0] m_div_rd_id, // RD索引
 	output wire m_div_valid,
 	input wire m_div_ready
 );
@@ -195,6 +200,8 @@ module panda_risc_v_dispatcher(
 	assign m_alu_is_b_inst = is_b_inst;
 	assign m_alu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
 	assign m_alu_prdt_jump = dispatch_req_prdt_jump;
+	assign m_alu_rd_id = s_dispatch_req_rd_id;
+	assign m_alu_rd_vld = s_dispatch_req_rd_vld;
 	assign m_alu_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
@@ -223,6 +230,7 @@ module panda_risc_v_dispatcher(
 	assign m_csr_addr = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_ADDR+11:CSR_RW_OP_MSG_CSR_ADDR];
 	assign m_csr_upd_type = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_UPD_TYPE+1:CSR_RW_OP_MSG_CSR_UPD_TYPE];
 	assign m_csr_upd_mask_v = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_UPD_MASK_V+31:CSR_RW_OP_MSG_CSR_UPD_MASK_V];
+	assign m_csr_rw_rd_id = s_dispatch_req_rd_id;
 	assign m_csr_rw_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
@@ -234,6 +242,7 @@ module panda_risc_v_dispatcher(
 	assign m_mul_op_a = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_A+32:MUL_DIV_OP_MSG_MUL_DIV_OP_A];
 	assign m_mul_op_b = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_B+32:MUL_DIV_OP_MSG_MUL_DIV_OP_B];
 	assign m_mul_res_sel = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_RES_SEL];
+	assign m_mul_rd_id = s_dispatch_req_rd_id;
 	assign m_mul_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
@@ -245,6 +254,7 @@ module panda_risc_v_dispatcher(
 	assign m_div_op_a = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_A+32:MUL_DIV_OP_MSG_MUL_DIV_OP_A];
 	assign m_div_op_b = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_B+32:MUL_DIV_OP_MSG_MUL_DIV_OP_B];
 	assign m_div_rem_sel = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID];
+	assign m_div_rd_id = s_dispatch_req_rd_id;
 	assign m_div_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令

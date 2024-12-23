@@ -155,6 +155,8 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire m_alu_is_b_inst; // 是否B指令
 	wire[31:0] m_alu_brc_pc_upd; // 分支预测失败时修正的PC
 	wire m_alu_prdt_jump; // 是否预测跳转
+	wire[4:0] m_alu_rd_id; // RD索引
+	wire m_alu_rd_vld; // 是否需要写RD
 	wire m_alu_valid;
 	wire m_alu_ready;
 	// LSU执行请求
@@ -168,18 +170,21 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire[11:0] m_csr_addr; // CSR地址
 	wire[1:0] m_csr_upd_type; // CSR更新类型
 	wire[31:0] m_csr_upd_mask_v; // CSR更新掩码或更新值
+	wire[4:0] m_csr_rw_rd_id; // RD索引
 	wire m_csr_rw_valid;
 	wire m_csr_rw_ready;
 	// 乘法器执行请求
 	wire[32:0] m_mul_op_a; // 操作数A
 	wire[32:0] m_mul_op_b; // 操作数B
 	wire m_mul_res_sel; // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
+	wire[4:0] m_mul_rd_id; // RD索引
 	wire m_mul_valid;
 	wire m_mul_ready;
 	// 除法器执行请求
 	wire[32:0] m_div_op_a; // 操作数A
 	wire[32:0] m_div_op_b; // 操作数B
 	wire m_div_rem_sel; // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
+	wire[4:0] m_div_rd_id; // RD索引
 	wire m_div_valid;
 	wire m_div_ready;
 	
@@ -189,8 +194,9 @@ module tb_panda_risc_v_dcd_dsptc();
 	assign s_if_res_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_if_res_ready;
 	
-	assign s0_axis_if.data = {7'bx, m_alu_op_mode, m_alu_op1, m_alu_op2, m_alu_addr_gen_sel, m_alu_err_code, 
-		m_alu_pc_of_inst, m_alu_is_b_inst, m_alu_brc_pc_upd, m_alu_prdt_jump};
+	assign s0_axis_if.data = {1'bx, m_alu_op_mode, m_alu_op1, m_alu_op2, m_alu_addr_gen_sel, m_alu_err_code, 
+		m_alu_pc_of_inst, m_alu_is_b_inst, m_alu_brc_pc_upd, m_alu_prdt_jump, 
+		m_alu_rd_id, m_alu_rd_vld};
 	assign s0_axis_if.valid = m_alu_valid;
 	assign s0_axis_if.last = 1'b1;
 	assign m_alu_ready = s0_axis_if.ready;
@@ -200,17 +206,17 @@ module tb_panda_risc_v_dcd_dsptc();
 	assign s1_axis_if.last = 1'b1;
 	assign m_lsu_ready = s1_axis_if.ready;
 	
-	assign s2_axis_if.data = {98'dx, m_csr_addr, m_csr_upd_type, m_csr_upd_mask_v};
+	assign s2_axis_if.data = {93'dx, m_csr_addr, m_csr_upd_type, m_csr_upd_mask_v, m_csr_rw_rd_id};
 	assign s2_axis_if.valid = m_csr_rw_valid;
 	assign s2_axis_if.last = 1'b1;
 	assign m_csr_rw_ready = s2_axis_if.ready;
 	
-	assign s3_axis_if.data = {77'dx, m_mul_op_a, m_mul_op_b, m_mul_res_sel};
+	assign s3_axis_if.data = {72'dx, m_mul_op_a, m_mul_op_b, m_mul_res_sel, m_mul_rd_id};
 	assign s3_axis_if.valid = m_mul_valid;
 	assign s3_axis_if.last = 1'b1;
 	assign m_mul_ready = s3_axis_if.ready;
 	
-	assign s4_axis_if.data = {77'dx, m_div_op_a, m_div_op_b, m_div_rem_sel};
+	assign s4_axis_if.data = {72'dx, m_div_op_a, m_div_op_b, m_div_rem_sel, m_div_rd_id};
 	assign s4_axis_if.valid = m_div_valid;
 	assign s4_axis_if.last = 1'b1;
 	assign m_div_ready = s4_axis_if.ready;
@@ -255,6 +261,8 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_alu_is_b_inst(m_alu_is_b_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
+		.m_alu_rd_id(m_alu_rd_id),
+		.m_alu_rd_vld(m_alu_rd_vld),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		
@@ -268,18 +276,21 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_csr_addr(m_csr_addr),
 		.m_csr_upd_type(m_csr_upd_type),
 		.m_csr_upd_mask_v(m_csr_upd_mask_v),
+		.m_csr_rw_rd_id(m_csr_rw_rd_id),
 		.m_csr_rw_valid(m_csr_rw_valid),
 		.m_csr_rw_ready(m_csr_rw_ready),
 		
 		.m_mul_op_a(m_mul_op_a),
 		.m_mul_op_b(m_mul_op_b),
 		.m_mul_res_sel(m_mul_res_sel),
+		.m_mul_rd_id(m_mul_rd_id),
 		.m_mul_valid(m_mul_valid),
 		.m_mul_ready(m_mul_ready),
 		
 		.m_div_op_a(m_div_op_a),
 		.m_div_op_b(m_div_op_b),
 		.m_div_rem_sel(m_div_rem_sel),
+		.m_div_rd_id(m_div_rd_id),
 		.m_div_valid(m_div_valid),
 		.m_div_ready(m_div_ready)
 	);

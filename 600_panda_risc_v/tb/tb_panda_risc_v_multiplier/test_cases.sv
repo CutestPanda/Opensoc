@@ -32,15 +32,8 @@ class MulCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_width(72), .user
 				
 				wait_period_n.size() == 1;
 				
-				if($signed(data[0][32:0]) < 0)
-					($signed(data[0][32:0]) >= -(2 ** 31)) && ($signed(data[0][32:0]) <= ((2 ** 31) - 1));
-				else
-					$signed(data[0][32:0]) <= ((2 ** 32) - 1);
-				
-				if($signed(data[0][65:33]) < 0)
-					($signed(data[0][65:33]) >= -(2 ** 31)) && ($signed(data[0][65:33]) <= ((2 ** 31) - 1));
-				else
-					$signed(data[0][65:33]) <= ((2 ** 32) - 1);
+				($signed(data[0][32:0]) >= -100) && ($signed(data[0][32:0]) <= 100);
+				($signed(data[0][65:33]) >= -100) && ($signed(data[0][65:33]) <= 100);
 				
 				last[0] == 1'b1;
 				wait_period_n[0] <= 2;
@@ -59,7 +52,7 @@ endclass
 class MulCase0Test extends uvm_test;
 	
 	// 多周期乘法器测试环境
-	local MulEnv #(.s_axis_data_width(72), .m_axis_data_width(32)) env;
+	local MulEnv #(.s_axis_data_width(72), .m_axis_data_width(40)) env;
 	
 	// 注册component
 	`uvm_component_utils(MulCase0Test)
@@ -71,7 +64,7 @@ class MulCase0Test extends uvm_test;
 	virtual function void build_phase(uvm_phase phase);
 		super.build_phase(phase);
 		
-		this.env = MulEnv #(.s_axis_data_width(72), .m_axis_data_width(32))
+		this.env = MulEnv #(.s_axis_data_width(72), .m_axis_data_width(40))
 			::type_id::create("env", this); // 创建env
 		
 		// 设置sequence

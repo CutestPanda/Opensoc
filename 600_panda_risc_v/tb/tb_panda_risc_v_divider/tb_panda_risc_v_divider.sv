@@ -21,7 +21,7 @@ module tb_panda_risc_v_divider();
 	
 	/** 常量 **/
 	localparam integer s_axis_data_width = 72; // 从机数据位宽
-	localparam integer m_axis_data_width = 32; // 主机数据位宽
+	localparam integer m_axis_data_width = 40; // 主机数据位宽
 	
 	/** 时钟和复位 **/
 	reg clk;
@@ -75,18 +75,20 @@ module tb_panda_risc_v_divider();
 	wire[32:0] s_div_req_op_a; // 操作数A(被除数)
 	wire[32:0] s_div_req_op_b; // 操作数B(除数)
 	wire s_div_req_rem_sel; // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
+	wire[4:0] s_div_req_rd_id; // RD索引
 	wire s_div_req_valid;
 	wire s_div_req_ready;
 	// 除法器计算结果
 	wire[31:0] m_div_res_data; // 计算结果
+	wire[4:0] m_div_res_rd_id; // RD索引
 	wire m_div_res_valid;
 	wire m_div_res_ready;
 	
-	assign {s_div_req_rem_sel, s_div_req_op_b, s_div_req_op_a} = m_axis_if.data[66:0];
+	assign {s_div_req_rd_id, s_div_req_rem_sel, s_div_req_op_b, s_div_req_op_a} = m_axis_if.data[71:0];
 	assign s_div_req_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_div_req_ready;
 	
-	assign s_axis_if.data = m_div_res_data;
+	assign s_axis_if.data = {3'dx, m_div_res_rd_id, m_div_res_data};
 	assign s_axis_if.valid = m_div_res_valid;
 	assign m_div_res_ready = s_axis_if.ready;
 	
@@ -99,10 +101,12 @@ module tb_panda_risc_v_divider();
 		.s_div_req_op_a(s_div_req_op_a),
 		.s_div_req_op_b(s_div_req_op_b),
 		.s_div_req_rem_sel(s_div_req_rem_sel),
+		.s_div_req_rd_id(s_div_req_rd_id),
 		.s_div_req_valid(s_div_req_valid),
 		.s_div_req_ready(s_div_req_ready),
 		
 		.m_div_res_data(m_div_res_data),
+		.m_div_res_rd_id(m_div_res_rd_id),
 		.m_div_res_valid(m_div_res_valid),
 		.m_div_res_ready(m_div_res_ready)
 	);

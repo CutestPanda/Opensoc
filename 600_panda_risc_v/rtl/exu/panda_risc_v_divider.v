@@ -16,7 +16,7 @@
 无
 
 作者: 陈家耀
-日期: 2024/12/12
+日期: 2024/12/23
 ********************************************************************/
 
 
@@ -31,11 +31,13 @@ module panda_risc_v_divider #(
 	input wire[32:0] s_div_req_op_a, // 操作数A(被除数)
 	input wire[32:0] s_div_req_op_b, // 操作数B(除数)
 	input wire s_div_req_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
+	input wire[4:0] s_div_req_rd_id, // RD索引
 	input wire s_div_req_valid,
 	output wire s_div_req_ready,
 	
 	// 除法器计算结果
 	output wire[31:0] m_div_res_data, // 计算结果
+	output wire[4:0] m_div_res_rd_id, // RD索引
 	output wire m_div_res_valid,
 	input wire m_div_res_ready
 );
@@ -45,28 +47,30 @@ module panda_risc_v_divider #(
 	localparam integer DIV_IN_MSG_REM_SEL = 0;
 	localparam integer DIV_IN_MSG_OP_A = 1;
 	localparam integer DIV_IN_MSG_OP_B = 34;
+	localparam integer DIV_IN_MSG_RD_ID = 67;
 	
     /** 除法器输入缓存区 **/
 	// 缓存区写端口
 	wire div_in_buf_wen;
-	wire[66:0] div_in_buf_din;
+	wire[71:0] div_in_buf_din;
 	wire div_in_buf_full_n;
 	// 缓存区读端口
 	wire div_in_buf_ren;
-	wire[66:0] div_in_buf_dout;
+	wire[71:0] div_in_buf_dout;
 	wire div_in_buf_empty_n;
 	
 	assign div_in_buf_wen = s_div_req_valid;
 	assign div_in_buf_din[DIV_IN_MSG_REM_SEL] = s_div_req_rem_sel;
 	assign div_in_buf_din[DIV_IN_MSG_OP_A+32:DIV_IN_MSG_OP_A] = s_div_req_op_a;
 	assign div_in_buf_din[DIV_IN_MSG_OP_B+32:DIV_IN_MSG_OP_B] = s_div_req_op_b;
+	assign div_in_buf_din[DIV_IN_MSG_RD_ID+4:DIV_IN_MSG_RD_ID] = s_div_req_rd_id;
 	assign s_div_req_ready = div_in_buf_full_n;
 	
 	// 寄存器fifo
 	fifo_based_on_regs #(
 		.fwft_mode("true"),
 		.fifo_depth(2),
-		.fifo_data_width(67),
+		.fifo_data_width(72),
 		.almost_full_th(1),
 		.almost_empty_th(0),
 		.simulation_delay(simulation_delay)
@@ -84,14 +88,17 @@ module panda_risc_v_divider #(
 	);
 	
 	/** 除法结果 **/
-	wire[31:0] div_res_s0_data;
+	wire[31:0] div_res_s0_data; // 除法结果
+	wire[4:0] div_res_s0_rd_id; // RD索引
 	wire div_res_s0_valid;
 	wire div_res_s0_ready;
-	reg[31:0] div_res_s1_data;
+	reg[31:0] div_res_s1_data; // 除法结果
+	reg[4:0] div_res_s1_rd_id; // RD索引
 	reg div_res_s1_valid;
 	wire div_res_s1_ready;
 	
 	assign m_div_res_data = div_res_s1_data;
+	assign m_div_res_rd_id = div_res_s1_rd_id;
 	assign m_div_res_valid = div_res_s1_valid;
 	assign div_res_s1_ready = m_div_res_ready;
 	
@@ -102,6 +109,12 @@ module panda_risc_v_divider #(
 	begin
 		if(div_res_s0_valid & div_res_s0_ready)
 			div_res_s1_data <= # simulation_delay div_res_s0_data;
+	end
+	// RD索引
+	always @(posedge clk)
+	begin
+		if(div_res_s0_valid & div_res_s0_ready)
+			div_res_s1_rd_id <= # simulation_delay div_res_s0_rd_id;
 	end
 	
 	// 除法结果有效指示
@@ -138,6 +151,7 @@ module panda_risc_v_divider #(
 	assign div_in_buf_ren = div_proc_onehot[36] & div_res_s0_ready;
 	
 	assign div_res_s0_data = div_in_buf_dout[DIV_IN_MSG_REM_SEL] ? remainder_div_exct_fix[31:0]:quotient_div_exct_fix[31:0];
+	assign div_res_s0_rd_id = div_in_buf_dout[DIV_IN_MSG_RD_ID+4:DIV_IN_MSG_RD_ID];
 	assign div_res_s0_valid = div_proc_onehot[36];
 	
 	assign dividend = div_in_buf_dout[DIV_IN_MSG_OP_A+32:DIV_IN_MSG_OP_A];

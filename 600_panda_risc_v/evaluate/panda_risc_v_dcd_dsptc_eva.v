@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2024/12/07
+日期: 2024/12/23
 ********************************************************************/
 
 
@@ -65,6 +65,8 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire m_alu_is_b_inst, // 是否B指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
+	output wire[4:0] m_alu_rd_id, // RD索引
+	output wire m_alu_rd_vld, // 是否需要写RD
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -80,6 +82,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[11:0] m_csr_addr, // CSR地址
 	output wire[1:0] m_csr_upd_type, // CSR更新类型
 	output wire[31:0] m_csr_upd_mask_v, // CSR更新掩码或更新值
+	output wire[4:0] m_csr_rw_rd_id, // RD索引
 	output wire m_csr_rw_valid,
 	input wire m_csr_rw_ready,
 	
@@ -87,6 +90,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[32:0] m_mul_op_a, // 操作数A
 	output wire[32:0] m_mul_op_b, // 操作数B
 	output wire m_mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
+	output wire[4:0] m_mul_rd_id, // RD索引
 	output wire m_mul_valid,
 	input wire m_mul_ready,
 	
@@ -94,6 +98,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[32:0] m_div_op_a, // 操作数A
 	output wire[32:0] m_div_op_b, // 操作数B
 	output wire m_div_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
+	output wire[4:0] m_div_rd_id, // RD索引
 	output wire m_div_valid,
 	input wire m_div_ready
 );
@@ -155,6 +160,8 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_alu_is_b_inst(m_alu_is_b_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
+		.m_alu_rd_id(m_alu_rd_id),
+		.m_alu_rd_vld(m_alu_rd_vld),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		
@@ -168,18 +175,21 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_csr_addr(m_csr_addr),
 		.m_csr_upd_type(m_csr_upd_type),
 		.m_csr_upd_mask_v(m_csr_upd_mask_v),
+		.m_csr_rw_rd_id(m_csr_rw_rd_id),
 		.m_csr_rw_valid(m_csr_rw_valid),
 		.m_csr_rw_ready(m_csr_rw_ready),
 		
 		.m_mul_op_a(m_mul_op_a),
 		.m_mul_op_b(m_mul_op_b),
 		.m_mul_res_sel(m_mul_res_sel),
+		.m_mul_rd_id(m_mul_rd_id),
 		.m_mul_valid(m_mul_valid),
 		.m_mul_ready(m_mul_ready),
 		
 		.m_div_op_a(m_div_op_a),
 		.m_div_op_b(m_div_op_b),
 		.m_div_rem_sel(m_div_rem_sel),
+		.m_div_rd_id(m_div_rd_id),
 		.m_div_valid(m_div_valid),
 		.m_div_ready(m_div_ready)
 	);

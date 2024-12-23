@@ -21,7 +21,7 @@ module tb_panda_risc_v_multiplier();
 	
 	/** 常量 **/
 	localparam integer s_axis_data_width = 72; // 从机数据位宽
-	localparam integer m_axis_data_width = 32; // 主机数据位宽
+	localparam integer m_axis_data_width = 40; // 主机数据位宽
 	
 	/** 时钟和复位 **/
 	reg clk;
@@ -75,18 +75,20 @@ module tb_panda_risc_v_multiplier();
 	wire[32:0] s_mul_req_op_a; // 操作数A
 	wire[32:0] s_mul_req_op_b; // 操作数B
 	wire s_mul_req_res_sel; // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
+	wire[4:0] s_mul_req_rd_id; // RD索引
 	wire s_mul_req_valid;
 	wire s_mul_req_ready;
 	// 乘法器计算结果
 	wire[31:0] m_mul_res_data; // 计算结果
+	wire[4:0] m_mul_res_rd_id; // RD索引
 	wire m_mul_res_valid;
 	wire m_mul_res_ready;
 	
-	assign {s_mul_req_res_sel, s_mul_req_op_b, s_mul_req_op_a} = m_axis_if.data[66:0];
+	assign {s_mul_req_rd_id, s_mul_req_res_sel, s_mul_req_op_b, s_mul_req_op_a} = m_axis_if.data[71:0];
 	assign s_mul_req_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_mul_req_ready;
 	
-	assign s_axis_if.data = m_mul_res_data;
+	assign s_axis_if.data = {3'dx, m_mul_res_rd_id, m_mul_res_data};
 	assign s_axis_if.valid = m_mul_res_valid;
 	assign m_mul_res_ready = s_axis_if.ready;
 	
@@ -99,10 +101,12 @@ module tb_panda_risc_v_multiplier();
 		.s_mul_req_op_a(s_mul_req_op_a),
 		.s_mul_req_op_b(s_mul_req_op_b),
 		.s_mul_req_res_sel(s_mul_req_res_sel),
+		.s_mul_req_rd_id(s_mul_req_rd_id),
 		.s_mul_req_valid(s_mul_req_valid),
 		.s_mul_req_ready(s_mul_req_ready),
 		
 		.m_mul_res_data(m_mul_res_data),
+		.m_mul_res_rd_id(m_mul_res_rd_id),
 		.m_mul_res_valid(m_mul_res_valid),
 		.m_mul_res_ready(m_mul_res_ready)
 	);

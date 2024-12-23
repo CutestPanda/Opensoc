@@ -82,7 +82,7 @@ class DivCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_width(72), .user
 			wait_period_n[0] <= 2;
 		})
 		
-		repeat(100)
+		repeat(1000)
 		begin
 			`uvm_do_with(this.m_axis_trans, {
 				data_n == 1;
@@ -119,7 +119,7 @@ endclass
 class DivCase0Test extends uvm_test;
 	
 	// 多周期除法器测试环境
-	local DivEnv #(.s_axis_data_width(72), .m_axis_data_width(32)) env;
+	local DivEnv #(.s_axis_data_width(72), .m_axis_data_width(40)) env;
 	
 	// 注册component
 	`uvm_component_utils(DivCase0Test)
@@ -131,7 +131,7 @@ class DivCase0Test extends uvm_test;
 	virtual function void build_phase(uvm_phase phase);
 		super.build_phase(phase);
 		
-		this.env = DivEnv #(.s_axis_data_width(72), .m_axis_data_width(32))
+		this.env = DivEnv #(.s_axis_data_width(72), .m_axis_data_width(40))
 			::type_id::create("env", this); // 创建env
 		
 		// 设置sequence
