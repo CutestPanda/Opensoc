@@ -108,6 +108,7 @@ module tb_axis_linear_act_cal();
 		.clk(clk),
 		.rst_n(rst_n),
 		
+		.act_type(2'b00),
 		.act_rate_c(act_rate_c),
 		
 		.s_axis_conv_res_data(m0_axis_if.data),
@@ -127,7 +128,11 @@ module tb_axis_linear_act_cal();
 		.linear_pars_buffer_ren_s1(linear_pars_buffer_ren_s1),
 		.linear_pars_buffer_raddr(linear_pars_buffer_raddr),
 		.linear_pars_buffer_dout_a(linear_pars_buffer_dout_a),
-		.linear_pars_buffer_dout_b(linear_pars_buffer_dout_b)
+		.linear_pars_buffer_dout_b(linear_pars_buffer_dout_b),
+		
+		.non_ln_act_lut_ren(),
+		.non_ln_act_lut_raddr(),
+		.non_ln_act_lut_dout(16'dx)
 	);
 	
 	axis_linear_params_buffer #(

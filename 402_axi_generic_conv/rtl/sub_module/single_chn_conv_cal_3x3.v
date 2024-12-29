@@ -35,11 +35,12 @@
 无
 
 作者: 陈家耀
-日期: 2024/10/25
+日期: 2024/12/25
 ********************************************************************/
 
 
 module single_chn_conv_cal_3x3 #(
+	parameter en_use_dsp_for_add_3 = "false", // 是否使用DSP来实现三输入加法器
 	parameter integer mul_add_width = 16, // 乘加位宽
 	parameter integer quaz_acc = 10, // 量化精度(必须在范围[1, mul_add_width-1]内)
 	parameter integer add_3_input_ext_int_width = 4, // 三输入加法器额外考虑的整数位数(必须<=(mul_add_width-quaz_acc))
@@ -365,6 +366,7 @@ module single_chn_conv_cal_3x3 #(
 	assign conv_res_vld = feature_roi_vld_d9;
 	
 	add_3_in_dsp #(
+		.en_use_dsp(en_use_dsp_for_add_3),
 		.op_a_width(add_3_input_ext_int_width+mul_add_width+add_3_input_ext_frac_width),
 		.op_c_width(add_3_input_ext_int_width+mul_add_width+add_3_input_ext_frac_width),
 		.op_d_width(add_3_input_ext_int_width+mul_add_width+add_3_input_ext_frac_width),

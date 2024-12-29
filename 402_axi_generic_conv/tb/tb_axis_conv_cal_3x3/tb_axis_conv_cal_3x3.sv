@@ -110,10 +110,9 @@ module tb_axis_conv_cal_3x3();
 	wire m_axis_res_user; // 表示当前行最后1组结果
 	wire m_axis_res_valid;
 	wire m_axis_res_ready;
-	// 计算参数
-	wire[15:0] o_ft_map_h; // 输出特征图高度 - 1
 	
 	axis_conv_cal_3x3 #(
+		.en_use_dsp_for_add_3("true"),
 		.mul_add_width(mul_add_width),
 		.quaz_acc(quaz_acc),
 		.add_3_input_ext_int_width(add_3_input_ext_int_width),
@@ -133,12 +132,14 @@ module tb_axis_conv_cal_3x3();
 		.en_conv_cal(1'b1),
 		
 		.kernal_type(kernal_type),
-		.padding_en(padding_en),
+		.padding_en(padding_en[1:0]),
 		.feature_map_h(feature_map_h),
 		.feature_map_chn_n(feature_map_chn_n),
 		.kernal_n(kernal_n),
-		
-		.o_ft_map_h(o_ft_map_h),
+		.o_ft_map_w(feature_map_w)
+		.o_ft_map_h(feature_map_h),
+		.horizontal_step(3'b000),
+		.step_type(1'b0),
 		
 		.s_axis_feature_map_data(m0_axis_if.data),
 		.s_axis_feature_map_last(m0_axis_if.last),
@@ -177,8 +178,8 @@ module tb_axis_conv_cal_3x3();
 		
 		.kernal_type(kernal_type),
 		.padding_en(padding_en[1:0]),
-		.i_ft_map_w(feature_map_w),
-		.o_ft_map_h(o_ft_map_h),
+		.o_ft_map_w(feature_map_w),
+		.o_ft_map_h(feature_map_h),
 		.kernal_n(kernal_n),
 		
 		.s_axis_mid_res_data(m_axis_res_data),

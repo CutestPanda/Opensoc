@@ -13,15 +13,17 @@
 AXIS MASTER/SLAVE
 
 作者: 陈家耀
-日期: 2024/10/29
+日期: 2024/12/26
 ********************************************************************/
 
 
 module axis_single_chn_conv_cal_3x3 #(
+	parameter en_use_dsp_for_add_3 = "false", // 是否使用DSP来实现三输入加法器
 	parameter integer mul_add_width = 16, // 乘加位宽(8 | 16)
 	parameter integer quaz_acc = 10, // 量化精度(必须在范围[1, mul_add_width-1]内)
 	parameter integer add_3_input_ext_int_width = 4, // 三输入加法器额外考虑的整数位数(必须<=(mul_add_width-quaz_acc))
 	parameter integer add_3_input_ext_frac_width = 4, // 三输入加法器额外考虑的小数位数(必须<=quaz_acc)
+	parameter integer max_feature_map_w = 512, // 最大的输入特征图宽度
 	parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -31,6 +33,9 @@ module axis_single_chn_conv_cal_3x3 #(
 	// 运行时参数
 	input wire kernal_type, // 卷积核类型(1'b0 -> 1x1, 1'b1 -> 3x3)
 	input wire[1:0] padding_en, // 外拓填充使能(仅当卷积核类型为3x3时可用, {左, 右})
+	input wire[15:0] o_ft_map_w, // 输出特征图宽度 - 1
+	input wire[2:0] horizontal_step, // 水平步长 - 1
+	input wire step_type, // 步长类型(1'b0 -> 从第1个ROI开始, 1'b1 -> 舍弃第1个ROI)
 	
 	// 同步复位
 	input wire rst_kernal_buf, // 复位卷积核缓存
@@ -87,38 +92,50 @@ module axis_single_chn_conv_cal_3x3 #(
 	reg[3:0] ft_col_pos; // 特征图列位置(4'b0001 -> 第1列, 4'b0010 -> 第2列, 4'b0100 -> 第3列及以后, 4'b1000 -> 右填充)
 	wire need_left_padding; // 需要左填充(标志)
 	wire need_right_padding; // 需要右填充(标志)
+	reg[7:0] h_step_cnt; // 水平步长计数器
+	wire[7:0] h_step_cnt_rst_mask; // 水平步长计数器(复位掩码)
+	wire h_step_cnt_last; // 水平步长计数器抵达末尾(标志)
+	wire on_h_step_cnt_rst; // 水平步长计数器(复位指示)
+	wire in_ft_roi_skipped; // 输入特征图ROI被跳过(标志)
+	reg[clogb2(max_feature_map_w-1):0] oft_pt_cid; // 输出特征点列号
 	
 	/*
 	握手条件: 
 		(ft_col_pos[0] & s_axis_ft_col_valid) | 
-		(ft_col_pos[1] & s_axis_ft_col_valid & ((~need_left_padding) | m_axis_ft_roi_ready)) | 
+		(ft_col_pos[1] & s_axis_ft_col_valid & ((~need_left_padding) | in_ft_roi_skipped | m_axis_ft_roi_ready)) | 
 		(ft_col_pos[2] & s_axis_ft_col_valid & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in) & 
-		    m_axis_ft_roi_ready)
+		    (in_ft_roi_skipped | m_axis_ft_roi_ready))
 	*/
 	assign s_axis_ft_col_ready = 
 		ft_col_pos[0] | 
-		(ft_col_pos[1] & ((~need_left_padding) | m_axis_ft_roi_ready)) | 
-		// 最后1个特征列进入时必须保证下一卷积核已缓存
-		(ft_col_pos[2] & m_axis_ft_roi_ready & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in));
+		(ft_col_pos[1] & ((~need_left_padding) | in_ft_roi_skipped | m_axis_ft_roi_ready)) | 
+		(ft_col_pos[2] & 
+			// 除非当前是最后1组特征图, 最后1个特征列进入时必须保证下一卷积核已缓存
+			((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in) & 
+			(in_ft_roi_skipped | m_axis_ft_roi_ready));
 	
 	assign m_axis_ft_roi_data = {
-		ft_roi[8], ft_roi[7], ft_roi[6], 
-		ft_roi[5], ft_roi[4], ft_roi[3],
-		ft_roi[2], ft_roi[1], ft_roi[0]
+		// x3         x2         x1
+		ft_roi[8], ft_roi[7], ft_roi[6], // y3
+		ft_roi[5], ft_roi[4], ft_roi[3], // y2
+		ft_roi[2], ft_roi[1], ft_roi[0]  // y1
 	};
-	assign m_axis_ft_roi_last = need_right_padding ? ft_col_pos[3]:s_axis_ft_col_last;
+	assign m_axis_ft_roi_last = oft_pt_cid == o_ft_map_w[clogb2(max_feature_map_w-1):0];
 	/*
 	握手条件: 
-		(ft_col_pos[1] & s_axis_ft_col_valid & need_left_padding & m_axis_ft_roi_ready) | 
+		(~in_ft_roi_skipped) & 
+		((ft_col_pos[1] & s_axis_ft_col_valid & need_left_padding & m_axis_ft_roi_ready) | 
 		(ft_col_pos[2] & s_axis_ft_col_valid & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in) & 
 			m_axis_ft_roi_ready) | 
-		(ft_col_pos[3] & need_right_padding & m_axis_ft_roi_ready)
+		(ft_col_pos[3] & need_right_padding & m_axis_ft_roi_ready))
 	*/
 	assign m_axis_ft_roi_valid = 
-		(ft_col_pos[1] & s_axis_ft_col_valid & need_left_padding) | 
-		// 最后1个特征列进入时必须保证下一卷积核已缓存
-		(ft_col_pos[2] & s_axis_ft_col_valid & ((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in)) | 
-		(ft_col_pos[3] & need_right_padding);
+		(~in_ft_roi_skipped) & 
+		((ft_col_pos[1] & s_axis_ft_col_valid & need_left_padding) | 
+		(ft_col_pos[2] & s_axis_ft_col_valid & 
+			// 除非当前是最后1组特征图, 最后1个特征列进入时必须保证下一卷积核已缓存
+			((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in)) | 
+		(ft_col_pos[3] & need_right_padding));
 	
 	assign ft_roi[0] = ft_col_remaining_buf1[0]; // x1y1
 	assign ft_roi[1] = ft_col_remaining_buf0[0]; // x2y1
@@ -138,6 +155,20 @@ module axis_single_chn_conv_cal_3x3 #(
 	// 卷积核类型为1x1时固定需要左/右填充
 	assign need_left_padding = (~kernal_type) | padding_en[1];
 	assign need_right_padding = (~kernal_type) | padding_en[0];
+	
+	assign h_step_cnt_rst_mask = {
+		horizontal_step == 3'b111, 
+		horizontal_step == 3'b110, 
+		horizontal_step == 3'b101, 
+		horizontal_step == 3'b100, 
+		horizontal_step == 3'b011, 
+		horizontal_step == 3'b010, 
+		horizontal_step == 3'b001, 
+		horizontal_step == 3'b000
+	};
+	assign h_step_cnt_last = |(h_step_cnt & h_step_cnt_rst_mask);
+	assign on_h_step_cnt_rst = ft_col_pos[3] | h_step_cnt_last;
+	assign in_ft_roi_skipped = ~(step_type ? h_step_cnt_last:h_step_cnt[0]);
 	
 	// 特征列剩余缓存#0
 	always @(posedge clk)
@@ -161,11 +192,34 @@ module axis_single_chn_conv_cal_3x3 #(
 		if(~rst_n)
 			ft_col_pos <= 4'b0001;
 		else if((ft_col_pos[0] & s_axis_ft_col_valid) | 
-			(ft_col_pos[1] & s_axis_ft_col_valid & ((~need_left_padding) | m_axis_ft_roi_ready)) | 
-			(ft_col_pos[2] & s_axis_ft_col_valid & m_axis_ft_roi_ready & 
+			(ft_col_pos[1] & s_axis_ft_col_valid & ((~need_left_padding) | in_ft_roi_skipped | m_axis_ft_roi_ready)) | 
+			(ft_col_pos[2] & s_axis_ft_col_valid & (in_ft_roi_skipped | m_axis_ft_roi_ready) & 
 				s_axis_ft_col_last & (s_axis_ft_col_user | kernal_buf_allow_ft_roi_in)) | 
-			(ft_col_pos[3] & ((~need_right_padding) | m_axis_ft_roi_ready)))
+			(ft_col_pos[3] & ((~need_right_padding) | in_ft_roi_skipped | m_axis_ft_roi_ready)))
 			ft_col_pos <= # simulation_delay {ft_col_pos[2:0], ft_col_pos[3]};
+	end
+	
+	// 水平步长计数器
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			h_step_cnt <= 8'b0000_0001;
+		else if((ft_col_pos[1] & s_axis_ft_col_valid & need_left_padding & (in_ft_roi_skipped | m_axis_ft_roi_ready)) | 
+			(ft_col_pos[2] & s_axis_ft_col_valid & (in_ft_roi_skipped | m_axis_ft_roi_ready) & 
+				((~s_axis_ft_col_last) | s_axis_ft_col_user | kernal_buf_allow_ft_roi_in)) | 
+			(ft_col_pos[3] & ((~need_right_padding) | in_ft_roi_skipped | m_axis_ft_roi_ready)))
+			// on_h_step_cnt_rst ? 8'b0000_0001:{h_step_cnt[6:0], h_step_cnt[7]}
+			h_step_cnt <= # simulation_delay {{7{~on_h_step_cnt_rst}} & h_step_cnt[6:0], on_h_step_cnt_rst | h_step_cnt[7]};
+	end
+	
+	// 输出特征点列号
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			oft_pt_cid <= 0;
+		else if(m_axis_ft_roi_valid & m_axis_ft_roi_ready)
+			// m_axis_ft_roi_last ? 0:(oft_pt_cid + 1)
+			oft_pt_cid <= # simulation_delay {(clogb2(max_feature_map_w-1)+1){~m_axis_ft_roi_last}} & (oft_pt_cid + 1);
 	end
 	
 	/** 卷积计算数据通路 **/
@@ -211,6 +265,7 @@ module axis_single_chn_conv_cal_3x3 #(
 	assign m_axis_res_valid = conv_res_vld;
 	
 	single_chn_conv_cal_3x3 #(
+		.en_use_dsp_for_add_3(en_use_dsp_for_add_3),
 		.mul_add_width(mul_add_width),
 		.quaz_acc(quaz_acc),
 		.add_3_input_ext_int_width(add_3_input_ext_int_width),

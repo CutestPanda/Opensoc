@@ -16,8 +16,22 @@
 
 // 类型定义:卷积核类型
 typedef enum{
-	TYPE_3x3, TYPE_1x1
+	TYPE_3x3,
+	TYPE_1x1
 }KernalType;
+
+// 类型定义:步长类型
+typedef enum{
+	FIRST, // [ROI#0(取), ROI#1(不取), ..., ROI#步长-2(不取), ROI#步长-1(不取)] ...
+	NON_FIRST // [ROI#0(不取), ROI#1(不取), ..., ROI#步长-2(不取), ROI#步长-1(取)] ...
+}StepType;
+
+// 类型定义:激活类型
+typedef enum{
+	RELU,
+	SIGMOID,
+	TANH
+}ActType;
 
 // 类型定义: 通用卷积计算单元的寄存器区
 typedef struct{
@@ -36,6 +50,10 @@ typedef struct{
 	uint32_t act_rate_c_0;
 	uint32_t act_rate_c_1;
 	uint32_t wt_req_fns_n;
+	uint32_t o_ft_map_w_h;
+	uint32_t step;
+	uint32_t act;
+	uint32_t non_ln_act_lut_wt;
 }AXIGenericConvHw;
 
 // 类型定义: 通用卷积计算单元的运行时参数
@@ -51,6 +69,12 @@ typedef struct{
 	uint16_t kernal_n;
 	int32_t act_rate_c_0;
 	int32_t act_rate_c_1;
+	uint16_t o_ft_map_w;
+	uint16_t o_ft_map_h;
+	uint8_t horizontal_step;
+	uint8_t vertical_step;
+	StepType step_type;
+	ActType act_type;
 }AXIGenericConvCfg;
 
 // 类型定义: 通用卷积计算单元的外设句柄
@@ -63,8 +87,9 @@ typedef struct{
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void init_axi_generic_conv(AXIGenericConv* axi_conv, uint32_t baseaddr); // 初始化AXI通用卷积加速器
+void axi_generic_conv_wt_non_ln_act_lut(AXIGenericConv* axi_conv, uint16_t* lut); // 初始化AXI通用卷积加速器的非线性激活查找表
 
-void axi_generic_conv_set_conv_params(AXIGenericConv* axi_conv, AXIGenericConvCfg* cfg); // 配置AXI通用卷积加速器的运行时参数
+int axi_generic_conv_set_conv_params(AXIGenericConv* axi_conv, AXIGenericConvCfg* cfg); // 配置AXI通用卷积加速器的运行时参数
 void axi_generic_conv_start(AXIGenericConv* axi_conv); // 启动AXI通用卷积加速器
 void axi_generic_conv_resume(AXIGenericConv* axi_conv); // 继续运行AXI通用卷积加速器
 void axi_generic_conv_suspend(AXIGenericConv* axi_conv); // 暂停AXI通用卷积加速器
@@ -87,7 +112,7 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 	uint32_t ft_map_chn_n, uint8_t prl_chn_n,
 	uint32_t in_ft_map_w, uint32_t in_ft_map_h,
 	uint8_t en_top_padding, uint8_t en_bottom_padding,
-	KernalType kernal_type);
+	KernalType kernal_type, uint8_t vertical_step, StepType step_type);
 // 生成写请求描述子
 uint32_t axi_generic_conv_generate_wt_req_dsc(
 	uint32_t* wt_req_dsc_buf_ptr,

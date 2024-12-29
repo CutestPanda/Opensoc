@@ -6,12 +6,9 @@
 线性乘加 -> 
 y = ax + b, 通常用于实现BN层或偏置
 
-Relu激活 -> 
-	          | cy, 当y < 0时
-	z(c, y) = |
-	          | y, 当y >= 0时
+支持Relu激活/Sigmoid激活/Tanh激活
 
-时延 = 线性乘加(4clk) + Relu激活(1clk)
+时延 = 线性乘加(4clk) + Relu激活(2clk)/非线性激活(3clk)
 
 变量x/y/z: 位宽 = xyz_ext_int_width + cal_width + xyz_ext_frac_width, 量化精度 = xyz_quaz_acc + xyz_ext_frac_width
 系数a/b: 位宽 = cal_width, 量化精度 = ab_quaz_acc
@@ -24,7 +21,7 @@ Relu激活 ->
 AXIS MASTER/SLAVE
 
 作者: 陈家耀
-日期: 2024/11/05
+日期: 2024/12/29
 ********************************************************************/
 
 
@@ -42,6 +39,7 @@ module axis_linear_act_cal #(
 	input wire rst_n,
 	
 	// 运行时参数
+	input wire[1:0] act_type, // 激活类型(2'b00 -> Relu, 2'b01 -> 保留, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
 	input wire[cal_width-1:0] act_rate_c, // Relu激活系数c
 	
 	// 多通道卷积计算结果输入(AXIS从机)
@@ -67,9 +65,20 @@ module axis_linear_act_cal #(
 	output wire linear_pars_buffer_ren_s1,
 	output wire[15:0] linear_pars_buffer_raddr,
 	input wire[cal_width-1:0] linear_pars_buffer_dout_a,
-	input wire[cal_width-1:0] linear_pars_buffer_dout_b
+	input wire[cal_width-1:0] linear_pars_buffer_dout_b,
+	
+	// 非线性激活查找表(读端口)
+	output wire non_ln_act_lut_ren,
+	output wire[10:0] non_ln_act_lut_raddr,
+	input wire[15:0] non_ln_act_lut_dout // Q15
 );
     
+	/** 常量 **/
+	// 激活类型
+	localparam ACT_RELU = 2'b00;
+	localparam ACT_SIGMOID = 2'b10;
+	localparam ACT_TANH = 2'b11;
+	
     /** 输出fifo **/
 	// fifo写端口
 	wire out_fifo_wen;
@@ -257,31 +266,51 @@ module axis_linear_act_cal #(
 		.pattern_detect_res()
 	);
 	
-	/** Relu激活 **/
+	/** 激活 **/
 	reg conv_res_in_vld_d5; // 延迟5clk的卷积结果输入有效指示
+	reg conv_res_in_vld_d6; // 延迟6clk的卷积结果输入有效指示
+	reg conv_res_in_vld_d7; // 延迟7clk的卷积结果输入有效指示
 	reg conv_res_last_d5; // 延迟5clk的卷积结果行尾标志
-	wire[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0] relu_mul_op_a_in; // 量化精度 = xyz_quaz_acc+xyz_ext_frac_width
-	wire[cal_width-1:0] relu_mul_op_b_in; // 量化精度 = c_quaz_acc
-	wire[xyz_ext_int_width+cal_width*2+xyz_ext_frac_width-1:0] relu_mul_res; // 量化精度 = xyz_quaz_acc+xyz_ext_frac_width+c_quaz_acc
+	reg conv_res_last_d6; // 延迟6clk的卷积结果行尾标志
+	reg conv_res_last_d7; // 延迟7clk的卷积结果行尾标志
+	// Relu激活
+	// 仅低(xyz_ext_int_width+cal_width+xyz_ext_frac_width)位有效
+	wire[cal_width*2-1:0] relu_act_in;
+	wire relu_act_in_vld;
+	// 仅低(xyz_ext_int_width+cal_width+xyz_ext_frac_width)位有效
+	wire[cal_width*2-1:0] relu_act_out;
+	wire relu_act_out_vld;
+	// 非线性激活
+	// 仅低(xyz_ext_int_width+cal_width+xyz_ext_frac_width)位有效
+	wire[cal_width*2-1:0] non_ln_act_in;
+	wire non_ln_act_in_vld;
+	// 仅低(xyz_ext_int_width+cal_width+xyz_ext_frac_width)位有效
+	wire[cal_width*2-1:0] non_ln_act_out;
+	wire non_ln_act_out_vld;
 	
-	assign out_fifo_wen = conv_res_in_vld_d5;
-	assign out_fifo_din = relu_mul_res[(c_quaz_acc+xyz_ext_int_width+cal_width+xyz_ext_frac_width-1):c_quaz_acc];
-	assign out_fifo_din_last = conv_res_last_d5;
+	assign out_fifo_wen = 
+		((act_type == ACT_SIGMOID) | (act_type == ACT_TANH)) ? conv_res_in_vld_d7:conv_res_in_vld_d6;
+	assign out_fifo_din = 
+		((act_type == ACT_SIGMOID) | (act_type == ACT_TANH)) ? 
+			non_ln_act_out[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0]:
+			relu_act_out[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0];
+	assign out_fifo_din_last = 
+		((act_type == ACT_SIGMOID) | (act_type == ACT_TANH)) ? conv_res_last_d7:conv_res_last_d6;
 	
-	assign relu_mul_op_a_in = linear_mul_add_res_quaz;
-	// (线性乘加结果 < 0) ? 系数c:1
-	assign relu_mul_op_b_in = linear_mul_add_res_quaz[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1] ? 
-		act_rate_c:((c_quaz_acc == (cal_width-1)) ? 
-			{1'b0, {(cal_width-1){1'b1}}}:
-			({{(cal_width-1){1'b0}}, 1'b1} << c_quaz_acc));
+	assign relu_act_in = linear_mul_add_res_quaz; // 位宽不匹配, 取低(xyz_ext_int_width+cal_width+xyz_ext_frac_width)位
+	assign relu_act_in_vld = conv_res_in_vld_d4 & (act_type == ACT_RELU);
 	
-	// 延迟5clk的卷积结果输入有效指示
+	assign non_ln_act_in = linear_mul_add_res_quaz; // 位宽不匹配, 取低(xyz_ext_int_width+cal_width+xyz_ext_frac_width)位
+	assign non_ln_act_in_vld = conv_res_in_vld_d4 & ((act_type == ACT_SIGMOID) | (act_type == ACT_TANH));
+	
+	// 延迟5~7clk的卷积结果输入有效指示
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
-			conv_res_in_vld_d5 <= 1'b0;
+			{conv_res_in_vld_d7, conv_res_in_vld_d6, conv_res_in_vld_d5} <= 3'b000;
 		else
-			conv_res_in_vld_d5 <= # simulation_delay conv_res_in_vld_d4;
+			{conv_res_in_vld_d7, conv_res_in_vld_d6, conv_res_in_vld_d5} <= # simulation_delay 
+				{conv_res_in_vld_d6, conv_res_in_vld_d5, conv_res_in_vld_d4};
 	end
 	
 	// 延迟5clk的卷积结果行尾标志
@@ -290,22 +319,62 @@ module axis_linear_act_cal #(
 		if(conv_res_in_vld_d4)
 			conv_res_last_d5 <= # simulation_delay conv_res_last_d4;
 	end
+	// 延迟6clk的卷积结果行尾标志
+	always @(posedge clk)
+	begin
+		if(conv_res_in_vld_d5)
+			conv_res_last_d6 <= # simulation_delay conv_res_last_d5;
+	end
+	// 延迟7clk的卷积结果行尾标志
+	always @(posedge clk)
+	begin
+		if(conv_res_in_vld_d6)
+			conv_res_last_d7 <= # simulation_delay conv_res_last_d6;
+	end
 	
-	// 乘法器
-	mul #(
-		.op_a_width(xyz_ext_int_width+cal_width+xyz_ext_frac_width),
-		.op_b_width(cal_width),
-		.output_width(xyz_ext_int_width+cal_width*2+xyz_ext_frac_width),
+	// Relu激活计算单元
+	relu_act #(
+		.act_cal_width(cal_width),
+		.act_in_quaz_acc(xyz_quaz_acc),
+		.act_in_ext_int_width(xyz_ext_int_width),
+		.act_in_ext_frac_width(xyz_ext_frac_width),
+		.relu_const_quaz_acc(c_quaz_acc),
 		.simulation_delay(simulation_delay)
-	)relu_mul(
+	)relu_act_u(
 		.clk(clk),
+		.rst_n(rst_n),
 		
-		.ce_s0_mul(conv_res_in_vld_d4),
+		.relu_const_rate(act_rate_c),
 		
-		.op_a(relu_mul_op_a_in),
-		.op_b(relu_mul_op_b_in),
+		.act_in(relu_act_in),
+		.act_in_vld(relu_act_in_vld),
 		
-		.res(relu_mul_res)
+		.act_out(relu_act_out),
+		.act_out_vld(relu_act_out_vld)
+	);
+	
+	// 非线性激活计算单元
+	non_linear_act #(
+		.act_cal_width(cal_width),
+		.act_in_quaz_acc(xyz_quaz_acc),
+		.act_in_ext_int_width(xyz_ext_int_width),
+		.act_in_ext_frac_width(xyz_ext_frac_width),
+		.simulation_delay(simulation_delay)
+	)non_linear_act_u(
+		.clk(clk),
+		.rst_n(rst_n),
+		
+		.non_ln_act_type(act_type[0]),
+		
+		.non_ln_act_lut_ren(non_ln_act_lut_ren),
+		.non_ln_act_lut_raddr(non_ln_act_lut_raddr),
+		.non_ln_act_lut_dout(non_ln_act_lut_dout),
+		
+		.act_in(non_ln_act_in),
+		.act_in_vld(non_ln_act_in_vld),
+		
+		.act_out(non_ln_act_out),
+		.act_out_vld(non_ln_act_out_vld)
 	);
 	
 endmodule

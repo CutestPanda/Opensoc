@@ -46,17 +46,19 @@ FIFO READ
 MEM READ
 
 作者: 陈家耀
-日期: 2024/10/24
+日期: 2024/12/26
 ********************************************************************/
 
 
 module axis_conv_cal_3x3 #(
+	parameter en_use_dsp_for_add_3 = "false", // 是否使用DSP来实现三输入加法器
 	parameter integer mul_add_width = 16, // 乘加位宽(8 | 16)
 	parameter integer quaz_acc = 10, // 量化精度(必须在范围[1, mul_add_width-1]内)
 	parameter integer add_3_input_ext_int_width = 4, // 三输入加法器额外考虑的整数位数(必须<=(mul_add_width-quaz_acc))
 	parameter integer add_3_input_ext_frac_width = 4, // 三输入加法器额外考虑的小数位数(必须<=quaz_acc)
 	parameter integer in_feature_map_buffer_rd_prl_n = 4, // 读输入特征图缓存的并行个数(1 | 2 | 4 | 8 | 16)
 	parameter integer kernal_prl_n = 4, // 多通道卷积核的并行个数(1 | 2 | 4 | 8 | 16)
+	parameter integer max_feature_map_w = 512, // 最大的输入特征图宽度
 	parameter integer max_feature_map_h = 512, // 最大的输入特征图高度
 	parameter integer max_feature_map_chn_n = 512, // 最大的输入特征图通道数
 	parameter integer max_kernal_n = 512, // 最大的卷积核个数
@@ -74,13 +76,14 @@ module axis_conv_cal_3x3 #(
 	
 	// 运行时参数
 	input wire kernal_type, // 卷积核类型(1'b0 -> 1x1, 1'b1 -> 3x3)
-	input wire[3:0] padding_en, // 外拓填充使能(仅当卷积核类型为3x3时可用, {上, 下, 左, 右})
+	input wire[1:0] padding_en, // 外拓填充使能(仅当卷积核类型为3x3时可用, {左, 右})
 	input wire[15:0] feature_map_h, // 输入特征图高度 - 1
 	input wire[15:0] feature_map_chn_n, // 输入特征图通道数 - 1
 	input wire[15:0] kernal_n, // 卷积核个数 - 1
-	
-	// 计算参数
-	output wire[15:0] o_ft_map_h, // 输出特征图高度 - 1
+	input wire[15:0] o_ft_map_w, // 输出特征图宽度 - 1
+	input wire[15:0] o_ft_map_h, // 输出特征图高度 - 1
+	input wire[2:0] horizontal_step, // 水平步长 - 1
+	input wire step_type, // 步长类型(1'b0 -> 从第1个ROI开始, 1'b1 -> 舍弃第1个ROI)
 	
 	// 特征图输入(AXIS从机)
 	// {缓存#(n-1)行#2, 缓存#(n-1)行#1, 缓存#(n-1)行#0, ..., 缓存#0行#2, 缓存#0行#1, 缓存#0行#0}
@@ -232,15 +235,12 @@ module axis_conv_cal_3x3 #(
 	wire[in_feature_map_buffer_rd_prl_n*kernal_prl_n-1:0] s_axis_feature_col_valid;
 	wire[in_feature_map_buffer_rd_prl_n*kernal_prl_n-1:0] s_axis_feature_col_ready;
 	// 特征组位置
-	reg[clogb2(max_feature_map_h-1):0] out_feature_map_h; // 输出特征图高度 - 1
 	reg[clogb2(max_feature_map_chn_n/in_feature_map_buffer_rd_prl_n-1):0] ft_grp_ichn_id; // 输入通道编号
 	wire ft_grp_at_last_ichn; // 特征组处于最后1个输入通道(标志)
 	reg[clogb2(max_feature_map_h-1):0] ft_grp_yid; // 行编号
 	wire ft_grp_at_last_row; // 特征组处于最后1行(标志)
 	reg[clogb2(max_kernal_n/kernal_prl_n-1):0] ft_grp_ochn_id; // 输出通道编号
 	wire ft_grp_at_last_ochn; // 特征组处于最后1个输出通道(标志)
-	
-	assign o_ft_map_h = out_feature_map_h;
 	
 	// 握手条件: s_axis_feature_map_valid & out_fifo_almost_full_n & en_conv_cal & (&s_axis_feature_col_ready)
 	assign s_axis_feature_map_ready = out_fifo_almost_full_n & en_conv_cal & (&s_axis_feature_col_ready);
@@ -280,24 +280,8 @@ module axis_conv_cal_3x3 #(
 	
 	assign ft_grp_at_last_ichn = ft_grp_ichn_id == 
 		feature_map_chn_n[clogb2(max_feature_map_chn_n-1):clogb2(in_feature_map_buffer_rd_prl_n)];
-	assign ft_grp_at_last_row = ft_grp_yid == out_feature_map_h;
+	assign ft_grp_at_last_row = ft_grp_yid == o_ft_map_h[clogb2(max_feature_map_h-1):0];
 	assign ft_grp_at_last_ochn = ft_grp_ochn_id == kernal_n[clogb2(max_kernal_n-1):clogb2(kernal_prl_n)];
-	
-	// 输出特征图高度 - 1
-	always @(posedge clk)
-	begin
-		if(en_conv_cal)
-			out_feature_map_h <= # simulation_delay feature_map_h[clogb2(max_feature_map_h-1):0] - 
-				/*
-				   需要上填充 需要下填充   操作
-				       0          0         -2
-					   0          1         -1
-					   1          0         -1
-					   1          1          0
-				*/
-				{(~((~kernal_type) | padding_en[3])) & (~((~kernal_type) | padding_en[2])), 
-				((~kernal_type) | padding_en[3]) ^ ((~kernal_type) | padding_en[2])};
-	end
 	
 	// 特征组输入通道编号
 	always @(posedge clk or negedge rst_n)
@@ -369,7 +353,7 @@ module axis_conv_cal_3x3 #(
 	
 	assign kernal_pars_at_last_chn = kernal_pars_chn_id == 
 		(feature_map_chn_n[clogb2(max_feature_map_chn_n-1):0] | (in_feature_map_buffer_rd_prl_n - 1));
-	assign kernal_pars_at_last_row = kernal_pars_h_id == out_feature_map_h;
+	assign kernal_pars_at_last_row = kernal_pars_h_id == o_ft_map_h[clogb2(max_feature_map_h-1):0];
 	
 	// 握手条件: rd_kernal_pars_s0_valid & rd_kernal_pars_s0_ready
 	assign rd_kernal_pars_s0_valid = kernal_pars_buf_fifo_empty_n;
@@ -524,17 +508,22 @@ module axis_conv_cal_3x3 #(
 						single_chn_conv_unit_j];
 				
 				axis_single_chn_conv_cal_3x3 #(
+					.en_use_dsp_for_add_3(en_use_dsp_for_add_3),
 					.mul_add_width(mul_add_width),
 					.quaz_acc(quaz_acc),
 					.add_3_input_ext_int_width(add_3_input_ext_int_width),
 					.add_3_input_ext_frac_width(add_3_input_ext_frac_width),
+					.max_feature_map_w(max_feature_map_w),
 					.simulation_delay(simulation_delay)
 				)axis_single_chn_conv_cal_3x3_u(
 					.clk(clk),
 					.rst_n(rst_n),
 					
 					.kernal_type(kernal_type),
-					.padding_en(padding_en[1:0]),
+					.padding_en(padding_en),
+					.o_ft_map_w(o_ft_map_w),
+					.horizontal_step(horizontal_step),
+					.step_type(step_type),
 					
 					.rst_kernal_buf(rst_kernal_buf),
 					

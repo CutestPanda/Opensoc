@@ -41,7 +41,7 @@ AXI-Lite SLAVE
 AXI MASTER
 
 作者: 陈家耀
-日期: 2024/11/10
+日期: 2024/12/28
 ********************************************************************/
 
 
@@ -70,7 +70,10 @@ module axi_generic_conv #(
 	parameter integer in_feature_map_buffer_n = 8, // 输入特征图缓存个数
 	parameter integer kernal_pars_buffer_n = 8, // 卷积核参数缓存个数
 	parameter integer out_buffer_n = 8, // 多通道卷积结果缓存个数
+	// 计算结果溢出处理
+	parameter en_res_amp_lmt = "true", // 是否使能计算结果限幅
 	// 卷积计算配置
+	parameter en_use_dsp_for_conv_add_3 = "true", // 是否使用DSP来实现卷积计算中的三输入加法器
 	parameter integer in_ft_quaz_acc = 10, // 特征点量化精度(必须在范围[1, feature_pars_data_width-1]内)
 	parameter integer conv_res_ext_int_width = 4, // 卷积结果额外考虑的整数位数(必须<=(feature_pars_data_width-in_ft_quaz_acc))
 	parameter integer conv_res_ext_frac_width = 4, // 卷积结果额外考虑的小数位数(必须<=in_ft_quaz_acc)
@@ -212,6 +215,10 @@ module axi_generic_conv #(
 	wire[3:0] to_set_wt_req_fns_n;
 	wire[31:0] wt_req_fns_n_set_v;
 	wire[31:0] wt_req_fns_n_cur_v;
+	// 非线性激活查找表(写端口)
+	wire non_ln_act_lut_wen;
+	wire[10:0] non_ln_act_lut_waddr;
+	wire[15:0] non_ln_act_lut_din; // Q15
 	// 运行时参数
 	wire[feature_pars_data_width-1:0] act_rate_c; // Relu激活系数c
 	wire[31:0] rd_req_buf_baseaddr; // 读请求缓存区首地址
@@ -224,6 +231,12 @@ module axi_generic_conv #(
 	wire[15:0] feature_map_chn_n; // 输入特征图通道数 - 1
 	wire[15:0] kernal_n; // 卷积核个数 - 1
 	wire[3:0] padding_en; // 外拓填充使能(仅当卷积核类型为3x3时可用, {上, 下, 左, 右})
+	wire[15:0] o_ft_map_w; // 输出特征图宽度 - 1
+	wire[15:0] o_ft_map_h; // 输出特征图高度 - 1
+	wire[2:0] horizontal_step; // 水平步长 - 1
+	wire[2:0] vertical_step; // 垂直步长 - 1
+	wire step_type; // 步长类型(1'b0 -> 从第1个ROI开始, 1'b1 -> 舍弃第1个ROI)
+	wire[1:0] act_type; // 激活类型(2'b00 -> Relu, 2'b01 -> 保留, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
 	
 	reg_if_for_generic_conv #(
 		.simulation_delay(simulation_delay)
@@ -271,6 +284,10 @@ module axi_generic_conv #(
 		.wt_req_fns_n_set_v(wt_req_fns_n_set_v),
 		.wt_req_fns_n_cur_v(wt_req_fns_n_cur_v),
 		
+		.non_ln_act_lut_wen(non_ln_act_lut_wen),
+		.non_ln_act_lut_waddr(non_ln_act_lut_waddr),
+		.non_ln_act_lut_din(non_ln_act_lut_din),
+		
 		.act_rate_c(act_rate_c), // 位宽64与位宽feature_pars_data_width不符, 取低位!
 		.rd_req_buf_baseaddr(rd_req_buf_baseaddr),
 		.rd_req_n(rd_req_n),
@@ -281,7 +298,13 @@ module axi_generic_conv #(
 		.feature_map_h(feature_map_h),
 		.feature_map_chn_n(feature_map_chn_n),
 		.kernal_n(kernal_n),
-		.padding_en(padding_en)
+		.padding_en(padding_en),
+		.o_ft_map_w(o_ft_map_w),
+		.o_ft_map_h(o_ft_map_h),
+		.horizontal_step(horizontal_step),
+		.vertical_step(vertical_step),
+		.step_type(step_type),
+		.act_type(act_type)
 	);
 	
 	/** 中断控制 **/
@@ -736,8 +759,6 @@ module axi_generic_conv #(
 	);
 	
 	/** n通道并行m核并行3x3卷积计算单元 **/
-	// 计算参数
-	wire[15:0] o_ft_map_h; // 输出特征图高度 - 1
 	// 特征图输入(AXIS从机)
 	// {缓存#(n-1)行#2, 缓存#(n-1)行#1, 缓存#(n-1)行#0, ..., 缓存#0行#2, 缓存#0行#1, 缓存#0行#0}
 	wire[feature_pars_data_width*3*prl_chn_n-1:0] s_axis_feature_map_data;
@@ -759,12 +780,14 @@ module axi_generic_conv #(
 	assign m_axis_feature_map_ready = s_axis_feature_map_ready;
 	
 	axis_conv_cal_3x3 #(
+		.en_use_dsp_for_add_3(en_use_dsp_for_conv_add_3),
 		.mul_add_width(feature_pars_data_width),
 		.quaz_acc(in_ft_quaz_acc),
 		.add_3_input_ext_int_width(conv_res_ext_int_width),
 		.add_3_input_ext_frac_width(conv_res_ext_frac_width),
 		.in_feature_map_buffer_rd_prl_n(prl_chn_n),
 		.kernal_prl_n(prl_kernal_n),
+		.max_feature_map_w(max_feature_map_w),
 		.max_feature_map_h(max_feature_map_h),
 		.max_feature_map_chn_n(max_feature_map_chn_n),
 		.max_kernal_n(max_kernal_n),
@@ -778,12 +801,14 @@ module axi_generic_conv #(
 		.en_conv_cal(en_conv_cal),
 		
 		.kernal_type(kernal_type),
-		.padding_en(padding_en),
+		.padding_en(padding_en[1:0]),
 		.feature_map_h(feature_map_h),
 		.feature_map_chn_n(feature_map_chn_n),
 		.kernal_n(kernal_n),
-		
+		.o_ft_map_w(o_ft_map_w),
 		.o_ft_map_h(o_ft_map_h),
+		.horizontal_step(horizontal_step),
+		.step_type(step_type),
 		
 		.s_axis_feature_map_data(s_axis_feature_map_data),
 		.s_axis_feature_map_last(s_axis_feature_map_last),
@@ -845,7 +870,7 @@ module axi_generic_conv #(
 		
 		.kernal_type(kernal_type),
 		.padding_en(padding_en[1:0]),
-		.i_ft_map_w(feature_map_w),
+		.o_ft_map_w(o_ft_map_w),
 		.o_ft_map_h(o_ft_map_h),
 		.kernal_n(kernal_n),
 		
@@ -876,6 +901,10 @@ module axi_generic_conv #(
 	wire m_axis_linear_act_res_last; // 表示行尾
 	wire m_axis_linear_act_res_valid;
 	wire m_axis_linear_act_res_ready;
+	// 非线性激活查找表(读端口)
+	wire non_ln_act_lut_ren;
+	wire[10:0] non_ln_act_lut_raddr;
+	wire[15:0] non_ln_act_lut_dout; // Q15
 	
 	assign s_axis_conv_res_data = m_axis_conv_res_data;
 	assign s_axis_conv_res_user = m_axis_conv_res_user;
@@ -895,6 +924,7 @@ module axi_generic_conv #(
 		.clk(clk),
 		.rst_n(resetn),
 		
+		.act_type(act_type),
 		.act_rate_c(act_rate_c),
 		
 		.s_axis_conv_res_data(s_axis_conv_res_data),
@@ -914,14 +944,65 @@ module axi_generic_conv #(
 		.linear_pars_buffer_ren_s1(linear_pars_buffer_ren_s1),
 		.linear_pars_buffer_raddr(linear_pars_buffer_raddr),
 		.linear_pars_buffer_dout_a(linear_pars_buffer_dout_a),
-		.linear_pars_buffer_dout_b(linear_pars_buffer_dout_b)
+		.linear_pars_buffer_dout_b(linear_pars_buffer_dout_b),
+		
+		.non_ln_act_lut_ren(non_ln_act_lut_ren),
+		.non_ln_act_lut_raddr(non_ln_act_lut_raddr),
+		.non_ln_act_lut_dout(non_ln_act_lut_dout)
+	);
+	
+	/** 计算结果限幅处理 **/
+	// 计算结果输入(AXIS从机)
+	// 仅低(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)位有效
+	wire[feature_pars_data_width*2-1:0] s_axis_amp_lmt_data;
+	wire s_axis_amp_lmt_last; // 表示行尾
+	wire s_axis_amp_lmt_valid;
+	wire s_axis_amp_lmt_ready;
+	// 限幅后计算结果输出(AXIS主机)
+	wire[feature_pars_data_width-1:0] m_axis_amp_lmt_data;
+	wire m_axis_amp_lmt_last; // 表示行尾
+	wire m_axis_amp_lmt_valid;
+	wire m_axis_amp_lmt_ready;
+	
+	generate
+		if(en_res_amp_lmt == "true")
+		begin
+			assign s_axis_amp_lmt_data = m_axis_linear_act_res_data;
+			assign s_axis_amp_lmt_last = m_axis_linear_act_res_last;
+			assign s_axis_amp_lmt_valid = m_axis_linear_act_res_valid;
+			assign m_axis_linear_act_res_ready = s_axis_amp_lmt_ready;
+		end
+		else
+		begin
+			assign s_axis_amp_lmt_data = {(feature_pars_data_width*2){1'bx}};
+			assign s_axis_amp_lmt_last = 1'bx;
+			assign s_axis_amp_lmt_valid = 1'b0;
+		end
+	endgenerate
+	
+	axis_res_amp_lmt #(
+		.feature_pars_data_width(feature_pars_data_width),
+		.conv_res_ext_int_width(conv_res_ext_int_width),
+		.conv_res_ext_frac_width(conv_res_ext_frac_width),
+		.en_out_reg_slice_forward_register("true"),
+		.en_out_reg_slice_back_register("true"),
+		.simulation_delay(simulation_delay)
+	)axis_res_amp_lmt_u(
+		.clk(clk),
+		.rst_n(resetn),
+		
+		.s_axis_amp_lmt_data(s_axis_amp_lmt_data),
+		.s_axis_amp_lmt_last(s_axis_amp_lmt_last),
+		.s_axis_amp_lmt_valid(s_axis_amp_lmt_valid),
+		.s_axis_amp_lmt_ready(s_axis_amp_lmt_ready),
+		
+		.m_axis_amp_lmt_data(m_axis_amp_lmt_data),
+		.m_axis_amp_lmt_last(m_axis_amp_lmt_last),
+		.m_axis_amp_lmt_valid(m_axis_amp_lmt_valid),
+		.m_axis_amp_lmt_ready(m_axis_amp_lmt_ready)
 	);
 	
 	/** 特征图输出DMA **/
-	// 最终算得的特征点
-	wire[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1:0] feature_point_final;
-	wire feature_point_final_up_ovg; // 上溢标志
-	wire feature_point_final_down_ovg; // 下溢标志
 	// 计算结果写请求
 	wire[63:0] s_axis_wt_req_data; // {待写入的字节数(32bit), 基地址(32bit)}
 	wire s_axis_wt_req_valid;
@@ -936,37 +1017,25 @@ module axi_generic_conv #(
 	assign s_axis_wt_req_valid = m_axis_wt_req_dsc_valid;
 	assign m_axis_wt_req_dsc_ready = s_axis_wt_req_ready;
 	
-	// 将线性乘加与激活得到的结果右移conv_res_ext_frac_width位, 得到量化精度为in_ft_quaz_acc的输出特征点
-	assign s_axis_res_data[feature_pars_data_width-1] = 
-		feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1];
-	assign s_axis_res_data[feature_pars_data_width-2:0] = 
-		{(feature_pars_data_width-1){~feature_point_final_down_ovg}} & // 下溢
-		({(feature_pars_data_width-1){feature_point_final_up_ovg}} | // 上溢
-			feature_point_final[conv_res_ext_frac_width+feature_pars_data_width-2:conv_res_ext_frac_width]);
-	assign s_axis_res_last = m_axis_linear_act_res_last;
-	assign s_axis_res_valid = m_axis_linear_act_res_valid;
-	assign m_axis_linear_act_res_ready = s_axis_res_ready;
-	
-	assign feature_point_final = m_axis_linear_act_res_data[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1:0];
-	
 	generate
-		if(conv_res_ext_int_width >= 2)
-			assign feature_point_final_up_ovg = 
-				(~feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1]) & 
-				(|feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-2:
-					feature_pars_data_width+conv_res_ext_frac_width]);
+		if(en_res_amp_lmt == "true")
+		begin
+			assign s_axis_res_data = m_axis_amp_lmt_data;
+			assign s_axis_res_last = m_axis_amp_lmt_last;
+			assign s_axis_res_valid = m_axis_amp_lmt_valid;
+			assign m_axis_amp_lmt_ready = s_axis_res_ready;
+		end
 		else
-			assign feature_point_final_up_ovg = 1'b0;
-	endgenerate
-	
-	generate
-		if(conv_res_ext_int_width >= 2)
-			assign feature_point_final_down_ovg = 
-				feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-1] & 
-				(~(&feature_point_final[conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width-2:
-					feature_pars_data_width+conv_res_ext_frac_width]));
-		else
-			assign feature_point_final_down_ovg = 1'b0;
+		begin
+			assign m_axis_amp_lmt_ready = 1'b1;
+			
+			assign s_axis_res_data = 
+				// 将线性乘加与激活得到的结果右移conv_res_ext_frac_width位, 得到量化精度为in_ft_quaz_acc的输出特征点
+				m_axis_linear_act_res_data[conv_res_ext_frac_width+feature_pars_data_width-1:conv_res_ext_frac_width];
+			assign s_axis_res_last = m_axis_linear_act_res_last;
+			assign s_axis_res_valid = m_axis_linear_act_res_valid;
+			assign m_axis_linear_act_res_ready = s_axis_res_ready;
+		end
 	endgenerate
 	
 	axi_wchn_for_conv_out #(
@@ -1074,6 +1143,26 @@ module axi_generic_conv #(
 		.m_axi_rw_req_dsc_rlast(m_axi_rw_req_dsc_rlast),
 		.m_axi_rw_req_dsc_rvalid(m_axi_rw_req_dsc_rvalid),
 		.m_axi_rw_req_dsc_rready(m_axi_rw_req_dsc_rready)
+	);
+	
+	/** 非线性激活查找表 **/
+	bram_simple_dual_port #(
+		.style("LOW_LATENCY"),
+		.mem_width(16),
+		.mem_depth(2048),
+		.INIT_FILE("no_init"),
+		.byte_write_mode("false"),
+		.simulation_delay(simulation_delay)
+	)non_ln_act_lut(
+		.clk(clk),
+		
+		.wen_a(non_ln_act_lut_wen),
+		.addr_a(non_ln_act_lut_waddr),
+		.din_a(non_ln_act_lut_din),
+		
+		.ren_b(non_ln_act_lut_ren),
+		.addr_b(non_ln_act_lut_raddr),
+		.dout_b(non_ln_act_lut_dout)
 	);
 	
 endmodule

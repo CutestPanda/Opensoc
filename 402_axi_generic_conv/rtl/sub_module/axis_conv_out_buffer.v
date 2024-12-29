@@ -57,7 +57,7 @@ $> 	(输出通道数-?) = floor(卷积核个数/核并行数) * 核并行数 - ((卷积核个数 % 核并
 AXIS MASTER/SLAVE
 
 作者: 陈家耀
-日期: 2024/11/02
+日期: 2024/12/25
 ********************************************************************/
 
 
@@ -81,7 +81,7 @@ module axis_conv_out_buffer #(
 	// 运行时参数
 	input wire kernal_type, // 卷积核类型(1'b0 -> 1x1, 1'b1 -> 3x3)
 	input wire[1:0] padding_en, // 外拓填充使能(仅当卷积核类型为3x3时可用, {左, 右})
-	input wire[15:0] i_ft_map_w, // 输入特征图宽度 - 1
+	input wire[15:0] o_ft_map_w, // 输出特征图宽度 - 1
 	input wire[15:0] o_ft_map_h, // 输出特征图高度 - 1
 	input wire[15:0] kernal_n, // 卷积核个数 - 1
 	
@@ -373,7 +373,6 @@ module axis_conv_out_buffer #(
 	// 延迟1clk的多通道卷积结果缓存区fifo读指针
 	reg[out_buffer_n-1:0] mul_chn_conv_res_buf_fifo_rptr_d;
 	// 多通道卷积结果缓存区读位置
-	reg[clogb2(max_feature_map_w-1):0] o_ft_map_w; // 输出特征图宽度 - 1
 	reg[clogb2(max_feature_map_w-1):0] mul_chn_conv_res_rd_pos_x; // x坐标
 	wire mul_chn_conv_res_rd_last_col; // 处于最后1列(标志)
 	reg[clogb2(max_kernal_n-1):0] mul_chn_conv_res_rd_pos_ochn; // 输出通道号
@@ -415,7 +414,7 @@ module axis_conv_out_buffer #(
 	// 握手条件: mul_chn_conv_res_rd_s2_valid & m_axis_ft_out_ready
 	assign mul_chn_conv_res_rd_s2_ready = m_axis_ft_out_ready;
 	
-	assign mul_chn_conv_res_rd_last_col = mul_chn_conv_res_rd_pos_x == o_ft_map_w;
+	assign mul_chn_conv_res_rd_last_col = mul_chn_conv_res_rd_pos_x == o_ft_map_w[clogb2(max_feature_map_w-1):0];
 	
 	genvar mul_chn_conv_res_dout_masked_i;
 	generate
@@ -492,22 +491,6 @@ module axis_conv_out_buffer #(
 			mul_chn_conv_res_buf_fifo_rptr_d <= # simulation_delay mul_chn_conv_res_buf_fifo_rptr;
 	end
 	
-	// 输出特征图宽度 - 1
-	always @(posedge clk)
-	begin
-		if(en_conv_cal)
-			o_ft_map_w <= # simulation_delay i_ft_map_w[clogb2(max_feature_map_w-1):0] - 
-				/*
-				   需要左填充 需要右填充   操作
-				       0          0         -2
-					   0          1         -1
-					   1          0         -1
-					   1          1          0
-				*/
-				{(~((~kernal_type) | padding_en[1])) & (~((~kernal_type) | padding_en[0])), 
-				((~kernal_type) | padding_en[1]) ^ ((~kernal_type) | padding_en[0])};
-	end
-	
 	// 当前读多通道卷积结果缓存区的x坐标
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -543,7 +526,7 @@ module axis_conv_out_buffer #(
 					mul_chn_conv_res_rd_pos_ochn[clogb2(max_kernal_n-1):clogb2(kernal_prl_n)] <= 0;
 				else if(mul_chn_conv_res_rd_s1_valid & mul_chn_conv_res_rd_s1_ready & mul_chn_conv_res_rd_s1_last & 
 					((&mul_chn_conv_res_rd_pos_ochn[clogb2(kernal_prl_n-1):0]) | (mul_chn_conv_res_rd_pos_ochn == kernal_n)) & 
-					(mul_chn_conv_res_rd_pos_y == o_ft_map_h))
+					(mul_chn_conv_res_rd_pos_y == o_ft_map_h[clogb2(max_feature_map_h-1):0]))
 					mul_chn_conv_res_rd_pos_ochn[clogb2(max_kernal_n-1):clogb2(kernal_prl_n)] <= # simulation_delay 
 					// (mul_chn_conv_res_rd_pos_ochn == kernal_n) ? 
 					//     0:(mul_chn_conv_res_rd_pos_ochn[clogb2(max_kernal_n-1):clogb2(kernal_prl_n)] + 1)
@@ -558,7 +541,7 @@ module axis_conv_out_buffer #(
 				if(~rst_n)
 					mul_chn_conv_res_rd_pos_ochn <= 0;
 				else if(mul_chn_conv_res_rd_s1_valid & mul_chn_conv_res_rd_s1_ready & mul_chn_conv_res_rd_s1_last & 
-					(mul_chn_conv_res_rd_pos_y == o_ft_map_h))
+					(mul_chn_conv_res_rd_pos_y == o_ft_map_h[clogb2(max_feature_map_h-1):0]))
 					mul_chn_conv_res_rd_pos_ochn <= # simulation_delay 
 					// (mul_chn_conv_res_rd_pos_ochn == kernal_n) ? 0:(mul_chn_conv_res_rd_pos_ochn + 1)
 					{(clogb2(max_kernal_n-1)+1){mul_chn_conv_res_rd_pos_ochn != kernal_n}} & 
@@ -576,8 +559,9 @@ module axis_conv_out_buffer #(
 			((kernal_prl_n == 1) | (&mul_chn_conv_res_rd_pos_ochn[clogb2(kernal_prl_n-1):0]) | 
 				(mul_chn_conv_res_rd_pos_ochn == kernal_n)))
 			mul_chn_conv_res_rd_pos_y <= # simulation_delay 
-			// (mul_chn_conv_res_rd_pos_y == o_ft_map_h) ? 0:(mul_chn_conv_res_rd_pos_y + 1)
-			{(clogb2(max_feature_map_h-1)+1){mul_chn_conv_res_rd_pos_y != o_ft_map_h}} & (mul_chn_conv_res_rd_pos_y + 1);
+			// (mul_chn_conv_res_rd_pos_y == o_ft_map_h[clogb2(max_feature_map_h-1):0]) ? 0:(mul_chn_conv_res_rd_pos_y + 1)
+			{(clogb2(max_feature_map_h-1)+1){mul_chn_conv_res_rd_pos_y != o_ft_map_h[clogb2(max_feature_map_h-1):0]}} & 
+			(mul_chn_conv_res_rd_pos_y + 1);
 	end
 	
 	/** 多通道卷积结果行缓存区MEM **/

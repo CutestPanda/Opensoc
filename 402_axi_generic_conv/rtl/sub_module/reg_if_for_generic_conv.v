@@ -21,7 +21,7 @@
 			10:写请求处理完成中断标志              RO
 	0x0C    31~0:写请求处理完成中断阈值            RW
 	0x10    0:使能卷积计算                         RW
-	0x14    0:卷积核类型                           RW
+	0x14    0:卷积核类型                           RW        1'b0 -> 1x1, 1'b1 -> 3x3
 	        11~8:外拓填充使能                      RW
 	0x18    31~0:读请求缓存区首地址                RW
 	0x1C    31~0:读请求个数 - 1                    RW
@@ -34,6 +34,14 @@
 	0x30    31~0:Relu激活系数c[31:0]               RW
 	0x34    31~0:Relu激活系数c[63:32]              RW
 	0x38    31~0:已完成的写请求个数                RW
+	0x3C    15~0:输出特征图宽度 - 1                RW
+	        31~16:输出特征图高度 - 1               RW
+	0x40    2~0:水平步长 - 1                       RW
+	        10~8:垂直步长 - 1                      RW
+	        16:步长类型                            RW        1'b0 -> 从第1个ROI开始, 1'b1 -> 舍弃第1个ROI
+	0x44    1~0:激活类型                           RW        2'b00 -> Relu, 2'b01 -> 保留, 2'b10 -> Sigmoid, 2'b11 -> Tanh
+	0x48    10~0:非线性激活查找表写地址            WO        写该寄存器时产生查找表写使能, 写数据的量化精度应为Q15
+	        31~16:非线性激活查找表写数据           WO
 
 注意：
 无
@@ -41,9 +49,10 @@
 协议:
 AXI-Lite SLAVE
 BLK CTRL
+MEM WRITE
 
 作者: 陈家耀
-日期: 2024/11/10
+日期: 2024/12/29
 ********************************************************************/
 
 
@@ -107,6 +116,11 @@ module reg_if_for_generic_conv #(
 	output wire[31:0] wt_req_fns_n_set_v,
 	input wire[31:0] wt_req_fns_n_cur_v,
 	
+	// 非线性激活查找表(写端口)
+	output wire non_ln_act_lut_wen,
+	output wire[10:0] non_ln_act_lut_waddr,
+	output wire[15:0] non_ln_act_lut_din, // Q15
+	
 	// 运行时参数
 	output wire[63:0] act_rate_c, // Relu激活系数c
 	output wire[31:0] rd_req_buf_baseaddr, // 读请求缓存区首地址
@@ -118,7 +132,13 @@ module reg_if_for_generic_conv #(
 	output wire[15:0] feature_map_h, // 输入特征图高度 - 1
 	output wire[15:0] feature_map_chn_n, // 输入特征图通道数 - 1
 	output wire[15:0] kernal_n, // 卷积核个数 - 1
-	output wire[3:0] padding_en // 外拓填充使能(仅当卷积核类型为3x3时可用, {上, 下, 左, 右})
+	output wire[3:0] padding_en, // 外拓填充使能(仅当卷积核类型为3x3时可用, {上, 下, 左, 右})
+	output wire[15:0] o_ft_map_w, // 输出特征图宽度 - 1
+	output wire[15:0] o_ft_map_h, // 输出特征图高度 - 1
+	output wire[2:0] horizontal_step, // 水平步长 - 1
+	output wire[2:0] vertical_step, // 垂直步长 - 1
+	output wire step_type, // 步长类型(1'b0 -> 从第1个ROI开始, 1'b1 -> 舍弃第1个ROI)
+	output wire[1:0] act_type // 激活类型(2'b00 -> Relu, 2'b01 -> 保留, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
 );
 	
     // 计算bit_depth的最高有效位编号(即位数-1)
@@ -135,7 +155,7 @@ module reg_if_for_generic_conv #(
     endfunction
 	
 	/** 内部配置 **/
-	localparam integer REGS_N = 15; // 寄存器总数
+	localparam integer REGS_N = 19; // 寄存器总数
 	
 	/** 常量 **/
 	// 寄存器配置状态独热码编号
@@ -280,6 +300,19 @@ module reg_if_for_generic_conv #(
 	reg[15:0] kernal_n_regs; // 卷积核个数 - 1
 	// 0x30, 0x34
 	reg[63:0] act_rate_c_regs; // Relu激活系数c
+	// 0x3C
+	reg[15:0] o_ft_map_w_regs; // 输出特征图宽度 - 1
+	reg[15:0] o_ft_map_h_regs; // 输出特征图高度 - 1
+	// 0x40
+	reg[2:0] horizontal_step_regs; // 水平步长 - 1
+	reg[2:0] vertical_step_regs; // 垂直步长 - 1
+	reg step_type_reg; // 步长类型
+	// 0x44
+	reg[1:0] act_type_regs; // 激活类型
+	// 0x48
+	reg non_ln_act_lut_wen_reg;
+	reg[10:0] non_ln_act_lut_waddr_regs;
+	reg[15:0] non_ln_act_lut_din_regs; // Q15
 	
 	assign rd_req_dsc_dma_blk_start = rd_req_dsc_dma_blk_start_reg;
 	assign wt_req_dsc_dma_blk_start = wt_req_dsc_dma_blk_start_reg;
@@ -295,6 +328,10 @@ module reg_if_for_generic_conv #(
 	assign to_set_wt_req_fns_n = {4{regs_en & (regs_addr == 14)}} & regs_wen;
 	assign wt_req_fns_n_set_v = regs_din;
 	
+	assign non_ln_act_lut_wen = non_ln_act_lut_wen_reg;
+	assign non_ln_act_lut_waddr = non_ln_act_lut_waddr_regs;
+	assign non_ln_act_lut_din = non_ln_act_lut_din_regs;
+	
 	assign act_rate_c = act_rate_c_regs;
 	assign rd_req_buf_baseaddr = rd_req_buf_baseaddr_regs;
 	assign rd_req_n = rd_req_n_regs;
@@ -306,6 +343,12 @@ module reg_if_for_generic_conv #(
 	assign feature_map_chn_n = feature_map_chn_n_regs;
 	assign kernal_n = kernal_n_regs;
 	assign padding_en = padding_en_regs;
+	assign o_ft_map_w = o_ft_map_w_regs;
+	assign o_ft_map_h = o_ft_map_h_regs;
+	assign horizontal_step = horizontal_step_regs;
+	assign vertical_step = vertical_step_regs;
+	assign step_type = step_type_reg;
+	assign act_type = act_type_regs;
 	
 	assign regs_dout = regs_region_rd_out;
 	
@@ -401,6 +444,24 @@ module reg_if_for_generic_conv #(
 			wt_req_fns_n_cur_v[23:16], 
 			wt_req_fns_n_cur_v[15:8], 
 			wt_req_fns_n_cur_v[7:0]
+		}) | 
+		({32{regs_addr == 15}} & {
+			o_ft_map_h_regs[15:8], 
+			o_ft_map_h_regs[7:0], 
+			o_ft_map_w_regs[15:8], 
+			o_ft_map_w_regs[7:0]
+		}) | 
+		({32{regs_addr == 16}} & {
+			8'dx, 
+			7'dx, step_type_reg, 
+			5'dx, vertical_step_regs, 
+			5'dx, horizontal_step_regs
+		}) | 
+		({32{regs_addr == 17}} & {
+			8'dx, 
+			8'dx, 
+			8'dx, 
+			6'dx, act_type_regs
 		});
 	
 	// 寄存器区读数据
@@ -698,6 +759,91 @@ module reg_if_for_generic_conv #(
 	begin
 		if(regs_en & regs_wen[3] & (regs_addr == 13))
 			act_rate_c_regs[63:56] <= # simulation_delay regs_din[31:24];
+	end
+	
+	// 0x3C, 15~0
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[0] & (regs_addr == 15))
+			o_ft_map_w_regs[7:0] <= # simulation_delay regs_din[7:0];
+	end
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[1] & (regs_addr == 15))
+			o_ft_map_w_regs[15:8] <= # simulation_delay regs_din[15:8];
+	end
+	
+	// 0x3C, 31~16
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[2] & (regs_addr == 15))
+			o_ft_map_h_regs[7:0] <= # simulation_delay regs_din[23:16];
+	end
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[3] & (regs_addr == 15))
+			o_ft_map_h_regs[15:8] <= # simulation_delay regs_din[31:24];
+	end
+	
+	// 0x40, 2~0
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[0] & (regs_addr == 16))
+			horizontal_step_regs <= # simulation_delay regs_din[2:0];
+	end
+	
+	// 0x40, 10~8
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[1] & (regs_addr == 16))
+			vertical_step_regs <= # simulation_delay regs_din[10:8];
+	end
+	
+	// 0x40, 16
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[2] & (regs_addr == 16))
+			step_type_reg <= # simulation_delay regs_din[16];
+	end
+	
+	// 0x44, 1~0
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[0] & (regs_addr == 17))
+			act_type_regs <= # simulation_delay regs_din[1:0];
+	end
+	
+	// 0x48, 10~0
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[0] & (regs_addr == 18))
+			non_ln_act_lut_waddr_regs[7:0] <= # simulation_delay regs_din[7:0];
+	end
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[1] & (regs_addr == 18))
+			non_ln_act_lut_waddr_regs[10:8] <= # simulation_delay regs_din[10:8];
+	end
+	
+	// 0x48, 31~16
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[2] & (regs_addr == 18))
+			non_ln_act_lut_din_regs[7:0] <= # simulation_delay regs_din[23:16];
+	end
+	always @(posedge clk)
+	begin
+		if(regs_en & regs_wen[3] & (regs_addr == 18))
+			non_ln_act_lut_din_regs[15:8] <= # simulation_delay regs_din[31:24];
+	end
+	
+	// Sigmoid/Tanh查找表写使能
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			non_ln_act_lut_wen_reg <= 1'b0;
+		else
+			non_ln_act_lut_wen_reg <= # simulation_delay regs_en & (|regs_wen) & (regs_addr == 18);
 	end
 	
 	// 中断发生器

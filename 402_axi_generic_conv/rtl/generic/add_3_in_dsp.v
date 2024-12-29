@@ -1,9 +1,10 @@
 `timescale 1ns / 1ps
 /********************************************************************
-本模块: 三输入加法器DSP单元
+本模块: 三输入加法器
 
 描述:
 有符号加法器: add_out = (op_a + op_d) + op_c
+可选使用DSP
 3级流水线
 
 注意：
@@ -14,11 +15,12 @@
 无
 
 作者: 陈家耀
-日期: 2024/10/23
+日期: 2024/12/25
 ********************************************************************/
 
 
 module add_3_in_dsp #(
+	parameter en_use_dsp = "false", // 是否使用DSP
 	parameter integer op_a_width = 16, // 操作数A位宽(含1位符号位)
 	parameter integer op_c_width = 16, // 操作数C位宽(含1位符号位)
 	parameter integer op_d_width = 16, // 操作数D位宽(含1位符号位)
@@ -29,9 +31,9 @@ module add_3_in_dsp #(
 	input wire clk,
 	
 	// 使能
-	input wire ce_s1_pre_adder,
+	input wire ce_s1_pre_adder, // 仅使用DSP时可用
 	input wire ce_s1_op_c,
-	input wire ce_s2_mul,
+	input wire ce_s2_mul, // 仅使用DSP时可用
 	input wire ce_s2_op_c,
 	input wire ce_s3_p,
 	
@@ -44,6 +46,40 @@ module add_3_in_dsp #(
 	output wire signed[output_width-1:0] res
 );
     
+	localparam integer adder_s1_res_width = (op_a_width > op_d_width) ? (op_a_width + 1):(op_d_width + 1);
+	
+	reg signed[adder_s1_res_width-1:0] adder_s1_res;
+	reg signed[op_c_width-1:0] op_c_d;
+	reg signed[output_width-1:0] adder_s2_res;
+	reg signed[output_width-1:0] adder_3_res;
+	wire signed[output_width-1:0] dsp_res;
+	
+	assign res = (en_use_dsp == "true") ? dsp_res:adder_3_res;
+	
+	always @(posedge clk)
+	begin
+		if(ce_s1_op_c)
+			adder_s1_res <= # simulation_delay op_a + op_d;
+	end
+	
+	always @(posedge clk)
+	begin
+		if(ce_s1_op_c)
+			op_c_d <= # simulation_delay op_c;
+	end
+	
+	always @(posedge clk)
+	begin
+		if(ce_s2_op_c)
+			adder_s2_res <= # simulation_delay adder_s1_res + op_c_d;
+	end
+	
+	always @(posedge clk)
+	begin
+		if(ce_s3_p)
+			adder_3_res <= # simulation_delay adder_s2_res;
+	end
+	
     mul_add_dsp #(
         .en_op_a_in_regs("false"),
         .en_op_b_in_regs("false"),
@@ -78,7 +114,7 @@ module add_3_in_dsp #(
         .op_c(op_c),
         .op_d(op_d),
         
-        .res(res),
+        .res(dsp_res),
         .pattern_detect_res()
     );
 	

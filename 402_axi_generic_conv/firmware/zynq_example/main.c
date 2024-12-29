@@ -10,21 +10,27 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define KERNAL_TYPE 1 // 卷积核类型(1 -> 3x3, 0 -> 1x1)
+#define STEP_TYPE 1 // 步长类型(0 -> 从第1个ROI开始, 1 -> 舍弃第1个ROI)
 
-#define PRL_KERNAL_N 2 // 核并行数
-#define PRL_CHN_N 2 // 通道并行数
+#define PRL_KERNAL_N 4 // 核并行数
+#define PRL_CHN_N 1 // 通道并行数
 
-#define FT_MAP_W 13 // 特征图宽度
-#define FT_MAP_H 13 // 特征图高度
+#define FT_MAP_W 14 // 特征图宽度
+#define FT_MAP_H 14 // 特征图高度
 #define FT_MAP_CHN 128 // 特征图通道数
 #define KERNAL_N 256 // 卷积核个数
 
+#define H_STEP 2 // 水平步长
+#define V_STEP 2 // 垂直步长
+#define O_FT_MAP_W 7 // 输出特征图宽度
+#define O_FT_MAP_H 7 // 输出特征图高度
+
 #define ACT_RATE_C (1 << 13) // Relu激活系数
 
-#define IN_FT_QUAZ_ACC 10 // 特征点量化精度
+#define IN_FT_QUAZ_ACC 8 // 特征点量化精度
 #define CONV_RES_EXT_FRAC_WIDTH 4 // 卷积结果额外考虑的小数位数
 #define CONV_RES_EXT_INT_WIDTH 4 // 卷积结果额外考虑的整数位数
-#define AB_QUAZ_ACC 12 // a/b系数量化精度
+#define AB_QUAZ_ACC 8 // a/b系数量化精度
 #define C_QUAZ_ACC 14 // c系数量化精度
 
 #define RD_REQ_BUF_ALIGNMENT 64 // 读请求描述子缓存区首地址对齐到的字节数
@@ -41,8 +47,6 @@ void axi_generic_conv_intr_handler(void* callback_ref); // AXI通用卷积加速器中断
 void generate_ft_pars(void); // 生成输入特征图/卷积核参数/线性参数
 void generate_golden_ref(void); // 生成黄金参考
 int check_conv_res(void); // 检查卷积结果
-
-uint32_t* ptr_align(uint32_t* ptr, uint32_t align_byte_n); // 生成最近的对齐地址
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -64,12 +68,10 @@ static uint16_t out_ft_map_buf[FT_MAP_W * FT_MAP_H * KERNAL_N + 4];
 static uint16_t golden_ref_buf[FT_MAP_W * FT_MAP_H * KERNAL_N + 4];
 
 // 读请求描述子缓存区
-static uint32_t rd_req_dsc_buf[MAX_RD_REQ_N * 2 + 64];
-static uint32_t* rd_req_dsc_buf_ptr;
+static uint32_t rd_req_dsc_buf[MAX_RD_REQ_N * 2 + 64] __attribute__ ((aligned(RD_REQ_BUF_ALIGNMENT)));
 static uint32_t rd_req_n;
 // 写请求描述子缓存区
-static uint32_t wt_req_dsc_buf[MAX_WT_REQ_N * 2 + 64];
-static uint32_t* wt_req_dsc_buf_ptr;
+static uint32_t wt_req_dsc_buf[MAX_WT_REQ_N * 2 + 64] __attribute__ ((aligned(WT_REQ_BUF_ALIGNMENT)));
 static uint32_t wt_req_n;
 
 // 中断标志
@@ -99,23 +101,28 @@ int main(void){
 	axi_conv_cfg.kernal_n = KERNAL_N;
 	axi_conv_cfg.act_rate_c_0 = ACT_RATE_C;
 	axi_conv_cfg.act_rate_c_1 = 0;
+	axi_conv_cfg.o_ft_map_w = O_FT_MAP_W;
+	axi_conv_cfg.o_ft_map_h = O_FT_MAP_H;
+	axi_conv_cfg.horizontal_step = H_STEP;
+	axi_conv_cfg.vertical_step = V_STEP;
+	axi_conv_cfg.step_type = STEP_TYPE ? NON_FIRST:FIRST;
+	axi_conv_cfg.act_type = RELU;
 
-	axi_generic_conv_set_conv_params(&axi_conv, &axi_conv_cfg);
+	if(axi_generic_conv_set_conv_params(&axi_conv, &axi_conv_cfg)){
+		return XST_FAILURE;
+	}
 
 	// 生成输入特征图/卷积核参数/线性参数
 	generate_ft_pars();
 	// 生成黄金参考
 	generate_golden_ref();
-	// 生成对齐的读请求描述子缓存区指针
-	rd_req_dsc_buf_ptr = ptr_align(rd_req_dsc_buf, RD_REQ_BUF_ALIGNMENT);
-	// 生成对齐的写请求描述子缓存区指针
-	wt_req_dsc_buf_ptr = ptr_align(wt_req_dsc_buf, WT_REQ_BUF_ALIGNMENT);
 	// 生成读请求描述子
-	rd_req_n = axi_generic_conv_generate_rd_req_dsc(rd_req_dsc_buf_ptr, (uint32_t)linear_a_buf, (uint32_t)linear_b_buf,
+	rd_req_n = axi_generic_conv_generate_rd_req_dsc(rd_req_dsc_buf, (uint32_t)linear_a_buf, (uint32_t)linear_b_buf,
 		(uint32_t)kernal_buf, (uint32_t)in_ft_map_buf, KERNAL_N, PRL_KERNAL_N, FT_MAP_CHN, PRL_CHN_N,
-		FT_MAP_W, FT_MAP_H, 1, 1, KERNAL_TYPE ? TYPE_3x3:TYPE_1x1);
+		FT_MAP_W, FT_MAP_H, 1, 1, KERNAL_TYPE ? TYPE_3x3:TYPE_1x1, V_STEP, STEP_TYPE ? NON_FIRST:FIRST);
 	// 生成写请求描述子
-	wt_req_n = axi_generic_conv_generate_wt_req_dsc(wt_req_dsc_buf_ptr, (uint32_t)out_ft_map_buf, KERNAL_N, PRL_KERNAL_N, FT_MAP_W, FT_MAP_H);
+	wt_req_n = axi_generic_conv_generate_wt_req_dsc(wt_req_dsc_buf, (uint32_t)out_ft_map_buf,
+		KERNAL_N, PRL_KERNAL_N, O_FT_MAP_W, O_FT_MAP_H);
 
 #ifndef USE_ACP_PORT
 	// 刷新数据Cache
@@ -133,18 +140,18 @@ int main(void){
 		20, ITR_RISING_EDGE_TG) == XST_FAILURE){
 		return XST_FAILURE;
 	}
-	axi_generic_conv_set_wt_req_itr_th(&axi_conv, FT_MAP_H * KERNAL_N);
+	axi_generic_conv_set_wt_req_itr_th(&axi_conv, O_FT_MAP_H * KERNAL_N);
 	axi_generic_conv_enable_itr(&axi_conv, AXI_GENERIC_CONV_ITR_WT_FNS);
 
 	// 启动AXI通用卷积加速器
 	axi_generic_conv_start(&axi_conv);
 
 	// 提交读请求描述子
-	if(axi_generic_conv_post_rd_req_dsc(&axi_conv, (uint32_t)rd_req_dsc_buf_ptr, rd_req_n)){
+	if(axi_generic_conv_post_rd_req_dsc(&axi_conv, (uint32_t)rd_req_dsc_buf, rd_req_n)){
 		return XST_FAILURE;
 	}
 	// 提交写请求描述子
-	if(axi_generic_conv_post_wt_req_dsc(&axi_conv, (uint32_t)wt_req_dsc_buf_ptr, wt_req_n)){
+	if(axi_generic_conv_post_wt_req_dsc(&axi_conv, (uint32_t)wt_req_dsc_buf, wt_req_n)){
 		return XST_FAILURE;
 	}
 
@@ -168,11 +175,11 @@ int main(void){
 	axi_generic_conv_start(&axi_conv);
 
 	// 提交读请求描述子
-	if(axi_generic_conv_post_rd_req_dsc(&axi_conv, (uint32_t)rd_req_dsc_buf_ptr, rd_req_n)){
+	if(axi_generic_conv_post_rd_req_dsc(&axi_conv, (uint32_t)rd_req_dsc_buf, rd_req_n)){
 		return XST_FAILURE;
 	}
 	// 提交写请求描述子
-	if(axi_generic_conv_post_wt_req_dsc(&axi_conv, (uint32_t)wt_req_dsc_buf_ptr, wt_req_n)){
+	if(axi_generic_conv_post_wt_req_dsc(&axi_conv, (uint32_t)wt_req_dsc_buf, wt_req_n)){
 		return XST_FAILURE;
 	}
 
@@ -260,13 +267,55 @@ void generate_ft_pars(void){
 @return none
 *************************/
 void generate_golden_ref(void){
+	int out_i = 0;
+	uint8_t horizontal_step_cnt;
+	uint8_t vertical_step_cnt;
+	uint8_t horizontal_step_cmp = STEP_TYPE ? (H_STEP - 1):0;
+	uint8_t vertical_step_cmp = STEP_TYPE ? (V_STEP - 1):0;
+
 	for(int i = 0;i < KERNAL_N;i++){
 		int16_t linear_a = linear_a_buf[i];
 		int16_t linear_b = linear_b_buf[i];
 
+		vertical_step_cnt = 0;
+
 		for(int y = 0;y < FT_MAP_H;y++){
+			if(vertical_step_cnt != vertical_step_cmp){
+				if(vertical_step_cnt == (V_STEP - 1)){
+					vertical_step_cnt = 0;
+				}else{
+					vertical_step_cnt++;
+				}
+
+				continue;
+			}
+
+			if(vertical_step_cnt == (V_STEP - 1)){
+				vertical_step_cnt = 0;
+			}else{
+				vertical_step_cnt++;
+			}
+
+			horizontal_step_cnt = 0;
+
 			for(int x = 0;x < FT_MAP_W;x++){
 				int64_t conv_res = 0;
+
+				if(horizontal_step_cnt != horizontal_step_cmp){
+					if(horizontal_step_cnt == (H_STEP - 1)){
+						horizontal_step_cnt = 0;
+					}else{
+						horizontal_step_cnt++;
+					}
+
+					continue;
+				}
+
+				if(horizontal_step_cnt == (H_STEP - 1)){
+					horizontal_step_cnt = 0;
+				}else{
+					horizontal_step_cnt++;
+				}
 
 				for(int c = 0;c < FT_MAP_CHN;c++){
 					int16_t in_ft_roi[3][3];
@@ -357,7 +406,7 @@ void generate_golden_ref(void){
 					}
 				}
 
-				golden_ref_buf[i * FT_MAP_W * FT_MAP_H + y * FT_MAP_W + x] = conv_res;
+				golden_ref_buf[out_i] = conv_res;
 #else
 				conv_res >>= CONV_RES_EXT_FRAC_WIDTH;
 				conv_res &= ((1 << 16) - 1);
@@ -370,6 +419,7 @@ void generate_golden_ref(void){
 
 				golden_ref_buf[i * FT_MAP_W * FT_MAP_H + y * FT_MAP_W + x] = conv_res;
 #endif
+				out_i++;
 			}
 		}
 	}
@@ -395,20 +445,4 @@ int check_conv_res(void){
 	}
 
 	return success ? 0:-1;
-}
-
-/*************************
-@logic
-@private
-@brief  生成最近的对齐地址
-@param  ptr 原始指针
-        align_byte_n 对齐字节量
-@return 对齐的指针
-*************************/
-uint32_t* ptr_align(uint32_t* ptr, uint32_t align_byte_n){
-	while(((uint32_t)ptr) % align_byte_n){
-		ptr++;
-	}
-
-	return ptr;
 }

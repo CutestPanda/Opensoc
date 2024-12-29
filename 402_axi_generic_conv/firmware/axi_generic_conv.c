@@ -16,14 +16,35 @@ void init_axi_generic_conv(AXIGenericConv* axi_conv, uint32_t baseaddr){
 }
 
 /*************************
+@init
+@public
+@brief  初始化AXI通用卷积加速器的非线性激活查找表
+@param  axi_conv AXI通用卷积加速器(结构体指针)
+        lut 非线性激活查找表(首地址)
+@attention 查找表的深度应为2048, 其数据的量化精度应为Q15
+@return none
+*************************/
+void axi_generic_conv_wt_non_ln_act_lut(AXIGenericConv* axi_conv, uint16_t* lut){
+	for(uint32_t i = 0;i < 2048;i++){
+		uint32_t data = (((uint32_t)lut[i]) << 16);
+
+		axi_conv->hardware->non_ln_act_lut_wt = i | data;
+	}
+}
+
+/*************************
 @cfg
 @public
 @brief  配置AXI通用卷积加速器的运行时参数
 @param  axi_conv AXI通用卷积加速器(结构体指针)
         cfg 运行时参数配置(结构体指针)
-@return none
+@return 是否成功
 *************************/
-void axi_generic_conv_set_conv_params(AXIGenericConv* axi_conv, AXIGenericConvCfg* cfg){
+int axi_generic_conv_set_conv_params(AXIGenericConv* axi_conv, AXIGenericConvCfg* cfg){
+	if((cfg->horizontal_step == 0) || (cfg->horizontal_step > 8) ||
+		(cfg->vertical_step == 0) || (cfg->vertical_step > 8))
+		return -1;
+
 	axi_conv->hardware->kernal_style =
 		((cfg->kernal_type == TYPE_3x3) ? 0x00000001:0x00000000) |
 		(cfg->en_right_padding ? 0x00000100:0x00000000) |
@@ -41,6 +62,19 @@ void axi_generic_conv_set_conv_params(AXIGenericConv* axi_conv, AXIGenericConvCf
 
 	axi_conv->hardware->act_rate_c_0 = cfg->act_rate_c_0;
 	axi_conv->hardware->act_rate_c_1 = cfg->act_rate_c_1;
+
+	axi_conv->hardware->o_ft_map_w_h =
+		((uint32_t)(cfg->o_ft_map_w - 1)) |
+		(((uint32_t)(cfg->o_ft_map_h - 1)) << 16);
+
+	axi_conv->hardware->step =
+		((uint32_t)(cfg->horizontal_step - 1)) |
+		(((uint32_t)(cfg->vertical_step - 1)) << 8) |
+		((cfg->step_type == FIRST) ? 0x00000000:0x00010000);
+
+	axi_conv->hardware->act = (cfg->act_type == RELU) ? 0x00000000:((cfg->act_type == SIGMOID) ? 0x00000002:0x00000003);
+
+	return 0;
 }
 
 /*************************
@@ -259,6 +293,8 @@ uint32_t axi_generic_conv_get_wt_req_fns_n(AXIGenericConv* axi_conv){
 		en_top_padding 是否使能上填充
 		en_bottom_padding 是否使能下填充
 		kernal_type 卷积核类型
+		vertical_step 垂直步长
+		step_type 步长类型
 @return 读请求个数
 *************************/
 uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
@@ -267,8 +303,10 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 	uint32_t ft_map_chn_n, uint8_t prl_chn_n,
 	uint32_t in_ft_map_w, uint32_t in_ft_map_h,
 	uint8_t en_top_padding, uint8_t en_bottom_padding,
-	KernalType kernal_type){
+	KernalType kernal_type, uint8_t vertical_step, StepType step_type){
 	uint32_t rd_req_n = 0;
+	uint8_t vertical_step_sub1 = vertical_step - 1;
+	uint8_t vertical_step_cmp = (step_type == FIRST) ? 0:vertical_step_sub1;
 
 	// 线性参数A
 	rd_req_dsc_buf_ptr[rd_req_n * 2] = linear_a_buf_baseaddr;
@@ -281,6 +319,7 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 
 	int ft_map_repeat_n = kernal_n / prl_kernal_n + ((kernal_n % prl_kernal_n) ? 1:0);
 	int in_ft_map_chn_n_to_fetch = (ft_map_chn_n / prl_chn_n + ((ft_map_chn_n % prl_chn_n) ? 1:0)) * prl_chn_n;
+	uint8_t vertical_step_cnt;
 
 	for(int i = 0;i < ft_map_repeat_n;i++){
 		// 卷积核
@@ -292,10 +331,26 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 		}
 
 		// 输入特征图
+		vertical_step_cnt = 0;
+
 		for(int j = 0;j < in_ft_map_h;j++){
 			if(((j == 0) && (!en_top_padding) && (kernal_type == TYPE_3x3)) ||
 				((j == (in_ft_map_h - 1)) && (!en_bottom_padding) && (kernal_type == TYPE_3x3))){
 				continue;
+			}else if(vertical_step_cnt != vertical_step_cmp){
+				if(vertical_step_cnt == vertical_step_sub1){
+					vertical_step_cnt = 0;
+				}else{
+					vertical_step_cnt++;
+				}
+
+				continue;
+			}
+
+			if(vertical_step_cnt == vertical_step_sub1){
+				vertical_step_cnt = 0;
+			}else{
+				vertical_step_cnt++;
 			}
 
 			for(int k = 0;k < in_ft_map_chn_n_to_fetch;k++){
@@ -334,6 +389,8 @@ uint32_t axi_generic_conv_generate_rd_req_dsc(uint32_t* rd_req_dsc_buf_ptr,
 		prl_kernal_n 核并行数
 		out_ft_map_w 输出特征图宽度
 		out_ft_map_h 输出特征图高度
+		horizontal_step 水平步长
+		vertical_step 垂直步长
 @return 写请求个数
 *************************/
 uint32_t axi_generic_conv_generate_wt_req_dsc(
