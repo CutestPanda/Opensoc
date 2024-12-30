@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module tb_float_mul_pipelined();
+module tb_non_linear_act();
 	
 	/** 配置参数 **/
 	// 待测模块配置
@@ -11,8 +11,8 @@ module tb_float_mul_pipelined();
 	// 运行时参数配置
 	localparam bit non_ln_act_type = 1'b1; // 非线性激活类型(1'b0 -> Sigmoid, 1'b1 -> Tanh)
 	// 仿真模型配置
-	localparam string act_sigmoid_txt_path = "./act_sigmoid.txt";
-	localparam string act_tanh_txt_path = "./act_tanh.txt";
+	localparam string act_sigmoid_txt_path = "./sim_model/act_sigmoid.txt";
+	localparam string act_tanh_txt_path = "./sim_model/act_tanh.txt";
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
