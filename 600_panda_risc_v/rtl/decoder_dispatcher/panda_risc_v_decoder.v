@@ -26,7 +26,7 @@ ALU操作 ->
 无
 
 作者: 陈家耀
-日期: 2024/11/21
+日期: 2025/01/03
 ********************************************************************/
 
 
@@ -52,6 +52,8 @@ module panda_risc_v_decoder(
 	output wire is_mul_inst, // 是否乘法指令
 	output wire is_div_inst, // 是否除法指令
 	output wire is_rem_inst, // 是否求余指令
+	output wire is_ecall_inst, // 是否ECALL指令
+	output wire is_mret_inst, // 是否MRET指令
 	
 	// 分支预测回退处理
 	input wire prdt_jump, // 是否预测跳转
@@ -62,8 +64,9 @@ module panda_risc_v_decoder(
 	output wire rs2_vld, // 是否需要读RS2
 	output wire rd_vld, // 是否需要写RD
 	
-	// LSU操作信息
+	// 访存信息
 	output wire[2:0] ls_type, // 访存类型
+	output wire ls_addr_aligned, // 访存地址对齐(标志)
 	
 	// 乘除法操作数
 	output wire[32:0] mul_div_op_a, // 操作数A
@@ -81,7 +84,7 @@ module panda_risc_v_decoder(
 	output wire[31:0] alu_op2, // 操作数2
 	
 	// 打包的译码结果
-	output wire[6:0] dcd_res_inst_type_packeted, // 打包的指令类型标志
+	output wire[8:0] dcd_res_inst_type_packeted, // 打包的指令类型标志
 	output wire[67:0] dcd_res_alu_op_msg_packeted, // 打包的ALU操作信息
 	output wire[2:0] dcd_res_lsu_op_msg_packeted, // 打包的LSU操作信息
 	output wire[45:0] dcd_res_csr_rw_op_msg_packeted, // 打包的CSR原子读写操作信息
@@ -99,11 +102,13 @@ module panda_risc_v_decoder(
 	localparam integer PRE_DCD_MSG_IS_JALR_INST_SID = 6;
 	localparam integer PRE_DCD_MSG_IS_JAL_INST_SID = 7;
 	localparam integer PRE_DCD_MSG_IS_B_INST_SID = 8;
-	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 9;
-	localparam integer PRE_DCD_MSG_RD_VLD_SID = 30;
-	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 31;
-	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 32;
-	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 33;
+	localparam integer PRE_DCD_MSG_IS_ECALL_INST_SID = 9;
+	localparam integer PRE_DCD_MSG_IS_MRET_INST_SID = 10;
+	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 11;
+	localparam integer PRE_DCD_MSG_RD_VLD_SID = 32;
+	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 33;
+	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 34;
+	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 35;
 	// 操作类型
 	localparam OP_MODE_ADD = 4'd0; // 加法
 	localparam OP_MODE_SUB = 4'd1; // 减法
@@ -177,7 +182,6 @@ module panda_risc_v_decoder(
 	wire is_and_inst; // 是否AND指令
 	wire is_fence_inst; // 是否FENCE指令
 	wire is_fence_i_inst; // 是否FENCE.I指令
-	wire is_ecall_inst; // 是否ECALL指令
 	wire is_ebreak_inst; // 是否EBREAK指令
 	wire is_csrrw_inst; // 是否CSRRW指令
 	wire is_csrrs_inst; // 是否CSRRS指令
@@ -202,6 +206,8 @@ module panda_risc_v_decoder(
 	assign is_mul_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_MUL_INST_SID];
 	assign is_div_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_DIV_INST_SID];
 	assign is_rem_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_REM_INST_SID];
+	assign is_ecall_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_ECALL_INST_SID];
+	assign is_mret_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_MRET_INST_SID];
 	
 	assign is_arth_imm_inst = inst[6:0] == OPCODE_ARTH_IMM;
 	assign is_arth_regs_inst = (inst[6:0] == OPCODE_ARTH_REG) & (~inst[25]);
@@ -237,8 +243,7 @@ module panda_risc_v_decoder(
 	assign is_and_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b111) & (~inst[25]);
 	assign is_fence_inst = (inst[6:0] == OPCODE_FENCE) & (~inst[12]);
 	assign is_fence_i_inst = (inst[6:0] == OPCODE_FENCE) & inst[12];
-	assign is_ecall_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b000) & (~inst[20]);
-	assign is_ebreak_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b000) & inst[20];
+	assign is_ebreak_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b000) & (inst[21:20] == 2'b01);
 	assign is_csrrw_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b001);
 	assign is_csrrs_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b010);
 	assign is_csrrc_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b011);
@@ -314,8 +319,17 @@ module panda_risc_v_decoder(
 		({32{is_arth_imm_inst}} & arth_imm) | 
 		({32{is_b_inst | is_arth_regs_inst}} & rs2_v);
 	
-	/** 访存类型生成 **/
+	/** 访存信息生成 **/
+	wire[1:0] ls_addr_pre_cal; // 预计算的访存地址低2位
+	
 	assign ls_type = inst[14:12];
+	assign ls_addr_aligned = 
+		(ls_type == LS_TYPE_BYTE) | 
+		(ls_type == LS_TYPE_BYTE_UNSIGNED) | 
+		(((ls_type == LS_TYPE_HALF_WORD) | (ls_type == LS_TYPE_HALF_WORD_UNSIGNED)) & (~ls_addr_pre_cal[0])) | 
+		((ls_type == LS_TYPE_WORD) & (~(ls_addr_pre_cal[0] | ls_addr_pre_cal[1])));
+	
+	assign ls_addr_pre_cal = rs1_v[1:0] + ls_ofs_imm[1:0];
 	
 	/** 乘除法操作数生成 **/
 	wire is_mul_inst_fast; // 是否MUL指令(在乘除法指令内快速区分)
@@ -362,6 +376,7 @@ module panda_risc_v_decoder(
 	
 	/** 打包的译码结果 **/
 	assign dcd_res_inst_type_packeted = {
+		is_mret_inst, is_ecall_inst, 
 		is_b_inst, is_csr_rw_inst, is_load_inst, is_store_inst, 
 		is_mul_inst, is_div_inst, is_rem_inst
 	};

@@ -16,7 +16,7 @@
 无
 
 作者: 陈家耀
-日期: 2024/12/23
+日期: 2025/01/03
 ********************************************************************/
 
 
@@ -69,6 +69,7 @@ module panda_risc_v_divider #(
 	// 寄存器fifo
 	fifo_based_on_regs #(
 		.fwft_mode("true"),
+		.low_latency_mode("true"),
 		.fifo_depth(2),
 		.fifo_data_width(72),
 		.almost_full_th(1),

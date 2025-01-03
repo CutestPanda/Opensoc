@@ -14,21 +14,17 @@
   其他    |    Yes     |           |                       |              |             |
 
 注意：
-无
+对于访存地址非对齐的L/S指令, 将不会被派遣到LSU
 
 协议:
 无
 
 作者: 陈家耀
-日期: 2024/12/23
+日期: 2025/01/03
 ********************************************************************/
 
 
 module panda_risc_v_dispatcher(
-	// 复位/冲刷请求
-	input wire sys_reset_req, // 系统复位请求
-	input wire flush_req, // 冲刷请求
-	
 	// 数据相关性
 	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
 	output wire[4:0] raw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
@@ -47,13 +43,14 @@ module panda_risc_v_dispatcher(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	input wire[70:0] s_dispatch_req_msg_reused, // 复用的派遣信息
-	input wire[6:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
+	input wire[8:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	input wire[31:0] s_dispatch_req_pc_of_inst, // 指令对应的PC
 	input wire[31:0] s_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
 	input wire[4:0] s_dispatch_req_rd_id, // RD索引
 	input wire s_dispatch_req_rd_vld, // 是否需要写RD
-	input wire[1:0] s_dispatch_req_err_code, // 错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
-	                                         //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
+	input wire[2:0] s_dispatch_req_err_code, // 错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
+	                                         //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
+									         //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	input wire s_dispatch_req_valid,
 	output wire s_dispatch_req_ready,
 	
@@ -62,14 +59,18 @@ module panda_risc_v_dispatcher(
 	output wire[31:0] m_alu_op1, // 操作数1
 	output wire[31:0] m_alu_op2, // 操作数2或取到的指令(若当前是非法指令)
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
-	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
-	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
+	output wire[2:0] m_alu_err_code, // 指令的错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
+	                                 //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
+									 //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	output wire[31:0] m_alu_pc_of_inst, // 指令对应的PC
 	output wire m_alu_is_b_inst, // 是否B指令
+	output wire m_alu_is_ecall_inst, // 是否ECALL指令
+	output wire m_alu_is_mret_inst, // 是否MRET指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
+	output wire m_alu_is_long_inst, // 是否长指令(L/S, 乘除法)
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -108,6 +109,8 @@ module panda_risc_v_dispatcher(
 	
 	/** 常量 **/
 	// 打包的指令类型标志各项的起始索引
+	localparam integer INST_TYPE_FLAG_IS_MRET_INST_SID = 8;
+	localparam integer INST_TYPE_FLAG_IS_ECALL_INST_SID = 7;
 	localparam integer INST_TYPE_FLAG_IS_B_INST_SID = 6;
 	localparam integer INST_TYPE_FLAG_IS_CSR_RW_INST_SID = 5;
 	localparam integer INST_TYPE_FLAG_IS_LOAD_INST_SID = 4;
@@ -129,11 +132,13 @@ module panda_risc_v_dispatcher(
 	localparam integer MUL_DIV_OP_MSG_MUL_DIV_OP_A = 34;
 	localparam integer MUL_DIV_OP_MSG_MUL_DIV_OP_B = 1;
 	localparam integer MUL_DIV_OP_MSG_MUL_RES_SEL = 0;
-	
-	/** 复位/冲刷请求 **/
-	wire on_flush_rst; // 当前冲刷或复位(指示)
-	
-	assign on_flush_rst = sys_reset_req | flush_req;
+	// 取指译码错误类型
+	localparam INST_FETCH_DCD_NORMAL = 3'b000; // 正常
+	localparam INST_FETCH_DCD_ILLEGAL_INST = 3'b001; // 非法指令
+	localparam INST_FETCH_DCD_PC_UNALIGNE = 3'b010; // 指令地址非对齐
+	localparam INST_FETCH_DCD_BUS_ACCESS_FAILED = 3'b011; // 指令总线访问失败
+	localparam INST_FETCH_DCD_LD_ADDR_UNALIGNED = 3'b110; // 读存储映射地址非对齐
+	localparam INST_FETCH_DCD_STR_ADDR_UNALIGNED = 3'b111; // 写存储映射地址非对齐
 	
 	/** 数据相关性 **/
 	wire rd_waw_dpc_detected; // 检测到WAW相关性(标志)
@@ -180,11 +185,10 @@ module panda_risc_v_dispatcher(
 	/** 派遣控制 **/
 	// 派遣请求
 	assign s_dispatch_req_ready = 
-		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
 		m_alu_ready & // 所有指令均经过ALU, 需要确保ALU就绪
 		(
-			((~is_ls_inst) | m_lsu_ready) & // 仅加载/存储指令需要用到LSU
+			((~is_ls_inst) | s_dispatch_req_err_code[2] | m_lsu_ready) & // 仅加载/存储指令需要用到LSU, 访存地址非对齐时不派遣到LSU
 			((~is_csr_rw_inst) | m_csr_rw_ready) & // 仅CSR读写指令需要用到CSR原子读写单元
 			((~is_mul_inst) | m_mul_ready) & // 仅乘法指令需要用到乘法器
 			((~is_div_rem_inst) | m_div_ready) // 仅除法/求余指令需要用到除法器
@@ -198,16 +202,24 @@ module panda_risc_v_dispatcher(
 	assign m_alu_err_code = s_dispatch_req_err_code;
 	assign m_alu_pc_of_inst = s_dispatch_req_pc_of_inst;
 	assign m_alu_is_b_inst = is_b_inst;
+	assign m_alu_is_ecall_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_ECALL_INST_SID];
+	assign m_alu_is_mret_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_MRET_INST_SID];
 	assign m_alu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
 	assign m_alu_prdt_jump = dispatch_req_prdt_jump;
 	assign m_alu_rd_id = s_dispatch_req_rd_id;
 	assign m_alu_rd_vld = s_dispatch_req_rd_vld;
+	assign m_alu_is_long_inst = 
+		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_LOAD_INST_SID] | 
+		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID] | 
+		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_MUL_INST_SID] | 
+		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_DIV_INST_SID] | 
+		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID];
 	assign m_alu_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
-		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
 		(
-			(is_ls_inst & m_lsu_ready) | // 若为加载/存储指令, 需要确保ALU执行请求和LSU执行请求同时握手
+			(is_ls_inst & (s_dispatch_req_err_code[2] | m_lsu_ready)) | // 若为加载/存储指令, 除非访存地址非对齐, 
+			                                                            // 否则需要确保ALU执行请求和LSU执行请求同时握手
 			(is_csr_rw_inst & m_csr_rw_ready) | // 若为CSR读写指令, 需要确保ALU执行请求和CSR原子读写单元执行请求同时握手
 			(is_mul_inst & m_mul_ready) | // 若为乘法指令, 需要确保ALU执行请求和乘法器执行请求同时握手
 			(is_div_rem_inst & m_div_ready) | // 若为除法/求余指令, 需要确保ALU执行请求和除法器执行请求同时握手
@@ -221,9 +233,9 @@ module panda_risc_v_dispatcher(
 	assign m_ls_din = s_dispatch_req_brc_pc_upd_store_din; // 用于写存储映射的数据
 	assign m_lsu_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
-		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
 		is_ls_inst & // 当前派遣加载/存储指令
+		(~s_dispatch_req_err_code[2]) & // 访存地址非对齐时不派遣到LSU
 		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪
 	
 	// 派遣给CSR原子读写单元
@@ -233,7 +245,6 @@ module panda_risc_v_dispatcher(
 	assign m_csr_rw_rd_id = s_dispatch_req_rd_id;
 	assign m_csr_rw_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
-		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
 		is_csr_rw_inst & // 当前派遣CSR读写指令
 		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪
@@ -245,7 +256,6 @@ module panda_risc_v_dispatcher(
 	assign m_mul_rd_id = s_dispatch_req_rd_id;
 	assign m_mul_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
-		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
 		is_mul_inst & // 当前派遣乘法指令
 		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪
@@ -257,7 +267,6 @@ module panda_risc_v_dispatcher(
 	assign m_div_rd_id = s_dispatch_req_rd_id;
 	assign m_div_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
-		(~on_flush_rst) & // 处于冲刷或复位状态时不派遣指令
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
 		is_div_rem_inst & // 当前派遣除法/求余指令
 		m_alu_ready; // 所有指令均经过ALU, 需要确保ALU就绪

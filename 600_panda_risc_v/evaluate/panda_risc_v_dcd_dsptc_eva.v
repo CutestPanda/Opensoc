@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2024/12/23
+日期: 2025/01/03
 ********************************************************************/
 
 
@@ -57,16 +57,20 @@ module panda_risc_v_dcd_dsptc_eva(
 	// ALU执行请求
 	output wire[3:0] m_alu_op_mode, // 操作类型
 	output wire[31:0] m_alu_op1, // 操作数1
-	output wire[31:0] m_alu_op2, // 操作数2
+	output wire[31:0] m_alu_op2, // 操作数2或取到的指令(若当前是非法指令)
 	output wire m_alu_addr_gen_sel, // ALU是否用于访存地址生成
-	output wire[1:0] m_alu_err_code, // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
-	                                 //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
+	output wire[2:0] m_alu_err_code, // 指令的错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
+	                                 //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
+									 //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	output wire[31:0] m_alu_pc_of_inst, // 指令对应的PC
 	output wire m_alu_is_b_inst, // 是否B指令
+	output wire m_alu_is_ecall_inst, // 是否ECALL指令
+	output wire m_alu_is_mret_inst, // 是否MRET指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
+	output wire m_alu_is_long_inst, // 是否长指令(L/S, 乘除法)
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -158,10 +162,13 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_alu_err_code(m_alu_err_code),
 		.m_alu_pc_of_inst(m_alu_pc_of_inst),
 		.m_alu_is_b_inst(m_alu_is_b_inst),
+		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
+		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),
 		.m_alu_rd_vld(m_alu_rd_vld),
+		.m_alu_is_long_inst(m_alu_is_long_inst),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		

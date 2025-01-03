@@ -8,18 +8,21 @@
 注意：
 每当CPU进入中断/异常时, 全局中断使能自动关闭, 因此不支持中断嵌套
 当CPU进入中断/异常后, 若产生新的同步异常, CPU无法正确处理(可能导致错误)
+
 只有同步异常的返回地址为PC, 其余中断/异常的返回地址均为PC + 4
 
 分支预测失败导致的重新跳转具有最高的优先级, 其次才是中断/异常
 中断/异常优先级: 外部中断 > 软件中断 > 计时器中断 > 来自LSU的异常 > 同步异常
 
-同步异常可能会被中断请求/LSU异常请求覆盖而得不到处理, 且在返回时这条带有同步异常的指令会被跳过!
+ECALL/同步异常可能会被中断请求/LSU异常请求覆盖而得不到处理, 且在返回时这条ECALL/带有同步异常的指令会被跳过
+
+考虑增加1个异常指令缓存以避免ECALL/同步异常被覆盖???
 
 协议:
 无
 
 作者: 陈家耀
-日期: 2024/12/24
+日期: 2025/01/03
 ********************************************************************/
 
 
@@ -102,11 +105,10 @@ module panda_risc_v_commit #(
 	localparam CMT_INST_ERR_CODE_IMEM_ACCESS_FAILED = 3'b011; // 指令总线访问失败
 	localparam CMT_INST_ERR_CODE_RD_DBUS_UNALIGNED = 3'b110; // 读存储映射地址非对齐
 	localparam CMT_INST_ERR_CODE_WT_DBUS_UNALIGNED = 3'b111; // 写存储映射地址非对齐
-	// 中断原因
+	// 中断/异常原因
 	localparam INTR_CODE_M_SW = 8'd3; // 机器模式软件中断
 	localparam INTR_CODE_M_TMR = 8'd7; // 机器模式计时器中断
 	localparam INTR_CODE_M_EXT = 8'd11; // 机器模式外部中断
-	// 异常原因
 	localparam EXPT_CODE_INST_ADDR_MISALIGNED = 8'd0; // 指令地址非对齐
 	localparam EXPT_CODE_INST_ACCESS_FAULT = 8'd1; // 指令总线访问错误
 	localparam EXPT_CODE_ILLEGAL_INST = 8'd2; // 非法指令
@@ -124,7 +126,7 @@ module panda_risc_v_commit #(
 	
 	assign brc_prdt_failed = 
 		s_pst_valid & // 当前有待交付的指令
-		(~s_pst_err_code[0]) & (~s_pst_err_code[1]) & // 待交付指令没有异常
+		(~(s_pst_err_code[0] | s_pst_err_code[1])) & // 待交付指令没有异常
 		s_pst_is_b_inst & // 待交付指令是B指令
 		(s_pst_prdt_jump ^ cfr_jump); // 预测结果与实际不符
 	
@@ -144,12 +146,12 @@ module panda_risc_v_commit #(
 	// 正在处理的中断/异常(标志)
 	reg trap_processing;
 	
-	// 问题: 同步异常可能会被中断请求/LSU异常请求覆盖而得不到处理!
+	// 问题: ECALL/同步异常可能会被中断请求/LSU异常请求覆盖而得不到处理!
 	assign itr_expt_enter = 
 		s_pst_valid & s_pst_ready & // 当前指令交付完成
 		(~brc_prdt_failed) & // 当前指令不是分支预测失败的B指令
 		(sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | sync_expt_req_vld | // 当前有中断/异常
-			((~s_pst_err_code[0]) & (~s_pst_err_code[1]) & s_pst_is_ecall_inst)); // 待交付指令没有异常且为ECALL指令
+			((~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_ecall_inst)); // 待交付指令没有异常且为ECALL指令
 	assign itr_expt_is_intr = sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld;
 	assign itr_expt_cause = 
 		({8{ext_itr_req_vld}} & INTR_CODE_M_EXT) | // 机器模式外部中断
@@ -169,10 +171,12 @@ module panda_risc_v_commit #(
 			(s_pst_err_code == CMT_INST_ERR_CODE_RD_DBUS_UNALIGNED)}} & EXPT_CODE_LOAD_ADDR_MISALIGNED) | // 读存储映射地址非对齐
 		({8{(~ext_itr_req_vld) & (~sw_itr_req_vld) & (~tmr_itr_req_vld) & (~lsu_expt_req_vld) & sync_expt_req_vld & 
 			(s_pst_err_code == CMT_INST_ERR_CODE_WT_DBUS_UNALIGNED)}} & EXPT_CODE_STORE_ADDR_MISALIGNED) | // 写存储映射地址非对齐
-		({8{(~s_pst_err_code[0]) & (~s_pst_err_code[1]) & s_pst_is_ecall_inst}} & EXPT_CODE_ENV_CALL_FROM_M); // 机器模式环境调用
+		({8{(~ext_itr_req_vld) & (~sw_itr_req_vld) & (~tmr_itr_req_vld) & (~lsu_expt_req_vld) & 
+			(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_ecall_inst}} & EXPT_CODE_ENV_CALL_FROM_M); // 机器模式环境调用
 	// 注意: 只有同步异常的返回地址为PC, 其余中断/异常的返回地址均为PC + 4!
-	// 问题: 1条带有同步异常的指令可能会被中断请求/LSU异常请求覆盖, 且在返回时这条带有同步异常的指令会被跳过!
-	assign itr_expt_ret_addr = s_pst_pc_of_inst + {sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld, 2'b00};
+	// 问题: 1条ECALL/带有同步异常的指令可能会被中断请求/LSU异常请求覆盖, 且在返回时这条ECALL/带有同步异常的指令会被跳过!
+	assign itr_expt_ret_addr = s_pst_pc_of_inst + 
+		{sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | (~sync_expt_req_vld), 2'b00};
 	assign itr_expt_val = 
 		({32{lsu_expt_req_granted}} & 
 			s_lsu_expt_ls_addr) | // 发生LSU异常时, 保存LSU带来的访存地址
@@ -185,7 +189,7 @@ module panda_risc_v_commit #(
 	
 	assign itr_expt_ret = 
 		s_pst_valid & s_pst_ready & // 当前指令交付完成
-		(~s_pst_err_code[0]) & (~s_pst_err_code[1]) & s_pst_is_mret_inst; // 待交付指令没有异常且为MRET指令
+		(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_mret_inst; // 待交付指令没有异常且为MRET指令
 	
 	// 注意: 每当CPU进入中断/异常时, 全局中断使能自动关闭, 因此不支持中断嵌套!
 	assign sw_itr_req_vld = 
@@ -204,7 +208,6 @@ module panda_risc_v_commit #(
 	assign sync_expt_req_vld = 
 		(~trap_processing) & // 在处理中断/异常时, 不再接受同步异常
 		s_pst_valid & // 当前有待交付的指令
-		// s_pst_err_code != CMT_INST_ERR_CODE_NORMAL
 		(s_pst_err_code[0] | s_pst_err_code[1]); // 待交付指令有异常
 	
 	/*
@@ -237,7 +240,7 @@ module panda_risc_v_commit #(
 	assign flush_req = 
 		s_pst_valid & s_pst_ready & // 当前指令交付完成
 		(brc_prdt_failed | // 分支预测失败
-			((~s_pst_err_code[0]) & (~s_pst_err_code[1]) & 
+			((~(s_pst_err_code[0] | s_pst_err_code[1])) & 
 				(s_pst_is_ecall_inst | s_pst_is_mret_inst)) | // 待交付指令没有异常且为ECALL或MRET指令
 			sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | sync_expt_req_vld); // 当前有中断/异常
 	assign flush_addr = 

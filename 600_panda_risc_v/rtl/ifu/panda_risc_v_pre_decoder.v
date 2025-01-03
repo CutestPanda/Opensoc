@@ -4,7 +4,8 @@
 
 描述:
 对指令进行预译码, 生成以下信息:
-	指令类型(是否B指令, 是否JAL指令, 是否JALR指令, 是否CSR读写指令, 是否load指令, 
+	指令类型(是否MRET指令, 是否ECALL指令, 是否B指令, 是否JAL指令, 
+		是否JALR指令, 是否CSR读写指令, 是否load指令, 
 		是否store指令, 是否乘法指令, 是否除法指令, 是否求余指令)
 	跳转偏移量立即数
 	通用寄存器索引有效标志(是否需要读rs1, 是否需要读rs2, 是否需要写rd)
@@ -19,7 +20,7 @@
 无
 
 作者: 陈家耀
-日期: 2024/10/14
+日期: 2025/01/03
 ********************************************************************/
 
 
@@ -37,6 +38,8 @@ module panda_risc_v_pre_decoder(
 	output wire is_mul_inst, // 是否乘法指令
 	output wire is_div_inst, // 是否除法指令
 	output wire is_rem_inst, // 是否求余指令
+	output wire is_ecall_inst, // 是否ECALL指令
+	output wire is_mret_inst, // 是否MRET指令
 	output wire[20:0] jump_ofs_imm, // 跳转偏移量立即数
 	output wire rs1_vld, // 是否需要读rs1
 	output wire rs2_vld, // 是否需要读rs2
@@ -65,14 +68,15 @@ module panda_risc_v_pre_decoder(
 	
 	/** 打包的预译码信息 **/
 	assign pre_decoding_msg_packeted = {
-		19'dx,
+		17'dx,
 		// CSR寄存器地址(12bit)
 		csr_addr,
 		// 读写通用寄存器堆标志(3bit)
 		rs1_vld, rs2_vld, rd_vld,
 		// 跳转偏移量立即数(21bit)
 		jump_ofs_imm,
-		// 指令类型标志(9bit)
+		// 指令类型标志(11bit)
+		is_mret_inst, is_ecall_inst,
 		is_b_inst, is_jal_inst, is_jalr_inst, is_csr_rw_inst, is_load_inst,
 		is_store_inst, is_mul_inst, is_div_inst, is_rem_inst
 	};
@@ -87,6 +91,8 @@ module panda_risc_v_pre_decoder(
 	assign is_mul_inst = (inst[6:0] == OPCODE_ARTH_REG) & inst[25] & (~inst[14]);
 	assign is_div_inst = (inst[6:0] == OPCODE_ARTH_REG) & inst[25] & (inst[14:13] == 2'b10);
 	assign is_rem_inst = (inst[6:0] == OPCODE_ARTH_REG) & inst[25] & (inst[14:13] == 2'b11);
+	assign is_ecall_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b000) & (inst[21:20] == 2'b00);
+	assign is_mret_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b000) & (inst[21:20] == 2'b10);
 	
 	/**
 	跳转偏移量立即数
@@ -136,11 +142,11 @@ module panda_risc_v_pre_decoder(
 	wire is_vld_arth_imm_inst; // 有效的立即数算术指令(标志)
 	wire is_vld_arth_reg_inst; // 有效的寄存器算术指令(标志)
 	wire is_vld_fench_inst; // 有效的屏障指令(标志)
-	wire is_vld_env_csr_inst; // 有效的系统调用或CSR读写指令(标志)
+	wire is_vld_env_trap_ret_csr_inst; // 有效的系统调用/中断返回/CSR读写指令(标志)
 	
 	assign illegal_inst = ~(is_vld_lui_inst | is_vld_auipc_inst | is_vld_jal_inst | is_vld_jalr_inst | is_vld_b_inst
 		| is_vld_load_inst | is_vld_store_inst | is_vld_arth_imm_inst | is_vld_arth_reg_inst | is_vld_fench_inst
-		| is_vld_env_csr_inst);
+		| is_vld_env_trap_ret_csr_inst);
 	
 	assign is_vld_lui_inst = inst[6:0] == OPCODE_LUI;
 	assign is_vld_auipc_inst = inst[6:0] == OPCODE_AUIPC;
@@ -180,10 +186,19 @@ module panda_risc_v_pre_decoder(
 		& (((inst[14:12] == 3'b000) & ({inst[31:28], inst[19:15], inst[11:7]} == 14'd0))
 			| ((inst[14:12] == 3'b001) & ({inst[31:20], inst[19:15], inst[11:7]} == 22'd0))
 		);
-	assign is_vld_env_csr_inst = (inst[6:0] == OPCODE_ENV_CSR)
-		& (((inst[14:12] == 3'b000) & ({inst[31:21], inst[19:15], inst[11:7]} == 21'd0)) // 系统调用指令
-			| (inst[14:12] == 3'b001) | (inst[14:12] == 3'b010) | (inst[14:12] == 3'b011)
-				| (inst[14:12] == 3'b101) | (inst[14:12] == 3'b110) | (inst[14:12] == 3'b111) // CSR读写指令
+	assign is_vld_env_trap_ret_csr_inst = (inst[6:0] == OPCODE_ENV_CSR)
+		& (
+			(
+				(inst[14:12] == 3'b000) & 
+				(
+					((~inst[21]) & (inst[31:22] == 10'd0)) | // MCALL, MBREAK
+					((inst[21:20] == 2'b10) & (inst[31:22] == 10'b0011000_000)) // MRET
+				) & ({inst[19:15], inst[11:7]} == 10'd0)
+			) // 系统调用/中断返回指令
+			| (
+				(inst[14:12] == 3'b001) | (inst[14:12] == 3'b010) | (inst[14:12] == 3'b011) | 
+				(inst[14:12] == 3'b101) | (inst[14:12] == 3'b110) | (inst[14:12] == 3'b111)
+			) // CSR读写指令
 		);
 	
 endmodule
