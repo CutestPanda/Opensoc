@@ -18,7 +18,7 @@ ICB MASTER
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2024/10/20
+日期: 2025/01/03
 ********************************************************************/
 
 
@@ -155,6 +155,8 @@ module panda_risc_v_ifu #(
 		.is_mul_inst(),
 		.is_div_inst(),
 		.is_rem_inst(),
+		.is_ecall_inst(),
+		.is_mret_inst(),
 		.jump_ofs_imm(jump_ofs_imm),
 		.rs1_vld(),
 		.rs2_vld(),

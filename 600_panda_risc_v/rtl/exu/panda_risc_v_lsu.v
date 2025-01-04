@@ -15,7 +15,7 @@
 ICB MASTER
 
 作者: 陈家耀
-日期: 2024/12/17
+日期: 2025/01/03
 ********************************************************************/
 
 
@@ -85,18 +85,18 @@ module panda_risc_v_lsu #(
 	localparam DBUS_ACCESS_BUS_ERR = 2'b10; // 数据总线访问错误
 	localparam DBUS_ACCESS_TIMEOUT = 2'b11; // 响应超时
 	// 访存信息各项的起始索引
-	localparam LS_MSG_LS_TYPE = 76;
-	localparam LS_MSG_WMASK_SID = 72;
-	localparam LS_MSG_IS_STORE_SID = 71;
-	localparam LS_MSG_RD_ID_SID = 66;
-	localparam LS_MSG_DIN_DOUT_SID = 34;
-	localparam LS_MSG_ADDR_SID = 2;
-	localparam LS_MSG_ERR_SID = 0;
+	localparam integer LS_MSG_LS_TYPE = 76;
+	localparam integer LS_MSG_WMASK_SID = 72;
+	localparam integer LS_MSG_IS_STORE_SID = 71;
+	localparam integer LS_MSG_RD_ID_SID = 66;
+	localparam integer LS_MSG_DIN_DOUT_SID = 34;
+	localparam integer LS_MSG_ADDR_SID = 2;
+	localparam integer LS_MSG_ERR_SID = 0;
 	// 访存任务生命周期标志位索引
-	localparam LS_TASK_START_STAGE_FID = 0;
-	localparam LS_TASK_CMD_STAGE_FID = 1;
-	localparam LS_TASK_RESP_STAGE_FID = 2;
-	localparam LS_TASK_DONE_STAGE_FID = 3;
+	localparam integer LS_TASK_START_STAGE_FID = 0;
+	localparam integer LS_TASK_CMD_STAGE_FID = 1;
+	localparam integer LS_TASK_RESP_STAGE_FID = 2;
+	localparam integer LS_TASK_DONE_STAGE_FID = 3;
 	
 	/** 访存请求前处理 **/
 	wire ls_addr_aligned; // 访存地址对齐(标志)

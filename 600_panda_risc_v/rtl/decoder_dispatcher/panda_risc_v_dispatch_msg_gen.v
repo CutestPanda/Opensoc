@@ -237,6 +237,8 @@ module panda_risc_v_dispatch_msg_gen #(
 		.is_mul_inst(),
 		.is_div_inst(),
 		.is_rem_inst(),
+		.is_ecall_inst(),
+		.is_mret_inst(),
 		
 		.prdt_jump(if_res_prdt_jump),
 		.brc_pc_upd(brc_pc_upd),
