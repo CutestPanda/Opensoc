@@ -33,7 +33,9 @@ typedef enum{
 	ECALL, EBREAK, 
 	// CRS读写
 	CSRRW, CSRRS, CSRRC, 
-	CSRRWI, CSRRSI, CSRRCI
+	CSRRWI, CSRRSI, CSRRCI,
+	// 中断/异常返回
+	MRET
 }RiscVInstType;
 
 /** 事务:块级控制 **/
@@ -393,7 +395,7 @@ class RiscVInstTrans extends uvm_sequence_item;
 			(inst_type == SW))
 			inst[11:7] == imm[4:0];
 		else if((inst_type == FENCE) || (inst_type == FENCE_I) || 
-			(inst_type == ECALL) || (inst_type == EBREAK))
+			(inst_type == ECALL) || (inst_type == EBREAK) || (inst_type == MRET))
 			inst[11:7] == 5'b00000;
 		else
 			inst[11:7] == rd;
@@ -404,7 +406,7 @@ class RiscVInstTrans extends uvm_sequence_item;
 			(inst_type == ADDI) || (inst_type == ADD) || 
 			(inst_type == SUB) || (inst_type == FENCE) || 
 			(inst_type == ECALL) || (inst_type == EBREAK) || 
-			(inst_type == MUL))
+			(inst_type == MUL) || (inst_type == MRET))
 			inst[14:12] == 3'b000;
 		else if((inst_type == BNE) || (inst_type == LH) || 
 			(inst_type == SH) || (inst_type == SLLI) || 
@@ -440,7 +442,7 @@ class RiscVInstTrans extends uvm_sequence_item;
 		
 		// 约束inst[19:15]
 		if((inst_type == FENCE) || (inst_type == FENCE_I) || 
-			(inst_type == ECALL) || (inst_type == EBREAK))
+			(inst_type == ECALL) || (inst_type == EBREAK) || (inst_type == MRET))
 			inst[19:15] == 5'b00000;
 		else if((inst_type == CSRRWI) || (inst_type == CSRRSI) || 
 			(inst_type == CSRRCI))
@@ -472,6 +474,8 @@ class RiscVInstTrans extends uvm_sequence_item;
 			inst[24:20] == 5'b00000;
 		else if(inst_type == EBREAK)
 			inst[24:20] == 5'b00001;
+		else if(inst_type == MRET)
+			inst[24:20] == 5'b00010;
 		else if((inst_type == CSRRW) || (inst_type == CSRRS) || 
 			(inst_type == CSRRC) || (inst_type == CSRRWI) || 
 			(inst_type == CSRRSI) || (inst_type == CSRRCI))
@@ -505,6 +509,8 @@ class RiscVInstTrans extends uvm_sequence_item;
 			(inst_type == FENCE_I) || (inst_type == ECALL) || 
 			(inst_type == EBREAK))
 			inst[31:25] == 7'b0000000;
+		else if(inst_type == MRET)
+			inst[31:25] == 7'b0011000;
 		else if((inst_type == SRAI) || (inst_type == SUB) || 
 			(inst_type == SRA))
 			inst[31:25] == 7'b0100000;
@@ -525,11 +531,15 @@ class RiscVInstTrans extends uvm_sequence_item;
 			inst[31:25], inst[24:20], inst[19:15], inst[14:12], inst[11:7], inst[6:0]);
 		$display("inst_type: %s", risc_v_inst_type_to_string(this.inst_type));
 		
-		if((inst_type == LUI) || (inst_type == AUIPC) || 
-			(inst_type == JAL) || (inst_type == JALR) || 
-			(inst_type == BEQ) || (inst_type == BNE) || 
+		if((inst_type == LUI) || (inst_type == AUIPC))
+			$display("imm: %d", $signed(imm & 32'hFFFF_F000));
+		else if(inst_type == JAL)
+			$display("imm: %d", $signed({{11{imm[20]}}, imm[20:0]}));
+		else if((inst_type == BEQ) || (inst_type == BNE) || 
 			(inst_type == BLT) || (inst_type == BGE) || 
-			(inst_type == BLTU) || (inst_type == BGEU) || 
+			(inst_type == BLTU) || (inst_type == BGEU))
+			$display("imm: %d", $signed({{19{imm[12]}}, imm[12:0]}));
+		else if((inst_type == JALR) || 
 			(inst_type == LB) || (inst_type == LH) || 
 			(inst_type == LW) || (inst_type == LBU) || 
 			(inst_type == LHU) || (inst_type == SB) || 
@@ -537,7 +547,7 @@ class RiscVInstTrans extends uvm_sequence_item;
 			(inst_type == ADDI) || (inst_type == SLTI) || 
 			(inst_type == SLTIU) || (inst_type == XORI) || 
 			(inst_type == ORI) || (inst_type == ANDI))
-			$display("imm: %d", imm);
+			$display("imm: %d", $signed({{20{imm[11]}}, imm[11:0]}));
 		
 		if((inst_type != BEQ) && (inst_type != BNE) && 
 			(inst_type != BLT) && (inst_type != BGE) && 
@@ -545,14 +555,15 @@ class RiscVInstTrans extends uvm_sequence_item;
 			(inst_type != SB) && (inst_type != SH) && 
 			(inst_type != SW) && (inst_type != FENCE) && 
 			(inst_type != FENCE_I) && (inst_type != ECALL) && 
-			(inst_type != EBREAK))
+			(inst_type != EBREAK) && (inst_type != MRET))
 			$display("rd: %d", rd);
 		
 		if((inst_type != LUI) && (inst_type != AUIPC) && 
 			(inst_type != JAL) && (inst_type != FENCE) && 
 			(inst_type != FENCE_I) && (inst_type != ECALL) && 
 			(inst_type != EBREAK) && (inst_type != CSRRWI) && 
-			(inst_type != CSRRSI) && (inst_type != CSRRCI))
+			(inst_type != CSRRSI) && (inst_type != CSRRCI) && 
+			(inst_type != MRET))
 			$display("rs1: %d", rs1);
 		
 		if((inst_type == BEQ) || (inst_type == BNE) || 
@@ -589,6 +600,84 @@ class RiscVInstTrans extends uvm_sequence_item;
 		end
 		
 		$display("------------------------------------------------");
+	endfunction
+	
+	function void file_print(input integer fid);
+		$fdisplay(fid, "-----------------RiscVInstTrans-----------------");
+		
+		$fdisplay(fid, "inst: %7.7b %5.5b %5.5b %3.3b %5.5b %7.7b", 
+			inst[31:25], inst[24:20], inst[19:15], inst[14:12], inst[11:7], inst[6:0]);
+		$fdisplay(fid, "inst_type: %s", risc_v_inst_type_to_string(this.inst_type));
+		
+		if((inst_type == LUI) || (inst_type == AUIPC))
+			$fdisplay(fid, "imm: %d", $signed(imm & 32'hFFFF_F000));
+		else if(inst_type == JAL)
+			$fdisplay(fid, "imm: %d", $signed({{11{imm[20]}}, imm[20:0]}));
+		else if((inst_type == BEQ) || (inst_type == BNE) || 
+			(inst_type == BLT) || (inst_type == BGE) || 
+			(inst_type == BLTU) || (inst_type == BGEU))
+			$fdisplay(fid, "imm: %d", $signed({{19{imm[12]}}, imm[12:0]}));
+		else if((inst_type == JALR) || 
+			(inst_type == LB) || (inst_type == LH) || 
+			(inst_type == LW) || (inst_type == LBU) || 
+			(inst_type == LHU) || (inst_type == SB) || 
+			(inst_type == SH) || (inst_type == SW) || 
+			(inst_type == ADDI) || (inst_type == SLTI) || 
+			(inst_type == SLTIU) || (inst_type == XORI) || 
+			(inst_type == ORI) || (inst_type == ANDI))
+			$fdisplay(fid, "imm: %d", $signed({{20{imm[11]}}, imm[11:0]}));
+		
+		if((inst_type != BEQ) && (inst_type != BNE) && 
+			(inst_type != BLT) && (inst_type != BGE) && 
+			(inst_type != BLTU) && (inst_type != BGEU) && 
+			(inst_type != SB) && (inst_type != SH) && 
+			(inst_type != SW) && (inst_type != FENCE) && 
+			(inst_type != FENCE_I) && (inst_type != ECALL) && 
+			(inst_type != EBREAK) && (inst_type != MRET))
+			$fdisplay(fid, "rd: %d", rd);
+		
+		if((inst_type != LUI) && (inst_type != AUIPC) && 
+			(inst_type != JAL) && (inst_type != FENCE) && 
+			(inst_type != FENCE_I) && (inst_type != ECALL) && 
+			(inst_type != EBREAK) && (inst_type != CSRRWI) && 
+			(inst_type != CSRRSI) && (inst_type != CSRRCI) && 
+			(inst_type != MRET))
+			$fdisplay(fid, "rs1: %d", rs1);
+		
+		if((inst_type == BEQ) || (inst_type == BNE) || 
+			(inst_type == BLT) || (inst_type == BGE) || 
+			(inst_type == BLTU) || (inst_type == BGEU) || 
+			(inst_type == SB) || (inst_type == SH) || 
+			(inst_type == SW) || (inst_type == ADD) || 
+			(inst_type == SUB) || (inst_type == SLL) || 
+			(inst_type == SLT) || (inst_type == SLTU) || 
+			(inst_type == XOR) || (inst_type == SRL) || 
+			(inst_type == SRA) || (inst_type == OR) || 
+			(inst_type == AND) || (inst_type == MUL) || 
+			(inst_type == MULH) || (inst_type == MULHSU) || 
+			(inst_type == MULHU) || (inst_type == DIV) || 
+			(inst_type == DIVU) || (inst_type == REM) || 
+			(inst_type == REMU))
+			$fdisplay(fid, "rs2: %d", rs2);
+		
+		if((inst_type == CSRRW) || (inst_type == CSRRS) || 
+			(inst_type == CSRRC) || (inst_type == CSRRWI) || 
+			(inst_type == CSRRSI) || (inst_type == CSRRCI))
+			$fdisplay(fid, "csr: %d", csr_addr);
+		
+		if((inst_type == CSRRWI) || (inst_type == CSRRSI) || (inst_type == CSRRCI))
+			$fdisplay(fid, "zimm: %5.5b", zimm);
+		
+		if((inst_type == SLLI) || (inst_type == SRLI) || (inst_type == SRAI))
+			$fdisplay(fid, "shamt: %d", shamt);
+		
+		if(inst_type == FENCE)
+		begin
+			$fdisplay(fid, "pred: %4.4b", pred);
+			$fdisplay(fid, "succ: %4.4b", succ);
+		end
+		
+		$fdisplay(fid, "------------------------------------------------");
 	endfunction
 	
 	function static string risc_v_inst_type_to_string(input RiscVInstType inst_type);
@@ -648,6 +737,7 @@ class RiscVInstTrans extends uvm_sequence_item;
 			CSRRWI: return "CSRRWI";
 			CSRRSI: return "CSRRSI";
 			CSRRCI: return "CSRRCI";
+			MRET: return "MRET";
 			default: return "UNKNOWN";
 		endcase
 	endfunction

@@ -28,7 +28,7 @@ class PandaRiscVIfuCase0Test extends uvm_test;
 	virtual task main_phase(uvm_phase phase);
 		phase.raise_objection(this);
 		
-		# (1000 * 1000); // 运行1ms
+		# (200 * 1000); // 运行200us
 		
 		phase.drop_objection(this);
 	endtask

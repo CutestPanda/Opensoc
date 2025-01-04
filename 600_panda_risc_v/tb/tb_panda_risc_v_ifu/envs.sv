@@ -75,11 +75,13 @@ class PandaRiscVIfuEnv extends uvm_env;
 			(trans.user[0][1:0] == 2'b01) ? "PC_UNALIGNED":
 			(trans.user[0][1:0] == 2'b10) ? "BUS_ERR":
 			                                "TIMEOUT");
-		$display("CsrAddr: %d", trans.data[0][76:65]);
-		$display("Rs1Vld: %d", trans.data[0][64]);
-		$display("Rs2Vld: %d", trans.data[0][63]);
-		$display("RdVld: %d", trans.data[0][62]);
-		$display("JumpOfsImm: %d", $signed(trans.data[0][61:41]));
+		$display("CsrAddr: %d", trans.data[0][78:67]);
+		$display("Rs1Vld: %d", trans.data[0][66]);
+		$display("Rs2Vld: %d", trans.data[0][65]);
+		$display("RdVld: %d", trans.data[0][64]);
+		$display("JumpOfsImm: %d", $signed(trans.data[0][63:43]));
+		$display("IsMretInst: %b", trans.data[0][42]);
+		$display("IsEcallInst: %b", trans.data[0][41]);
 		$display("IsBInst: %b", trans.data[0][40]);
 		$display("IsJalInst: %b", trans.data[0][39]);
 		$display("IsJalrInst: %b", trans.data[0][38]);

@@ -43,11 +43,11 @@ module tb_panda_risc_v_dcd_dsptc();
 	
 	/** 接口 **/
 	AXIS #(.out_drive_t(simulation_delay), .data_width(128), .user_width(4)) m_axis_if(.clk(clk), .rst_n(rst_n));
-	AXIS #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s0_axis_if(.clk(clk), .rst_n(rst_n));
-	AXIS #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s1_axis_if(.clk(clk), .rst_n(rst_n));
-	AXIS #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s2_axis_if(.clk(clk), .rst_n(rst_n));
-	AXIS #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s3_axis_if(.clk(clk), .rst_n(rst_n));
-	AXIS #(.out_drive_t(simulation_delay), .data_width(144), .user_width(0)) s4_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(160), .user_width(0)) s0_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(160), .user_width(0)) s1_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(160), .user_width(0)) s2_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(160), .user_width(0)) s3_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(160), .user_width(0)) s4_axis_if(.clk(clk), .rst_n(rst_n));
 	
 	/** 主任务 **/
 	initial
@@ -60,38 +60,38 @@ module tb_panda_risc_v_dcd_dsptc();
 			"uvm_test_top.env.agt1.mon", "axis_if", m_axis_if.monitor);
 		
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).slave)::set(null, 
+			.data_width(160), .user_width(0)).slave)::set(null, 
 			"uvm_test_top.env.agt2.drv", "axis_if", s0_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).monitor)::set(null, 
+			.data_width(160), .user_width(0)).monitor)::set(null, 
 			"uvm_test_top.env.agt2.mon", "axis_if", s0_axis_if.monitor);
 		
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).slave)::set(null, 
+			.data_width(160), .user_width(0)).slave)::set(null, 
 			"uvm_test_top.env.agt3.drv", "axis_if", s1_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).monitor)::set(null, 
+			.data_width(160), .user_width(0)).monitor)::set(null, 
 			"uvm_test_top.env.agt3.mon", "axis_if", s1_axis_if.monitor);
 		
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).slave)::set(null, 
+			.data_width(160), .user_width(0)).slave)::set(null, 
 			"uvm_test_top.env.agt4.drv", "axis_if", s2_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).monitor)::set(null, 
+			.data_width(160), .user_width(0)).monitor)::set(null, 
 			"uvm_test_top.env.agt4.mon", "axis_if", s2_axis_if.monitor);
 		
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).slave)::set(null, 
+			.data_width(160), .user_width(0)).slave)::set(null, 
 			"uvm_test_top.env.agt5.drv", "axis_if", s3_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).monitor)::set(null, 
+			.data_width(160), .user_width(0)).monitor)::set(null, 
 			"uvm_test_top.env.agt5.mon", "axis_if", s3_axis_if.monitor);
 		
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).slave)::set(null, 
+			.data_width(160), .user_width(0)).slave)::set(null, 
 			"uvm_test_top.env.agt6.drv", "axis_if", s4_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(144), .user_width(0)).monitor)::set(null, 
+			.data_width(160), .user_width(0)).monitor)::set(null, 
 			"uvm_test_top.env.agt6.mon", "axis_if", s4_axis_if.monitor);
 		
 		// 启动testcase
@@ -149,14 +149,18 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire[31:0] m_alu_op1; // 操作数1
 	wire[31:0] m_alu_op2; // 操作数2
 	wire m_alu_addr_gen_sel; // ALU是否用于访存地址生成
-	wire[1:0] m_alu_err_code; // 指令的错误类型(2'b00 -> 正常, 2'b01 -> 非法指令, 
-	                          //     2'b10 -> 指令地址非对齐, 2'b11 -> 指令总线访问失败)
+	wire[2:0] m_alu_err_code; // 指令的错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
+	                          //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
+							  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	wire[31:0] m_alu_pc_of_inst; // 指令对应的PC
 	wire m_alu_is_b_inst; // 是否B指令
+	wire m_alu_is_ecall_inst; // 是否ECALL指令
+	wire m_alu_is_mret_inst; // 是否MRET指令
 	wire[31:0] m_alu_brc_pc_upd; // 分支预测失败时修正的PC
 	wire m_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] m_alu_rd_id; // RD索引
 	wire m_alu_rd_vld; // 是否需要写RD
+	wire m_alu_is_long_inst; // 是否长指令(L/S, 乘除法)
 	wire m_alu_valid;
 	wire m_alu_ready;
 	// LSU执行请求
@@ -194,29 +198,29 @@ module tb_panda_risc_v_dcd_dsptc();
 	assign s_if_res_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_if_res_ready;
 	
-	assign s0_axis_if.data = {1'bx, m_alu_op_mode, m_alu_op1, m_alu_op2, m_alu_addr_gen_sel, m_alu_err_code, 
-		m_alu_pc_of_inst, m_alu_is_b_inst, m_alu_brc_pc_upd, m_alu_prdt_jump, 
-		m_alu_rd_id, m_alu_rd_vld};
+	assign s0_axis_if.data = {13'dx, m_alu_op_mode, m_alu_op1, m_alu_op2, m_alu_addr_gen_sel, m_alu_err_code, 
+		m_alu_pc_of_inst, m_alu_is_b_inst, m_alu_is_ecall_inst, m_alu_is_mret_inst, m_alu_brc_pc_upd, m_alu_prdt_jump, 
+		m_alu_rd_id, m_alu_rd_vld, m_alu_is_long_inst};
 	assign s0_axis_if.valid = m_alu_valid;
 	assign s0_axis_if.last = 1'b1;
 	assign m_alu_ready = s0_axis_if.ready;
 	
-	assign s1_axis_if.data = {103'dx, m_ls_sel, m_ls_type, m_rd_id_for_ld, m_ls_din};
+	assign s1_axis_if.data = {119'dx, m_ls_sel, m_ls_type, m_rd_id_for_ld, m_ls_din};
 	assign s1_axis_if.valid = m_lsu_valid;
 	assign s1_axis_if.last = 1'b1;
 	assign m_lsu_ready = s1_axis_if.ready;
 	
-	assign s2_axis_if.data = {93'dx, m_csr_addr, m_csr_upd_type, m_csr_upd_mask_v, m_csr_rw_rd_id};
+	assign s2_axis_if.data = {109'dx, m_csr_addr, m_csr_upd_type, m_csr_upd_mask_v, m_csr_rw_rd_id};
 	assign s2_axis_if.valid = m_csr_rw_valid;
 	assign s2_axis_if.last = 1'b1;
 	assign m_csr_rw_ready = s2_axis_if.ready;
 	
-	assign s3_axis_if.data = {72'dx, m_mul_op_a, m_mul_op_b, m_mul_res_sel, m_mul_rd_id};
+	assign s3_axis_if.data = {88'dx, m_mul_op_a, m_mul_op_b, m_mul_res_sel, m_mul_rd_id};
 	assign s3_axis_if.valid = m_mul_valid;
 	assign s3_axis_if.last = 1'b1;
 	assign m_mul_ready = s3_axis_if.ready;
 	
-	assign s4_axis_if.data = {72'dx, m_div_op_a, m_div_op_b, m_div_rem_sel, m_div_rd_id};
+	assign s4_axis_if.data = {88'dx, m_div_op_a, m_div_op_b, m_div_rem_sel, m_div_rd_id};
 	assign s4_axis_if.valid = m_div_valid;
 	assign s4_axis_if.last = 1'b1;
 	assign m_div_ready = s4_axis_if.ready;
@@ -259,10 +263,13 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_alu_err_code(m_alu_err_code),
 		.m_alu_pc_of_inst(m_alu_pc_of_inst),
 		.m_alu_is_b_inst(m_alu_is_b_inst),
+		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
+		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),
 		.m_alu_rd_vld(m_alu_rd_vld),
+		.m_alu_is_long_inst(m_alu_is_long_inst),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		

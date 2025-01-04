@@ -20,13 +20,15 @@ typedef enum{
 class DcdDsptcCase0VSqc extends uvm_sequence;
 	
 	local AXISTrans #(.data_width(128), .user_width(4)) m_if_res_axis_trans; // 取指结果AXIS主机事务
-	local AXISTrans #(.data_width(144), .user_width(0)) s_exu_axis_trans[0:1]; // 执行单元AXIS从机事务
+	local AXISTrans #(.data_width(160), .user_width(0)) s_exu_axis_trans[0:1]; // 执行单元AXIS从机事务
 	local RiscVInstTrans inst_trans; // RV32指令事务
 	
 	local int unsigned test_n; // 测试译码/派遣次数
 	local int unsigned fns_dsptc_n; // 完成的派遣次数
 	
 	local RiscVDsptcMode dispatch_fifo[$]; // 派遣队列
+	
+	local integer fid; // 用于打印取指结果的文件句柄
 	
 	// 注册object
 	`uvm_object_utils(DcdDsptcCase0VSqc)
@@ -37,10 +39,12 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 	virtual task body();
 		if(this.starting_phase != null) 
 			this.starting_phase.raise_objection(this);
-			
+		
+		this.fid = $fopen("inst_fetch_res.txt", "w");
+		
 		this.inst_trans = new();
 		
-		this.test_n = 100;
+		this.test_n = 400;
 		this.fns_dsptc_n = 0;
 		
 		fork
@@ -55,6 +59,8 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 					break;
 			end
 		join
+		
+		$fclose(this.fid);
 		
 		// 继续运行10us
 		# (10 ** 4);
@@ -85,12 +91,16 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 					(imm >= 0) && (imm <= 256) && (imm[1:0] == 2'b00);
 				else
 					(imm >= -256) && (imm <= 256) && (imm[1:0] == 2'b00);
-			}
-			else
+			}else if((inst_type == LB) || (inst_type == LH) || 
+				(inst_type == LW) || (inst_type == LBU) || 
+				(inst_type == LHU) || (inst_type == SB) || 
+				(inst_type == SH) || (inst_type == SW)){
+				imm[1:0] == 2'b00;
+			}else
 				(imm >= -1024) && (imm <= 1023);
 			
 			if(inst_type == JALR)
-				rs1 dist {0:/1, 1:/3, [1:31]:/6};
+				rs1 dist {0:/1, 1:/3, [2:31]:/4};
 		}) else $fatal("inst_trans failed to randomize!");
 		
 		if((!is_illegal_inst) & 
@@ -130,7 +140,7 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 			mode = MODE_OTHER;
 		end
 		
-		this.inst_trans.print();
+		this.inst_trans.file_print(this.fid);
 		
 		this.dispatch_fifo.push_back(mode);
 		
