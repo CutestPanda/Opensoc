@@ -20,7 +20,7 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/05
 ********************************************************************/
 
 
@@ -66,6 +66,7 @@ module panda_risc_v_dispatcher(
 	output wire m_alu_is_b_inst, // 是否B指令
 	output wire m_alu_is_ecall_inst, // 是否ECALL指令
 	output wire m_alu_is_mret_inst, // 是否MRET指令
+	output wire m_alu_is_csr_rw_inst, // 是否CSR读写指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
@@ -204,6 +205,7 @@ module panda_risc_v_dispatcher(
 	assign m_alu_is_b_inst = is_b_inst;
 	assign m_alu_is_ecall_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_ECALL_INST_SID];
 	assign m_alu_is_mret_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_MRET_INST_SID];
+	assign m_alu_is_csr_rw_inst = is_csr_rw_inst;
 	assign m_alu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
 	assign m_alu_prdt_jump = dispatch_req_prdt_jump;
 	assign m_alu_rd_id = s_dispatch_req_rd_id;

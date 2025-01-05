@@ -22,7 +22,7 @@ ECALL/同步异常可能会被中断请求/LSU异常请求覆盖而得不到处�
 无
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/05
 ********************************************************************/
 
 
@@ -50,8 +50,6 @@ module panda_risc_v_commit #(
 	input wire s_pst_is_mret_inst, // 是否MRET指令
 	input wire[31:0] s_pst_brc_pc_upd, // 分支预测失败时修正的PC(仅在B指令下有效)
 	input wire s_pst_prdt_jump, // 是否预测跳转
-	input wire s_pst_rd_vld, // 是否需要写RD
-	input wire s_pst_is_long_inst, // 是否长指令(L/S, 乘除法)
 	input wire s_pst_valid,
 	output wire s_pst_ready,
 	
@@ -63,7 +61,6 @@ module panda_risc_v_commit #(
 	
 	// 交付结果
 	output wire m_pst_inst_cmt, // 指令是否被确认
-	output wire m_pst_wb_imdt, // 本指令是否需要立刻写回
 	output wire m_pst_valid,
 	input wire m_pst_ready,
 	
@@ -267,7 +264,6 @@ module panda_risc_v_commit #(
 		lsu_expt_req_granted; // LSU异常请求被许可
 	
 	assign m_pst_inst_cmt = ~sync_expt_req_granted; // 仅当待交付指令带有同步异常且该同步异常被许可时, 指令被取消
-	assign m_pst_wb_imdt = s_pst_rd_vld & (~s_pst_is_long_inst); // 待交付指令需要写RD, 并且不是长指令(L/S, 乘除法)
 	assign m_pst_valid = (~flush_processing) & s_pst_valid; // 当前没有处理中的冲刷, 且有待交付的指令
 	
 endmodule

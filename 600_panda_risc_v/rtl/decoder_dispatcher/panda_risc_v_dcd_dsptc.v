@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/05
 ********************************************************************/
 
 
@@ -66,6 +66,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire m_alu_is_b_inst, // 是否B指令
 	output wire m_alu_is_ecall_inst, // 是否ECALL指令
 	output wire m_alu_is_mret_inst, // 是否MRET指令
+	output wire m_alu_is_csr_rw_inst, // 是否CSR读写指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
@@ -302,6 +303,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_alu_is_b_inst(m_alu_is_b_inst),
 		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
 		.m_alu_is_mret_inst(m_alu_is_mret_inst),
+		.m_alu_is_csr_rw_inst(m_alu_is_csr_rw_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),
