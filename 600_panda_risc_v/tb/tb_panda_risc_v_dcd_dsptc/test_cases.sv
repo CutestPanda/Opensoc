@@ -11,7 +11,8 @@
 /** 枚举类型: 派遣类型 **/
 typedef enum{
 	MODE_CSRRW, 
-	MODE_LS, 
+	MODE_LS,
+	MODE_LS_UNALIGNED,
 	MODE_MUL, 
 	MODE_DIV, 
 	MODE_OTHER
@@ -91,11 +92,6 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 					(imm >= 0) && (imm <= 256) && (imm[1:0] == 2'b00);
 				else
 					(imm >= -256) && (imm <= 256) && (imm[1:0] == 2'b00);
-			}else if((inst_type == LB) || (inst_type == LH) || 
-				(inst_type == LW) || (inst_type == LBU) || 
-				(inst_type == LHU) || (inst_type == SB) || 
-				(inst_type == SH) || (inst_type == SW)){
-				imm[1:0] == 2'b00;
 			}else
 				(imm >= -1024) && (imm <= 1023);
 			
@@ -118,7 +114,13 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 			(this.inst_trans.inst_type == SH) || (this.inst_trans.inst_type == SW)))
 		begin
 			// LS指令
-			mode = MODE_LS;
+			if((this.inst_trans.inst_type == LB) || (this.inst_trans.inst_type == LBU) || (this.inst_trans.inst_type == SB) || 
+				(((this.inst_trans.inst_type == LH) || (this.inst_trans.inst_type == LHU) || (this.inst_trans.inst_type == SH)) 
+					&& (this.inst_trans.imm[0] == 1'b0)) || 
+				(((this.inst_trans.inst_type == LW) || (this.inst_trans.inst_type == SW)) && (this.inst_trans.imm[1:0] == 2'b00)))
+				mode = MODE_LS;
+			else
+				mode = MODE_LS_UNALIGNED;
 		end
 		else if((!is_illegal_inst) & 
 			((this.inst_trans.inst_type == MUL) || (this.inst_trans.inst_type == MULH) || 
@@ -202,6 +204,14 @@ class DcdDsptcCase0VSqc extends uvm_sequence;
 						wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
 					})
 				join
+			end
+			else if(mode == MODE_LS_UNALIGNED)
+			begin
+				`uvm_do_on_with(this.s_exu_axis_trans[0], p_sequencer.s_axis_alu_sqr, {
+					wait_period_n.size() == 1;
+					
+					wait_period_n[0] dist {0:/1, 1:/3, [2:4]:/1};
+				})
 			end
 			else if(mode == MODE_MUL)
 			begin
