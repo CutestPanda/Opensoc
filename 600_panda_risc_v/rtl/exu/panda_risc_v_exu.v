@@ -8,9 +8,9 @@ LSU执行请求 ---------------> LSU -------------------------------------------
 							  |-------------------------来自LSU的写回请求------------------------->|
                                                                                                    |
 ALU执行请求 ---------------> 交付单元 <------------------------m_pst_ready-------------------------|
-            |                   $<-----来自LSU的异常----- LSU异常缓存寄存器组 <-------LSU异常------|
-			|                                                                                      |
-			---------------> ALU -------------------------->|                                      |
+                   |            ^<-----来自LSU的异常----- LSU异常缓存寄存器组 <-------LSU异常------|
+			       |                                                                               |
+			       --------> ALU -------------------------->|                                      |
                                                             |--来自ALU或CSR原子读写单元的写回请求->|----> 写回单元
 CSR原子读写单元执行请求 ---> CSR原子读写单元 -------------->|                                      |          |
                                                                                                    |          |
@@ -35,7 +35,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/05
+日期: 2025/01/06
 ********************************************************************/
 
 
@@ -86,7 +86,6 @@ module panda_risc_v_exu #(
 	input wire[3:0] s_alu_op_mode, // 操作类型
 	input wire[31:0] s_alu_op1, // 操作数1
 	input wire[31:0] s_alu_op2, // 操作数2或取到的指令(若当前是非法指令)
-	input wire s_alu_addr_gen_sel, // ALU是否用于访存地址生成
 	input wire[2:0] s_alu_err_code, // 指令的错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
 	                                //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									//     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
@@ -164,13 +163,6 @@ module panda_risc_v_exu #(
 	output wire[31:0] flush_addr // 冲刷地址
 );
 	
-	/** 常量 **/
-	// 访存应答错误类型
-	localparam DBUS_ACCESS_NORMAL = 2'b00; // 正常
-	localparam DBUS_ACCESS_LS_UNALIGNED = 2'b01; // 访存地址非对齐
-	localparam DBUS_ACCESS_BUS_ERR = 2'b10; // 数据总线访问错误
-	localparam DBUS_ACCESS_TIMEOUT = 2'b11; // 响应超时
-	
 	/** 交付单元 **/
 	// 中断使能
 	wire mstatus_mie_v; // mstatus状态寄存器MIE域
@@ -188,6 +180,7 @@ module panda_risc_v_exu #(
 	wire s_pst_is_mret_inst; // 是否MRET指令
 	wire[31:0] s_pst_brc_pc_upd; // 分支预测失败时修正的PC(仅在B指令下有效)
 	wire s_pst_prdt_jump; // 是否预测跳转
+	wire s_pst_is_long_inst; // 是否长指令(L/S, 乘除法)
 	wire s_pst_valid;
 	wire s_pst_ready;
 	// 来自LSU的异常
@@ -197,6 +190,7 @@ module panda_risc_v_exu #(
 	wire s_lsu_expt_ready;
 	// 交付结果
 	wire m_pst_inst_cmt; // 指令是否被确认
+	wire m_pst_need_imdt_wbk; // 是否需要立即写回通用寄存器堆
 	wire m_pst_valid;
 	wire m_pst_ready;
 	// 访存地址生成
@@ -222,6 +216,7 @@ module panda_risc_v_exu #(
 	assign s_pst_is_mret_inst = s_alu_is_mret_inst;
 	assign s_pst_brc_pc_upd = s_alu_brc_pc_upd;
 	assign s_pst_prdt_jump = s_alu_prdt_jump;
+	assign s_pst_is_long_inst = s_alu_is_long_inst;
 	assign s_pst_valid = s_alu_valid;
 	assign s_alu_ready = s_pst_ready;
 	
@@ -244,6 +239,7 @@ module panda_risc_v_exu #(
 		.s_pst_is_mret_inst(s_pst_is_mret_inst),
 		.s_pst_brc_pc_upd(s_pst_brc_pc_upd),
 		.s_pst_prdt_jump(s_pst_prdt_jump),
+		.s_pst_is_long_inst(s_pst_is_long_inst),
 		.s_pst_valid(s_pst_valid),
 		.s_pst_ready(s_pst_ready),
 		
@@ -253,6 +249,7 @@ module panda_risc_v_exu #(
 		.s_lsu_expt_ready(s_lsu_expt_ready),
 		
 		.m_pst_inst_cmt(m_pst_inst_cmt),
+		.m_pst_need_imdt_wbk(m_pst_need_imdt_wbk),
 		.m_pst_valid(m_pst_valid),
 		.m_pst_ready(m_pst_ready),
 		
@@ -612,9 +609,17 @@ module panda_risc_v_exu #(
 	);
 	
 	/** 写回单元 **/
+	// 交付结果
+	wire s_pst_res_inst_cmt; // 指令是否被确认
+	wire s_pst_res_need_imdt_wbk; // 是否需要立即写回通用寄存器堆
+	wire s_pst_res_valid;
+	wire s_pst_res_ready;
 	// 来自ALU或CSR原子读写单元的写回请求
-	wire[31:0] s_alu_csr_wbk_data; // 计算结果或CSR原值
-	wire[4:0] s_alu_csr_wbk_rd_id; // RD索引
+	wire s_alu_csr_wbk_is_csr_rw_inst; // 是否CSR读写指令
+	wire[31:0] s_alu_csr_wbk_csr_v; // CSR原值
+	wire[31:0] s_alu_csr_wbk_alu_res; // ALU计算结果
+	wire[4:0] s_alu_csr_wbk_csr_rw_rd_id; // CSR原子读写单元给出的RD索引
+	wire[4:0] s_alu_csr_wbk_alu_rd_id; // ALU给出的RD索引
 	wire s_alu_csr_wbk_rd_vld; // 是否需要写RD
 	wire s_alu_csr_wbk_valid;
 	wire s_alu_csr_wbk_ready;
@@ -641,23 +646,19 @@ module panda_risc_v_exu #(
 	wire m_lsu_expt_err; // 错误类型(1'b0 -> 读存储映射总线错误, 1'b1 -> 写存储映射总线错误)
 	wire m_lsu_expt_valid;
 	wire m_lsu_expt_ready;
-	// 指令需要立即写回通用寄存器堆(标志)
-	wire inst_need_imdt_wbk;
 	
-	// 警告: 出现在执行单元顶层模块的胶水逻辑!!!
-	assign m_pst_ready = s_alu_csr_wbk_ready | (~inst_need_imdt_wbk);
+	assign s_pst_res_inst_cmt = m_pst_inst_cmt;
+	assign s_pst_res_need_imdt_wbk = m_pst_need_imdt_wbk;
+	assign s_pst_res_valid = m_pst_valid;
+	assign m_pst_ready = s_pst_res_ready;
 	
-	// 警告: 出现在执行单元顶层模块的胶水逻辑!!!
-	assign inst_retire_cnt_en = 
-		(m_pst_valid & ((~m_pst_inst_cmt) | (inst_need_imdt_wbk & s_alu_csr_wbk_ready))) | 
-		((s_lsu_wbk_valid & ((s_lsu_wbk_err == DBUS_ACCESS_NORMAL) | (s_lsu_wbk_err == DBUS_ACCESS_LS_UNALIGNED) | m_lsu_expt_ready)) | 
-			s_mul_wbk_valid | s_div_wbk_valid);
-	
-	// 警告: 出现在执行单元顶层模块的胶水逻辑!!!
-	assign s_alu_csr_wbk_data = s_alu_is_csr_rw_inst ? csr_atom_rw_dout:alu_res;
-	assign s_alu_csr_wbk_rd_id = s_alu_is_csr_rw_inst ? s_csr_rw_rd_id:s_alu_rd_id;
+	assign s_alu_csr_wbk_is_csr_rw_inst = s_alu_is_csr_rw_inst;
+	assign s_alu_csr_wbk_csr_v = csr_atom_rw_dout;
+	assign s_alu_csr_wbk_alu_res = alu_res;
+	assign s_alu_csr_wbk_csr_rw_rd_id = s_csr_rw_rd_id;
+	assign s_alu_csr_wbk_alu_rd_id = s_alu_rd_id;
 	assign s_alu_csr_wbk_rd_vld = s_alu_rd_vld;
-	assign s_alu_csr_wbk_valid = m_pst_valid & inst_need_imdt_wbk;
+	assign s_alu_csr_wbk_valid = m_pst_valid;
 	
 	assign s_lsu_wbk_ls_sel = m_resp_ls_sel;
 	assign s_lsu_wbk_rd_id_for_ld = m_resp_rd_id_for_ld;
@@ -681,17 +682,22 @@ module panda_risc_v_exu #(
 	assign lsu_expt_fifo_din = {m_lsu_expt_err, m_lsu_expt_ls_addr};
 	assign m_lsu_expt_ready = lsu_expt_fifo_full_n;
 	
-	// 警告: 出现在执行单元顶层模块的胶水逻辑!!!
-	assign inst_need_imdt_wbk = m_pst_inst_cmt & (~s_alu_is_long_inst);
-	
 	panda_risc_v_wbk #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_wbk_u(
 		.clk(clk),
 		.resetn(resetn),
 		
-		.s_alu_csr_wbk_data(s_alu_csr_wbk_data),
-		.s_alu_csr_wbk_rd_id(s_alu_csr_wbk_rd_id),
+		.s_pst_res_inst_cmt(s_pst_res_inst_cmt),
+		.s_pst_res_need_imdt_wbk(s_pst_res_need_imdt_wbk),
+		.s_pst_res_valid(s_pst_res_valid),
+		.s_pst_res_ready(s_pst_res_ready),
+		
+		.s_alu_csr_wbk_is_csr_rw_inst(s_alu_csr_wbk_is_csr_rw_inst),
+		.s_alu_csr_wbk_csr_v(s_alu_csr_wbk_csr_v),
+		.s_alu_csr_wbk_alu_res(s_alu_csr_wbk_alu_res),
+		.s_alu_csr_wbk_csr_rw_rd_id(s_alu_csr_wbk_csr_rw_rd_id),
+		.s_alu_csr_wbk_alu_rd_id(s_alu_csr_wbk_alu_rd_id),
 		.s_alu_csr_wbk_rd_vld(s_alu_csr_wbk_rd_vld),
 		.s_alu_csr_wbk_valid(s_alu_csr_wbk_valid),
 		.s_alu_csr_wbk_ready(s_alu_csr_wbk_ready),
@@ -721,7 +727,9 @@ module panda_risc_v_exu #(
 		
 		.reg_file_wen(reg_file_wen),
 		.reg_file_waddr(reg_file_waddr),
-		.reg_file_din(reg_file_din)
+		.reg_file_din(reg_file_din),
+		
+		.inst_retire_cnt_en(inst_retire_cnt_en)
 	);
 	
 endmodule

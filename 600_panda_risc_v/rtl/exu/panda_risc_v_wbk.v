@@ -16,7 +16,7 @@ LSU/乘法器/除法器的写回请求采用Round-Robin仲裁
 无
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/06
 ********************************************************************/
 
 
@@ -27,9 +27,18 @@ module panda_risc_v_wbk #(
 	input wire clk,
 	input wire resetn,
 	
+	// 交付结果
+	input wire s_pst_res_inst_cmt, // 指令是否被确认
+	input wire s_pst_res_need_imdt_wbk, // 是否需要立即写回通用寄存器堆
+	input wire s_pst_res_valid,
+	output wire s_pst_res_ready,
+	
 	// 来自ALU或CSR原子读写单元的写回请求
-	input wire[31:0] s_alu_csr_wbk_data, // 计算结果或CSR原值
-	input wire[4:0] s_alu_csr_wbk_rd_id, // RD索引
+	input wire s_alu_csr_wbk_is_csr_rw_inst, // 是否CSR读写指令
+	input wire[31:0] s_alu_csr_wbk_csr_v, // CSR原值
+	input wire[31:0] s_alu_csr_wbk_alu_res, // ALU计算结果
+	input wire[4:0] s_alu_csr_wbk_csr_rw_rd_id, // CSR原子读写单元给出的RD索引
+	input wire[4:0] s_alu_csr_wbk_alu_rd_id, // ALU给出的RD索引
 	input wire s_alu_csr_wbk_rd_vld, // 是否需要写RD
 	input wire s_alu_csr_wbk_valid,
 	output wire s_alu_csr_wbk_ready,
@@ -64,7 +73,10 @@ module panda_risc_v_wbk #(
 	// 通用寄存器堆写端口
 	output wire reg_file_wen,
 	output wire[4:0] reg_file_waddr,
-	output wire[31:0] reg_file_din
+	output wire[31:0] reg_file_din,
+	
+	// 性能监测
+	output wire inst_retire_cnt_en // 退休指令计数器的计数使能
 );
 	
 	/** 常量 **/
@@ -76,6 +88,9 @@ module panda_risc_v_wbk #(
 	// LSU错误类型
 	localparam LSU_LOAD_ACCESS_FAULT = 1'b0; // 读存储映射总线错误
 	localparam LSU_STORE_ACCESS_FAULT = 1'b1; // 写存储映射总线错误
+	
+	/** 交付结果 **/
+	assign s_pst_res_ready = s_alu_csr_wbk_ready | (~s_pst_res_need_imdt_wbk);
 	
 	/** 写回请求仲裁 **/
 	// 写回请求
@@ -106,7 +121,7 @@ module panda_risc_v_wbk #(
 	// 来自除法器的写回请求
 	assign s_div_wbk_ready = div_wbk_granted;
 	
-	assign alu_csr_wbk_req = s_alu_csr_wbk_valid & s_alu_csr_wbk_rd_vld;
+	assign alu_csr_wbk_req = s_alu_csr_wbk_valid & s_pst_res_need_imdt_wbk & s_alu_csr_wbk_rd_vld;
 	assign lsu_wbk_req = s_lsu_wbk_valid & (s_lsu_wbk_err == DBUS_ACCESS_NORMAL) & (~s_lsu_wbk_ls_sel);
 	assign mul_wbk_req = s_mul_wbk_valid;
 	assign div_wbk_req = s_div_wbk_valid;
@@ -138,11 +153,18 @@ module panda_risc_v_wbk #(
 		({5{lsu_wbk_granted}} & s_lsu_wbk_rd_id_for_ld) | 
 		({5{mul_wbk_granted}} & s_mul_wbk_rd_id) | 
 		({5{div_wbk_granted}} & s_div_wbk_rd_id) | 
-		({5{alu_csr_wbk_granted}} & s_alu_csr_wbk_rd_id);
+		({5{alu_csr_wbk_granted}} & (s_alu_csr_wbk_is_csr_rw_inst ? s_alu_csr_wbk_csr_rw_rd_id:s_alu_csr_wbk_alu_rd_id));
 	assign reg_file_din = 
 		({32{lsu_wbk_granted}} & s_lsu_wbk_dout) | 
 		({32{mul_wbk_granted}} & s_mul_wbk_data) | 
 		({32{div_wbk_granted}} & s_div_wbk_data) | 
-		({32{alu_csr_wbk_granted}} & s_alu_csr_wbk_data);
+		({32{alu_csr_wbk_granted}} & (s_alu_csr_wbk_is_csr_rw_inst ? s_alu_csr_wbk_csr_v:s_alu_csr_wbk_alu_res));
+	
+	/** 性能监测 **/
+	assign inst_retire_cnt_en = 
+		(s_pst_res_valid & ((~s_pst_res_inst_cmt) | (s_pst_res_need_imdt_wbk & s_alu_csr_wbk_ready))) | 
+		(s_lsu_wbk_valid & ((s_lsu_wbk_err == DBUS_ACCESS_NORMAL) | (s_lsu_wbk_err == DBUS_ACCESS_LS_UNALIGNED) | m_lsu_expt_ready)) | 
+		s_mul_wbk_valid | 
+		s_div_wbk_valid;
 	
 endmodule

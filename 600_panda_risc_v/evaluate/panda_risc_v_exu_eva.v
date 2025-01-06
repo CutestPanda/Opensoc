@@ -14,7 +14,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/05
+日期: 2025/01/06
 ********************************************************************/
 
 
@@ -50,7 +50,6 @@ module panda_risc_v_exu_eva(
 	input wire[3:0] s_alu_op_mode, // 操作类型
 	input wire[31:0] s_alu_op1, // 操作数1
 	input wire[31:0] s_alu_op2, // 操作数2或取到的指令(若当前是非法指令)
-	input wire s_alu_addr_gen_sel, // ALU是否用于访存地址生成
 	input wire[2:0] s_alu_err_code, // 指令的错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
 	                                //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									//     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
@@ -190,7 +189,6 @@ module panda_risc_v_exu_eva(
 		.s_alu_op_mode(s_alu_op_mode), // 操作类型
 		.s_alu_op1(s_alu_op1), // 操作数1
 		.s_alu_op2(s_alu_op2), // 操作数2或取到的指令(若当前是非法指令)
-		.s_alu_addr_gen_sel(s_alu_addr_gen_sel), // ALU是否用于访存地址生成
 		.s_alu_err_code(s_alu_err_code), // 指令的错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
 										 //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 										 //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
