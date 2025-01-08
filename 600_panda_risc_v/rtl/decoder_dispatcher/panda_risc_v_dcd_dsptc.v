@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/05
+日期: 2025/01/08
 ********************************************************************/
 
 
@@ -33,8 +33,7 @@ module panda_risc_v_dcd_dsptc #(
 	input wire rs1_raw_dpc, // RS1有RAW相关性(标志)
 	output wire[4:0] raw_dpc_check_rs2_id, // 待检查RAW相关性的RS2索引
 	input wire rs2_raw_dpc, // RS2有RAW相关性(标志)
-	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
-	output wire[4:0] raw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
+	output wire[4:0] waw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
 	input wire rd_waw_dpc, // RD有WAW相关性(标志)
 	
 	// 译码器给出的通用寄存器堆读端口#0
@@ -71,7 +70,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
-	output wire m_alu_is_long_inst, // 是否长指令(L/S, 乘除法)
+	output wire m_alu_is_long_inst, // 是否长指令
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -281,7 +280,7 @@ module panda_risc_v_dcd_dsptc #(
 	assign m_dispatch_req_ready = s_dispatch_req_ready;
 	
 	panda_risc_v_dispatcher panda_risc_v_dispatcher_u(
-		.raw_dpc_check_rd_id(raw_dpc_check_rd_id),
+		.waw_dpc_check_rd_id(waw_dpc_check_rd_id),
 		.rd_waw_dpc(rd_waw_dpc),
 		
 		.s_dispatch_req_msg_reused(s_dispatch_req_msg_reused),

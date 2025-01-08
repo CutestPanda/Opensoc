@@ -20,14 +20,13 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/05
+日期: 2025/01/08
 ********************************************************************/
 
 
 module panda_risc_v_dispatcher(
 	// 数据相关性
-	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
-	output wire[4:0] raw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
+	output wire[4:0] waw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
 	input wire rd_waw_dpc, // RD有WAW相关性(标志)
 	
 	// 派遣请求
@@ -71,7 +70,7 @@ module panda_risc_v_dispatcher(
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
-	output wire m_alu_is_long_inst, // 是否长指令(L/S, 乘除法)
+	output wire m_alu_is_long_inst, // 是否长指令
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -144,7 +143,7 @@ module panda_risc_v_dispatcher(
 	/** 数据相关性 **/
 	wire rd_waw_dpc_detected; // 检测到WAW相关性(标志)
 	
-	assign raw_dpc_check_rd_id = s_dispatch_req_rd_id;
+	assign waw_dpc_check_rd_id = s_dispatch_req_rd_id;
 	
 	assign rd_waw_dpc_detected = s_dispatch_req_rd_vld & rd_waw_dpc;
 	
