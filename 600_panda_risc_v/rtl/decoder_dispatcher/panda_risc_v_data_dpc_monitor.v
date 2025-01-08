@@ -138,15 +138,15 @@ module panda_risc_v_data_dpc_monitor #(
 					inst_dpc_trace_item_alloc_grant_vec[inst_dpc_trace_item_i]) | 
 				// 阶段: 指令在取指队列里
 				(inst_life_cycle_vec[inst_dpc_trace_item_i][INST_IFQ_STAGE_FID] & dpc_trace_dcd_valid & 
-					(inst_dpc_trace_msg[inst_dpc_trace_item_i][INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == 
+					(inst_dpc_trace_msg[inst_dpc_trace_item_i][INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == 
 						dpc_trace_dcd_inst_id)) | 
 				// 阶段: 指令在派遣信息里
 				(inst_life_cycle_vec[inst_dpc_trace_item_i][INST_DSPTC_MSG_STAGE_FID] & dpc_trace_dsptc_valid & 
-					(inst_dpc_trace_msg[inst_dpc_trace_item_i][INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == 
+					(inst_dpc_trace_msg[inst_dpc_trace_item_i][INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == 
 						dpc_trace_dsptc_inst_id)) | 
 				// 阶段: 指令执行中
 				(inst_life_cycle_vec[inst_dpc_trace_item_i][INST_EXU_STAGE_FID] & dpc_trace_retire_valid & 
-					(inst_dpc_trace_msg[inst_dpc_trace_item_i][INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == 
+					(inst_dpc_trace_msg[inst_dpc_trace_item_i][INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == 
 						dpc_trace_retire_inst_id))
 				)
 					inst_life_cycle_vec[inst_dpc_trace_item_i] <= # simulation_delay 
@@ -154,7 +154,7 @@ module panda_risc_v_data_dpc_monitor #(
 						~(
 							inst_life_cycle_vec[inst_dpc_trace_item_i][INST_DSPTC_MSG_STAGE_FID] & dpc_trace_dsptc_valid & 
 							(inst_dpc_trace_msg[inst_dpc_trace_item_i]
-								[INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == dpc_trace_dsptc_inst_id))
+								[INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == dpc_trace_dsptc_inst_id))
 						)) ? (1 << INST_NOT_VALID_STAGE_FID):(
 							// 阶段: 指令尚未被取出
 							({4{inst_life_cycle_vec[inst_dpc_trace_item_i][INST_NOT_VALID_STAGE_FID]}} & (1 << INST_IFQ_STAGE_FID)) | 
@@ -165,24 +165,24 @@ module panda_risc_v_data_dpc_monitor #(
 							({4{inst_life_cycle_vec[inst_dpc_trace_item_i][INST_DSPTC_MSG_STAGE_FID] & (
 									dpc_trace_dsptc_valid & 
 									(inst_dpc_trace_msg[inst_dpc_trace_item_i]
-										[INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == 
+										[INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == 
 											dpc_trace_dsptc_inst_id)
 								) & (~(
 									dpc_trace_retire_valid & 
 									(inst_dpc_trace_msg[inst_dpc_trace_item_i]
-										[INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == 
+										[INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == 
 											dpc_trace_retire_inst_id)
 								))}} & (1 << INST_EXU_STAGE_FID)) | 
 							// "指令被派遣"和"指令退休"同时发生, 跳到"指令尚未被取出"阶段
 							({4{inst_life_cycle_vec[inst_dpc_trace_item_i][INST_DSPTC_MSG_STAGE_FID] & (
 									dpc_trace_dsptc_valid & 
 									(inst_dpc_trace_msg[inst_dpc_trace_item_i]
-										[INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == 
+										[INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == 
 											dpc_trace_dsptc_inst_id)
 								) & (
 									dpc_trace_retire_valid & 
 									(inst_dpc_trace_msg[inst_dpc_trace_item_i]
-										[INST_DPC_TRACE_MSG_INST_ID:INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1] == 
+										[INST_DPC_TRACE_MSG_INST_ID+inst_id_width-1:INST_DPC_TRACE_MSG_INST_ID] == 
 											dpc_trace_retire_inst_id)
 								)}} & (1 << INST_NOT_VALID_STAGE_FID)) | 
 							// 阶段: 指令执行中
