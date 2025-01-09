@@ -12,11 +12,12 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/08
+日期: 2025/01/09
 ********************************************************************/
 
 
 module panda_risc_v_dcd_dsptc #(
+	parameter integer inst_id_width = 4, // 指令编号的位宽
 	parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟
@@ -47,9 +48,10 @@ module panda_risc_v_dcd_dsptc #(
 	input wire dcd_reg_file_rd_p1_grant, // 读许可
 	input wire[31:0] dcd_reg_file_rd_p1_dout, // 读数据
 	
-	// 取指结果
-	input wire[127:0] s_if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	input wire[3:0] s_if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	// IFU取指结果
+	input wire[127:0] s_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	input wire[3:0] s_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	input wire[inst_id_width-1:0] s_if_res_id, // 指令编号
 	input wire s_if_res_valid,
 	output wire s_if_res_ready,
 	
@@ -71,6 +73,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
 	output wire m_alu_is_long_inst, // 是否长指令
+	output wire[inst_id_width-1:0] m_alu_inst_id, // 指令编号
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -79,6 +82,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire[2:0] m_ls_type, // 访存类型
 	output wire[4:0] m_rd_id_for_ld, // 用于加载的目标寄存器的索引
 	output wire[31:0] m_ls_din, // 写数据
+	output wire[inst_id_width-1:0] m_lsu_inst_id, // 指令编号
 	output wire m_lsu_valid,
 	input wire m_lsu_ready,
 	
@@ -87,6 +91,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire[1:0] m_csr_upd_type, // CSR更新类型
 	output wire[31:0] m_csr_upd_mask_v, // CSR更新掩码或更新值
 	output wire[4:0] m_csr_rw_rd_id, // RD索引
+	output wire[inst_id_width-1:0] m_csr_rw_inst_id, // 指令编号
 	output wire m_csr_rw_valid,
 	input wire m_csr_rw_ready,
 	
@@ -95,6 +100,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire[32:0] m_mul_op_b, // 操作数B
 	output wire m_mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	output wire[4:0] m_mul_rd_id, // RD索引
+	output wire[inst_id_width-1:0] m_mul_inst_id, // 指令编号
 	output wire m_mul_valid,
 	input wire m_mul_ready,
 	
@@ -103,6 +109,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire[32:0] m_div_op_b, // 操作数B
 	output wire m_div_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	output wire[4:0] m_div_rd_id, // RD索引
+	output wire[inst_id_width-1:0] m_div_inst_id, // 指令编号
 	output wire m_div_valid,
 	input wire m_div_ready
 );
@@ -192,6 +199,7 @@ module panda_risc_v_dcd_dsptc #(
 	wire[2:0] m_dispatch_req_err_code; // 错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
 	                                   //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									   //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
+	wire[inst_id_width-1:0] m_dispatch_req_inst_id; // 指令编号
 	wire m_dispatch_req_valid;
 	wire m_dispatch_req_ready;
 	
@@ -208,6 +216,7 @@ module panda_risc_v_dcd_dsptc #(
 	assign m_reg_file_rd_res_ready = s_reg_file_rd_res_ready;
 	
 	panda_risc_v_dispatch_msg_gen #(
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_dispatch_msg_gen_u(
 		.clk(clk),
@@ -218,6 +227,7 @@ module panda_risc_v_dcd_dsptc #(
 		
 		.s_if_res_data(s_if_res_data),
 		.s_if_res_msg(s_if_res_msg),
+		.s_if_res_id(s_if_res_id),
 		.s_if_res_valid(s_if_res_valid),
 		.s_if_res_ready(s_if_res_ready),
 		
@@ -240,6 +250,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_dispatch_req_rd_id(m_dispatch_req_rd_id),
 		.m_dispatch_req_rd_vld(m_dispatch_req_rd_vld),
 		.m_dispatch_req_err_code(m_dispatch_req_err_code),
+		.m_dispatch_req_inst_id(m_dispatch_req_inst_id),
 		.m_dispatch_req_valid(m_dispatch_req_valid),
 		.m_dispatch_req_ready(m_dispatch_req_ready)
 	);
@@ -266,6 +277,7 @@ module panda_risc_v_dcd_dsptc #(
 	wire[2:0] s_dispatch_req_err_code; // 错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
 	                                   //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									   //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
+	wire[inst_id_width-1:0] s_dispatch_req_inst_id; // 指令编号
 	wire s_dispatch_req_valid;
 	wire s_dispatch_req_ready;
 	
@@ -276,10 +288,13 @@ module panda_risc_v_dcd_dsptc #(
 	assign s_dispatch_req_rd_id = m_dispatch_req_rd_id;
 	assign s_dispatch_req_rd_vld = m_dispatch_req_rd_vld;
 	assign s_dispatch_req_err_code = m_dispatch_req_err_code;
+	assign s_dispatch_req_inst_id = m_dispatch_req_inst_id;
 	assign s_dispatch_req_valid = m_dispatch_req_valid;
 	assign m_dispatch_req_ready = s_dispatch_req_ready;
 	
-	panda_risc_v_dispatcher panda_risc_v_dispatcher_u(
+	panda_risc_v_dispatcher #(
+		.inst_id_width(inst_id_width)
+	)panda_risc_v_dispatcher_u(
 		.waw_dpc_check_rd_id(waw_dpc_check_rd_id),
 		.rd_waw_dpc(rd_waw_dpc),
 		
@@ -290,6 +305,7 @@ module panda_risc_v_dcd_dsptc #(
 		.s_dispatch_req_rd_id(s_dispatch_req_rd_id),
 		.s_dispatch_req_rd_vld(s_dispatch_req_rd_vld),
 		.s_dispatch_req_err_code(s_dispatch_req_err_code),
+		.s_dispatch_req_inst_id(s_dispatch_req_inst_id),
 		.s_dispatch_req_valid(s_dispatch_req_valid),
 		.s_dispatch_req_ready(s_dispatch_req_ready),
 		
@@ -308,6 +324,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_alu_rd_id(m_alu_rd_id),
 		.m_alu_rd_vld(m_alu_rd_vld),
 		.m_alu_is_long_inst(m_alu_is_long_inst),
+		.m_alu_inst_id(m_alu_inst_id),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		
@@ -315,6 +332,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_ls_type(m_ls_type),
 		.m_rd_id_for_ld(m_rd_id_for_ld),
 		.m_ls_din(m_ls_din),
+		.m_lsu_inst_id(m_lsu_inst_id),
 		.m_lsu_valid(m_lsu_valid),
 		.m_lsu_ready(m_lsu_ready),
 		
@@ -322,6 +340,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_csr_upd_type(m_csr_upd_type),
 		.m_csr_upd_mask_v(m_csr_upd_mask_v),
 		.m_csr_rw_rd_id(m_csr_rw_rd_id),
+		.m_csr_rw_inst_id(m_csr_rw_inst_id),
 		.m_csr_rw_valid(m_csr_rw_valid),
 		.m_csr_rw_ready(m_csr_rw_ready),
 		
@@ -329,6 +348,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_mul_op_b(m_mul_op_b),
 		.m_mul_res_sel(m_mul_res_sel),
 		.m_mul_rd_id(m_mul_rd_id),
+		.m_mul_inst_id(m_mul_inst_id),
 		.m_mul_valid(m_mul_valid),
 		.m_mul_ready(m_mul_ready),
 		
@@ -336,6 +356,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_div_op_b(m_div_op_b),
 		.m_div_rem_sel(m_div_rem_sel),
 		.m_div_rd_id(m_div_rd_id),
+		.m_div_inst_id(m_div_inst_id),
 		.m_div_valid(m_div_valid),
 		.m_div_ready(m_div_ready)
 	);

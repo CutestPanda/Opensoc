@@ -15,11 +15,12 @@
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/09
 ********************************************************************/
 
 
 module panda_risc_v_lsu #(
+	parameter integer inst_id_width = 4, // 指令编号的位宽
 	parameter integer dbus_access_timeout_th = 16, // 数据总线访问超时周期数(必须>=1)
 	parameter icb_zero_latency_supported = "false", // 是否支持零响应时延的ICB主机
     parameter real simulation_delay = 1 // 仿真延时
@@ -34,6 +35,7 @@ module panda_risc_v_lsu #(
 	input wire[4:0] s_req_rd_id_for_ld, // 用于加载的目标寄存器的索引
 	input wire[31:0] s_req_ls_addr, // 访存地址
 	input wire[31:0] s_req_ls_din, // 写数据
+	input wire[inst_id_width-1:0] s_req_lsu_inst_id, // 指令编号
 	input wire s_req_valid,
 	output wire s_req_ready,
 	
@@ -43,6 +45,7 @@ module panda_risc_v_lsu #(
 	output wire[31:0] m_resp_dout, // 读数据
 	output wire[31:0] m_resp_ls_addr, // 访存地址
 	output wire[1:0] m_resp_err, // 错误类型
+	output wire[inst_id_width-1:0] m_resp_lsu_inst_id, // 指令编号
 	output wire m_resp_valid,
 	input wire m_resp_ready,
     
@@ -85,6 +88,7 @@ module panda_risc_v_lsu #(
 	localparam DBUS_ACCESS_BUS_ERR = 2'b10; // 数据总线访问错误
 	localparam DBUS_ACCESS_TIMEOUT = 2'b11; // 响应超时
 	// 访存信息各项的起始索引
+	localparam integer LS_MSG_INST_ID = 79;
 	localparam integer LS_MSG_LS_TYPE = 76;
 	localparam integer LS_MSG_WMASK_SID = 72;
 	localparam integer LS_MSG_IS_STORE_SID = 71;
@@ -175,7 +179,7 @@ module panda_risc_v_lsu #(
 	
 	/** 访存信息表 **/
 	// 存储寄存器组
-	reg[78:0] ls_msg_table[0:3]; // 访存信息寄存器组
+	reg[79+inst_id_width-1:0] ls_msg_table[0:3]; // 访存信息寄存器组
 	reg[3:0] ls_task_life_cycle_vec[0:3]; // 访存任务生命周期向量寄存器组
 	// 滞外统计
 	reg[2:0] launched_ls_task_n; // 已启动的访存任务个数
@@ -210,6 +214,7 @@ module panda_risc_v_lsu #(
 	assign m_resp_dout = load_dout;
 	assign m_resp_ls_addr = ls_msg_table[ls_msg_table_rptr][LS_MSG_ADDR_SID+31:LS_MSG_ADDR_SID];
 	assign m_resp_err = ls_msg_table[ls_msg_table_rptr][LS_MSG_ERR_SID+1:LS_MSG_ERR_SID];
+	assign m_resp_lsu_inst_id = ls_msg_table[ls_msg_table_rptr][LS_MSG_INST_ID+inst_id_width-1:LS_MSG_INST_ID];
 	assign m_resp_valid = ls_task_life_cycle_vec[ls_msg_table_rptr][LS_TASK_DONE_STAGE_FID];
 	
 	assign m_icb_cmd_addr = ls_task_life_cycle_vec[ls_msg_table_cmd_stage_rptr][LS_TASK_CMD_STAGE_FID] ? 
@@ -421,6 +426,14 @@ module panda_risc_v_lsu #(
 				if(launch_new_ls_task & ls_msg_table_wptr[ls_msg_table_i]) // 启动阶段时载入
 					ls_msg_table[ls_msg_table_i][LS_MSG_LS_TYPE+2:LS_MSG_LS_TYPE] <= # simulation_delay 
 						s_req_ls_type;
+			end
+			
+			// 指令编号
+			always @(posedge clk)
+			begin
+				if(launch_new_ls_task & ls_msg_table_wptr[ls_msg_table_i]) // 启动阶段时载入
+					ls_msg_table[ls_msg_table_i][LS_MSG_INST_ID+inst_id_width-1:LS_MSG_INST_ID] <= # simulation_delay 
+						s_req_lsu_inst_id;
 			end
 		end
 	endgenerate

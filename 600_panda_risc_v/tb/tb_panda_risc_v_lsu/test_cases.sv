@@ -11,7 +11,7 @@
 class LsuCase0VSqr extends uvm_sequence;
 
 	local AXISTrans #(.data_width(64), .user_width(9)) m_req_axis_trans; // 访存请求AXIS主机事务
-	local AXISTrans #(.data_width(64), .user_width(8)) s_resp_axis_trans; // 访存响应AXIS从机事务
+	local AXISTrans #(.data_width(64), .user_width(16)) s_resp_axis_trans; // 访存响应AXIS从机事务
 	local ICBTrans #(.addr_width(32), .data_width(32)) s_icb_trans; // ICB从机事务
 	
 	local int unsigned test_n; // 测试访存次数

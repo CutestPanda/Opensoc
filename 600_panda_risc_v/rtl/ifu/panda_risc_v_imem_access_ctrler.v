@@ -20,11 +20,12 @@ IMEM访问请求的生命周期:
 无
 
 作者: 陈家耀
-日期: 2024/12/09
+日期: 2025/01/09
 ********************************************************************/
 
 
 module panda_risc_v_imem_access_ctrler #(
+	parameter integer inst_id_width = 4, // 指令编号的位宽
 	parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -77,13 +78,18 @@ module panda_risc_v_imem_access_ctrler #(
 	input wire imem_access_resp_valid,
 	
 	// 取指结果
-	output wire[127:0] if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	output wire[3:0] if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	output wire[127:0] if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	output wire[3:0] if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	output wire[inst_id_width-1:0] m_if_res_id, // 指令编号
 	output wire if_res_valid,
 	input wire if_res_ready
 );
 	
 	/** 常量 **/
+	// 取指结果缓存区各项的起始索引
+	localparam integer IF_RES_BUF_DATA_SID = 0; // 起始索引:取指数据
+	localparam integer IF_RES_BUF_MSG_SID = 96; // 起始索引:取指附加信息
+	localparam integer IF_RES_BUF_ID_SID = 100; // 起始索引:指令编号
 	// 指令存储器访问应答错误类型
 	localparam IMEM_ACCESS_NORMAL = 2'b00; // 正常
 	localparam IMEM_ACCESS_PC_UNALIGNED = 2'b01; // 指令地址非对齐
@@ -104,12 +110,12 @@ module panda_risc_v_imem_access_ctrler #(
 	wire if_res_buf_clr; // 取指结果缓存区清零使能
 	wire if_res_buf_full_n; // 取指结果缓存区满标志
 	wire if_res_buf_empty_n; // 取指结果缓存区空标志
-	// 取指结果缓存寄存器组({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit), 
-	//     打包的预译码信息(64bit), 取到的指令(32bit)})
-	reg[99:0] if_res_buf_regs[0:2];
+	reg[100+inst_id_width-1:0] if_res_buf_regs[0:2]; // 取指结果缓存寄存器组
+	reg[inst_id_width-1:0] inst_id_cnt; // 指令编号计数器
 	
-	assign if_res_data[95:0] = if_res_buf_regs[if_res_buf_rptr][95:0]; // 取指结果
-	assign if_res_msg = if_res_buf_regs[if_res_buf_rptr][99:96]; // 取指附加信息
+	assign if_res_data[95:0] = if_res_buf_regs[if_res_buf_rptr][IF_RES_BUF_DATA_SID+95:IF_RES_BUF_DATA_SID];
+	assign if_res_msg = if_res_buf_regs[if_res_buf_rptr][IF_RES_BUF_MSG_SID+3:IF_RES_BUF_MSG_SID];
+	assign m_if_res_id = if_res_buf_regs[if_res_buf_rptr][IF_RES_BUF_ID_SID+inst_id_width-1:IF_RES_BUF_ID_SID];
 	// 取指结果握手条件: (~if_res_buf_clr) & if_res_buf_empty_n & if_res_ready
 	assign if_res_valid = (~if_res_buf_clr) & if_res_buf_empty_n;
 	
@@ -157,17 +163,31 @@ module panda_risc_v_imem_access_ctrler #(
 		begin
 			always @(posedge clk)
 			begin
-				if(if_res_buf_wen & (if_res_buf_wptr == if_res_buf_regs_i))
+				if((~if_res_buf_clr) & if_res_buf_wen & (if_res_buf_wptr == if_res_buf_regs_i))
 					if_res_buf_regs[if_res_buf_regs_i] <= # simulation_delay {
+						// 指令编号(inst_id_width bit)
+						inst_id_cnt,
+						// 取指附加信息(4bit)
 						to_jump, 
 						illegal_inst, 
 						imem_access_resp_err, 
+						// 打包的预译码信息(64bit)
 						pre_decoding_msg_packeted, 
+						// 取到的指令(32bit)
 						imem_access_resp_rdata
 					};
 			end
 		end
 	endgenerate
+	
+	// 指令编号计数器
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			inst_id_cnt <= 0;
+		else if((~if_res_buf_clr) & if_res_buf_wen)
+			inst_id_cnt <= # simulation_delay inst_id_cnt + 1;
+	end
 	
 	/** 发起指令存储器访问请求 **/
 	reg rst_imem_access_req_pending; // 待发起的复位IMEM访问请求标志

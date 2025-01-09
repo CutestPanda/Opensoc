@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/05
+日期: 2025/01/09
 ********************************************************************/
 
 
@@ -34,7 +34,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[4:0] raw_dpc_check_rs2_id, // 待检查RAW相关性的RS2索引
 	input wire rs2_raw_dpc, // RS2有RAW相关性(标志)
 	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
-	output wire[4:0] raw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
+	output wire[4:0] waw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
 	input wire rd_waw_dpc, // RD有WAW相关性(标志)
 	
 	// 译码器给出的通用寄存器堆读端口#0
@@ -49,8 +49,9 @@ module panda_risc_v_dcd_dsptc_eva(
 	input wire[31:0] dcd_reg_file_rd_p1_dout, // 读数据
 	
 	// 取指结果
-	input wire[127:0] s_if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	input wire[3:0] s_if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	input wire[127:0] s_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	input wire[3:0] s_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	input wire[3:0] s_if_res_id, // 指令编号
 	input wire s_if_res_valid,
 	output wire s_if_res_ready,
 	
@@ -71,7 +72,8 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
-	output wire m_alu_is_long_inst, // 是否长指令(L/S, 乘除法)
+	output wire m_alu_is_long_inst, // 是否长指令
+	output wire[3:0] m_alu_inst_id, // 指令编号
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -80,6 +82,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[2:0] m_ls_type, // 访存类型
 	output wire[4:0] m_rd_id_for_ld, // 用于加载的目标寄存器的索引
 	output wire[31:0] m_ls_din, // 写数据
+	output wire[3:0] m_lsu_inst_id, // 指令编号
 	output wire m_lsu_valid,
 	input wire m_lsu_ready,
 	
@@ -88,6 +91,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[1:0] m_csr_upd_type, // CSR更新类型
 	output wire[31:0] m_csr_upd_mask_v, // CSR更新掩码或更新值
 	output wire[4:0] m_csr_rw_rd_id, // RD索引
+	output wire[3:0] m_csr_rw_inst_id, // 指令编号
 	output wire m_csr_rw_valid,
 	input wire m_csr_rw_ready,
 	
@@ -96,6 +100,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[32:0] m_mul_op_b, // 操作数B
 	output wire m_mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	output wire[4:0] m_mul_rd_id, // RD索引
+	output wire[3:0] m_mul_inst_id, // 指令编号
 	output wire m_mul_valid,
 	input wire m_mul_ready,
 	
@@ -104,6 +109,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire[32:0] m_div_op_b, // 操作数B
 	output wire m_div_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	output wire[4:0] m_div_rd_id, // RD索引
+	output wire[3:0] m_div_inst_id, // 指令编号
 	output wire m_div_valid,
 	input wire m_div_ready
 );
@@ -138,7 +144,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.rs1_raw_dpc(rs1_raw_dpc),
 		.raw_dpc_check_rs2_id(raw_dpc_check_rs2_id),
 		.rs2_raw_dpc(rs2_raw_dpc),
-		.raw_dpc_check_rd_id(raw_dpc_check_rd_id),
+		.waw_dpc_check_rd_id(waw_dpc_check_rd_id),
 		.rd_waw_dpc(rd_waw_dpc),
 		
 		.dcd_reg_file_rd_p0_req(dcd_reg_file_rd_p0_req),
@@ -153,6 +159,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		
 		.s_if_res_data(s_if_res_data),
 		.s_if_res_msg(s_if_res_msg),
+		.s_if_res_id(s_if_res_id),
 		.s_if_res_valid(s_if_res_valid),
 		.s_if_res_ready(s_if_res_ready),
 		
@@ -171,6 +178,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_alu_rd_id(m_alu_rd_id),
 		.m_alu_rd_vld(m_alu_rd_vld),
 		.m_alu_is_long_inst(m_alu_is_long_inst),
+		.m_alu_inst_id(m_alu_inst_id),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		
@@ -178,6 +186,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_ls_type(m_ls_type),
 		.m_rd_id_for_ld(m_rd_id_for_ld),
 		.m_ls_din(m_ls_din),
+		.m_lsu_inst_id(m_lsu_inst_id),
 		.m_lsu_valid(m_lsu_valid),
 		.m_lsu_ready(m_lsu_ready),
 		
@@ -185,6 +194,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_csr_upd_type(m_csr_upd_type),
 		.m_csr_upd_mask_v(m_csr_upd_mask_v),
 		.m_csr_rw_rd_id(m_csr_rw_rd_id),
+		.m_csr_rw_inst_id(m_csr_rw_inst_id),
 		.m_csr_rw_valid(m_csr_rw_valid),
 		.m_csr_rw_ready(m_csr_rw_ready),
 		
@@ -192,6 +202,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_mul_op_b(m_mul_op_b),
 		.m_mul_res_sel(m_mul_res_sel),
 		.m_mul_rd_id(m_mul_rd_id),
+		.m_mul_inst_id(m_mul_inst_id),
 		.m_mul_valid(m_mul_valid),
 		.m_mul_ready(m_mul_ready),
 		
@@ -199,6 +210,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_div_op_b(m_div_op_b),
 		.m_div_rem_sel(m_div_rem_sel),
 		.m_div_rd_id(m_div_rd_id),
+		.m_div_inst_id(m_div_inst_id),
 		.m_div_valid(m_div_valid),
 		.m_div_ready(m_div_ready)
 	);

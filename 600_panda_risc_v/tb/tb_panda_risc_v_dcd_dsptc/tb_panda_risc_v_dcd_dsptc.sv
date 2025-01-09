@@ -15,6 +15,8 @@ import uvm_pkg::*;
 module tb_panda_risc_v_dcd_dsptc();
 	
 	/** 配置参数 **/
+	// 待测模块配置
+	localparam integer inst_id_width = 4; // 指令编号的位宽
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
@@ -127,7 +129,7 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire[4:0] raw_dpc_check_rs2_id; // 待检查RAW相关性的RS2索引
 	reg rs2_raw_dpc; // RS2有RAW相关性(标志)
 	// 仅检查待派遣指令的RD索引是否与未交付长指令的RD索引冲突!
-	wire[4:0] raw_dpc_check_rd_id; // 待检查WAW相关性的RD索引
+	wire[4:0] waw_dpc_check_rd_id; // 待检查WAW相关性的RD索引
 	reg rd_waw_dpc; // RD有WAW相关性(标志)
 	// 译码器给出的通用寄存器堆读端口#0
 	wire dcd_reg_file_rd_p0_req; // 读请求
@@ -140,8 +142,9 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire dcd_reg_file_rd_p1_grant; // 读许可
 	wire[31:0] dcd_reg_file_rd_p1_dout; // 读数据
 	// 取指结果
-	wire[127:0] s_if_res_data; // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	wire[3:0] s_if_res_msg; // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	wire[127:0] s_if_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	wire[3:0] s_if_res_msg; // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	reg[inst_id_width-1:0] s_if_res_id; // 指令编号
 	wire s_if_res_valid;
 	wire s_if_res_ready;
 	// ALU执行请求
@@ -161,7 +164,8 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire m_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] m_alu_rd_id; // RD索引
 	wire m_alu_rd_vld; // 是否需要写RD
-	wire m_alu_is_long_inst; // 是否长指令(L/S, 乘除法)
+	wire m_alu_is_long_inst; // 是否长指令
+	wire[inst_id_width-1:0] m_alu_inst_id; // 指令编号
 	wire m_alu_valid;
 	wire m_alu_ready;
 	// LSU执行请求
@@ -169,6 +173,7 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire[2:0] m_ls_type; // 访存类型
 	wire[4:0] m_rd_id_for_ld; // 用于加载的目标寄存器的索引
 	wire[31:0] m_ls_din; // 写数据
+	wire[inst_id_width-1:0] m_lsu_inst_id; // 指令编号
 	wire m_lsu_valid;
 	wire m_lsu_ready;
 	// CSR原子读写单元执行请求
@@ -176,6 +181,7 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire[1:0] m_csr_upd_type; // CSR更新类型
 	wire[31:0] m_csr_upd_mask_v; // CSR更新掩码或更新值
 	wire[4:0] m_csr_rw_rd_id; // RD索引
+	wire[inst_id_width-1:0] m_csr_rw_inst_id; // 指令编号
 	wire m_csr_rw_valid;
 	wire m_csr_rw_ready;
 	// 乘法器执行请求
@@ -183,6 +189,7 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire[32:0] m_mul_op_b; // 操作数B
 	wire m_mul_res_sel; // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	wire[4:0] m_mul_rd_id; // RD索引
+	wire[inst_id_width-1:0] m_mul_inst_id; // 指令编号
 	wire m_mul_valid;
 	wire m_mul_ready;
 	// 除法器执行请求
@@ -190,6 +197,7 @@ module tb_panda_risc_v_dcd_dsptc();
 	wire[32:0] m_div_op_b; // 操作数B
 	wire m_div_rem_sel; // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	wire[4:0] m_div_rd_id; // RD索引
+	wire[inst_id_width-1:0] m_div_inst_id; // 指令编号
 	wire m_div_valid;
 	wire m_div_ready;
 	
@@ -199,7 +207,8 @@ module tb_panda_risc_v_dcd_dsptc();
 	assign s_if_res_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_if_res_ready;
 	
-	assign s0_axis_if.data = {12'dx, m_alu_op_mode, m_alu_op1, m_alu_op2, m_alu_addr_gen_sel, m_alu_err_code, 
+	assign s0_axis_if.data = {4'dx, 4'd0, m_alu_inst_id, 
+		m_alu_op_mode, m_alu_op1, m_alu_op2, m_alu_addr_gen_sel, m_alu_err_code, 
 		m_alu_pc_of_inst, m_alu_is_b_inst, m_alu_is_ecall_inst, m_alu_is_mret_inst, m_alu_is_csr_rw_inst, 
 		m_alu_brc_pc_upd, m_alu_prdt_jump, 
 		m_alu_rd_id, m_alu_rd_vld, m_alu_is_long_inst};
@@ -207,27 +216,28 @@ module tb_panda_risc_v_dcd_dsptc();
 	assign s0_axis_if.last = 1'b1;
 	assign m_alu_ready = s0_axis_if.ready;
 	
-	assign s1_axis_if.data = {119'dx, m_ls_sel, m_ls_type, m_rd_id_for_ld, m_ls_din};
+	assign s1_axis_if.data = {111'dx, 4'd0, m_lsu_inst_id, m_ls_sel, m_ls_type, m_rd_id_for_ld, m_ls_din};
 	assign s1_axis_if.valid = m_lsu_valid;
 	assign s1_axis_if.last = 1'b1;
 	assign m_lsu_ready = s1_axis_if.ready;
 	
-	assign s2_axis_if.data = {109'dx, m_csr_addr, m_csr_upd_type, m_csr_upd_mask_v, m_csr_rw_rd_id};
+	assign s2_axis_if.data = {101'dx, 4'd0, m_csr_rw_inst_id, m_csr_addr, m_csr_upd_type, m_csr_upd_mask_v, m_csr_rw_rd_id};
 	assign s2_axis_if.valid = m_csr_rw_valid;
 	assign s2_axis_if.last = 1'b1;
 	assign m_csr_rw_ready = s2_axis_if.ready;
 	
-	assign s3_axis_if.data = {88'dx, m_mul_op_a, m_mul_op_b, m_mul_res_sel, m_mul_rd_id};
+	assign s3_axis_if.data = {80'dx, 4'd0, m_mul_inst_id, m_mul_op_a, m_mul_op_b, m_mul_res_sel, m_mul_rd_id};
 	assign s3_axis_if.valid = m_mul_valid;
 	assign s3_axis_if.last = 1'b1;
 	assign m_mul_ready = s3_axis_if.ready;
 	
-	assign s4_axis_if.data = {88'dx, m_div_op_a, m_div_op_b, m_div_rem_sel, m_div_rd_id};
+	assign s4_axis_if.data = {80'dx, 4'd0, m_div_inst_id, m_div_op_a, m_div_op_b, m_div_rem_sel, m_div_rd_id};
 	assign s4_axis_if.valid = m_div_valid;
 	assign s4_axis_if.last = 1'b1;
 	assign m_div_ready = s4_axis_if.ready;
 	
 	panda_risc_v_dcd_dsptc #(
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_dcd_dsptc_u(
 		.clk(clk),
@@ -240,7 +250,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.rs1_raw_dpc(rs1_raw_dpc),
 		.raw_dpc_check_rs2_id(raw_dpc_check_rs2_id),
 		.rs2_raw_dpc(rs2_raw_dpc),
-		.raw_dpc_check_rd_id(raw_dpc_check_rd_id),
+		.waw_dpc_check_rd_id(waw_dpc_check_rd_id),
 		.rd_waw_dpc(rd_waw_dpc),
 		
 		.dcd_reg_file_rd_p0_req(dcd_reg_file_rd_p0_req),
@@ -255,6 +265,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		
 		.s_if_res_data(s_if_res_data),
 		.s_if_res_msg(s_if_res_msg),
+		.s_if_res_id(s_if_res_id),
 		.s_if_res_valid(s_if_res_valid),
 		.s_if_res_ready(s_if_res_ready),
 		
@@ -273,6 +284,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_alu_rd_id(m_alu_rd_id),
 		.m_alu_rd_vld(m_alu_rd_vld),
 		.m_alu_is_long_inst(m_alu_is_long_inst),
+		.m_alu_inst_id(m_alu_inst_id),
 		.m_alu_valid(m_alu_valid),
 		.m_alu_ready(m_alu_ready),
 		
@@ -280,6 +292,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_ls_type(m_ls_type),
 		.m_rd_id_for_ld(m_rd_id_for_ld),
 		.m_ls_din(m_ls_din),
+		.m_lsu_inst_id(m_lsu_inst_id),
 		.m_lsu_valid(m_lsu_valid),
 		.m_lsu_ready(m_lsu_ready),
 		
@@ -287,6 +300,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_csr_upd_type(m_csr_upd_type),
 		.m_csr_upd_mask_v(m_csr_upd_mask_v),
 		.m_csr_rw_rd_id(m_csr_rw_rd_id),
+		.m_csr_rw_inst_id(m_csr_rw_inst_id),
 		.m_csr_rw_valid(m_csr_rw_valid),
 		.m_csr_rw_ready(m_csr_rw_ready),
 		
@@ -294,6 +308,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_mul_op_b(m_mul_op_b),
 		.m_mul_res_sel(m_mul_res_sel),
 		.m_mul_rd_id(m_mul_rd_id),
+		.m_mul_inst_id(m_mul_inst_id),
 		.m_mul_valid(m_mul_valid),
 		.m_mul_ready(m_mul_ready),
 		
@@ -301,9 +316,19 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_div_op_b(m_div_op_b),
 		.m_div_rem_sel(m_div_rem_sel),
 		.m_div_rd_id(m_div_rd_id),
+		.m_div_inst_id(m_div_inst_id),
 		.m_div_valid(m_div_valid),
 		.m_div_ready(m_div_ready)
 	);
+	
+	/** 指令编号 **/
+	always @(posedge clk or negedge sys_resetn)
+	begin
+		if(~sys_resetn)
+			s_if_res_id <= 0;
+		else if(s_if_res_valid & s_if_res_ready)
+			s_if_res_id <= # simulation_delay s_if_res_id + 1;
+	end
 	
 	/** 软件复位请求/冲刷请求 **/
 	initial

@@ -16,7 +16,7 @@ LSU/乘法器/除法器的写回请求采用Round-Robin仲裁
 无
 
 作者: 陈家耀
-日期: 2025/01/06
+日期: 2025/01/09
 ********************************************************************/
 
 
@@ -75,8 +75,8 @@ module panda_risc_v_wbk #(
 	output wire[4:0] reg_file_waddr,
 	output wire[31:0] reg_file_din,
 	
-	// 性能监测
-	output wire inst_retire_cnt_en // 退休指令计数器的计数使能
+	// 指令退休(标志)
+	output wire inst_retire
 );
 	
 	/** 常量 **/

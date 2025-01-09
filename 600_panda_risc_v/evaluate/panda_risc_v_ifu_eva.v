@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2024/11/17
+日期: 2025/01/09
 ********************************************************************/
 
 
@@ -46,8 +46,9 @@ module panda_risc_v_ifu_eva(
 	input wire[31:0] jalr_reg_file_rd_p0_dout, // 读数据
 	
 	// 取指结果
-	output wire[127:0] m_if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	output wire[3:0] m_if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	output wire[127:0] m_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	output wire[3:0] m_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	output wire[3:0] m_if_res_id, // 指令编号
 	output wire m_if_res_valid,
 	input wire m_if_res_ready,
 	
@@ -113,6 +114,7 @@ module panda_risc_v_ifu_eva(
 	    .imem_access_timeout_th(16),
 	    .inst_addr_alignment_width(32),
 	    .RST_PC(32'h0000_0000),
+		.inst_id_width(4),
 	    .simulation_delay(1)
 	)panda_risc_v_ifu_u(
 		.clk(clk),
@@ -147,6 +149,7 @@ module panda_risc_v_ifu_eva(
 		
 		.m_if_res_data(m_if_res_data),
 		.m_if_res_msg(m_if_res_msg),
+		.m_if_res_id(m_if_res_id),
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		

@@ -18,7 +18,7 @@ ICB MASTER
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/09
 ********************************************************************/
 
 
@@ -26,6 +26,7 @@ module panda_risc_v_ifu #(
 	parameter integer imem_access_timeout_th = 16, // 指令总线访问超时周期数(必须>=1)
 	parameter integer inst_addr_alignment_width = 32, // 指令地址对齐位宽(16 | 32)
 	parameter RST_PC = 32'h0000_0000, // 复位时的PC
+	parameter integer inst_id_width = 4, // 指令编号的位宽
 	parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟
@@ -70,8 +71,9 @@ module panda_risc_v_ifu #(
 	output wire m_icb_rsp_inst_ready,
 	
 	// 取指结果
-	output wire[127:0] m_if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	output wire[3:0] m_if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	output wire[127:0] m_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	output wire[3:0] m_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	output wire[inst_id_width-1:0] m_if_res_id, // 指令编号
 	output wire m_if_res_valid,
 	input wire m_if_res_ready,
 	
@@ -181,6 +183,7 @@ module panda_risc_v_ifu #(
 	wire[31:0] jalr_baseaddr_v; // 基址读结果
 	
 	panda_risc_v_imem_access_ctrler #(
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_imem_access_ctrler_u(
 		.clk(clk),
@@ -222,6 +225,7 @@ module panda_risc_v_ifu #(
 		
 		.if_res_data(m_if_res_data),
 		.if_res_msg(m_if_res_msg),
+		.m_if_res_id(m_if_res_id),
 		.if_res_valid(m_if_res_valid),
 		.if_res_ready(m_if_res_ready)
 	);

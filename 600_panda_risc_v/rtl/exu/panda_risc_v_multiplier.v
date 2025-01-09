@@ -16,11 +16,12 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/09
 ********************************************************************/
 
 
 module panda_risc_v_multiplier #(
+	parameter integer inst_id_width = 4, // 指令编号的位宽
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -32,12 +33,14 @@ module panda_risc_v_multiplier #(
 	input wire[32:0] s_mul_req_op_b, // 操作数B
 	input wire s_mul_req_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	input wire[4:0] s_mul_req_rd_id, // RD索引
+	input wire[inst_id_width-1:0] s_mul_req_inst_id, // 指令编号
 	input wire s_mul_req_valid,
 	output wire s_mul_req_ready,
 	
 	// 乘法器计算结果
 	output wire[31:0] m_mul_res_data, // 计算结果
 	output wire[4:0] m_mul_res_rd_id, // RD索引
+	output wire[inst_id_width-1:0] m_mul_res_inst_id, // 指令编号
 	output wire m_mul_res_valid,
 	input wire m_mul_res_ready
 );
@@ -48,15 +51,16 @@ module panda_risc_v_multiplier #(
 	localparam integer MUL_IN_MSG_OP_A = 1;
 	localparam integer MUL_IN_MSG_OP_B = 34;
 	localparam integer MUL_IN_MSG_RD_ID = 67;
+	localparam integer MUL_IN_MSG_INST_ID = 72;
 	
     /** 乘法器输入缓存区 **/
 	// 缓存区写端口
 	wire mul_in_buf_wen;
-	wire[71:0] mul_in_buf_din;
+	wire[72+inst_id_width-1:0] mul_in_buf_din;
 	wire mul_in_buf_full_n;
 	// 缓存区读端口
 	wire mul_in_buf_ren;
-	wire[71:0] mul_in_buf_dout;
+	wire[72+inst_id_width-1:0] mul_in_buf_dout;
 	wire mul_in_buf_empty_n;
 	
 	assign mul_in_buf_wen = s_mul_req_valid;
@@ -64,6 +68,7 @@ module panda_risc_v_multiplier #(
 	assign mul_in_buf_din[MUL_IN_MSG_OP_A+32:MUL_IN_MSG_OP_A] = s_mul_req_op_a;
 	assign mul_in_buf_din[MUL_IN_MSG_OP_B+32:MUL_IN_MSG_OP_B] = s_mul_req_op_b;
 	assign mul_in_buf_din[MUL_IN_MSG_RD_ID+4:MUL_IN_MSG_RD_ID] = s_mul_req_rd_id;
+	assign mul_in_buf_din[MUL_IN_MSG_INST_ID+inst_id_width-1:MUL_IN_MSG_INST_ID] = s_mul_req_inst_id;
 	assign s_mul_req_ready = mul_in_buf_full_n;
 	
 	// 寄存器fifo
@@ -71,7 +76,7 @@ module panda_risc_v_multiplier #(
 		.fwft_mode("true"),
 		.low_latency_mode("true"),
 		.fifo_depth(2),
-		.fifo_data_width(72),
+		.fifo_data_width(72+inst_id_width),
 		.almost_full_th(1),
 		.almost_empty_th(0),
 		.simulation_delay(simulation_delay)
@@ -91,15 +96,18 @@ module panda_risc_v_multiplier #(
 	/** 乘法结果 **/
 	wire[31:0] mul_res_s0_data; // 计算结果
 	wire[4:0] mul_res_s0_rd_id; // RD索引
+	wire[inst_id_width-1:0] mul_res_s0_inst_id; // 指令编号
 	wire mul_res_s0_valid;
 	wire mul_res_s0_ready;
 	reg[31:0] mul_res_s1_data; // 计算结果
 	reg[4:0] mul_res_s1_rd_id; // RD索引
+	reg[inst_id_width-1:0] mul_res_s1_inst_id; // 指令编号
 	reg mul_res_s1_valid;
 	wire mul_res_s1_ready;
 	
 	assign m_mul_res_data = mul_res_s1_data;
 	assign m_mul_res_rd_id = mul_res_s1_rd_id;
+	assign m_mul_res_inst_id = mul_res_s1_inst_id;
 	assign m_mul_res_valid = mul_res_s1_valid;
 	assign mul_res_s1_ready = m_mul_res_ready;
 	
@@ -116,6 +124,12 @@ module panda_risc_v_multiplier #(
 	begin
 		if(mul_res_s0_valid & mul_res_s0_ready)
 			mul_res_s1_rd_id <= # simulation_delay mul_res_s0_rd_id;
+	end
+	// 指令编号
+	always @(posedge clk)
+	begin
+		if(mul_res_s0_valid & mul_res_s0_ready)
+			mul_res_s1_inst_id <= # simulation_delay mul_res_s0_inst_id;
 	end
 	
 	// 乘法结果有效指示
@@ -198,6 +212,7 @@ module panda_risc_v_multiplier #(
 	assign mul_res_s0_data = mul_in_buf_dout[MUL_IN_MSG_RES_SEL] ? 
 		mul_res[63:32]:mul_res[31:0];
 	assign mul_res_s0_rd_id = mul_in_buf_dout[MUL_IN_MSG_RD_ID+4:MUL_IN_MSG_RD_ID];
+	assign mul_res_s0_inst_id = mul_in_buf_dout[MUL_IN_MSG_INST_ID+inst_id_width-1:MUL_IN_MSG_INST_ID];
 	
 	assign accum_in = 
 	    ({48{accum_proc_onehot[0]}} & {29'd0, mul_18_18_out_res[35:17]}) | 

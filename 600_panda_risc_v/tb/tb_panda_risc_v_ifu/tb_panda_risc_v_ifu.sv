@@ -19,6 +19,7 @@ module tb_panda_risc_v_ifu();
 	localparam integer imem_access_timeout_th = 16; // 指令总线访问超时周期数(必须>=1)
 	localparam integer inst_addr_alignment_width = 32; // 指令地址对齐位宽(16 | 32)
 	localparam RST_PC = 32'h0000_0000; // 复位时的PC
+	localparam integer inst_id_width = 4; // 指令编号的位宽
 	// 仿真模型配置
 	localparam integer imem_depth = 1024;
 	// 时钟和复位配置
@@ -48,16 +49,16 @@ module tb_panda_risc_v_ifu();
 	end
 	
 	/** 接口 **/
-	AXIS #(.out_drive_t(simulation_delay), .data_width(128), .user_width(4)) s_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(128), .user_width(12)) s_axis_if(.clk(clk), .rst_n(rst_n));
 	
 	/** 主任务 **/
 	initial
 	begin
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(128), .user_width(4)).slave)::set(null, 
+			.data_width(128), .user_width(12)).slave)::set(null, 
 			"uvm_test_top.env.agt1.drv", "axis_if", s_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(128), .user_width(4)).monitor)::set(null, 
+			.data_width(128), .user_width(12)).monitor)::set(null, 
 			"uvm_test_top.env.agt1.mon", "axis_if", s_axis_if.monitor);
 		
 		// 启动testcase
@@ -102,15 +103,16 @@ module tb_panda_risc_v_ifu();
 	wire m_icb_rsp_inst_valid;
 	wire m_icb_rsp_inst_ready;
 	// 取指结果
-	wire[127:0] m_if_res_data; // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	wire[3:0] m_if_res_msg; // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	wire[127:0] m_if_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	wire[3:0] m_if_res_msg; // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	wire[inst_id_width-1:0] m_if_res_id; // 指令编号
 	wire m_if_res_valid;
 	wire m_if_res_ready;
 	// 指令总线访问超时标志
 	wire ibus_timeout;
 	
 	assign s_axis_if.data = m_if_res_data;
-	assign s_axis_if.user = m_if_res_msg;
+	assign s_axis_if.user = {4'd0, m_if_res_id, m_if_res_msg};
 	assign s_axis_if.last = 1'b1;
 	assign s_axis_if.valid = m_if_res_valid;
 	assign m_if_res_ready = s_axis_if.ready;
@@ -161,6 +163,16 @@ module tb_panda_risc_v_ifu();
 		
 		flush_req <= 1'b0;
 		flush_addr <= 0;
+		
+		# (clk_p * 21);
+		
+		flush_req <= 1'b1;
+		flush_addr <= 1000;
+		
+		# clk_p;
+		
+		flush_req <= 1'b0;
+		flush_addr <= 0;
 	end
 	
 	panda_risc_v_reset #(
@@ -179,6 +191,7 @@ module tb_panda_risc_v_ifu();
 		.imem_access_timeout_th(imem_access_timeout_th),
 		.inst_addr_alignment_width(inst_addr_alignment_width),
 		.RST_PC(RST_PC),
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)dut(
 		.clk(clk),
@@ -212,6 +225,7 @@ module tb_panda_risc_v_ifu();
 		
 		.m_if_res_data(m_if_res_data),
 		.m_if_res_msg(m_if_res_msg),
+		.m_if_res_id(m_if_res_id),
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		

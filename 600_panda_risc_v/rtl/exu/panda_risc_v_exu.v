@@ -35,11 +35,13 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/06
+日期: 2025/01/09
 ********************************************************************/
 
 
 module panda_risc_v_exu #(
+	// 指令编号的位宽
+	parameter integer inst_id_width = 4,
 	// LSU配置
 	parameter integer dbus_access_timeout_th = 16, // 数据总线访问超时周期数(必须>=1)
 	parameter icb_zero_latency_supported = "false", // 是否支持零响应时延的ICB主机
@@ -98,7 +100,8 @@ module panda_risc_v_exu #(
 	input wire s_alu_prdt_jump, // 是否预测跳转
 	input wire[4:0] s_alu_rd_id, // RD索引
 	input wire s_alu_rd_vld, // 是否需要写RD
-	input wire s_alu_is_long_inst, // 是否长指令(L/S, 乘除法)
+	input wire s_alu_is_long_inst, // 是否长指令
+	input wire[inst_id_width-1:0] s_alu_inst_id, // 指令编号
 	input wire s_alu_valid,
 	output wire s_alu_ready,
 	
@@ -107,6 +110,7 @@ module panda_risc_v_exu #(
 	input wire[2:0] s_ls_type, // 访存类型
 	input wire[4:0] s_rd_id_for_ld, // 用于加载的目标寄存器的索引
 	input wire[31:0] s_ls_din, // 写数据
+	input wire[inst_id_width-1:0] s_lsu_inst_id, // 指令编号
 	input wire s_lsu_valid,
 	output wire s_lsu_ready,
 	
@@ -115,6 +119,7 @@ module panda_risc_v_exu #(
 	input wire[1:0] s_csr_upd_type, // CSR更新类型
 	input wire[31:0] s_csr_upd_mask_v, // CSR更新掩码或更新值
 	input wire[4:0] s_csr_rw_rd_id, // RD索引
+	input wire[inst_id_width-1:0] s_csr_rw_inst_id, // 指令编号
 	input wire s_csr_rw_valid,
 	output wire s_csr_rw_ready,
 	
@@ -123,6 +128,7 @@ module panda_risc_v_exu #(
 	input wire[32:0] s_mul_op_b, // 操作数B
 	input wire s_mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	input wire[4:0] s_mul_rd_id, // RD索引
+	input wire[inst_id_width-1:0] s_mul_inst_id, // 指令编号
 	input wire s_mul_valid,
 	output wire s_mul_ready,
 	
@@ -131,6 +137,7 @@ module panda_risc_v_exu #(
 	input wire[32:0] s_div_op_b, // 操作数B
 	input wire s_div_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	input wire[4:0] s_div_rd_id, // RD索引
+	input wire[inst_id_width-1:0] s_div_inst_id, // 指令编号
 	input wire s_div_valid,
 	output wire s_div_ready,
 	
@@ -180,7 +187,7 @@ module panda_risc_v_exu #(
 	wire s_pst_is_mret_inst; // 是否MRET指令
 	wire[31:0] s_pst_brc_pc_upd; // 分支预测失败时修正的PC(仅在B指令下有效)
 	wire s_pst_prdt_jump; // 是否预测跳转
-	wire s_pst_is_long_inst; // 是否长指令(L/S, 乘除法)
+	wire s_pst_is_long_inst; // 是否长指令
 	wire s_pst_valid;
 	wire s_pst_ready;
 	// 来自LSU的异常
@@ -377,6 +384,7 @@ module panda_risc_v_exu #(
 	wire[4:0] s_req_rd_id_for_ld; // 用于加载的目标寄存器的索引
 	wire[31:0] s_req_ls_addr; // 访存地址
 	wire[31:0] s_req_ls_din; // 写数据
+	wire[inst_id_width-1:0] s_req_lsu_inst_id; // 指令编号
 	wire s_req_valid;
 	wire s_req_ready;
 	// 访存结果
@@ -385,6 +393,7 @@ module panda_risc_v_exu #(
 	wire[31:0] m_resp_dout; // 读数据
 	wire[31:0] m_resp_ls_addr; // 访存地址
 	wire[1:0] m_resp_err; // 错误类型
+	wire[inst_id_width-1:0] m_resp_lsu_inst_id; // 指令编号
 	wire m_resp_valid;
 	wire m_resp_ready;
 	
@@ -393,10 +402,12 @@ module panda_risc_v_exu #(
 	assign s_req_rd_id_for_ld = s_rd_id_for_ld;
 	assign s_req_ls_addr = alu_ls_addr;
 	assign s_req_ls_din = s_ls_din;
+	assign s_req_lsu_inst_id = s_lsu_inst_id;
 	assign s_req_valid = s_lsu_valid;
 	assign s_lsu_ready = s_req_ready;
 	
 	panda_risc_v_lsu #(
+		.inst_id_width(inst_id_width),
 		.dbus_access_timeout_th(dbus_access_timeout_th),
 		.icb_zero_latency_supported(icb_zero_latency_supported),
 		.simulation_delay(simulation_delay)
@@ -409,6 +420,7 @@ module panda_risc_v_exu #(
 		.s_req_rd_id_for_ld(s_req_rd_id_for_ld),
 		.s_req_ls_addr(s_req_ls_addr),
 		.s_req_ls_din(s_req_ls_din),
+		.s_req_lsu_inst_id(s_req_lsu_inst_id),
 		.s_req_valid(s_req_valid),
 		.s_req_ready(s_req_ready),
 		
@@ -417,6 +429,7 @@ module panda_risc_v_exu #(
 		.m_resp_dout(m_resp_dout),
 		.m_resp_ls_addr(m_resp_ls_addr),
 		.m_resp_err(m_resp_err),
+		.m_resp_lsu_inst_id(m_resp_lsu_inst_id),
 		.m_resp_valid(m_resp_valid),
 		.m_resp_ready(m_resp_ready),
 		
@@ -440,11 +453,13 @@ module panda_risc_v_exu #(
 	wire[32:0] s_mul_req_op_b; // 操作数B
 	wire s_mul_req_res_sel; // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	wire[4:0] s_mul_req_rd_id; // RD索引
+	wire[inst_id_width-1:0] s_mul_req_inst_id; // 指令编号
 	wire s_mul_req_valid;
 	wire s_mul_req_ready;
 	// 乘法器计算结果
 	wire[31:0] m_mul_res_data; // 计算结果
 	wire[4:0] m_mul_res_rd_id; // RD索引
+	wire[inst_id_width-1:0] m_mul_res_inst_id; // 指令编号
 	wire m_mul_res_valid;
 	wire m_mul_res_ready;
 	
@@ -452,10 +467,12 @@ module panda_risc_v_exu #(
 	assign s_mul_req_op_b = s_mul_op_b;
 	assign s_mul_req_res_sel = s_mul_res_sel;
 	assign s_mul_req_rd_id = s_mul_rd_id;
+	assign s_mul_req_inst_id = s_mul_inst_id;
 	assign s_mul_req_valid = s_mul_valid;
 	assign s_mul_ready = s_mul_req_ready;
 	
 	panda_risc_v_multiplier #(
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_multiplier_u(
 		.clk(clk),
@@ -465,11 +482,13 @@ module panda_risc_v_exu #(
 		.s_mul_req_op_b(s_mul_req_op_b),
 		.s_mul_req_res_sel(s_mul_req_res_sel),
 		.s_mul_req_rd_id(s_mul_req_rd_id),
+		.s_mul_req_inst_id(s_mul_req_inst_id),
 		.s_mul_req_valid(s_mul_req_valid),
 		.s_mul_req_ready(s_mul_req_ready),
 		
 		.m_mul_res_data(m_mul_res_data),
 		.m_mul_res_rd_id(m_mul_res_rd_id),
+		.m_mul_res_inst_id(m_mul_res_inst_id),
 		.m_mul_res_valid(m_mul_res_valid),
 		.m_mul_res_ready(m_mul_res_ready)
 	);
@@ -480,11 +499,13 @@ module panda_risc_v_exu #(
 	wire[32:0] s_div_req_op_b; // 操作数B(除数)
 	wire s_div_req_rem_sel; // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	wire[4:0] s_div_req_rd_id; // RD索引
+	wire[inst_id_width-1:0] s_div_req_inst_id; // 指令编号
 	wire s_div_req_valid;
 	wire s_div_req_ready;
 	// 除法器计算结果
 	wire[31:0] m_div_res_data; // 计算结果
 	wire[4:0] m_div_res_rd_id; // RD索引
+	wire[inst_id_width-1:0] m_div_res_inst_id; // 指令编号
 	wire m_div_res_valid;
 	wire m_div_res_ready;
 	
@@ -492,10 +513,12 @@ module panda_risc_v_exu #(
 	assign s_div_req_op_b = s_div_op_b;
 	assign s_div_req_rem_sel = s_div_rem_sel;
 	assign s_div_req_rd_id = s_div_rd_id;
+	assign s_div_req_inst_id = s_div_inst_id;
 	assign s_div_req_valid = s_div_valid;
 	assign s_div_ready = s_div_req_ready;
 	
 	panda_risc_v_divider #(
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_divider_u(
 		.clk(clk),
@@ -505,11 +528,13 @@ module panda_risc_v_exu #(
 		.s_div_req_op_b(s_div_req_op_b),
 		.s_div_req_rem_sel(s_div_req_rem_sel),
 		.s_div_req_rd_id(s_div_req_rd_id),
+		.s_div_req_inst_id(s_div_req_inst_id),
 		.s_div_req_valid(s_div_req_valid),
 		.s_div_req_ready(s_div_req_ready),
 		
 		.m_div_res_data(m_div_res_data),
 		.m_div_res_rd_id(m_div_res_rd_id),
+		.m_div_res_inst_id(m_div_res_inst_id),
 		.m_div_res_valid(m_div_res_valid),
 		.m_div_res_ready(m_div_res_ready)
 	);
@@ -646,6 +671,10 @@ module panda_risc_v_exu #(
 	wire m_lsu_expt_err; // 错误类型(1'b0 -> 读存储映射总线错误, 1'b1 -> 写存储映射总线错误)
 	wire m_lsu_expt_valid;
 	wire m_lsu_expt_ready;
+	// 指令退休(标志)
+	wire inst_retire;
+	
+	assign inst_retire_cnt_en = inst_retire;
 	
 	assign s_pst_res_inst_cmt = m_pst_inst_cmt;
 	assign s_pst_res_need_imdt_wbk = m_pst_need_imdt_wbk;
@@ -729,7 +758,7 @@ module panda_risc_v_exu #(
 		.reg_file_waddr(reg_file_waddr),
 		.reg_file_din(reg_file_din),
 		
-		.inst_retire_cnt_en(inst_retire_cnt_en)
+		.inst_retire(inst_retire)
 	);
 	
 endmodule

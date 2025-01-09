@@ -15,13 +15,15 @@ import uvm_pkg::*;
 module tb_panda_risc_v_divider();
 	
 	/** 配置参数 **/
+	// 待测模块配置
+	localparam integer inst_id_width = 4; // 指令编号的位宽
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
 	
 	/** 常量 **/
 	localparam integer s_axis_data_width = 72; // 从机数据位宽
-	localparam integer m_axis_data_width = 40; // 主机数据位宽
+	localparam integer m_axis_data_width = 48; // 主机数据位宽
 	
 	/** 时钟和复位 **/
 	reg clk;
@@ -76,11 +78,13 @@ module tb_panda_risc_v_divider();
 	wire[32:0] s_div_req_op_b; // 操作数B(除数)
 	wire s_div_req_rem_sel; // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	wire[4:0] s_div_req_rd_id; // RD索引
+	reg[inst_id_width-1:0] s_div_req_inst_id; // 指令编号
 	wire s_div_req_valid;
 	wire s_div_req_ready;
 	// 除法器计算结果
 	wire[31:0] m_div_res_data; // 计算结果
 	wire[4:0] m_div_res_rd_id; // RD索引
+	wire[inst_id_width-1:0] m_div_res_inst_id; // 指令编号
 	wire m_div_res_valid;
 	wire m_div_res_ready;
 	
@@ -88,11 +92,12 @@ module tb_panda_risc_v_divider();
 	assign s_div_req_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_div_req_ready;
 	
-	assign s_axis_if.data = {3'dx, m_div_res_rd_id, m_div_res_data};
+	assign s_axis_if.data = {3'dx, 4'd0, m_div_res_inst_id, m_div_res_rd_id, m_div_res_data};
 	assign s_axis_if.valid = m_div_res_valid;
 	assign m_div_res_ready = s_axis_if.ready;
 	
 	panda_risc_v_divider #(
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)dut(
 		.clk(clk),
@@ -102,13 +107,24 @@ module tb_panda_risc_v_divider();
 		.s_div_req_op_b(s_div_req_op_b),
 		.s_div_req_rem_sel(s_div_req_rem_sel),
 		.s_div_req_rd_id(s_div_req_rd_id),
+		.s_div_req_inst_id(s_div_req_inst_id),
 		.s_div_req_valid(s_div_req_valid),
 		.s_div_req_ready(s_div_req_ready),
 		
 		.m_div_res_data(m_div_res_data),
 		.m_div_res_rd_id(m_div_res_rd_id),
+		.m_div_res_inst_id(m_div_res_inst_id),
 		.m_div_res_valid(m_div_res_valid),
 		.m_div_res_ready(m_div_res_ready)
 	);
+	
+	/** 指令编号 **/
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			s_div_req_inst_id <= 0;
+		else if(s_div_req_valid & s_div_req_ready)
+			s_div_req_inst_id <= # simulation_delay s_div_req_inst_id + 1;
+	end
 	
 endmodule

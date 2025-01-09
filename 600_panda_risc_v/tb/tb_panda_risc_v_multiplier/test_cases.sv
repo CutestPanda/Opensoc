@@ -52,7 +52,7 @@ endclass
 class MulCase0Test extends uvm_test;
 	
 	// 多周期乘法器测试环境
-	local MulEnv #(.s_axis_data_width(72), .m_axis_data_width(40)) env;
+	local MulEnv #(.s_axis_data_width(72), .m_axis_data_width(48)) env;
 	
 	// 注册component
 	`uvm_component_utils(MulCase0Test)
@@ -64,7 +64,7 @@ class MulCase0Test extends uvm_test;
 	virtual function void build_phase(uvm_phase phase);
 		super.build_phase(phase);
 		
-		this.env = MulEnv #(.s_axis_data_width(72), .m_axis_data_width(40))
+		this.env = MulEnv #(.s_axis_data_width(72), .m_axis_data_width(48))
 			::type_id::create("env", this); // 创建env
 		
 		// 设置sequence

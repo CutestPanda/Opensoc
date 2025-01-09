@@ -20,11 +20,13 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/08
+日期: 2025/01/09
 ********************************************************************/
 
 
-module panda_risc_v_dispatcher(
+module panda_risc_v_dispatcher #(
+	parameter integer inst_id_width = 4 // 指令编号的位宽
+)(
 	// 数据相关性
 	output wire[4:0] waw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
 	input wire rd_waw_dpc, // RD有WAW相关性(标志)
@@ -50,6 +52,7 @@ module panda_risc_v_dispatcher(
 	input wire[2:0] s_dispatch_req_err_code, // 错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
 	                                         //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									         //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
+	input wire[inst_id_width-1:0] s_dispatch_req_inst_id, // 指令编号
 	input wire s_dispatch_req_valid,
 	output wire s_dispatch_req_ready,
 	
@@ -71,6 +74,7 @@ module panda_risc_v_dispatcher(
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
 	output wire m_alu_is_long_inst, // 是否长指令
+	output wire[inst_id_width-1:0] m_alu_inst_id, // 指令编号
 	output wire m_alu_valid,
 	input wire m_alu_ready,
 	
@@ -79,6 +83,7 @@ module panda_risc_v_dispatcher(
 	output wire[2:0] m_ls_type, // 访存类型
 	output wire[4:0] m_rd_id_for_ld, // 用于加载的目标寄存器的索引
 	output wire[31:0] m_ls_din, // 写数据
+	output wire[inst_id_width-1:0] m_lsu_inst_id, // 指令编号
 	output wire m_lsu_valid,
 	input wire m_lsu_ready,
 	
@@ -87,6 +92,7 @@ module panda_risc_v_dispatcher(
 	output wire[1:0] m_csr_upd_type, // CSR更新类型
 	output wire[31:0] m_csr_upd_mask_v, // CSR更新掩码或更新值
 	output wire[4:0] m_csr_rw_rd_id, // RD索引
+	output wire[inst_id_width-1:0] m_csr_rw_inst_id, // 指令编号
 	output wire m_csr_rw_valid,
 	input wire m_csr_rw_ready,
 	
@@ -95,6 +101,7 @@ module panda_risc_v_dispatcher(
 	output wire[32:0] m_mul_op_b, // 操作数B
 	output wire m_mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	output wire[4:0] m_mul_rd_id, // RD索引
+	output wire[inst_id_width-1:0] m_mul_inst_id, // 指令编号
 	output wire m_mul_valid,
 	input wire m_mul_ready,
 	
@@ -103,6 +110,7 @@ module panda_risc_v_dispatcher(
 	output wire[32:0] m_div_op_b, // 操作数B
 	output wire m_div_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	output wire[4:0] m_div_rd_id, // RD索引
+	output wire[inst_id_width-1:0] m_div_inst_id, // 指令编号
 	output wire m_div_valid,
 	input wire m_div_ready
 );
@@ -215,6 +223,7 @@ module panda_risc_v_dispatcher(
 		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_MUL_INST_SID] | 
 		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_DIV_INST_SID] | 
 		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID];
+	assign m_alu_inst_id = s_dispatch_req_inst_id;
 	assign m_alu_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
@@ -232,6 +241,7 @@ module panda_risc_v_dispatcher(
 	assign m_ls_type = dispatch_msg_lsu_op_msg_packeted[LSU_OP_MSG_LS_TYPE+2:LSU_OP_MSG_LS_TYPE];
 	assign m_rd_id_for_ld = s_dispatch_req_rd_id;
 	assign m_ls_din = s_dispatch_req_brc_pc_upd_store_din; // 用于写存储映射的数据
+	assign m_lsu_inst_id = s_dispatch_req_inst_id;
 	assign m_lsu_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
@@ -244,6 +254,7 @@ module panda_risc_v_dispatcher(
 	assign m_csr_upd_type = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_UPD_TYPE+1:CSR_RW_OP_MSG_CSR_UPD_TYPE];
 	assign m_csr_upd_mask_v = dispatch_msg_csr_rw_op_msg_packeted[CSR_RW_OP_MSG_CSR_UPD_MASK_V+31:CSR_RW_OP_MSG_CSR_UPD_MASK_V];
 	assign m_csr_rw_rd_id = s_dispatch_req_rd_id;
+	assign m_csr_rw_inst_id = s_dispatch_req_inst_id;
 	assign m_csr_rw_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
@@ -255,6 +266,7 @@ module panda_risc_v_dispatcher(
 	assign m_mul_op_b = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_B+32:MUL_DIV_OP_MSG_MUL_DIV_OP_B];
 	assign m_mul_res_sel = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_RES_SEL];
 	assign m_mul_rd_id = s_dispatch_req_rd_id;
+	assign m_mul_inst_id = s_dispatch_req_inst_id;
 	assign m_mul_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令
@@ -266,6 +278,7 @@ module panda_risc_v_dispatcher(
 	assign m_div_op_b = dispatch_msg_mul_div_op_msg_packeted[MUL_DIV_OP_MSG_MUL_DIV_OP_B+32:MUL_DIV_OP_MSG_MUL_DIV_OP_B];
 	assign m_div_rem_sel = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID];
 	assign m_div_rd_id = s_dispatch_req_rd_id;
+	assign m_div_inst_id = s_dispatch_req_inst_id;
 	assign m_div_valid = 
 		s_dispatch_req_valid & // 派遣请求有效
 		(~rd_waw_dpc_detected) & // RD存在WAW相关性时不派遣指令

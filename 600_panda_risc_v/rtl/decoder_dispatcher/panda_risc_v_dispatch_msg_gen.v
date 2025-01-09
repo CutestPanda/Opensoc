@@ -14,11 +14,12 @@ IFU取指结果 -> 向通用寄存器读控制提交请求 -> 译码单元 -> �
 无
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/09
 ********************************************************************/
 
 
 module panda_risc_v_dispatch_msg_gen #(
+	parameter integer inst_id_width = 4, // 指令编号的位宽
 	parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -30,8 +31,9 @@ module panda_risc_v_dispatch_msg_gen #(
 	input wire flush_req, // 冲刷请求
 	
 	// IFU取指结果
-	input wire[127:0] s_if_res_data, // {指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)}
-	input wire[3:0] s_if_res_msg, // {是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)}
+	input wire[127:0] s_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
+	input wire[3:0] s_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
+	input wire[inst_id_width-1:0] s_if_res_id, // 指令编号
 	input wire s_if_res_valid,
 	output wire s_if_res_ready,
 	
@@ -70,6 +72,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	output wire[2:0] m_dispatch_req_err_code, // 错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
 	                                          //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 											  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
+	output wire[inst_id_width-1:0] m_dispatch_req_inst_id, // 指令编号
 	output wire m_dispatch_req_valid,
 	input wire m_dispatch_req_ready
 );
@@ -175,9 +178,11 @@ module panda_risc_v_dispatch_msg_gen #(
 	wire if_res_prdt_jump; // 是否预测跳转
 	wire if_res_illegal_inst; // 是否非法指令
 	wire[1:0] if_res_imem_access_err_code; // 指令存储器访问错误码
+	wire[inst_id_width-1:0] if_res_inst_id; // 指令编号
 	
 	assign {if_res_pc_of_inst, if_res_pre_decoding_msg_packeted, if_res_inst} = s_if_res_data;
 	assign {if_res_prdt_jump, if_res_illegal_inst, if_res_imem_access_err_code} = s_if_res_msg;
+	assign if_res_inst_id = s_if_res_id;
 	
 	/** 读通用寄存器 **/
 	assign m_reg_file_rd_req_rs1_id = if_res_inst[19:15];
@@ -288,6 +293,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	reg[4:0] dispatch_rd_id; // RD索引
 	reg dispatch_rd_vld; // 是否需要写RD
 	reg[2:0] dispatch_err_code; // 错误类型
+	reg[inst_id_width-1:0] dispatch_inst_id; // 指令编号
 	reg dispatch_msg_valid; // 派遣信息有效标志
 	
 	assign m_dispatch_req_msg_reused = dispatch_msg_reused;
@@ -297,6 +303,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	assign m_dispatch_req_rd_id = dispatch_rd_id;
 	assign m_dispatch_req_rd_vld = dispatch_rd_vld;
 	assign m_dispatch_req_err_code = dispatch_err_code;
+	assign m_dispatch_req_inst_id = dispatch_inst_id;
 	assign m_dispatch_req_valid = dispatch_msg_valid;
 	
 	assign dispatch_msg_regs_empty = ~dispatch_msg_valid;
@@ -359,6 +366,13 @@ module panda_risc_v_dispatch_msg_gen #(
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
 			dispatch_rd_id <= # simulation_delay if_res_inst[11:7];
 	end
+	// 是否需要写RD
+	always @(posedge clk)
+	begin
+		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
+			// 注意: 非法指令无需写RD!
+			dispatch_rd_vld <= # simulation_delay if_res_pre_decoding_msg_packeted[PRE_DCD_MSG_RD_VLD_SID] & (~if_res_illegal_inst);
+	end
 	// 错误类型
 	always @(posedge clk)
 	begin
@@ -381,12 +395,11 @@ module panda_risc_v_dispatch_msg_gen #(
 				({3{(~if_res_illegal_inst) & dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID] & (~ls_addr_aligned)}} & 
 					INST_FETCH_DCD_STR_ADDR_UNALIGNED);
 	end
-	// 是否需要写RD
+	// 指令编号
 	always @(posedge clk)
 	begin
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
-			// 注意: 非法指令无需写RD!
-			dispatch_rd_vld <= # simulation_delay if_res_pre_decoding_msg_packeted[PRE_DCD_MSG_RD_VLD_SID] & (~if_res_illegal_inst);
+			dispatch_inst_id <= # simulation_delay if_res_inst_id;
 	end
 	
 	// 派遣信息有效标志

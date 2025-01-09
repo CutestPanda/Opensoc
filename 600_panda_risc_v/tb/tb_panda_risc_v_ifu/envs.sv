@@ -11,16 +11,16 @@
 class PandaRiscVIfuEnv extends uvm_env;
 	
 	// 组件
-	local AXISSlaveAgent #(.data_width(128), .user_width(4)) s_axis_agt; // AXIS从机代理
+	local AXISSlaveAgent #(.data_width(128), .user_width(12)) s_axis_agt; // AXIS从机代理
 	
 	// 通信端口
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(128), .user_width(4))) s_axis_trans_port;
+	local uvm_blocking_get_port #(AXISTrans #(.data_width(128), .user_width(12))) s_axis_trans_port;
 	
 	// 通信fifo
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(128), .user_width(4))) s_axis_agt_fifo;
+	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(128), .user_width(12))) s_axis_agt_fifo;
 	
 	// 事务
-	local AXISTrans #(.data_width(128), .user_width(4)) s_axis_trans;
+	local AXISTrans #(.data_width(128), .user_width(12)) s_axis_trans;
 	
 	// 注册component
 	`uvm_component_utils(PandaRiscVIfuEnv)
@@ -33,7 +33,7 @@ class PandaRiscVIfuEnv extends uvm_env;
 		super.build_phase(phase);
 		
 		// 创建agent
-		this.s_axis_agt = AXISSlaveAgent #(.data_width(128), .user_width(4))::
+		this.s_axis_agt = AXISSlaveAgent #(.data_width(128), .user_width(12))::
 			type_id::create("agt1", this);
 		this.s_axis_agt.is_active = UVM_ACTIVE;
 		
@@ -61,13 +61,14 @@ class PandaRiscVIfuEnv extends uvm_env;
 		end
 	endtask
 	
-	static function void print_ifu_res(ref AXISTrans #(.data_width(128), .user_width(4)) trans);
+	static function void print_ifu_res(ref AXISTrans #(.data_width(128), .user_width(12)) trans);
 		$display("-----------------RiscVIfuResTrans-----------------");
 		
 		$display("Inst: %7.7b %5.5b %5.5b %3.3b %5.5b %7.7b", 
 			trans.data[0][31:25], trans.data[0][24:20], trans.data[0][19:15], 
 			trans.data[0][14:12], trans.data[0][11:7], trans.data[0][6:0]);
 		$display("PC: %d", trans.data[0][127:96]);
+		$display("InstID: %d", trans.user[0][11:4]);
 		$display("ToJump: %b", trans.user[0][3]);
 		$display("IllegalInst: %b", trans.user[0][2]);
 		$display("ImemAccessCode: %s", 

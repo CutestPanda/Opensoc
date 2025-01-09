@@ -14,7 +14,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/06
+日期: 2025/01/09
 ********************************************************************/
 
 
@@ -63,6 +63,7 @@ module panda_risc_v_exu_eva(
 	input wire[4:0] s_alu_rd_id, // RD索引
 	input wire s_alu_rd_vld, // 是否需要写RD
 	input wire s_alu_is_long_inst, // 是否长指令(L/S, 乘除法)
+	input wire[3:0] s_alu_inst_id, // 指令编号
 	input wire s_alu_valid,
 	output wire s_alu_ready,
 	
@@ -71,6 +72,7 @@ module panda_risc_v_exu_eva(
 	input wire[2:0] s_ls_type, // 访存类型
 	input wire[4:0] s_rd_id_for_ld, // 用于加载的目标寄存器的索引
 	input wire[31:0] s_ls_din, // 写数据
+	input wire[3:0] s_lsu_inst_id, // 指令编号
 	input wire s_lsu_valid,
 	output wire s_lsu_ready,
 	
@@ -79,6 +81,7 @@ module panda_risc_v_exu_eva(
 	input wire[1:0] s_csr_upd_type, // CSR更新类型
 	input wire[31:0] s_csr_upd_mask_v, // CSR更新掩码或更新值
 	input wire[4:0] s_csr_rw_rd_id, // RD索引
+	input wire[3:0] s_csr_rw_inst_id, // 指令编号
 	input wire s_csr_rw_valid,
 	output wire s_csr_rw_ready,
 	
@@ -87,6 +90,7 @@ module panda_risc_v_exu_eva(
 	input wire[32:0] s_mul_op_b, // 操作数B
 	input wire s_mul_res_sel, // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 	input wire[4:0] s_mul_rd_id, // RD索引
+	input wire[3:0] s_mul_inst_id, // 指令编号
 	input wire s_mul_valid,
 	output wire s_mul_ready,
 	
@@ -95,6 +99,7 @@ module panda_risc_v_exu_eva(
 	input wire[32:0] s_div_op_b, // 操作数B
 	input wire s_div_rem_sel, // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 	input wire[4:0] s_div_rd_id, // RD索引
+	input wire[3:0] s_div_inst_id, // 指令编号
 	input wire s_div_valid,
 	output wire s_div_ready,
 	
@@ -143,6 +148,8 @@ module panda_risc_v_exu_eva(
 	);
 	
 	panda_risc_v_exu #(
+		// 指令编号的位宽
+		.inst_id_width(4),
 		// LSU配置
 		.dbus_access_timeout_th(16), // 数据总线访问超时周期数(必须>=1)
 		.icb_zero_latency_supported("false"), // 是否支持零响应时延的ICB主机
@@ -202,6 +209,7 @@ module panda_risc_v_exu_eva(
 		.s_alu_rd_id(s_alu_rd_id), // RD索引
 		.s_alu_rd_vld(s_alu_rd_vld), // 是否需要写RD
 		.s_alu_is_long_inst(s_alu_is_long_inst), // 是否长指令(L/S, 乘除法)
+		.s_alu_inst_id(s_alu_inst_id), // 指令编号
 		.s_alu_valid(s_alu_valid),
 		.s_alu_ready(s_alu_ready),
 		
@@ -210,6 +218,7 @@ module panda_risc_v_exu_eva(
 		.s_ls_type(s_ls_type), // 访存类型
 		.s_rd_id_for_ld(s_rd_id_for_ld), // 用于加载的目标寄存器的索引
 		.s_ls_din(s_ls_din), // 写数据
+		.s_lsu_inst_id(s_lsu_inst_id), // 指令编号
 		.s_lsu_valid(s_lsu_valid),
 		.s_lsu_ready(s_lsu_ready),
 		
@@ -218,6 +227,7 @@ module panda_risc_v_exu_eva(
 		.s_csr_upd_type(s_csr_upd_type), // CSR更新类型
 		.s_csr_upd_mask_v(s_csr_upd_mask_v), // CSR更新掩码或更新值
 		.s_csr_rw_rd_id(s_csr_rw_rd_id), // RD索引
+		.s_csr_rw_inst_id(s_csr_rw_inst_id), // 指令编号
 		.s_csr_rw_valid(s_csr_rw_valid),
 		.s_csr_rw_ready(s_csr_rw_ready),
 		
@@ -226,6 +236,7 @@ module panda_risc_v_exu_eva(
 		.s_mul_op_b(s_mul_op_b), // 操作数B
 		.s_mul_res_sel(s_mul_res_sel), // 乘法结果选择(1'b0 -> 低32位, 1'b1 -> 高32位)
 		.s_mul_rd_id(s_mul_rd_id), // RD索引
+		.s_mul_inst_id(s_mul_inst_id), // 指令编号
 		.s_mul_valid(s_mul_valid),
 		.s_mul_ready(s_mul_ready),
 		
@@ -234,6 +245,7 @@ module panda_risc_v_exu_eva(
 		.s_div_op_b(s_div_op_b), // 操作数B
 		.s_div_rem_sel(s_div_rem_sel), // 除法/求余选择(1'b0 -> 除法, 1'b1 -> 求余)
 		.s_div_rd_id(s_div_rd_id), // RD索引
+		.s_div_inst_id(s_div_inst_id), // 指令编号
 		.s_div_valid(s_div_valid),
 		.s_div_ready(s_div_ready),
 		

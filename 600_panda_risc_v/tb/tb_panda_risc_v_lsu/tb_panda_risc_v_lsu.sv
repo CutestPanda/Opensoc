@@ -17,6 +17,7 @@ module tb_panda_risc_v_lsu();
 	
 	/** 配置参数 **/
 	// 待测模块配置
+	localparam integer inst_id_width = 4; // 指令编号的位宽
 	localparam integer dbus_access_timeout_th = 16; // 数据总线访问超时周期数(必须>=1)
 	localparam icb_zero_latency_supported = "false"; // 是否支持零响应时延的ICB主机
 	// 时钟和复位配置
@@ -47,7 +48,7 @@ module tb_panda_risc_v_lsu();
 	
 	/** 接口 **/
 	AXIS #(.out_drive_t(simulation_delay), .data_width(64), .user_width(9)) m_axis_if(.clk(clk), .rst_n(rst_n));
-	AXIS #(.out_drive_t(simulation_delay), .data_width(64), .user_width(8)) s_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(64), .user_width(16)) s_axis_if(.clk(clk), .rst_n(rst_n));
 	ICB #(.out_drive_t(simulation_delay), .addr_width(32), .data_width(32)) s_icb_if(.clk(clk), .rst_n(rst_n));
 	
 	/** 主任务 **/
@@ -62,10 +63,10 @@ module tb_panda_risc_v_lsu();
 			"uvm_test_top.env.agt1.mon", "axis_if", m_axis_if.monitor);
 		
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(64), .user_width(8)).slave)::set(null, 
+			.data_width(64), .user_width(16)).slave)::set(null, 
 			"uvm_test_top.env.agt2.drv", "axis_if", s_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(64), .user_width(8)).monitor)::set(null, 
+			.data_width(64), .user_width(16)).monitor)::set(null, 
 			"uvm_test_top.env.agt2.mon", "axis_if", s_axis_if.monitor);
 		
 		uvm_config_db #(virtual ICB #(.out_drive_t(simulation_delay), 
@@ -89,6 +90,7 @@ module tb_panda_risc_v_lsu();
 	wire[4:0] s_req_rd_id_for_ld; // 用于加载的目标寄存器的索引
 	wire[31:0] s_req_ls_addr; // 访存地址
 	wire[31:0] s_req_ls_din; // 写数据
+	reg[inst_id_width-1:0] s_req_lsu_inst_id; // 指令编号
 	wire s_req_valid;
 	wire s_req_ready;
 	// 访存结果
@@ -97,6 +99,7 @@ module tb_panda_risc_v_lsu();
 	wire[31:0] m_resp_dout; // 读数据
 	wire[31:0] m_resp_ls_addr; // 访存地址
 	wire[1:0] m_resp_err; // 错误类型
+	wire[inst_id_width-1:0] m_resp_lsu_inst_id; // 指令编号
 	wire m_resp_valid;
 	wire m_resp_ready;
 	// 指令ICB主机
@@ -121,7 +124,7 @@ module tb_panda_risc_v_lsu();
 	assign s_req_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_req_ready;
 	
-	assign s_axis_if.user = {m_resp_err, m_resp_rd_id_for_ld, m_resp_ls_sel};
+	assign s_axis_if.user = {4'd0, m_resp_lsu_inst_id, m_resp_err, m_resp_rd_id_for_ld, m_resp_ls_sel};
 	assign s_axis_if.data = {m_resp_ls_addr, m_resp_dout};
 	assign s_axis_if.last = 1'b1;
 	
@@ -141,6 +144,7 @@ module tb_panda_risc_v_lsu();
 	assign s_icb_if.rsp_ready = m_icb_rsp_ready;
 	
 	panda_risc_v_lsu #(
+		.inst_id_width(inst_id_width),
 		.dbus_access_timeout_th(dbus_access_timeout_th),
 		.icb_zero_latency_supported(icb_zero_latency_supported),
 		.simulation_delay(simulation_delay)
@@ -153,6 +157,7 @@ module tb_panda_risc_v_lsu();
 		.s_req_rd_id_for_ld(s_req_rd_id_for_ld),
 		.s_req_ls_addr(s_req_ls_addr),
 		.s_req_ls_din(s_req_ls_din),
+		.s_req_lsu_inst_id(s_req_lsu_inst_id),
 		.s_req_valid(s_req_valid),
 		.s_req_ready(s_req_ready),
 		
@@ -161,6 +166,7 @@ module tb_panda_risc_v_lsu();
 		.m_resp_dout(m_resp_dout),
 		.m_resp_ls_addr(m_resp_ls_addr),
 		.m_resp_err(m_resp_err),
+		.m_resp_lsu_inst_id(m_resp_lsu_inst_id),
 		.m_resp_valid(m_resp_valid),
 		.m_resp_ready(m_resp_ready),
 		
@@ -178,5 +184,14 @@ module tb_panda_risc_v_lsu();
 		
 		.dbus_timeout()
 	);
+	
+	/** 指令编号 **/
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			s_req_lsu_inst_id <= 0;
+		else if(s_req_valid & s_req_ready)
+			s_req_lsu_inst_id <= s_req_lsu_inst_id + 1;
+	end
 	
 endmodule
