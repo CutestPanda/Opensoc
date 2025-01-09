@@ -161,7 +161,7 @@ module panda_risc_v_wbk #(
 		({32{alu_csr_wbk_granted}} & (s_alu_csr_wbk_is_csr_rw_inst ? s_alu_csr_wbk_csr_v:s_alu_csr_wbk_alu_res));
 	
 	/** 性能监测 **/
-	assign inst_retire_cnt_en = 
+	assign inst_retire = 
 		(s_pst_res_valid & ((~s_pst_res_inst_cmt) | (s_pst_res_need_imdt_wbk & s_alu_csr_wbk_ready))) | 
 		(s_lsu_wbk_valid & ((s_lsu_wbk_err == DBUS_ACCESS_NORMAL) | (s_lsu_wbk_err == DBUS_ACCESS_LS_UNALIGNED) | m_lsu_expt_ready)) | 
 		s_mul_wbk_valid | 
