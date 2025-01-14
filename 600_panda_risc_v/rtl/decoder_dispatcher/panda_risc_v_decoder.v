@@ -26,7 +26,7 @@ ALU操作 ->
 无
 
 作者: 陈家耀
-日期: 2025/01/03
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -285,7 +285,7 @@ module panda_risc_v_decoder(
 	assign csr_upd_imm = {27'd0, inst[19:15]};
 	assign load_reg_imm = {inst[31:12], 12'd0};
 	assign ls_ofs_imm = {{20{inst[31]}}, inst[31:25], is_store_inst ? inst[11:7]:inst[24:20]};
-	assign arth_imm = {{20{inst[31]}}, inst[31:20] & {1'b1, ~is_srli_srai_inst_fast, 10'd1}};
+	assign arth_imm = {{20{inst[31]}}, inst[31:20] & {1'b1, ~is_srli_srai_inst_fast, 10'h3FF}};
 	
 	assign is_srli_srai_inst_fast = inst[14:12] == 3'b101;
 	

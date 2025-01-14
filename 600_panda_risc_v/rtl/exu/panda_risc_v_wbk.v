@@ -166,11 +166,10 @@ module panda_risc_v_wbk #(
 	
 	/** 通用寄存器堆写端口 **/
 	assign reg_file_wen = 
-		// 断言: s_pst_res_valid与s_alu_csr_wbk_valid同时有效!
-		((~lsu_expt_req) & s_alu_csr_wbk_valid & s_pst_res_need_imdt_wbk & s_alu_csr_wbk_rd_vld) | 
-		((~lsu_expt_req) & s_lsu_wbk_valid & (s_lsu_wbk_err == DBUS_ACCESS_NORMAL) & (~s_lsu_wbk_ls_sel)) | 
-		mul_wbk_req | 
-		div_wbk_req;
+		(lsu_wbk_granted & (s_lsu_wbk_err == DBUS_ACCESS_NORMAL) & (~s_lsu_wbk_ls_sel)) | 
+		mul_wbk_granted | 
+		div_wbk_granted | 
+		(alu_csr_wbk_granted & s_pst_res_need_imdt_wbk & s_alu_csr_wbk_rd_vld);
 	assign reg_file_waddr = 
 		({5{lsu_wbk_granted}} & s_lsu_wbk_rd_id_for_ld) | 
 		({5{mul_wbk_granted}} & s_mul_wbk_rd_id) | 
