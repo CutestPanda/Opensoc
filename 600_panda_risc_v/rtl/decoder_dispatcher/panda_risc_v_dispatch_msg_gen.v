@@ -14,7 +14,7 @@ IFU取指结果 -> 向通用寄存器读控制提交请求 -> 译码单元 -> �
 无
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -74,7 +74,15 @@ module panda_risc_v_dispatch_msg_gen #(
 											  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	output wire[inst_id_width-1:0] m_dispatch_req_inst_id, // 指令编号
 	output wire m_dispatch_req_valid,
-	input wire m_dispatch_req_ready
+	input wire m_dispatch_req_ready,
+	
+	// 数据相关性跟踪
+	// 指令被译码
+	output wire[inst_id_width-1:0] dpc_trace_dcd_inst_id, // 指令编号
+	output wire dpc_trace_dcd_valid,
+	// 指令被派遣
+	output wire[inst_id_width-1:0] dpc_trace_dsptc_inst_id, // 指令编号
+	output wire dpc_trace_dsptc_valid
 );
 	
 	/** 常量 **/
@@ -411,5 +419,12 @@ module panda_risc_v_dispatch_msg_gen #(
 			// 取走源寄存器读结果时保存派遣信息, 冲刷/复位时清零派遣信息
 			dispatch_msg_valid <= # simulation_delay s_reg_file_rd_res_valid & s_if_res_valid & (~on_flush_rst);
 	end
+	
+	/** 数据相关性跟踪 **/
+	assign dpc_trace_dcd_inst_id = if_res_inst_id;
+	assign dpc_trace_dcd_valid = s_reg_file_rd_res_valid & s_reg_file_rd_res_ready;
+	
+	assign dpc_trace_dsptc_inst_id = dispatch_inst_id;
+	assign dpc_trace_dsptc_valid = m_dispatch_req_valid & m_dispatch_req_ready;
 	
 endmodule

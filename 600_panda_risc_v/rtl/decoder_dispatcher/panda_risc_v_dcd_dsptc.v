@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -111,7 +111,15 @@ module panda_risc_v_dcd_dsptc #(
 	output wire[4:0] m_div_rd_id, // RD索引
 	output wire[inst_id_width-1:0] m_div_inst_id, // 指令编号
 	output wire m_div_valid,
-	input wire m_div_ready
+	input wire m_div_ready,
+	
+	// 数据相关性跟踪
+	// 指令被译码
+	output wire[inst_id_width-1:0] dpc_trace_dcd_inst_id, // 指令编号
+	output wire dpc_trace_dcd_valid,
+	// 指令被派遣
+	output wire[inst_id_width-1:0] dpc_trace_dsptc_inst_id, // 指令编号
+	output wire dpc_trace_dsptc_valid
 );
 	
 	/** 通用寄存器读控制 **/
@@ -252,7 +260,12 @@ module panda_risc_v_dcd_dsptc #(
 		.m_dispatch_req_err_code(m_dispatch_req_err_code),
 		.m_dispatch_req_inst_id(m_dispatch_req_inst_id),
 		.m_dispatch_req_valid(m_dispatch_req_valid),
-		.m_dispatch_req_ready(m_dispatch_req_ready)
+		.m_dispatch_req_ready(m_dispatch_req_ready),
+		
+		.dpc_trace_dcd_inst_id(dpc_trace_dcd_inst_id),
+		.dpc_trace_dcd_valid(dpc_trace_dcd_valid),
+		.dpc_trace_dsptc_inst_id(dpc_trace_dsptc_inst_id),
+		.dpc_trace_dsptc_valid(dpc_trace_dsptc_valid)
 	);
 	
 	/** 派遣单元 **/

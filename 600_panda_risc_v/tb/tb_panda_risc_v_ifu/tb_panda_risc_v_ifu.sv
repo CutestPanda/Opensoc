@@ -229,7 +229,16 @@ module tb_panda_risc_v_ifu();
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		
-		.ibus_timeout(ibus_timeout)
+		.ibus_timeout(ibus_timeout),
+		
+		.has_processing_imem_access_req(),
+		.dpc_trace_tb_full(1'b0),
+		.dpc_trace_enter_ifq_inst(),
+		.dpc_trace_enter_ifq_rd_id(),
+		.dpc_trace_enter_ifq_rd_vld(),
+		.dpc_trace_enter_ifq_is_long_inst(),
+		.dpc_trace_enter_ifq_inst_id(),
+		.dpc_trace_enter_ifq_valid()
 	);
 	
 	/** 仿真模型 **/

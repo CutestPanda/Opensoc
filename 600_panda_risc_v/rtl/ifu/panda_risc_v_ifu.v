@@ -18,7 +18,7 @@ ICB MASTER
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -78,7 +78,20 @@ module panda_risc_v_ifu #(
 	input wire m_if_res_ready,
 	
 	// 指令总线访问超时标志
-	output wire ibus_timeout
+	output wire ibus_timeout,
+	
+	// 数据相关性跟踪
+	// 是否有滞外的指令存储器访问请求
+	output wire has_processing_imem_access_req,
+	// 指令数据相关性跟踪表满标志
+	input wire dpc_trace_tb_full,
+	// 指令进入取指队列
+	output wire[31:0] dpc_trace_enter_ifq_inst, // 取到的指令
+	output wire[4:0] dpc_trace_enter_ifq_rd_id, // RD索引
+	output wire dpc_trace_enter_ifq_rd_vld, // 是否需要写RD
+	output wire dpc_trace_enter_ifq_is_long_inst, // 是否长指令
+	output wire[inst_id_width-1:0] dpc_trace_enter_ifq_inst_id, // 指令编号
+	output wire dpc_trace_enter_ifq_valid
 );
 	
 	/** 内部配置 **/
@@ -227,7 +240,16 @@ module panda_risc_v_ifu #(
 		.if_res_msg(m_if_res_msg),
 		.m_if_res_id(m_if_res_id),
 		.if_res_valid(m_if_res_valid),
-		.if_res_ready(m_if_res_ready)
+		.if_res_ready(m_if_res_ready),
+		
+		.has_processing_imem_access_req(has_processing_imem_access_req),
+		.dpc_trace_tb_full(dpc_trace_tb_full),
+		.dpc_trace_enter_ifq_inst(dpc_trace_enter_ifq_inst),
+		.dpc_trace_enter_ifq_rd_id(dpc_trace_enter_ifq_rd_id),
+		.dpc_trace_enter_ifq_rd_vld(dpc_trace_enter_ifq_rd_vld),
+		.dpc_trace_enter_ifq_is_long_inst(dpc_trace_enter_ifq_is_long_inst),
+		.dpc_trace_enter_ifq_inst_id(dpc_trace_enter_ifq_inst_id),
+		.dpc_trace_enter_ifq_valid(dpc_trace_enter_ifq_valid)
 	);
 	
 	/** 下一PC生成 **/

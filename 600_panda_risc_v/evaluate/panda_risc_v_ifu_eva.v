@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -53,7 +53,20 @@ module panda_risc_v_ifu_eva(
 	input wire m_if_res_ready,
 	
 	// 指令总线访问超时标志
-	output wire ibus_timeout
+	output wire ibus_timeout,
+	
+	// 数据相关性跟踪
+	// 是否有滞外的指令存储器访问请求
+	output wire has_processing_imem_access_req,
+	// 指令数据相关性跟踪表满标志
+	input wire dpc_trace_tb_full,
+	// 指令进入取指队列
+	output wire[31:0] dpc_trace_enter_ifq_inst, // 取到的指令
+	output wire[4:0] dpc_trace_enter_ifq_rd_id, // RD索引
+	output wire dpc_trace_enter_ifq_rd_vld, // 是否需要写RD
+	output wire dpc_trace_enter_ifq_is_long_inst, // 是否长指令
+	output wire[3:0] dpc_trace_enter_ifq_inst_id, // 指令编号
+	output wire dpc_trace_enter_ifq_valid
 );
     
     // 计算bit_depth的最高有效位编号(即位数-1)
@@ -153,7 +166,16 @@ module panda_risc_v_ifu_eva(
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		
-		.ibus_timeout(ibus_timeout)
+		.ibus_timeout(ibus_timeout),
+		
+		.has_processing_imem_access_req(has_processing_imem_access_req),
+		.dpc_trace_tb_full(dpc_trace_tb_full),
+		.dpc_trace_enter_ifq_inst(dpc_trace_enter_ifq_inst),
+		.dpc_trace_enter_ifq_rd_id(dpc_trace_enter_ifq_rd_id),
+		.dpc_trace_enter_ifq_rd_vld(dpc_trace_enter_ifq_rd_vld),
+		.dpc_trace_enter_ifq_is_long_inst(dpc_trace_enter_ifq_is_long_inst),
+		.dpc_trace_enter_ifq_inst_id(dpc_trace_enter_ifq_inst_id),
+		.dpc_trace_enter_ifq_valid(dpc_trace_enter_ifq_valid)
 	);
 	
 	icb_sram_ctrler #(

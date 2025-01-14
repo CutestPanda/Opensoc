@@ -20,7 +20,7 @@ IMEM访问请求的生命周期:
 无
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -82,7 +82,20 @@ module panda_risc_v_imem_access_ctrler #(
 	output wire[3:0] if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
 	output wire[inst_id_width-1:0] m_if_res_id, // 指令编号
 	output wire if_res_valid,
-	input wire if_res_ready
+	input wire if_res_ready,
+	
+	// 数据相关性跟踪
+	// 是否有滞外的指令存储器访问请求
+	output wire has_processing_imem_access_req,
+	// 指令数据相关性跟踪表满标志
+	input wire dpc_trace_tb_full,
+	// 指令进入取指队列
+	output wire[31:0] dpc_trace_enter_ifq_inst, // 取到的指令
+	output wire[4:0] dpc_trace_enter_ifq_rd_id, // RD索引
+	output wire dpc_trace_enter_ifq_rd_vld, // 是否需要写RD
+	output wire dpc_trace_enter_ifq_is_long_inst, // 是否长指令
+	output wire[inst_id_width-1:0] dpc_trace_enter_ifq_inst_id, // 指令编号
+	output wire dpc_trace_enter_ifq_valid
 );
 	
 	/** 常量 **/
@@ -95,6 +108,23 @@ module panda_risc_v_imem_access_ctrler #(
 	localparam IMEM_ACCESS_PC_UNALIGNED = 2'b01; // 指令地址非对齐
 	localparam IMEM_ACCESS_BUS_ERR = 2'b10; // 指令总线访问错误
 	localparam IMEM_ACCESS_TIMEOUT = 2'b11; // 响应超时
+	// 打包的预译码信息各项的起始索引
+	localparam integer PRE_DCD_MSG_IS_REM_INST_SID = 0;
+	localparam integer PRE_DCD_MSG_IS_DIV_INST_SID = 1;
+	localparam integer PRE_DCD_MSG_IS_MUL_INST_SID = 2;
+	localparam integer PRE_DCD_MSG_IS_STORE_INST_SID = 3;
+	localparam integer PRE_DCD_MSG_IS_LOAD_INST_SID = 4;
+	localparam integer PRE_DCD_MSG_IS_CSR_RW_INST_SID = 5;
+	localparam integer PRE_DCD_MSG_IS_JALR_INST_SID = 6;
+	localparam integer PRE_DCD_MSG_IS_JAL_INST_SID = 7;
+	localparam integer PRE_DCD_MSG_IS_B_INST_SID = 8;
+	localparam integer PRE_DCD_MSG_IS_ECALL_INST_SID = 9;
+	localparam integer PRE_DCD_MSG_IS_MRET_INST_SID = 10;
+	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 11;
+	localparam integer PRE_DCD_MSG_RD_VLD_SID = 32;
+	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 33;
+	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 34;
+	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 35;
 	
 	/**
 	取指结果缓存区
@@ -211,8 +241,8 @@ module panda_risc_v_imem_access_ctrler #(
 	wire jalr_allow; // 允许无条件间接跳转(标志)
 	wire on_now_inst_suppress; // 当前指令被镇压(指示)
 	
-	assign rst_ack = to_rst & (processing_imem_access_req_n != 2'b11) & imem_access_req_ready;
-	assign flush_ack = to_flush & (processing_imem_access_req_n != 2'b11) & imem_access_req_ready;
+	assign rst_ack = to_rst & (processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & imem_access_req_ready;
+	assign flush_ack = to_flush & (processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & imem_access_req_ready;
 	
 	assign to_rst = rst_req | rst_imem_access_req_pending;
 	assign to_flush = flush_req | flush_imem_access_req_pending;
@@ -228,9 +258,9 @@ module panda_risc_v_imem_access_ctrler #(
 	assign imem_access_req_read = 1'b1;
 	assign imem_access_req_wdata = 32'hxxxx_xxxx;
 	assign imem_access_req_wmask = 4'b0000;
-	// 指令存储器访问请求握手条件: (processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
+	// 指令存储器访问请求握手条件: (processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & imem_access_req_ready & 
 	//     (to_rst | to_flush | (now_inst_vld & ((~is_jalr_inst) | jalr_allow)))
-	assign imem_access_req_valid = (processing_imem_access_req_n != 2'b11) & 
+	assign imem_access_req_valid = (processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & 
 		(to_rst | to_flush | (now_inst_vld & ((~is_jalr_inst) | jalr_allow)));
 	
 	// 指令对应的PC
@@ -268,12 +298,13 @@ module panda_risc_v_imem_access_ctrler #(
 			rst_imem_access_req_pending <= # simulation_delay 
 			/*
 				rst_imem_access_req_pending ? 
-					(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready)): // 等待指令存储器访问请求成功发起
-					(rst_req & (~((processing_imem_access_req_n != 2'b11) & 
+					(~((processing_imem_access_req_n != 2'b11) & 
+						(~dpc_trace_tb_full) & imem_access_req_ready)): // 等待指令存储器访问请求成功发起
+					(rst_req & (~((processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & 
 						imem_access_req_ready))) // 复位请求不能被立即处理, 置位等待标志
 			*/
 				(rst_imem_access_req_pending | rst_req) & 
-				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready));
+				(~((processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & imem_access_req_ready));
 	end
 	// 待发起的冲刷IMEM访问请求标志
 	always @(posedge clk or negedge resetn)
@@ -285,12 +316,13 @@ module panda_risc_v_imem_access_ctrler #(
 			/*
 				flush_imem_access_req_pending ? 
 					(~(rst_req | // 该等待标志可能会被复位请求打断
-						((processing_imem_access_req_n != 2'b11) & imem_access_req_ready))): // 等待指令存储器访问请求成功发起
-					(flush_req & (~((processing_imem_access_req_n != 2'b11) & 
+						((processing_imem_access_req_n != 2'b11) & 
+							(~dpc_trace_tb_full) & imem_access_req_ready))): // 等待指令存储器访问请求成功发起
+					(flush_req & (~((processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & 
 						imem_access_req_ready))) // 冲刷请求不能被立即处理, 置位等待标志
 			*/
 				(flush_imem_access_req_pending ? (~rst_req):flush_req) & 
-				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready));
+				(~((processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & imem_access_req_ready));
 	end
 	// 待发起的普通IMEM访问请求标志
 	always @(posedge clk or negedge resetn)
@@ -302,18 +334,19 @@ module panda_risc_v_imem_access_ctrler #(
 			/*
 				common_imem_access_req_pending ? 
 					(~(rst_req | flush_req | 
-						((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
+						((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & (~dpc_trace_tb_full) & 
 						((~is_jalr_inst) | jalr_allow)))): // 等待指令存储器访问请求成功发起, 
 														   // 该等待标志可能会被复位/冲刷请求打断
 					((~rst_req) & (~rst_imem_access_req_pending) & (~flush_req) & (~flush_imem_access_req_pending) & 
-						vld_inst_gotten & (~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & 
+						vld_inst_gotten & (~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & (~dpc_trace_tb_full) & 
 						((~is_jalr_inst) | jalr_allow)))) // 指令总线控制单元返回取指结果且当前不处于复位/冲刷状态, 
 						                                  // 新的IMEM访问请求不能被立即处理, 置位等待标志
 			*/
 				(~rst_req) & (~flush_req) & 
 				(common_imem_access_req_pending | 
 					((~rst_imem_access_req_pending) & (~flush_imem_access_req_pending) & vld_inst_gotten)) & 
-				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & ((~is_jalr_inst) | jalr_allow)));
+				(~((processing_imem_access_req_n != 2'b11) & imem_access_req_ready & (~dpc_trace_tb_full) & 
+					((~is_jalr_inst) | jalr_allow)));
 	end
 	
 	// 锁存的指令
@@ -445,5 +478,23 @@ module panda_risc_v_imem_access_ctrler #(
 		if(jalr_baseaddr_vld)
 			jalr_baseaddr_latched <= # simulation_delay jalr_baseaddr_v;
 	end
+	
+	/** 数据相关性跟踪 **/
+	assign has_processing_imem_access_req = 
+		(if_res_buf_store_n[0] & (processing_imem_access_req_n != 2'b00)) | 
+		(if_res_buf_store_n[1] & (processing_imem_access_req_n != 2'b01)) | 
+		(if_res_buf_store_n[2] & (processing_imem_access_req_n != 2'b10));
+	
+	assign dpc_trace_enter_ifq_inst = imem_access_resp_rdata;
+	assign dpc_trace_enter_ifq_rd_id = imem_access_resp_rdata[11:7];
+	assign dpc_trace_enter_ifq_rd_vld = pre_decoding_msg_packeted[PRE_DCD_MSG_RD_VLD_SID];
+	assign dpc_trace_enter_ifq_is_long_inst = 
+		pre_decoding_msg_packeted[PRE_DCD_MSG_IS_LOAD_INST_SID] | 
+		pre_decoding_msg_packeted[PRE_DCD_MSG_IS_STORE_INST_SID] | 
+		pre_decoding_msg_packeted[PRE_DCD_MSG_IS_MUL_INST_SID] | 
+		pre_decoding_msg_packeted[PRE_DCD_MSG_IS_DIV_INST_SID] | 
+		pre_decoding_msg_packeted[PRE_DCD_MSG_IS_REM_INST_SID];
+	assign dpc_trace_enter_ifq_inst_id = inst_id_cnt;
+	assign dpc_trace_enter_ifq_valid = if_res_buf_wen;
 	
 endmodule

@@ -35,7 +35,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -167,7 +167,12 @@ module panda_risc_v_exu #(
 	// 冲刷控制
 	output wire flush_req, // 冲刷请求
 	input wire flush_ack, // 冲刷应答
-	output wire[31:0] flush_addr // 冲刷地址
+	output wire[31:0] flush_addr, // 冲刷地址
+	
+	// 数据相关性跟踪
+	// 指令退休
+	output wire[inst_id_width-1:0] dpc_trace_retire_inst_id, // 指令编号
+	output wire dpc_trace_retire_valid
 );
 	
 	/** 交付单元 **/
@@ -328,6 +333,7 @@ module panda_risc_v_exu #(
 	assign csr_atom_rw_addr = s_csr_addr;
 	assign csr_atom_rw_upd_type = s_csr_upd_type;
 	assign csr_atom_rw_upd_mask_v = s_csr_upd_mask_v;
+	// 警告: 经由交付单元取消的指令不应执行CSR原子读写!
 	assign csr_atom_rw_valid = s_csr_rw_valid;
 	assign s_csr_rw_ready = 1'b1;
 	
@@ -403,6 +409,7 @@ module panda_risc_v_exu #(
 	assign s_req_ls_addr = alu_ls_addr;
 	assign s_req_ls_din = s_ls_din;
 	assign s_req_lsu_inst_id = s_lsu_inst_id;
+	// 警告: 经由交付单元取消的指令不应发起访存请求!
 	assign s_req_valid = s_lsu_valid;
 	assign s_lsu_ready = s_req_ready;
 	
@@ -468,6 +475,7 @@ module panda_risc_v_exu #(
 	assign s_mul_req_res_sel = s_mul_res_sel;
 	assign s_mul_req_rd_id = s_mul_rd_id;
 	assign s_mul_req_inst_id = s_mul_inst_id;
+	// 警告: 经由交付单元取消的指令不应发起乘法器执行请求!
 	assign s_mul_req_valid = s_mul_valid;
 	assign s_mul_ready = s_mul_req_ready;
 	
@@ -514,6 +522,7 @@ module panda_risc_v_exu #(
 	assign s_div_req_rem_sel = s_div_rem_sel;
 	assign s_div_req_rd_id = s_div_rd_id;
 	assign s_div_req_inst_id = s_div_inst_id;
+	// 警告: 经由交付单元取消的指令不应发起除法器执行请求!
 	assign s_div_req_valid = s_div_valid;
 	assign s_div_ready = s_div_req_ready;
 	
@@ -646,6 +655,8 @@ module panda_risc_v_exu #(
 	wire[4:0] s_alu_csr_wbk_csr_rw_rd_id; // CSR原子读写单元给出的RD索引
 	wire[4:0] s_alu_csr_wbk_alu_rd_id; // ALU给出的RD索引
 	wire s_alu_csr_wbk_rd_vld; // 是否需要写RD
+	wire[inst_id_width-1:0] s_alu_csr_wbk_csr_rw_inst_id; // CSR原子读写单元给出的指令编号
+	wire[inst_id_width-1:0] s_alu_csr_wbk_alu_inst_id; // ALU给出的指令编号
 	wire s_alu_csr_wbk_valid;
 	wire s_alu_csr_wbk_ready;
 	// 来自LSU的写回请求
@@ -654,16 +665,19 @@ module panda_risc_v_exu #(
 	wire[31:0] s_lsu_wbk_dout; // 读数据
 	wire[31:0] s_lsu_wbk_ls_addr; // 访存地址
 	wire[1:0] s_lsu_wbk_err; // 错误类型
+	wire[inst_id_width-1:0] s_lsu_wbk_inst_id; // 指令编号
 	wire s_lsu_wbk_valid;
 	wire s_lsu_wbk_ready;
 	// 来自乘法器的写回请求
 	wire[31:0] s_mul_wbk_data; // 计算结果
 	wire[4:0] s_mul_wbk_rd_id; // RD索引
+	wire[inst_id_width-1:0] s_mul_wbk_inst_id; // 指令编号
 	wire s_mul_wbk_valid;
 	wire s_mul_wbk_ready;
 	// 来自除法器的写回请求
 	wire[31:0] s_div_wbk_data; // 计算结果
 	wire[4:0] s_div_wbk_rd_id; // RD索引
+	wire[inst_id_width-1:0] s_div_wbk_inst_id; // 指令编号
 	wire s_div_wbk_valid;
 	wire s_div_wbk_ready;
 	// LSU异常
@@ -671,8 +685,12 @@ module panda_risc_v_exu #(
 	wire m_lsu_expt_err; // 错误类型(1'b0 -> 读存储映射总线错误, 1'b1 -> 写存储映射总线错误)
 	wire m_lsu_expt_valid;
 	wire m_lsu_expt_ready;
-	// 指令退休(标志)
-	wire inst_retire;
+	// 指令退休
+	wire inst_retire; // 指令退休(指示)
+	wire[inst_id_width-1:0] inst_retire_id; // 退休指令的编号
+	
+	assign dpc_trace_retire_inst_id = inst_retire_id;
+	assign dpc_trace_retire_valid = inst_retire;
 	
 	assign inst_retire_cnt_en = inst_retire;
 	
@@ -687,6 +705,8 @@ module panda_risc_v_exu #(
 	assign s_alu_csr_wbk_csr_rw_rd_id = s_csr_rw_rd_id;
 	assign s_alu_csr_wbk_alu_rd_id = s_alu_rd_id;
 	assign s_alu_csr_wbk_rd_vld = s_alu_rd_vld;
+	assign s_alu_csr_wbk_csr_rw_inst_id = s_csr_rw_inst_id;
+	assign s_alu_csr_wbk_alu_inst_id = s_alu_inst_id;
 	assign s_alu_csr_wbk_valid = m_pst_valid;
 	
 	assign s_lsu_wbk_ls_sel = m_resp_ls_sel;
@@ -694,16 +714,19 @@ module panda_risc_v_exu #(
 	assign s_lsu_wbk_dout = m_resp_dout;
 	assign s_lsu_wbk_ls_addr = m_resp_ls_addr;
 	assign s_lsu_wbk_err = m_resp_err;
+	assign s_lsu_wbk_inst_id = m_resp_lsu_inst_id;
 	assign s_lsu_wbk_valid = m_resp_valid;
 	assign m_resp_ready = s_lsu_wbk_ready;
 	
 	assign s_mul_wbk_data = m_mul_res_data;
 	assign s_mul_wbk_rd_id = m_mul_res_rd_id;
+	assign s_mul_wbk_inst_id = m_mul_res_inst_id;
 	assign s_mul_wbk_valid = m_mul_res_valid;
 	assign m_mul_res_ready = s_mul_wbk_ready;
 	
 	assign s_div_wbk_data = m_div_res_data;
 	assign s_div_wbk_rd_id = m_div_res_rd_id;
+	assign s_div_wbk_inst_id = m_div_res_inst_id;
 	assign s_div_wbk_valid = m_div_res_valid;
 	assign m_div_res_ready = s_div_wbk_ready;
 	
@@ -712,6 +735,7 @@ module panda_risc_v_exu #(
 	assign m_lsu_expt_ready = lsu_expt_fifo_full_n;
 	
 	panda_risc_v_wbk #(
+		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_wbk_u(
 		.clk(clk),
@@ -719,7 +743,7 @@ module panda_risc_v_exu #(
 		
 		.s_pst_res_inst_cmt(s_pst_res_inst_cmt),
 		.s_pst_res_need_imdt_wbk(s_pst_res_need_imdt_wbk),
-		.s_pst_res_valid(s_pst_res_valid),
+		.s_pst_res_valid(s_pst_res_valid), // 注意: 未使用的信号!
 		.s_pst_res_ready(s_pst_res_ready),
 		
 		.s_alu_csr_wbk_is_csr_rw_inst(s_alu_csr_wbk_is_csr_rw_inst),
@@ -728,24 +752,29 @@ module panda_risc_v_exu #(
 		.s_alu_csr_wbk_csr_rw_rd_id(s_alu_csr_wbk_csr_rw_rd_id),
 		.s_alu_csr_wbk_alu_rd_id(s_alu_csr_wbk_alu_rd_id),
 		.s_alu_csr_wbk_rd_vld(s_alu_csr_wbk_rd_vld),
+		.s_alu_csr_wbk_csr_rw_inst_id(s_alu_csr_wbk_csr_rw_inst_id),
+		.s_alu_csr_wbk_alu_inst_id(s_alu_csr_wbk_alu_inst_id),
 		.s_alu_csr_wbk_valid(s_alu_csr_wbk_valid),
-		.s_alu_csr_wbk_ready(s_alu_csr_wbk_ready),
+		.s_alu_csr_wbk_ready(s_alu_csr_wbk_ready), // 注意: 未使用的信号!
 		
 		.s_lsu_wbk_ls_sel(s_lsu_wbk_ls_sel),
 		.s_lsu_wbk_rd_id_for_ld(s_lsu_wbk_rd_id_for_ld),
 		.s_lsu_wbk_dout(s_lsu_wbk_dout),
 		.s_lsu_wbk_ls_addr(s_lsu_wbk_ls_addr),
 		.s_lsu_wbk_err(s_lsu_wbk_err),
+		.s_lsu_wbk_inst_id(s_lsu_wbk_inst_id),
 		.s_lsu_wbk_valid(s_lsu_wbk_valid),
 		.s_lsu_wbk_ready(s_lsu_wbk_ready),
 		
 		.s_mul_wbk_data(s_mul_wbk_data),
 		.s_mul_wbk_rd_id(s_mul_wbk_rd_id),
+		.s_mul_wbk_inst_id(s_mul_wbk_inst_id),
 		.s_mul_wbk_valid(s_mul_wbk_valid),
 		.s_mul_wbk_ready(s_mul_wbk_ready),
 		
 		.s_div_wbk_data(s_div_wbk_data),
 		.s_div_wbk_rd_id(s_div_wbk_rd_id),
+		.s_div_wbk_inst_id(s_div_wbk_inst_id),
 		.s_div_wbk_valid(s_div_wbk_valid),
 		.s_div_wbk_ready(s_div_wbk_ready),
 		
@@ -758,7 +787,8 @@ module panda_risc_v_exu #(
 		.reg_file_waddr(reg_file_waddr),
 		.reg_file_din(reg_file_din),
 		
-		.inst_retire(inst_retire)
+		.inst_retire(inst_retire),
+		.inst_retire_id(inst_retire_id)
 	);
 	
 endmodule

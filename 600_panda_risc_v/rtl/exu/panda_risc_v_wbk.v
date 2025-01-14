@@ -6,8 +6,10 @@
 对来自ALU或CSR原子读写单元、LSU、乘法器、除法器的写回请求进行仲裁, 驱动通用寄存器堆写端口
 若LSU传回数据总线访问错误或响应超时的响应, 则产生LSU异常
 
-单周期指令写回请求的优先级 < 长指令写回请求的优先级
-LSU/乘法器/除法器的写回请求采用Round-Robin仲裁
+LSU异常处理请求的优先级 > 长指令写回请求的优先级 > 单周期指令写回请求的优先级
+长指令(LSU/乘法/除法)写回请求采用Round-Robin仲裁
+
+保证每clk最多只有1条指令退休
 
 注意：
 无
@@ -16,11 +18,12 @@ LSU/乘法器/除法器的写回请求采用Round-Robin仲裁
 无
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
 module panda_risc_v_wbk #(
+	parameter integer inst_id_width = 4, // 指令编号的位宽
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -40,6 +43,8 @@ module panda_risc_v_wbk #(
 	input wire[4:0] s_alu_csr_wbk_csr_rw_rd_id, // CSR原子读写单元给出的RD索引
 	input wire[4:0] s_alu_csr_wbk_alu_rd_id, // ALU给出的RD索引
 	input wire s_alu_csr_wbk_rd_vld, // 是否需要写RD
+	input wire[inst_id_width-1:0] s_alu_csr_wbk_csr_rw_inst_id, // CSR原子读写单元给出的指令编号
+	input wire[inst_id_width-1:0] s_alu_csr_wbk_alu_inst_id, // ALU给出的指令编号
 	input wire s_alu_csr_wbk_valid,
 	output wire s_alu_csr_wbk_ready,
 	
@@ -49,18 +54,21 @@ module panda_risc_v_wbk #(
 	input wire[31:0] s_lsu_wbk_dout, // 读数据
 	input wire[31:0] s_lsu_wbk_ls_addr, // 访存地址
 	input wire[1:0] s_lsu_wbk_err, // 错误类型
+	input wire[inst_id_width-1:0] s_lsu_wbk_inst_id, // 指令编号
 	input wire s_lsu_wbk_valid,
 	output wire s_lsu_wbk_ready,
 	
 	// 来自乘法器的写回请求
 	input wire[31:0] s_mul_wbk_data, // 计算结果
 	input wire[4:0] s_mul_wbk_rd_id, // RD索引
+	input wire[inst_id_width-1:0] s_mul_wbk_inst_id, // 指令编号
 	input wire s_mul_wbk_valid,
 	output wire s_mul_wbk_ready,
 	
 	// 来自除法器的写回请求
 	input wire[31:0] s_div_wbk_data, // 计算结果
 	input wire[4:0] s_div_wbk_rd_id, // RD索引
+	input wire[inst_id_width-1:0] s_div_wbk_inst_id, // 指令编号
 	input wire s_div_wbk_valid,
 	output wire s_div_wbk_ready,
 	
@@ -75,8 +83,9 @@ module panda_risc_v_wbk #(
 	output wire[4:0] reg_file_waddr,
 	output wire[31:0] reg_file_din,
 	
-	// 指令退休(标志)
-	output wire inst_retire
+	// 指令退休
+	output wire inst_retire, // 指令退休(指示)
+	output wire[inst_id_width-1:0] inst_retire_id // 退休指令的编号
 );
 	
 	/** 常量 **/
@@ -89,8 +98,16 @@ module panda_risc_v_wbk #(
 	localparam LSU_LOAD_ACCESS_FAULT = 1'b0; // 读存储映射总线错误
 	localparam LSU_STORE_ACCESS_FAULT = 1'b1; // 写存储映射总线错误
 	
-	/** 交付结果 **/
-	assign s_pst_res_ready = s_alu_csr_wbk_ready | (~s_pst_res_need_imdt_wbk);
+	/** LSU异常 **/
+	wire lsu_expt_req; // LSU异常处理请求
+	wire lsu_expt_granted; // LSU异常处理许可
+	
+	assign m_lsu_expt_ls_addr = s_lsu_wbk_ls_addr;
+	assign m_lsu_expt_err = s_lsu_wbk_ls_sel ? LSU_STORE_ACCESS_FAULT:LSU_LOAD_ACCESS_FAULT;
+	assign m_lsu_expt_valid = lsu_expt_req;
+	
+	assign lsu_expt_req = s_lsu_wbk_valid & ((s_lsu_wbk_err == DBUS_ACCESS_BUS_ERR) | (s_lsu_wbk_err == DBUS_ACCESS_TIMEOUT));
+	assign lsu_expt_granted = lsu_expt_req;
 	
 	/** 写回请求仲裁 **/
 	// 写回请求
@@ -104,14 +121,16 @@ module panda_risc_v_wbk #(
 	wire mul_wbk_granted; // 乘法器写回许可
 	wire div_wbk_granted; // 除法器写回许可
 	
+	// 交付结果
+	// ((~s_pst_res_inst_cmt) | s_pst_res_need_imdt_wbk) ? alu_csr_wbk_granted:1'b1
+	assign s_pst_res_ready = (~((~s_pst_res_inst_cmt) | s_pst_res_need_imdt_wbk)) | alu_csr_wbk_granted;
+	
 	// 来自ALU或CSR原子读写单元的写回请求
-	assign s_alu_csr_wbk_ready = alu_csr_wbk_granted | (~s_alu_csr_wbk_rd_vld);
+	assign s_alu_csr_wbk_ready = (~s_alu_csr_wbk_rd_vld) | (s_pst_res_need_imdt_wbk & alu_csr_wbk_granted);
 	
 	// 来自LSU的写回请求
 	assign s_lsu_wbk_ready = 
 		lsu_wbk_granted | 
-		((s_lsu_wbk_err == DBUS_ACCESS_NORMAL) & s_lsu_wbk_ls_sel) | // 对于正常的LSU存储响应, 直接忽略
-		(s_lsu_wbk_err == DBUS_ACCESS_LS_UNALIGNED) | // 对于访存地址非对齐的LSU响应, 直接忽略
 		(((s_lsu_wbk_err == DBUS_ACCESS_BUS_ERR) | (s_lsu_wbk_err == DBUS_ACCESS_TIMEOUT)) & 
 			m_lsu_expt_ready); // 对于数据总线访问错误或响应超时的LSU响应, 需要产生LSU异常
 	
@@ -121,10 +140,13 @@ module panda_risc_v_wbk #(
 	// 来自除法器的写回请求
 	assign s_div_wbk_ready = div_wbk_granted;
 	
-	assign alu_csr_wbk_req = s_alu_csr_wbk_valid & s_pst_res_need_imdt_wbk & s_alu_csr_wbk_rd_vld;
-	assign lsu_wbk_req = s_lsu_wbk_valid & (s_lsu_wbk_err == DBUS_ACCESS_NORMAL) & (~s_lsu_wbk_ls_sel);
-	assign mul_wbk_req = s_mul_wbk_valid;
-	assign div_wbk_req = s_div_wbk_valid;
+	// 断言: s_pst_res_valid与s_alu_csr_wbk_valid同时有效!
+	// 注意: LSU异常处理请求具有最高的优先级!
+	assign alu_csr_wbk_req = (~lsu_expt_req) & s_alu_csr_wbk_valid & ((~s_pst_res_inst_cmt) | s_pst_res_need_imdt_wbk);
+	assign lsu_wbk_req = (~lsu_expt_req) & s_lsu_wbk_valid & 
+		((s_lsu_wbk_err == DBUS_ACCESS_NORMAL) | (s_lsu_wbk_err == DBUS_ACCESS_LS_UNALIGNED));
+	assign mul_wbk_req = (~lsu_expt_req) & s_mul_wbk_valid;
+	assign div_wbk_req = (~lsu_expt_req) & s_div_wbk_valid;
 	
 	// 注意: 单周期指令写回请求的优先级 < 长指令写回请求的优先级!
 	assign alu_csr_wbk_granted = alu_csr_wbk_req & (~(lsu_wbk_req | mul_wbk_req | div_wbk_req));
@@ -142,13 +164,13 @@ module panda_risc_v_wbk #(
 		.grant({lsu_wbk_granted, mul_wbk_granted, div_wbk_granted})
 	);
 	
-	/** LSU异常 **/
-	assign m_lsu_expt_ls_addr = s_lsu_wbk_ls_addr;
-	assign m_lsu_expt_err = s_lsu_wbk_ls_sel;
-	assign m_lsu_expt_valid = s_lsu_wbk_valid & ((s_lsu_wbk_err == DBUS_ACCESS_BUS_ERR) | (s_lsu_wbk_err == DBUS_ACCESS_TIMEOUT));
-	
 	/** 通用寄存器堆写端口 **/
-	assign reg_file_wen = alu_csr_wbk_req | lsu_wbk_req | mul_wbk_req | div_wbk_req;
+	assign reg_file_wen = 
+		// 断言: s_pst_res_valid与s_alu_csr_wbk_valid同时有效!
+		((~lsu_expt_req) & s_alu_csr_wbk_valid & s_pst_res_need_imdt_wbk & s_alu_csr_wbk_rd_vld) | 
+		((~lsu_expt_req) & s_lsu_wbk_valid & (s_lsu_wbk_err == DBUS_ACCESS_NORMAL) & (~s_lsu_wbk_ls_sel)) | 
+		mul_wbk_req | 
+		div_wbk_req;
 	assign reg_file_waddr = 
 		({5{lsu_wbk_granted}} & s_lsu_wbk_rd_id_for_ld) | 
 		({5{mul_wbk_granted}} & s_mul_wbk_rd_id) | 
@@ -160,11 +182,14 @@ module panda_risc_v_wbk #(
 		({32{div_wbk_granted}} & s_div_wbk_data) | 
 		({32{alu_csr_wbk_granted}} & (s_alu_csr_wbk_is_csr_rw_inst ? s_alu_csr_wbk_csr_v:s_alu_csr_wbk_alu_res));
 	
-	/** 性能监测 **/
+	/** 指令退休 **/
 	assign inst_retire = 
-		(s_pst_res_valid & ((~s_pst_res_inst_cmt) | (s_pst_res_need_imdt_wbk & s_alu_csr_wbk_ready))) | 
-		(s_lsu_wbk_valid & ((s_lsu_wbk_err == DBUS_ACCESS_NORMAL) | (s_lsu_wbk_err == DBUS_ACCESS_LS_UNALIGNED) | m_lsu_expt_ready)) | 
-		s_mul_wbk_valid | 
-		s_div_wbk_valid;
+		(s_lsu_wbk_valid & s_lsu_wbk_ready) | mul_wbk_granted | div_wbk_granted | alu_csr_wbk_granted;
+	assign inst_retire_id = 
+		({inst_id_width{s_lsu_wbk_valid & s_lsu_wbk_ready}} & s_lsu_wbk_inst_id) | 
+		({inst_id_width{mul_wbk_granted}} & s_mul_wbk_inst_id) | 
+		({inst_id_width{div_wbk_granted}} & s_div_wbk_inst_id) | 
+		({inst_id_width{alu_csr_wbk_granted}} & 
+			(s_alu_csr_wbk_is_csr_rw_inst ? s_alu_csr_wbk_csr_rw_inst_id:s_alu_csr_wbk_alu_inst_id));
 	
 endmodule

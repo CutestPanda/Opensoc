@@ -14,7 +14,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -129,7 +129,12 @@ module panda_risc_v_exu_eva(
 	// 冲刷控制
 	output wire flush_req, // 冲刷请求
 	input wire flush_ack, // 冲刷应答
-	output wire[31:0] flush_addr // 冲刷地址
+	output wire[31:0] flush_addr, // 冲刷地址
+	
+	// 数据相关性跟踪
+	// 指令退休
+	output wire[3:0] dpc_trace_retire_inst_id, // 指令编号
+	output wire dpc_trace_retire_valid
 );
 	
 	// 系统复位输入
@@ -275,7 +280,12 @@ module panda_risc_v_exu_eva(
 		// 冲刷控制
 		.flush_req(flush_req), // 冲刷请求
 		.flush_ack(flush_ack), // 冲刷应答
-		.flush_addr(flush_addr) // 冲刷地址
+		.flush_addr(flush_addr), // 冲刷地址
+		
+		// 数据相关性跟踪
+		// 指令退休
+		.dpc_trace_retire_inst_id(dpc_trace_retire_inst_id), // 指令编号
+		.dpc_trace_retire_valid(dpc_trace_retire_valid)
 	);
 	
 endmodule

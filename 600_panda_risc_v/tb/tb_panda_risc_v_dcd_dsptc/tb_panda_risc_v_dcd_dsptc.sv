@@ -318,7 +318,12 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_div_rd_id(m_div_rd_id),
 		.m_div_inst_id(m_div_inst_id),
 		.m_div_valid(m_div_valid),
-		.m_div_ready(m_div_ready)
+		.m_div_ready(m_div_ready),
+		
+		.dpc_trace_dcd_inst_id(),
+		.dpc_trace_dcd_valid(),
+		.dpc_trace_dsptc_inst_id(),
+		.dpc_trace_dsptc_valid()
 	);
 	
 	/** 指令编号 **/

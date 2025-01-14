@@ -9,20 +9,21 @@
 每当CPU进入中断/异常时, 全局中断使能自动关闭, 因此不支持中断嵌套
 当CPU进入中断/异常后, 若产生新的同步异常, CPU无法正确处理(可能导致错误)
 
-只有同步异常的返回地址为PC, 其余中断/异常的返回地址均为PC + 4
+若指令带有同步异常, 则其返回地址为PC, 否则为PC + 4
 
 分支预测失败导致的重新跳转具有最高的优先级, 其次才是中断/异常
 中断/异常优先级: 外部中断 > 软件中断 > 计时器中断 > 来自LSU的异常 > 同步异常
 
-ECALL/同步异常可能会被中断请求/LSU异常请求覆盖而得不到处理, 且在返回时这条ECALL/带有同步异常的指令会被跳过
+1条ECALL指令可能会被中断请求/LSU异常请求覆盖, 且在返回时这条ECALL指令被跳过
+带有同步异常的指令会被中断请求/LSU异常请求覆盖, 且在返回时重新取这条指令
 
-考虑增加1个异常指令缓存以避免ECALL/同步异常被覆盖???
+考虑设置1个异常指令缓存以避免ECALL/同步异常被覆盖???
 
 协议:
 无
 
 作者: 陈家耀
-日期: 2025/01/06
+日期: 2025/01/13
 ********************************************************************/
 
 
@@ -172,10 +173,10 @@ module panda_risc_v_commit #(
 			(s_pst_err_code == CMT_INST_ERR_CODE_WT_DBUS_UNALIGNED)}} & EXPT_CODE_STORE_ADDR_MISALIGNED) | // 写存储映射地址非对齐
 		({8{(~ext_itr_req_vld) & (~sw_itr_req_vld) & (~tmr_itr_req_vld) & (~lsu_expt_req_vld) & 
 			(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_ecall_inst}} & EXPT_CODE_ENV_CALL_FROM_M); // 机器模式环境调用
-	// 注意: 只有同步异常的返回地址为PC, 其余中断/异常的返回地址均为PC + 4!
-	// 问题: 1条ECALL/带有同步异常的指令可能会被中断请求/LSU异常请求覆盖, 且在返回时这条ECALL/带有同步异常的指令会被跳过!
-	assign itr_expt_ret_addr = s_pst_pc_of_inst + 
-		{sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | (~sync_expt_req_vld), 2'b00};
+	// 注意: 若指令带有同步异常, 则其返回地址为PC, 否则为PC + 4!
+	// 问题: 1条ECALL指令可能会被中断请求/LSU异常请求覆盖, 且在返回时这条ECALL指令被跳过;
+	//       带有同步异常的指令会被中断请求/LSU异常请求覆盖, 且在返回时重新取这条指令!
+	assign itr_expt_ret_addr = s_pst_pc_of_inst + {~sync_expt_req_vld, 2'b00};
 	assign itr_expt_val = 
 		({32{lsu_expt_req_granted}} & 
 			s_lsu_expt_ls_addr) | // 发生LSU异常时, 保存LSU带来的访存地址
@@ -244,7 +245,8 @@ module panda_risc_v_commit #(
 			sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | sync_expt_req_vld); // 当前有中断/异常
 	assign flush_addr = 
 		({32{brc_prdt_failed}} & s_pst_brc_pc_upd) | // 分支预测失败时冲刷到修正的PC
-		({32{s_pst_is_mret_inst}} & mepc_ret_addr) | // 中断/异常返回时冲刷到mepc状态寄存器定义的中断/异常返回地址
+		({32{(~(s_pst_err_code[0] | s_pst_err_code[1])) & 
+			s_pst_is_mret_inst}} & mepc_ret_addr) | // 中断/异常返回时冲刷到mepc状态寄存器定义的中断/异常返回地址
 		({32{(~brc_prdt_failed) & (~s_pst_is_mret_inst)}} & itr_expt_vec_baseaddr); // 其余情况冲刷到中断/异常向量表基地址
 	
 	// 正在处理的冲刷(标志)
@@ -265,7 +267,7 @@ module panda_risc_v_commit #(
 		s_pst_valid & // 保证"LSU异常输入"握手的同时, "待交付指令"也握手
 		lsu_expt_req_granted; // LSU异常请求被许可
 	
-	assign m_pst_inst_cmt = ~sync_expt_req_granted; // 仅当待交付指令带有同步异常且该同步异常被许可时, 指令被取消
+	assign m_pst_inst_cmt = ~sync_expt_req_vld; // 仅当待交付指令带有同步异常时, 指令被取消
 	assign m_pst_need_imdt_wbk = m_pst_inst_cmt & (~s_pst_is_long_inst); // 指令被确认, 并且不是长指令
 	assign m_pst_valid = (~flush_processing) & s_pst_valid; // 当前没有处理中的冲刷, 且有待交付的指令
 	
