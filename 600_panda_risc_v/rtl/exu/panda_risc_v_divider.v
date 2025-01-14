@@ -16,7 +16,7 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/14
 ********************************************************************/
 
 
@@ -198,13 +198,13 @@ module panda_risc_v_divider #(
 	// 仅左移商阶段时, 若被除数与除数异号则需要修正商
 	assign need_fix_quotient = dividend[32] ^ divisor[32];
 	
-	// 当余数等于除数或者负的除数时, 进行整除修正
-	assign to_fix_div_exct = rem_eq_dvs | rem_eq_inv_dvs;
+	// 如果余数等于除数或者负的除数, 并且不是除0也没有除法溢出, 则进行整除修正
+	assign to_fix_div_exct = (rem_eq_dvs | rem_eq_inv_dvs) & (~div_zero) & (~div_ovf);
 	
 	assign div_zero = divisor[31:0] == 32'h0000_0000;
 	assign div_ovf = 
-		(dividend[31:0] == 32'h8000_0000) & // 被除数为-2^31
-		(divisor[31:0] == 32'hFFFF_FFFF); // 除数为-1
+		(dividend == 33'h1_8000_0000) & // 被除数为-2^31
+		(divisor == 33'h1_FFFF_FFFF); // 除数为-1
 	
 	assign rem_eq_dvs = remainder == divisor;
 	assign rem_eq_inv_dvs = remainder == ((~divisor) + 1'b1);
