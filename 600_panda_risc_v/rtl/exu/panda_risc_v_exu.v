@@ -61,9 +61,10 @@ module panda_risc_v_exu #(
 	// 仿真配置
     parameter real simulation_delay = 1 // 仿真延时
 )(
-	// 时钟和复位
+	// 时钟
 	input wire clk,
-	input wire resetn,
+	// 系统复位输入
+	input wire sys_resetn,
 	
 	// 译码器给出的通用寄存器堆读端口#0
 	input wire dcd_reg_file_rd_p0_req, // 读请求
@@ -143,17 +144,17 @@ module panda_risc_v_exu #(
 	
 	// 数据ICB主机
 	// 命令通道
-	output wire[31:0] m_icb_cmd_addr,
-	output wire m_icb_cmd_read,
-	output wire[31:0] m_icb_cmd_wdata,
-	output wire[3:0] m_icb_cmd_wmask,
-	output wire m_icb_cmd_valid,
-	input wire m_icb_cmd_ready,
+	output wire[31:0] m_icb_cmd_data_addr,
+	output wire m_icb_cmd_data_read,
+	output wire[31:0] m_icb_cmd_data_wdata,
+	output wire[3:0] m_icb_cmd_data_wmask,
+	output wire m_icb_cmd_data_valid,
+	input wire m_icb_cmd_data_ready,
 	// 响应通道
-	input wire[31:0] m_icb_rsp_rdata,
-	input wire m_icb_rsp_err,
-	input wire m_icb_rsp_valid,
-	output wire m_icb_rsp_ready,
+	input wire[31:0] m_icb_rsp_data_rdata,
+	input wire m_icb_rsp_data_err,
+	input wire m_icb_rsp_data_valid,
+	output wire m_icb_rsp_data_ready,
 	
 	// 数据总线访问超时标志
 	output wire dbus_timeout,
@@ -236,7 +237,7 @@ module panda_risc_v_exu #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_commit_u(
 		.clk(clk),
-		.resetn(resetn),
+		.resetn(sys_resetn),
 		
 		.mstatus_mie_v(mstatus_mie_v),
 		.mie_msie_v(mie_msie_v),
@@ -353,7 +354,7 @@ module panda_risc_v_exu #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_csr_rw_u(
 		.clk(clk),
-		.resetn(resetn),
+		.resetn(sys_resetn),
 		
 		.csr_atom_rw_addr(csr_atom_rw_addr),
 		.csr_atom_rw_upd_type(csr_atom_rw_upd_type),
@@ -420,7 +421,7 @@ module panda_risc_v_exu #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_lsu_u(
 		.clk(clk),
-		.resetn(resetn),
+		.resetn(sys_resetn),
 		
 		.s_req_ls_sel(s_req_ls_sel),
 		.s_req_ls_type(s_req_ls_type),
@@ -440,16 +441,16 @@ module panda_risc_v_exu #(
 		.m_resp_valid(m_resp_valid),
 		.m_resp_ready(m_resp_ready),
 		
-		.m_icb_cmd_addr(m_icb_cmd_addr),
-		.m_icb_cmd_read(m_icb_cmd_read),
-		.m_icb_cmd_wdata(m_icb_cmd_wdata),
-		.m_icb_cmd_wmask(m_icb_cmd_wmask),
-		.m_icb_cmd_valid(m_icb_cmd_valid),
-		.m_icb_cmd_ready(m_icb_cmd_ready),
-		.m_icb_rsp_rdata(m_icb_rsp_rdata),
-		.m_icb_rsp_err(m_icb_rsp_err),
-		.m_icb_rsp_valid(m_icb_rsp_valid),
-		.m_icb_rsp_ready(m_icb_rsp_ready),
+		.m_icb_cmd_addr(m_icb_cmd_data_addr),
+		.m_icb_cmd_read(m_icb_cmd_data_read),
+		.m_icb_cmd_wdata(m_icb_cmd_data_wdata),
+		.m_icb_cmd_wmask(m_icb_cmd_data_wmask),
+		.m_icb_cmd_valid(m_icb_cmd_data_valid),
+		.m_icb_cmd_ready(m_icb_cmd_data_ready),
+		.m_icb_rsp_rdata(m_icb_rsp_data_rdata),
+		.m_icb_rsp_err(m_icb_rsp_data_err),
+		.m_icb_rsp_valid(m_icb_rsp_data_valid),
+		.m_icb_rsp_ready(m_icb_rsp_data_ready),
 		
 		.dbus_timeout(dbus_timeout)
 	);
@@ -484,7 +485,7 @@ module panda_risc_v_exu #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_multiplier_u(
 		.clk(clk),
-		.resetn(resetn),
+		.resetn(sys_resetn),
 		
 		.s_mul_req_op_a(s_mul_req_op_a),
 		.s_mul_req_op_b(s_mul_req_op_b),
@@ -531,7 +532,7 @@ module panda_risc_v_exu #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_divider_u(
 		.clk(clk),
-		.resetn(resetn),
+		.resetn(sys_resetn),
 		
 		.s_div_req_op_a(s_div_req_op_a),
 		.s_div_req_op_b(s_div_req_op_b),
@@ -572,7 +573,7 @@ module panda_risc_v_exu #(
 		.simulation_delay(simulation_delay)
 	)lsu_expt_fifo(
 		.clk(clk),
-		.rst_n(resetn),
+		.rst_n(sys_resetn),
 		
 		.fifo_wen(lsu_expt_fifo_wen),
 		.fifo_din(lsu_expt_fifo_din),
@@ -739,7 +740,7 @@ module panda_risc_v_exu #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_wbk_u(
 		.clk(clk),
-		.resetn(resetn),
+		.resetn(sys_resetn),
 		
 		.s_pst_res_inst_cmt(s_pst_res_inst_cmt),
 		.s_pst_res_need_imdt_wbk(s_pst_res_need_imdt_wbk),
