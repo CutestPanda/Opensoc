@@ -132,6 +132,10 @@ module panda_risc_v_eva(
 		.en_alu_csr_rw_bypass("true"),
 		.imem_baseaddr(32'h0000_0000),
 		.imem_addr_range(16 * 1024),
+		.en_inst_cmd_fwd("false"),
+		.en_inst_rsp_bck("false"),
+		.en_data_cmd_fwd("false"),
+		.en_data_rsp_bck("false"),
 		.simulation_delay(1)
 	)panda_risc_v_u(
 		.clk(clk),

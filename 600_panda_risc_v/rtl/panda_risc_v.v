@@ -45,6 +45,11 @@ module panda_risc_v #(
 	// 总线控制单元配置
 	parameter imem_baseaddr = 32'h0000_0000, // 指令存储器基址
 	parameter integer imem_addr_range = 16 * 1024, // 指令存储器地址区间长度
+	// 指令/数据ICB主机AXIS寄存器片配置
+	parameter en_inst_cmd_fwd = "true", // 使能指令ICB主机命令通道前向寄存器
+	parameter en_inst_rsp_bck = "true", // 使能指令ICB主机响应通道后向寄存器
+	parameter en_data_cmd_fwd = "true", // 使能数据ICB主机命令通道前向寄存器
+	parameter en_data_rsp_bck = "true", // 使能数据ICB主机响应通道后向寄存器
 	// 仿真配置
 	parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -96,6 +101,162 @@ module panda_risc_v #(
 	input wire ext_itr_req // 外部中断请求
 );
 	
+	/** 指令ICB主机(命令通道输出寄存器片) **/
+	// 输出寄存器片AXIS从机
+	wire[63:0] s0_reg_slice_data;
+	wire[4:0] s0_reg_slice_user;
+	wire s0_reg_slice_valid;
+	wire s0_reg_slice_ready;
+	// 输出寄存器片AXIS主机
+	wire[63:0] m0_reg_slice_data;
+	wire[4:0] m0_reg_slice_user;
+	wire m0_reg_slice_valid;
+	wire m0_reg_slice_ready;
+	
+	assign {m_icb_cmd_inst_addr, m_icb_cmd_inst_wdata} = m0_reg_slice_data;
+	assign {m_icb_cmd_inst_read, m_icb_cmd_inst_wmask} = m0_reg_slice_user;
+	assign m_icb_cmd_inst_valid = m0_reg_slice_valid;
+	assign m0_reg_slice_ready = m_icb_cmd_inst_ready;
+	
+	axis_reg_slice #(
+		.data_width(64),
+		.user_width(5),
+		.forward_registered(en_inst_cmd_fwd),
+		.back_registered("false"),
+		.en_ready("true"),
+		.simulation_delay(simulation_delay)
+	)axis_reg_slice_u0(
+		.clk(clk),
+		.rst_n(sys_resetn),
+		
+		.s_axis_data(s0_reg_slice_data),
+		.s_axis_user(s0_reg_slice_user),
+		.s_axis_valid(s0_reg_slice_valid),
+		.s_axis_ready(s0_reg_slice_ready),
+		
+		.m_axis_data(m0_reg_slice_data),
+		.m_axis_user(m0_reg_slice_user),
+		.m_axis_valid(m0_reg_slice_valid),
+		.m_axis_ready(m0_reg_slice_ready)
+	);
+	
+	/** 数据ICB主机(命令通道输出寄存器片) **/
+	// 输出寄存器片AXIS从机
+	wire[63:0] s1_reg_slice_data;
+	wire[4:0] s1_reg_slice_user;
+	wire s1_reg_slice_valid;
+	wire s1_reg_slice_ready;
+	// 输出寄存器片AXIS主机
+	wire[63:0] m1_reg_slice_data;
+	wire[4:0] m1_reg_slice_user;
+	wire m1_reg_slice_valid;
+	wire m1_reg_slice_ready;
+	
+	assign {m_icb_cmd_data_addr, m_icb_cmd_data_wdata} = m1_reg_slice_data;
+	assign {m_icb_cmd_data_read, m_icb_cmd_data_wmask} = m1_reg_slice_user;
+	assign m_icb_cmd_data_valid = m1_reg_slice_valid;
+	assign m1_reg_slice_ready = m_icb_cmd_data_ready;
+	
+	axis_reg_slice #(
+		.data_width(64),
+		.user_width(5),
+		.forward_registered(en_data_cmd_fwd),
+		.back_registered("false"),
+		.en_ready("true"),
+		.simulation_delay(simulation_delay)
+	)axis_reg_slice_u1(
+		.clk(clk),
+		.rst_n(sys_resetn),
+		
+		.s_axis_data(s1_reg_slice_data),
+		.s_axis_user(s1_reg_slice_user),
+		.s_axis_valid(s1_reg_slice_valid),
+		.s_axis_ready(s1_reg_slice_ready),
+		
+		.m_axis_data(m1_reg_slice_data),
+		.m_axis_user(m1_reg_slice_user),
+		.m_axis_valid(m1_reg_slice_valid),
+		.m_axis_ready(m1_reg_slice_ready)
+	);
+	
+	/** 指令ICB主机(响应通道输入寄存器片) **/
+	// 输入寄存器片AXIS从机
+	wire[31:0] s2_reg_slice_data;
+	wire s2_reg_slice_user;
+	wire s2_reg_slice_valid;
+	wire s2_reg_slice_ready;
+	// 输入寄存器片AXIS主机
+	wire[31:0] m2_reg_slice_data;
+	wire m2_reg_slice_user;
+	wire m2_reg_slice_valid;
+	wire m2_reg_slice_ready;
+	
+	assign s2_reg_slice_data = m_icb_rsp_inst_rdata;
+	assign s2_reg_slice_user = m_icb_rsp_inst_err;
+	assign s2_reg_slice_valid = m_icb_rsp_inst_valid;
+	assign m_icb_rsp_inst_ready = s2_reg_slice_ready;
+	
+	axis_reg_slice #(
+		.data_width(32),
+		.user_width(1),
+		.forward_registered("false"),
+		.back_registered(en_inst_rsp_bck),
+		.en_ready("true"),
+		.simulation_delay(simulation_delay)
+	)axis_reg_slice_u2(
+		.clk(clk),
+		.rst_n(sys_resetn),
+		
+		.s_axis_data(s2_reg_slice_data),
+		.s_axis_user(s2_reg_slice_user),
+		.s_axis_valid(s2_reg_slice_valid),
+		.s_axis_ready(s2_reg_slice_ready),
+		
+		.m_axis_data(m2_reg_slice_data),
+		.m_axis_user(m2_reg_slice_user),
+		.m_axis_valid(m2_reg_slice_valid),
+		.m_axis_ready(m2_reg_slice_ready)
+	);
+	
+	/** 数据ICB主机(响应通道输入寄存器片) **/
+	// 输入寄存器片AXIS从机
+	wire[31:0] s3_reg_slice_data;
+	wire s3_reg_slice_user;
+	wire s3_reg_slice_valid;
+	wire s3_reg_slice_ready;
+	// 输入寄存器片AXIS主机
+	wire[31:0] m3_reg_slice_data;
+	wire m3_reg_slice_user;
+	wire m3_reg_slice_valid;
+	wire m3_reg_slice_ready;
+	
+	assign s3_reg_slice_data = m_icb_rsp_data_rdata;
+	assign s3_reg_slice_user = m_icb_rsp_data_err;
+	assign s3_reg_slice_valid = m_icb_rsp_data_valid;
+	assign m_icb_rsp_data_ready = s3_reg_slice_ready;
+	
+	axis_reg_slice #(
+		.data_width(32),
+		.user_width(1),
+		.forward_registered("false"),
+		.back_registered(en_data_rsp_bck),
+		.en_ready("true"),
+		.simulation_delay(simulation_delay)
+	)axis_reg_slice_u3(
+		.clk(clk),
+		.rst_n(sys_resetn),
+		
+		.s_axis_data(s3_reg_slice_data),
+		.s_axis_user(s3_reg_slice_user),
+		.s_axis_valid(s3_reg_slice_valid),
+		.s_axis_ready(s3_reg_slice_ready),
+		
+		.m_axis_data(m3_reg_slice_data),
+		.m_axis_user(m3_reg_slice_user),
+		.m_axis_valid(m3_reg_slice_valid),
+		.m_axis_ready(m3_reg_slice_ready)
+	);
+	
 	/** 总线控制单元 **/
 	// CPU核内指令ICB从机
 	wire[31:0] s_icb_biu_cmd_inst_addr;
@@ -119,6 +280,48 @@ module panda_risc_v #(
 	wire s_icb_biu_rsp_data_err;
 	wire s_icb_biu_rsp_data_valid;
 	wire s_icb_biu_rsp_data_ready;
+	// 指令ICB主机
+	wire[31:0] m_icb_biu_cmd_inst_addr;
+	wire m_icb_biu_cmd_inst_read;
+	wire[31:0] m_icb_biu_cmd_inst_wdata;
+	wire[3:0] m_icb_biu_cmd_inst_wmask;
+	wire m_icb_biu_cmd_inst_valid;
+	wire m_icb_biu_cmd_inst_ready;
+	wire[31:0] m_icb_biu_rsp_inst_rdata;
+	wire m_icb_biu_rsp_inst_err;
+	wire m_icb_biu_rsp_inst_valid;
+	wire m_icb_biu_rsp_inst_ready;
+	// 数据ICB主机
+	wire[31:0] m_icb_biu_cmd_data_addr;
+	wire m_icb_biu_cmd_data_read;
+	wire[31:0] m_icb_biu_cmd_data_wdata;
+	wire[3:0] m_icb_biu_cmd_data_wmask;
+	wire m_icb_biu_cmd_data_valid;
+	wire m_icb_biu_cmd_data_ready;
+	wire[31:0] m_icb_biu_rsp_data_rdata;
+	wire m_icb_biu_rsp_data_err;
+	wire m_icb_biu_rsp_data_valid;
+	wire m_icb_biu_rsp_data_ready;
+	
+	assign s0_reg_slice_data = {m_icb_biu_cmd_inst_addr, m_icb_biu_cmd_inst_wdata};
+	assign s0_reg_slice_user = {m_icb_biu_cmd_inst_read, m_icb_biu_cmd_inst_wmask};
+	assign s0_reg_slice_valid = m_icb_biu_cmd_inst_valid;
+	assign m_icb_biu_cmd_inst_ready = s0_reg_slice_ready;
+	
+	assign s1_reg_slice_data = {m_icb_biu_cmd_data_addr, m_icb_biu_cmd_data_wdata};
+	assign s1_reg_slice_user = {m_icb_biu_cmd_data_read, m_icb_biu_cmd_data_wmask};
+	assign s1_reg_slice_valid = m_icb_biu_cmd_data_valid;
+	assign m_icb_biu_cmd_data_ready = s1_reg_slice_ready;
+	
+	assign m_icb_biu_rsp_inst_rdata = m2_reg_slice_data;
+	assign m_icb_biu_rsp_inst_err = m2_reg_slice_user;
+	assign m_icb_biu_rsp_inst_valid = m2_reg_slice_valid;
+	assign m2_reg_slice_ready = m_icb_biu_rsp_inst_ready;
+	
+	assign m_icb_biu_rsp_data_rdata = m3_reg_slice_data;
+	assign m_icb_biu_rsp_data_err = m3_reg_slice_user;
+	assign m_icb_biu_rsp_data_valid = m3_reg_slice_valid;
+	assign m3_reg_slice_ready = m_icb_biu_rsp_data_ready;
 	
 	panda_risc_v_biu #(
 		.imem_baseaddr(imem_baseaddr),
@@ -150,27 +353,27 @@ module panda_risc_v #(
 		.s_icb_rsp_data_valid(s_icb_biu_rsp_data_valid),
 		.s_icb_rsp_data_ready(s_icb_biu_rsp_data_ready),
 		
-		.m_icb_cmd_inst_addr(m_icb_cmd_inst_addr),
-		.m_icb_cmd_inst_read(m_icb_cmd_inst_read),
-		.m_icb_cmd_inst_wdata(m_icb_cmd_inst_wdata),
-		.m_icb_cmd_inst_wmask(m_icb_cmd_inst_wmask),
-		.m_icb_cmd_inst_valid(m_icb_cmd_inst_valid),
-		.m_icb_cmd_inst_ready(m_icb_cmd_inst_ready),
-		.m_icb_rsp_inst_rdata(m_icb_rsp_inst_rdata),
-		.m_icb_rsp_inst_err(m_icb_rsp_inst_err),
-		.m_icb_rsp_inst_valid(m_icb_rsp_inst_valid),
-		.m_icb_rsp_inst_ready(m_icb_rsp_inst_ready),
+		.m_icb_cmd_inst_addr(m_icb_biu_cmd_inst_addr),
+		.m_icb_cmd_inst_read(m_icb_biu_cmd_inst_read),
+		.m_icb_cmd_inst_wdata(m_icb_biu_cmd_inst_wdata),
+		.m_icb_cmd_inst_wmask(m_icb_biu_cmd_inst_wmask),
+		.m_icb_cmd_inst_valid(m_icb_biu_cmd_inst_valid),
+		.m_icb_cmd_inst_ready(m_icb_biu_cmd_inst_ready),
+		.m_icb_rsp_inst_rdata(m_icb_biu_rsp_inst_rdata),
+		.m_icb_rsp_inst_err(m_icb_biu_rsp_inst_err),
+		.m_icb_rsp_inst_valid(m_icb_biu_rsp_inst_valid),
+		.m_icb_rsp_inst_ready(m_icb_biu_rsp_inst_ready),
 		
-		.m_icb_cmd_data_addr(m_icb_cmd_data_addr),
-		.m_icb_cmd_data_read(m_icb_cmd_data_read),
-		.m_icb_cmd_data_wdata(m_icb_cmd_data_wdata),
-		.m_icb_cmd_data_wmask(m_icb_cmd_data_wmask),
-		.m_icb_cmd_data_valid(m_icb_cmd_data_valid),
-		.m_icb_cmd_data_ready(m_icb_cmd_data_ready),
-		.m_icb_rsp_data_rdata(m_icb_rsp_data_rdata),
-		.m_icb_rsp_data_err(m_icb_rsp_data_err),
-		.m_icb_rsp_data_valid(m_icb_rsp_data_valid),
-		.m_icb_rsp_data_ready(m_icb_rsp_data_ready)
+		.m_icb_cmd_data_addr(m_icb_biu_cmd_data_addr),
+		.m_icb_cmd_data_read(m_icb_biu_cmd_data_read),
+		.m_icb_cmd_data_wdata(m_icb_biu_cmd_data_wdata),
+		.m_icb_cmd_data_wmask(m_icb_biu_cmd_data_wmask),
+		.m_icb_cmd_data_valid(m_icb_biu_cmd_data_valid),
+		.m_icb_cmd_data_ready(m_icb_biu_cmd_data_ready),
+		.m_icb_rsp_data_rdata(m_icb_biu_rsp_data_rdata),
+		.m_icb_rsp_data_err(m_icb_biu_rsp_data_err),
+		.m_icb_rsp_data_valid(m_icb_biu_rsp_data_valid),
+		.m_icb_rsp_data_ready(m_icb_biu_rsp_data_ready)
 	);
 	
 	/** 取指单元 **/

@@ -24,6 +24,10 @@ module panda_risc_v_sim #(
 	parameter en_alu_csr_rw_bypass = "true", // 是否使能ALU/CSR原子读写单元的数据旁路
 	parameter imem_baseaddr = 32'h0000_0000, // 指令存储器基址
 	parameter integer imem_addr_range = 16 * 1024, // 指令存储器地址区间长度
+	parameter en_inst_cmd_fwd = "true", // 使能指令ICB主机命令通道前向寄存器
+	parameter en_inst_rsp_bck = "true", // 使能指令ICB主机响应通道后向寄存器
+	parameter en_data_cmd_fwd = "true", // 使能数据ICB主机命令通道前向寄存器
+	parameter en_data_rsp_bck = "true", // 使能数据ICB主机响应通道后向寄存器
 	parameter real simulation_delay = 1 // 仿真延时
 )(
     // 时钟
@@ -137,6 +141,10 @@ module panda_risc_v_sim #(
 		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
 		.imem_baseaddr(imem_baseaddr),
 		.imem_addr_range(imem_addr_range),
+		.en_inst_cmd_fwd(en_inst_cmd_fwd),
+		.en_inst_rsp_bck(en_inst_rsp_bck),
+		.en_data_cmd_fwd(en_data_cmd_fwd),
+		.en_data_rsp_bck(en_data_rsp_bck),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_u(
 		.clk(clk),
