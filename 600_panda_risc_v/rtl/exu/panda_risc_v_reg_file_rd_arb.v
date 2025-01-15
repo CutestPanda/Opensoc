@@ -16,11 +16,20 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2024/12/24
+日期: 2025/01/15
 ********************************************************************/
 
 
-module panda_risc_v_reg_file_rd_arb(
+module panda_risc_v_reg_file_rd_arb #(
+	parameter en_alu_csr_rw_bypass = "true" // 是否使能ALU/CSR原子读写单元的数据旁路
+)(
+	// ALU/CSR原子读写单元的数据旁路
+	input wire dcd_reg_file_rd_p0_bypass, // 需要旁路到译码器给出的通用寄存器堆读端口#0
+	input wire dcd_reg_file_rd_p1_bypass, // 需要旁路到译码器给出的通用寄存器堆读端口#1
+	input wire is_csr_rw_inst, // 是否CSR读写指令
+	input wire[31:0] alu_res, // ALU计算结果
+	input wire[31:0] csr_atom_rw_dout, // CSR原值
+	
 	// 译码器给出的通用寄存器堆读端口#0
 	input wire dcd_reg_file_rd_p0_req, // 读请求
 	input wire[4:0] dcd_reg_file_rd_p0_addr, // 读地址
@@ -51,13 +60,24 @@ module panda_risc_v_reg_file_rd_arb(
 	input wire[31:0] x1_v
 );
 	
+	/** 数据旁路 **/
+	wire[31:0] alu_csr_rw_res_bypass; // 旁路的ALU计算结果或CSR原值
+	
+	assign alu_csr_rw_res_bypass = is_csr_rw_inst ? csr_atom_rw_dout:alu_res;
+	
 	/** 译码器给出的通用寄存器堆读端口#0 **/
 	assign dcd_reg_file_rd_p0_grant = dcd_reg_file_rd_p0_req;
-	assign dcd_reg_file_rd_p0_dout = reg_file_dout_p0;
+	assign dcd_reg_file_rd_p0_dout = 
+		((en_alu_csr_rw_bypass == "true") & dcd_reg_file_rd_p0_bypass) ? 
+			alu_csr_rw_res_bypass:
+			reg_file_dout_p0;
 	
 	/** 译码器给出的通用寄存器堆读端口#1 **/
 	assign dcd_reg_file_rd_p1_grant = dcd_reg_file_rd_p1_req & (~jalr_reg_file_rd_p0_req);
-	assign dcd_reg_file_rd_p1_dout = reg_file_dout_p1;
+	assign dcd_reg_file_rd_p1_dout = 
+		((en_alu_csr_rw_bypass == "true") & dcd_reg_file_rd_p1_bypass) ? 
+			alu_csr_rw_res_bypass:
+			reg_file_dout_p1;
 	
 	/** 专用于JALR指令的通用寄存器堆读端口 **/
 	assign jalr_x1_v = x1_v;

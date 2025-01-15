@@ -13,7 +13,7 @@
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/15
 ********************************************************************/
 
 
@@ -42,7 +42,7 @@ module panda_risc_v #(
 	// 数据相关性监测器配置
 	parameter integer dpc_trace_inst_n = 4, // 执行数据相关性跟踪的指令条数
 	parameter integer inst_id_width = 4, // 指令编号的位宽
-	parameter en_alu_csr_rw_bypass = "false", // 是否使能ALU/CSR原子读写单元的数据旁路
+	parameter en_alu_csr_rw_bypass = "true", // 是否使能ALU/CSR原子读写单元的数据旁路
 	// 仿真配置
 	parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -416,6 +416,9 @@ module panda_risc_v #(
 	// 数据相关性跟踪(指令退休)
 	wire[inst_id_width-1:0] dpc_trace_retire_inst_id; // 指令编号
 	wire dpc_trace_retire_valid;
+	// ALU/CSR原子读写单元的数据旁路
+	wire dcd_reg_file_rd_p0_bypass; // 需要旁路到译码器给出的通用寄存器堆读端口#0
+	wire dcd_reg_file_rd_p1_bypass; // 需要旁路到译码器给出的通用寄存器堆读端口#1
 	
 	assign s_alu_op_mode = m_alu_op_mode;
 	assign s_alu_op1 = m_alu_op1;
@@ -469,6 +472,7 @@ module panda_risc_v #(
 	
 	panda_risc_v_exu #(
 		.inst_id_width(inst_id_width),
+		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
 		.dbus_access_timeout_th(dbus_access_timeout_th),
 		.icb_zero_latency_supported(icb_zero_latency_supported),
 		.en_expt_vec_vectored(en_expt_vec_vectored),
@@ -575,7 +579,10 @@ module panda_risc_v #(
 		.flush_addr(flush_addr),
 		
 		.dpc_trace_retire_inst_id(dpc_trace_retire_inst_id),
-		.dpc_trace_retire_valid(dpc_trace_retire_valid)
+		.dpc_trace_retire_valid(dpc_trace_retire_valid),
+		
+		.dcd_reg_file_rd_p0_bypass(dcd_reg_file_rd_p0_bypass),
+		.dcd_reg_file_rd_p1_bypass(dcd_reg_file_rd_p1_bypass)
 	);
 	
 	/** 数据相关性监测器 **/
@@ -617,8 +624,8 @@ module panda_risc_v #(
 		.dpc_trace_retire_inst_id(dpc_trace_retire_inst_id),
 		.dpc_trace_retire_valid(dpc_trace_retire_valid),
 		
-		.dcd_reg_file_rd_p0_bypass(),
-		.dcd_reg_file_rd_p1_bypass()
+		.dcd_reg_file_rd_p0_bypass(dcd_reg_file_rd_p0_bypass),
+		.dcd_reg_file_rd_p1_bypass(dcd_reg_file_rd_p1_bypass)
 	);
 	
 endmodule

@@ -12,7 +12,7 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/15
 ********************************************************************/
 
 
@@ -223,37 +223,29 @@ module panda_risc_v_data_dpc_monitor #(
 			assign imem_access_rs1_raw_dpc_check_res_vec[dpc_check_i] = 
 				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
 				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == imem_access_rs1_id) & 
-				(
-					// 如果支持数据旁路, 那么单周期指令的结果可以被旁路到JALR指令读基址给出的通用寄存器堆读端口#0
-					((inst_life_cycle_vec[dpc_check_i][INST_DSPTC_MSG_STAGE_FID] | 
-						inst_life_cycle_vec[dpc_check_i][INST_EXU_STAGE_FID]) & 
-						((en_alu_csr_rw_bypass == "false") | inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_IS_LONG_INST])) | 
-					inst_life_cycle_vec[dpc_check_i][INST_IFQ_STAGE_FID]
-				);
+				// JALR指令读基址给出的通用寄存器堆读端口#0不支持数据旁路
+				(~inst_life_cycle_vec[dpc_check_i][INST_NOT_VALID_STAGE_FID]);
 			
 			assign dcd_rs1_raw_dpc_check_res_vec[dpc_check_i] = 
+				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
+				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == dcd_raw_dpc_check_rs1_id) & 
 				(inst_life_cycle_vec[dpc_check_i][INST_DSPTC_MSG_STAGE_FID] | inst_life_cycle_vec[dpc_check_i][INST_EXU_STAGE_FID]) & 
 				// 如果支持数据旁路, 那么单周期指令的结果可以被旁路到译码器给出的通用寄存器读端口#0
-				((en_alu_csr_rw_bypass == "false") | inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_IS_LONG_INST]) & 
-				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
-				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == 
-					dcd_raw_dpc_check_rs1_id);
+				((en_alu_csr_rw_bypass == "false") | inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_IS_LONG_INST]);
 			
 			assign dcd_rs2_raw_dpc_check_res_vec[dpc_check_i] = 
+				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
+				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == dcd_raw_dpc_check_rs2_id) & 
 				(inst_life_cycle_vec[dpc_check_i][INST_DSPTC_MSG_STAGE_FID] | inst_life_cycle_vec[dpc_check_i][INST_EXU_STAGE_FID]) & 
 				// 如果支持数据旁路, 那么单周期指令的结果可以被旁路到译码器给出的通用寄存器读端口#1
-				((en_alu_csr_rw_bypass == "false") | inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_IS_LONG_INST]) & 
-				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
-				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == 
-					dcd_raw_dpc_check_rs2_id);
+				((en_alu_csr_rw_bypass == "false") | inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_IS_LONG_INST]);
 			
 			assign dsptc_waw_dpc_check_res_vec[dpc_check_i] = 
+				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
+				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == dsptc_waw_dpc_check_rd_id) & 
 				// 仅检查与执行中长指令的WAW相关性
 				inst_life_cycle_vec[dpc_check_i][INST_EXU_STAGE_FID] & 
-				inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_IS_LONG_INST] & 
-				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
-				(inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == 
-					dsptc_waw_dpc_check_rd_id);
+				inst_dpc_trace_msg[dpc_check_i][INST_DPC_TRACE_MSG_IS_LONG_INST];
 		end
 	endgenerate
 	
@@ -269,20 +261,22 @@ module panda_risc_v_data_dpc_monitor #(
 		for(alu_csr_rw_bypass_i = 0;alu_csr_rw_bypass_i < dpc_trace_inst_n;alu_csr_rw_bypass_i = alu_csr_rw_bypass_i + 1)
 		begin
 			assign dcd_reg_file_rd_p0_bypass_vec[alu_csr_rw_bypass_i] = 
-				(inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_DSPTC_MSG_STAGE_FID] | 
-					inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_EXU_STAGE_FID]) & 
-				(~inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_IS_LONG_INST]) & 
 				(inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
 				(inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == 
-					dcd_raw_dpc_check_rs1_id);
+					dcd_raw_dpc_check_rs1_id) & 
+				(inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_DSPTC_MSG_STAGE_FID] | 
+					inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_EXU_STAGE_FID]) & 
+				// 仅旁路单周期指令的结果
+				(~inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_IS_LONG_INST]);
 			
 			assign dcd_reg_file_rd_p1_bypass_vec[alu_csr_rw_bypass_i] = 
-				(inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_DSPTC_MSG_STAGE_FID] | 
-					inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_EXU_STAGE_FID]) & 
-				(~inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_IS_LONG_INST]) & 
 				(inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] != 5'd0) & 
 				(inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_RD_ID+4:INST_DPC_TRACE_MSG_RD_ID] == 
-					dcd_raw_dpc_check_rs2_id);
+					dcd_raw_dpc_check_rs2_id) & 
+				(inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_DSPTC_MSG_STAGE_FID] | 
+					inst_life_cycle_vec[alu_csr_rw_bypass_i][INST_EXU_STAGE_FID]) & 
+				// 仅旁路单周期指令的结果
+				(~inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_IS_LONG_INST]);
 		end
 	endgenerate
 	

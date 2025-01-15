@@ -35,13 +35,14 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/15
 ********************************************************************/
 
 
 module panda_risc_v_exu #(
-	// 指令编号的位宽
-	parameter integer inst_id_width = 4,
+	// 数据相关性监测器配置
+	parameter integer inst_id_width = 4, // 指令编号的位宽
+	parameter en_alu_csr_rw_bypass = "true", // 是否使能ALU/CSR原子读写单元的数据旁路
 	// LSU配置
 	parameter integer dbus_access_timeout_th = 16, // 数据总线访问超时周期数(必须>=1)
 	parameter icb_zero_latency_supported = "false", // 是否支持零响应时延的ICB主机
@@ -173,7 +174,11 @@ module panda_risc_v_exu #(
 	// 数据相关性跟踪
 	// 指令退休
 	output wire[inst_id_width-1:0] dpc_trace_retire_inst_id, // 指令编号
-	output wire dpc_trace_retire_valid
+	output wire dpc_trace_retire_valid,
+	
+	// ALU/CSR原子读写单元的数据旁路
+	input wire dcd_reg_file_rd_p0_bypass, // 需要旁路到译码器给出的通用寄存器堆读端口#0
+	input wire dcd_reg_file_rd_p1_bypass // 需要旁路到译码器给出的通用寄存器堆读端口#1
 );
 	
 	/** 交付单元 **/
@@ -617,7 +622,15 @@ module panda_risc_v_exu #(
 	);
 	
 	/** 通用寄存器堆读仲裁 **/
-	panda_risc_v_reg_file_rd_arb panda_risc_v_reg_file_rd_arb_u(
+	panda_risc_v_reg_file_rd_arb #(
+		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass)
+	)panda_risc_v_reg_file_rd_arb_u(
+		.dcd_reg_file_rd_p0_bypass(dcd_reg_file_rd_p0_bypass),
+		.dcd_reg_file_rd_p1_bypass(dcd_reg_file_rd_p1_bypass),
+		.is_csr_rw_inst(s_alu_is_csr_rw_inst),
+		.alu_res(alu_res),
+		.csr_atom_rw_dout(csr_atom_rw_dout),
+		
 		.dcd_reg_file_rd_p0_req(dcd_reg_file_rd_p0_req),
 		.dcd_reg_file_rd_p0_addr(dcd_reg_file_rd_p0_addr),
 		.dcd_reg_file_rd_p0_grant(dcd_reg_file_rd_p0_grant),

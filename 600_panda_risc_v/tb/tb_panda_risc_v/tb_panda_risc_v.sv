@@ -8,6 +8,7 @@ module tb_panda_risc_v();
 	localparam integer DMEM_DEPTH = 8 * 1024; // 数据存储器深度
 	localparam IMEM_INIT_FILE = "E:/modelsim/tb_panda_risc_v/inst_test/rv32um-p-remu.txt"; // 指令存储器的初始化文件路径
 	localparam DMEM_INIT_FILE = "E:/modelsim/tb_panda_risc_v/inst_test/rv32um-p-remu.txt"; // 数据存储器的初始化文件路径
+	localparam en_alu_csr_rw_bypass = "true"; // 是否使能ALU/CSR原子读写单元的数据旁路
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
@@ -91,6 +92,7 @@ module tb_panda_risc_v();
 		.DMEM_DEPTH(DMEM_DEPTH),
 		.IMEM_INIT_FILE(IMEM_INIT_FILE),
 		.DMEM_INIT_FILE(DMEM_INIT_FILE),
+		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_sim_u(
 		.clk(clk),

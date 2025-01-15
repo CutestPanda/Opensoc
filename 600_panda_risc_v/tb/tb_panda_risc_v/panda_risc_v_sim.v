@@ -3,7 +3,7 @@
 本模块: 带指令/数据存储器的小胖达RISC-V处理器核
 
 描述:
-仅用于综合后时序评估
+仅用于仿真
 
 注意：
 无
@@ -12,7 +12,7 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/15
 ********************************************************************/
 
 
@@ -21,6 +21,7 @@ module panda_risc_v_sim #(
 	parameter integer DMEM_DEPTH = 4096, // 数据存储器深度
 	parameter IMEM_INIT_FILE = "no_init", // 指令存储器的初始化文件路径
 	parameter DMEM_INIT_FILE = "no_init", // 数据存储器的初始化文件路径
+	parameter en_alu_csr_rw_bypass = "true", // 是否使能ALU/CSR原子读写单元的数据旁路
 	parameter real simulation_delay = 1 // 仿真延时
 )(
     // 时钟
@@ -131,7 +132,7 @@ module panda_risc_v_sim #(
 		.init_mhartid(32'h00_00_00_00),
 		.dpc_trace_inst_n(16),
 		.inst_id_width(5),
-		.en_alu_csr_rw_bypass("false"),
+		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_u(
 		.clk(clk),
