@@ -6,9 +6,11 @@ module tb_panda_risc_v();
 	// 待测模块配置
 	localparam integer IMEM_DEPTH = 8 * 1024; // 指令存储器深度
 	localparam integer DMEM_DEPTH = 8 * 1024; // 数据存储器深度
-	localparam IMEM_INIT_FILE = "E:/modelsim/tb_panda_risc_v/inst_test/rv32um-p-remu.txt"; // 指令存储器的初始化文件路径
-	localparam DMEM_INIT_FILE = "E:/modelsim/tb_panda_risc_v/inst_test/rv32um-p-remu.txt"; // 数据存储器的初始化文件路径
+	localparam IMEM_INIT_FILE = "E:/modelsim/tb_panda_risc_v/inst_test/rv32ui-p-sw.txt"; // 指令存储器的初始化文件路径
+	localparam DMEM_INIT_FILE = "no_init"; // 数据存储器的初始化文件路径
 	localparam en_alu_csr_rw_bypass = "true"; // 是否使能ALU/CSR原子读写单元的数据旁路
+	localparam imem_baseaddr = 32'h0000_0000; // 指令存储器基址
+	localparam integer imem_addr_range = 16 * 1024; // 指令存储器地址区间长度
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
@@ -93,6 +95,8 @@ module tb_panda_risc_v();
 		.IMEM_INIT_FILE(IMEM_INIT_FILE),
 		.DMEM_INIT_FILE(DMEM_INIT_FILE),
 		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
+		.imem_baseaddr(imem_baseaddr),
+		.imem_addr_range(imem_addr_range),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_sim_u(
 		.clk(clk),

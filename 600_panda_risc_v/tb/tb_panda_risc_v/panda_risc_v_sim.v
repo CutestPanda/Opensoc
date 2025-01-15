@@ -22,6 +22,8 @@ module panda_risc_v_sim #(
 	parameter IMEM_INIT_FILE = "no_init", // 指令存储器的初始化文件路径
 	parameter DMEM_INIT_FILE = "no_init", // 数据存储器的初始化文件路径
 	parameter en_alu_csr_rw_bypass = "true", // 是否使能ALU/CSR原子读写单元的数据旁路
+	parameter imem_baseaddr = 32'h0000_0000, // 指令存储器基址
+	parameter integer imem_addr_range = 16 * 1024, // 指令存储器地址区间长度
 	parameter real simulation_delay = 1 // 仿真延时
 )(
     // 时钟
@@ -133,6 +135,8 @@ module panda_risc_v_sim #(
 		.dpc_trace_inst_n(16),
 		.inst_id_width(5),
 		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
+		.imem_baseaddr(imem_baseaddr),
+		.imem_addr_range(imem_addr_range),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_u(
 		.clk(clk),
