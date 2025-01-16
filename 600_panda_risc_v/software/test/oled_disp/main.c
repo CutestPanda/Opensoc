@@ -37,7 +37,7 @@ int main(){
 	OLED_Clear(0);
 	
 	// OLED显示测试
-	GUI_ShowString(0, 0, (u8*)"hello", 8, 1);
+	GUI_ShowString(0, 0, (u8*)"Panda", 16, 1);
 	
     while(1){
         apb_gpio_write_pin(&gpio0, 0x000000FF, (uint32_t)flow_led_out_value[flow_led_style_sel ? (8 - flow_led_id):flow_led_id]);
