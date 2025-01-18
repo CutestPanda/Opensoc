@@ -11,8 +11,8 @@
 #define TIMER0_BASEADDE 0x40002000
 
 // TIMER0配置
-#define TIMER0_PSC 2500 // 预分频系数
-#define TIMER0_ATL 5000 // 自动装载值
+#define TIMER0_PSC 5000 // 预分频系数
+#define TIMER0_ATL 2000 // 自动装载值
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -24,6 +24,7 @@ static ApbTimer timer0;
 const static uint8_t flow_led_out_value[9] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00}; // 流水灯样式
 static uint8_t flow_led_id = 0; // 流水灯状态
 static uint8_t flow_led_style_sel = 0; // 流水灯样式选择
+static uint8_t flow_led_div_cnt = 0; // 流水灯分频计数器
 
 // 中断事件标志
 static uint8_t timer0_period_elapsed = 0; // TIMER0计数溢出标志
@@ -43,6 +44,10 @@ void tmr_irq_handler(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
+	// 使能计时器中断
+    // MSIE = 0, MTIE = 1, MEIE = 0
+    write_csr(mie, 0x00000080);
+	
 	apb_gpio_init(&gpio0, GPIO0_BASEADDE); // 初始化GPIO
 	apb_gpio_set_direction(&gpio0, 0xFFFFFF00); // 设置GPIO方向
 	
@@ -80,18 +85,24 @@ int main(){
 	
     while(1){
 		if(timer0_period_elapsed){
-			apb_gpio_write_pin(&gpio0, 0x000000FF, (uint32_t)flow_led_out_value[flow_led_style_sel ? (8 - flow_led_id):flow_led_id]);
-			
 			if(apb_gpio_read_pin(&gpio0) & 0x00000100){
 				flow_led_style_sel = 1;
 			}else{
 				flow_led_style_sel = 0;
 			}
 			
-			if(flow_led_id == 8){
-				flow_led_id = 0;
-			}else{
-				flow_led_id++;
+			flow_led_div_cnt++;
+			
+			if(flow_led_div_cnt == 5){
+				apb_gpio_write_pin(&gpio0, 0x000000FF, (uint32_t)flow_led_out_value[flow_led_style_sel ? (8 - flow_led_id):flow_led_id]);
+				
+				if(flow_led_id == 8){
+					flow_led_id = 0;
+				}else{
+					flow_led_id++;
+				}
+				
+				flow_led_div_cnt = 0;
 			}
 			
 			timer0_period_elapsed = 0;

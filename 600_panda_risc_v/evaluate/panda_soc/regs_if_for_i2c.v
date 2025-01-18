@@ -264,20 +264,43 @@ module regs_if_for_i2c #(
     assign pslverr_out = 1'b0;
     
     // APB¶ÁÊý¾ÝÊä³ö
-    always @(posedge clk)
-    begin
-        if(psel & (~pwrite))
-        begin
-            # simulation_delay;
-            
-            case(paddr[3:2])
-                2'd0: prdata_out_regs <= {6'dx, rx_fifo_dout, 1'bx, rx_fifo_empty, 15'dx, tx_fifo_full};
-                2'd1: prdata_out_regs <= 32'dx;
-                2'd2: prdata_out_regs <= 32'dx;
-                2'd3: prdata_out_regs <= {i2c_bytes_n_rev, i2c_bytes_n_sent, 3'dx, sub_itr_flag, global_itr_flag};
-                default: prdata_out_regs <= 32'dx;
-            endcase
-        end
-    end
+	generate
+		if(simulation_delay == 0)
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					# simulation_delay;
+					
+					case(paddr[3:2])
+						2'd0: prdata_out_regs <= {6'dx, rx_fifo_dout, 1'bx, rx_fifo_empty, 15'dx, tx_fifo_full};
+						2'd1: prdata_out_regs <= 32'dx;
+						2'd2: prdata_out_regs <= 32'dx;
+						2'd3: prdata_out_regs <= {i2c_bytes_n_rev, i2c_bytes_n_sent, 3'dx, sub_itr_flag, global_itr_flag};
+						default: prdata_out_regs <= 32'dx;
+					endcase
+				end
+			end
+		end
+		else
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					# simulation_delay;
+					
+					case(paddr[3:2])
+						2'd0: prdata_out_regs <= {6'd0, rx_fifo_dout, 1'b0, rx_fifo_empty, 15'd0, tx_fifo_full};
+						2'd1: prdata_out_regs <= 32'd0;
+						2'd2: prdata_out_regs <= 32'd0;
+						2'd3: prdata_out_regs <= {i2c_bytes_n_rev, i2c_bytes_n_sent, 3'd0, sub_itr_flag, global_itr_flag};
+						default: prdata_out_regs <= 32'd0;
+					endcase
+				end
+			end
+		end
+	endgenerate
     
 endmodule

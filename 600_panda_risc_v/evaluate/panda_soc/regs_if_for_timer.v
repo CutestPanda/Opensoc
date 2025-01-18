@@ -307,21 +307,44 @@ module regs_if_for_timer #(
     assign pslverr_out = 1'b0;
     
     // APB读数据
-    always @(posedge clk)
-    begin
-        if(psel & (~pwrite))
-        begin
-            case(paddr[5:2])
-                4'd2: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_cnt_now_v};
-                4'd5: prdata_out_regs <= {16'dx, 3'dx, timer_cap_itr_flag, timer_expired_itr_flag, 7'dx, global_itr_flag};
-                4'd6: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn1_cap_cmp_i};
-                4'd8: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn2_cap_cmp_i};
-                4'd10: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn3_cap_cmp_i};
-                4'd12: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn4_cap_cmp_i};
-                default: prdata_out_regs <= 32'dx;
-            endcase
-        end
-    end
+	generate
+		if(simulation_delay == 0)
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					case(paddr[5:2])
+						4'd2: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_cnt_now_v};
+						4'd5: prdata_out_regs <= {16'dx, 3'dx, timer_cap_itr_flag, timer_expired_itr_flag, 7'dx, global_itr_flag};
+						4'd6: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn1_cap_cmp_i};
+						4'd8: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn2_cap_cmp_i};
+						4'd10: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn3_cap_cmp_i};
+						4'd12: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn4_cap_cmp_i};
+						default: prdata_out_regs <= 32'dx;
+					endcase
+				end
+			end
+		end
+		else
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					case(paddr[5:2])
+						4'd2: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_cnt_now_v};
+						4'd5: prdata_out_regs <= {16'd0, 3'd0, timer_cap_itr_flag, timer_expired_itr_flag, 7'd0, global_itr_flag};
+						4'd6: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn1_cap_cmp_i};
+						4'd8: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn2_cap_cmp_i};
+						4'd10: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn3_cap_cmp_i};
+						4'd12: prdata_out_regs <= {{(32-timer_width){1'b0}}, timer_chn4_cap_cmp_i};
+						default: prdata_out_regs <= 32'd0;
+					endcase
+				end
+			end
+		end
+	endgenerate
     
     // 中断发生器
     itr_generator #(
