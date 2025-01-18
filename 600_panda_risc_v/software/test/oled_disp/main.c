@@ -19,9 +19,16 @@ static ApbGPIO gpio0;
 static ApbI2C i2c0;
 
 // 流水灯
-const static uint8_t flow_led_out_value[9] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00}; // 流水灯样式
+const static uint8_t flow_led_out_value[4][9] = 
+	{
+		{0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00}, 
+		{0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}, 
+		{0x00, 0x18, 0x3C, 0x7E, 0xFF, 0x7E, 0x3C, 0x18, 0x00}, 
+		{0xFF, 0x7E, 0x3C, 0x18, 0x00, 0x18, 0x3C, 0x7E, 0xFF}
+	}; // 流水灯样式
 static uint8_t flow_led_id = 0; // 流水灯状态
 static uint8_t flow_led_style_sel = 0; // 流水灯样式选择
+static uint16_t oled_disp_num = 0; // OLED显示的数字
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -40,14 +47,18 @@ int main(){
 	GUI_ShowString(0, 0, (u8*)"Panda", 16, 1);
 	
     while(1){
-        apb_gpio_write_pin(&gpio0, 0x000000FF, (uint32_t)flow_led_out_value[flow_led_style_sel ? (8 - flow_led_id):flow_led_id]);
+        apb_gpio_write_pin(&gpio0, 0x000000FF, (uint32_t)flow_led_out_value[flow_led_style_sel][flow_led_id]);
 		
-		for(int i = 0;i < 1000000;i++);
+		for(int i = 0;i < 600000;i++);
 		
-		if(apb_gpio_read_pin(&gpio0) & 0x00000100){
-			flow_led_style_sel = 1;
+		flow_led_style_sel = (uint8_t)((apb_gpio_read_pin(&gpio0) & 0x00000300) >> 8);
+		
+		GUI_ShowNum(0, 4, (u32)oled_disp_num, 3, 16, 1);
+		
+		if(oled_disp_num == 199){
+			oled_disp_num = 0;
 		}else{
-			flow_led_style_sel = 0;
+			oled_disp_num++;
 		}
 		
 		if(flow_led_id == 8){
