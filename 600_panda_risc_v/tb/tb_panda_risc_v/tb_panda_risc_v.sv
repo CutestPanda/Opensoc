@@ -11,10 +11,7 @@ module tb_panda_risc_v();
 	localparam en_alu_csr_rw_bypass = "true"; // 是否使能ALU/CSR原子读写单元的数据旁路
 	localparam imem_baseaddr = 32'h0000_0000; // 指令存储器基址
 	localparam integer imem_addr_range = 16 * 1024; // 指令存储器地址区间长度
-	localparam en_inst_cmd_fwd = "false"; // 使能指令ICB主机命令通道前向寄存器
-	localparam en_inst_rsp_bck = "false"; // 使能指令ICB主机响应通道后向寄存器
-	localparam en_data_cmd_fwd = "false"; // 使能数据ICB主机命令通道前向寄存器
-	localparam en_data_rsp_bck = "false"; // 使能数据ICB主机响应通道后向寄存器
+	localparam sgn_period_mul = "true"; // 是否使用单周期乘法器
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
@@ -101,10 +98,7 @@ module tb_panda_risc_v();
 		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
 		.imem_baseaddr(imem_baseaddr),
 		.imem_addr_range(imem_addr_range),
-		.en_inst_cmd_fwd(en_inst_cmd_fwd),
-		.en_inst_rsp_bck(en_inst_rsp_bck),
-		.en_data_cmd_fwd(en_data_cmd_fwd),
-		.en_data_rsp_bck(en_data_rsp_bck),
+		.sgn_period_mul(sgn_period_mul),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_sim_u(
 		.clk(clk),

@@ -12,7 +12,7 @@
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/15
+日期: 2025/01/20
 ********************************************************************/
 
 
@@ -50,6 +50,8 @@ module panda_risc_v #(
 	parameter en_inst_rsp_bck = "true", // 使能指令ICB主机响应通道后向寄存器
 	parameter en_data_cmd_fwd = "true", // 使能数据ICB主机命令通道前向寄存器
 	parameter en_data_rsp_bck = "true", // 使能数据ICB主机响应通道后向寄存器
+	// 乘法器配置
+	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
 	// 仿真配置
 	parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -813,6 +815,7 @@ module panda_risc_v #(
 		.init_marchid(init_marchid),
 		.init_mimpid(init_mimpid),
 		.init_mhartid(init_mhartid),
+		.sgn_period_mul(sgn_period_mul),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_exu_u(
 		.clk(clk),

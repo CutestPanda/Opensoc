@@ -12,7 +12,7 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/15
+日期: 2025/01/20
 ********************************************************************/
 
 
@@ -136,6 +136,7 @@ module panda_risc_v_eva(
 		.en_inst_rsp_bck("false"),
 		.en_data_cmd_fwd("false"),
 		.en_data_rsp_bck("false"),
+		.sgn_period_mul("true"),
 		.simulation_delay(1)
 	)panda_risc_v_u(
 		.clk(clk),

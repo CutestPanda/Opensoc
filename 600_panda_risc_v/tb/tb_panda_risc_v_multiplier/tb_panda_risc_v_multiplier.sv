@@ -17,6 +17,7 @@ module tb_panda_risc_v_multiplier();
 	/** 配置参数 **/
 	// 待测模块配置
 	localparam integer inst_id_width = 4; // 指令编号的位宽
+	localparam sgn_period_mul = "true"; // 是否使用单周期乘法器
 	// 时钟和复位配置
 	localparam real clk_p = 10.0; // 时钟周期
 	localparam real simulation_delay = 1.0; // 仿真延时
@@ -98,6 +99,7 @@ module tb_panda_risc_v_multiplier();
 	
 	panda_risc_v_multiplier #(
 		.inst_id_width(inst_id_width),
+		.sgn_period_mul(sgn_period_mul),
 		.simulation_delay(simulation_delay)
 	)dut(
 		.clk(clk),

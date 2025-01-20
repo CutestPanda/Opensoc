@@ -35,7 +35,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/15
+日期: 2025/01/20
 ********************************************************************/
 
 
@@ -59,6 +59,8 @@ module panda_risc_v_exu #(
 	parameter init_marchid = 32'h00_00_00_00, // marchid状态寄存器复位值
 	parameter init_mimpid = 32'h31_2E_30_30, // mimpid状态寄存器复位值
 	parameter init_mhartid = 32'h00_00_00_00, // mhartid状态寄存器复位值
+	// 乘法器配置
+	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
 	// 仿真配置
     parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -487,6 +489,7 @@ module panda_risc_v_exu #(
 	
 	panda_risc_v_multiplier #(
 		.inst_id_width(inst_id_width),
+		.sgn_period_mul(sgn_period_mul),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_multiplier_u(
 		.clk(clk),

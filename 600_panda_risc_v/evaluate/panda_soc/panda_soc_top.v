@@ -18,26 +18,31 @@ GPIO
 I2C MASTER
 
 作者: 陈家耀
-日期: 2025/01/18
+日期: 2025/01/20
 ********************************************************************/
 
 
 module panda_soc_top #(
-	parameter integer imem_depth = 4096, // 指令存储器深度
-	parameter integer dmem_depth = 4096, // 数据存储器深度
-	parameter imem_init_file = "E:/scientific_research/risc-v/oled_disp.txt", // 指令存储器初始化文件路径
-	parameter real simulation_delay = 1 // 仿真延时
+	parameter integer imem_depth = 8192, // 指令存储器深度
+	parameter integer dmem_depth = 8192, // 数据存储器深度
+	parameter imem_init_file = "E:/scientific_research/risc-v/coremark.txt", // 指令存储器初始化文件路径
+	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
+	parameter real simulation_delay = 0 // 仿真延时
 )(
 	// 时钟和复位
 	input wire osc_clk, // 外部晶振时钟输入
 	input wire ext_resetn, // 外部复位输入
 	
 	// GPIO0
-	inout wire[9:0] gpio0,
+	inout wire[21:0] gpio0,
 	
 	// I2C0
 	inout wire i2c0_scl,
-	inout wire i2c0_sda
+	inout wire i2c0_sda,
+	
+	// UART0
+    output wire uart0_tx,
+    input wire uart0_rx
 );
 	
 	/** PLL **/
@@ -49,6 +54,9 @@ module panda_soc_top #(
 	generate
 		if(simulation_delay == 0)
 		begin
+			assign pll_clk_in = osc_clk;
+			assign pll_resetn = ext_resetn;
+			
 			clk_wiz_0 pll_u(
 			   .clk_in1(pll_clk_in),
 			   .resetn(pll_resetn),
@@ -159,6 +167,7 @@ module panda_soc_top #(
 		.en_data_cmd_fwd("true"),
 		.en_data_rsp_bck("true"),
 		.imem_init_file(imem_init_file),
+		.sgn_period_mul(sgn_period_mul),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_min_proc_sys_u(
 		.clk(pll_clk_out),
@@ -261,6 +270,17 @@ module panda_soc_top #(
     wire m2_apb_pready;
     wire m2_apb_pslverr;
     wire[31:0] m2_apb_prdata;
+	// APB MASTER #3
+    wire[31:0] m3_apb_paddr;
+    wire m3_apb_penable;
+    wire m3_apb_pwrite;
+    wire[2:0] m3_apb_pprot;
+    wire m3_apb_psel;
+    wire[3:0] m3_apb_pstrb;
+    wire[31:0] m3_apb_pwdata;
+    wire m3_apb_pready;
+    wire m3_apb_pslverr;
+    wire[31:0] m3_apb_prdata;
 	
 	assign s_axi_bridge_araddr = m_axi_dbus_araddr;
 	assign s_axi_bridge_arprot = 3'b000;
@@ -288,7 +308,7 @@ module panda_soc_top #(
 	assign m_axi_dbus_wready = s_axi_bridge_wready;
 	
 	axi_apb_bridge_wrapper #(
-		.apb_slave_n(3),
+		.apb_slave_n(4),
 		
 		.apb_s0_baseaddr(32'h4000_0000),
 		.apb_s0_range(4096),
@@ -296,6 +316,8 @@ module panda_soc_top #(
 		.apb_s1_range(4096),
 		.apb_s2_baseaddr(32'h4000_2000),
 		.apb_s2_range(4096),
+		.apb_s3_baseaddr(32'h4000_3000),
+		.apb_s3_range(4096),
 		
 		.simulation_delay(simulation_delay)
 	)axi_apb_bridge_wrapper_u(
@@ -353,18 +375,29 @@ module panda_soc_top #(
 		.m2_apb_pwdata(m2_apb_pwdata),
 		.m2_apb_pready(m2_apb_pready),
 		.m2_apb_pslverr(m2_apb_pslverr),
-		.m2_apb_prdata(m2_apb_prdata)
+		.m2_apb_prdata(m2_apb_prdata),
+		
+		.m3_apb_paddr(m3_apb_paddr),
+		.m3_apb_penable(m3_apb_penable),
+		.m3_apb_pwrite(m3_apb_pwrite),
+		.m3_apb_pprot(m3_apb_pprot),
+		.m3_apb_psel(m3_apb_psel),
+		.m3_apb_pstrb(m3_apb_pstrb),
+		.m3_apb_pwdata(m3_apb_pwdata),
+		.m3_apb_pready(m3_apb_pready),
+		.m3_apb_pslverr(m3_apb_pslverr),
+		.m3_apb_prdata(m3_apb_prdata)
 	);
 	
 	/** APB-GPIO **/
 	// GPIO
-    wire[9:0] gpio_o;
-    wire[9:0] gpio_t; // 0->输出, 1->输入
-    wire[9:0] gpio_i;
+    wire[21:0] gpio_o;
+    wire[21:0] gpio_t; // 0->输出, 1->输入
+    wire[21:0] gpio_i;
 	
 	genvar gpio0_i;
 	generate
-		for(gpio0_i = 0;gpio0_i < 10;gpio0_i = gpio0_i + 1)
+		for(gpio0_i = 0;gpio0_i < 22;gpio0_i = gpio0_i + 1)
 		begin
 			assign gpio0[gpio0_i] = gpio_t[gpio0_i] ? 1'bz:gpio_o[gpio0_i];
 			assign gpio_i[gpio0_i] = gpio0[gpio0_i];
@@ -372,7 +405,7 @@ module panda_soc_top #(
 	endgenerate
 	
 	apb_gpio #(
-		.gpio_width(10),
+		.gpio_width(22),
 		.gpio_dire("inout"),
 		.default_output_value(32'h0000_0000),
 		.default_tri_value(32'hffff_ffff),
@@ -469,6 +502,34 @@ module panda_soc_top #(
 		.cmp_out(),
 		
 		.itr(tmr_itr_req)
+	);
+	
+	/** APB-UART **/
+	apb_uart #(
+		.clk_frequency_MHz(50),
+		.baud_rate(115200),
+		.tx_rx_fifo_ram_type("bram"),
+		.tx_fifo_depth(2048),
+		.rx_fifo_depth(2048),
+		.en_itr("false"),
+		.simulation_delay(simulation_delay)
+	)apb_uart_u(
+		.clk(pll_clk_out),
+		.resetn(sys_resetn),
+		
+		.paddr(m3_apb_paddr),
+		.psel(m3_apb_psel),
+		.penable(m3_apb_penable),
+		.pwrite(m3_apb_pwrite),
+		.pwdata(m3_apb_pwdata),
+		.pready_out(m3_apb_pready),
+		.prdata_out(m3_apb_prdata),
+		.pslverr_out(m3_apb_pslverr),
+		
+		.uart_tx(uart0_tx),
+		.uart_rx(uart0_rx),
+		
+		.uart_itr()
 	);
 	
 endmodule

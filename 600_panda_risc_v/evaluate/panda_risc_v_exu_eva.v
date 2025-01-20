@@ -14,7 +14,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/20
 ********************************************************************/
 
 
@@ -105,17 +105,17 @@ module panda_risc_v_exu_eva(
 	
 	// 数据ICB主机
 	// 命令通道
-	output wire[31:0] m_icb_cmd_addr,
-	output wire m_icb_cmd_read,
-	output wire[31:0] m_icb_cmd_wdata,
-	output wire[3:0] m_icb_cmd_wmask,
-	output wire m_icb_cmd_valid,
-	input wire m_icb_cmd_ready,
+	output wire[31:0] m_icb_cmd_data_addr,
+	output wire m_icb_cmd_data_read,
+	output wire[31:0] m_icb_cmd_data_wdata,
+	output wire[3:0] m_icb_cmd_data_wmask,
+	output wire m_icb_cmd_data_valid,
+	input wire m_icb_cmd_data_ready,
 	// 响应通道
-	input wire[31:0] m_icb_rsp_rdata,
-	input wire m_icb_rsp_err,
-	input wire m_icb_rsp_valid,
-	output wire m_icb_rsp_ready,
+	input wire[31:0] m_icb_rsp_data_rdata,
+	input wire m_icb_rsp_data_err,
+	input wire m_icb_rsp_data_valid,
+	output wire m_icb_rsp_data_ready,
 	
 	// 数据总线访问超时标志
 	output wire dbus_timeout,
@@ -171,6 +171,8 @@ module panda_risc_v_exu_eva(
 		.init_marchid(32'h00_00_00_00), // marchid状态寄存器复位值
 		.init_mimpid(32'h31_2E_30_30), // mimpid状态寄存器复位值
 		.init_mhartid(32'h00_00_00_00), // mhartid状态寄存器复位值
+		// 乘法器配置
+		.sgn_period_mul("true"), // 是否使用单周期乘法器
 		// 仿真配置
 		.simulation_delay(1) // 仿真延时
 	)panda_risc_v_exu_u(
@@ -256,17 +258,17 @@ module panda_risc_v_exu_eva(
 		
 		// 数据ICB主机
 		// 命令通道
-		.m_icb_cmd_addr(m_icb_cmd_addr),
-		.m_icb_cmd_read(m_icb_cmd_read),
-		.m_icb_cmd_wdata(m_icb_cmd_wdata),
-		.m_icb_cmd_wmask(m_icb_cmd_wmask),
-		.m_icb_cmd_valid(m_icb_cmd_valid),
-		.m_icb_cmd_ready(m_icb_cmd_ready),
+		.m_icb_cmd_data_addr(m_icb_cmd_data_addr),
+		.m_icb_cmd_data_read(m_icb_cmd_data_read),
+		.m_icb_cmd_data_wdata(m_icb_cmd_data_wdata),
+		.m_icb_cmd_data_wmask(m_icb_cmd_data_wmask),
+		.m_icb_cmd_data_valid(m_icb_cmd_data_valid),
+		.m_icb_cmd_data_ready(m_icb_cmd_data_ready),
 		// 响应通道
-		.m_icb_rsp_rdata(m_icb_rsp_rdata),
-		.m_icb_rsp_err(m_icb_rsp_err),
-		.m_icb_rsp_valid(m_icb_rsp_valid),
-		.m_icb_rsp_ready(m_icb_rsp_ready),
+		.m_icb_rsp_data_rdata(m_icb_rsp_data_rdata),
+		.m_icb_rsp_data_err(m_icb_rsp_data_err),
+		.m_icb_rsp_data_valid(m_icb_rsp_data_valid),
+		.m_icb_rsp_data_ready(m_icb_rsp_data_ready),
 		
 		// 数据总线访问超时标志
 		.dbus_timeout(dbus_timeout),
