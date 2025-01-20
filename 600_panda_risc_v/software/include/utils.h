@@ -14,4 +14,7 @@
   else \
     asm volatile ("csrw " #reg ", %0" :: "r"(val)); })
 
+uint64_t get_cycle_value();
+void busy_wait(uint32_t us);
+
 #endif

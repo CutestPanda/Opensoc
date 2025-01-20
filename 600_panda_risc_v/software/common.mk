@@ -17,9 +17,13 @@ ASM_SRCS += $(COMMON_DIR)/start.S
 ASM_SRCS += $(COMMON_DIR)/trap_entry.S
 C_SRCS += $(COMMON_DIR)/init.c
 C_SRCS += $(COMMON_DIR)/trap_handler.c
+
+C_SRCS += $(COMMON_DIR)/lib/utils.c
 C_SRCS += $(COMMON_DIR)/lib/apb_gpio.c
 C_SRCS += $(COMMON_DIR)/lib/apb_i2c.c
 C_SRCS += $(COMMON_DIR)/lib/apb_timer.c
+C_SRCS += $(COMMON_DIR)/lib/apb_uart.c
+C_SRCS += $(COMMON_DIR)/lib/xprintf.c
 
 LINKER_SCRIPT := $(COMMON_DIR)/link.lds
 
