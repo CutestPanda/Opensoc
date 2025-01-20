@@ -7,7 +7,7 @@
 
 包含深度为2的乘法器输入缓存区
 
-周期数 = 输入缓存区(1cycle) + 计算(6cycle) + 乘法结果输出寄存器(1cycle)
+周期数 = 输入缓存区(1cycle) + 计算(6cycle或1cycle) + 乘法结果输出寄存器(1cycle)
 
 注意：
 无
@@ -16,12 +16,13 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/20
 ********************************************************************/
 
 
 module panda_risc_v_multiplier #(
 	parameter integer inst_id_width = 4, // 指令编号的位宽
+	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -109,9 +110,9 @@ module panda_risc_v_multiplier #(
 	assign m_mul_res_rd_id = mul_res_s1_rd_id;
 	assign m_mul_res_inst_id = mul_res_s1_inst_id;
 	assign m_mul_res_valid = mul_res_s1_valid;
-	assign mul_res_s1_ready = m_mul_res_ready;
 	
 	assign mul_res_s0_ready = (~mul_res_s1_valid) | mul_res_s1_ready;
+	assign mul_res_s1_ready = m_mul_res_ready;
 	
 	// 计算结果
 	always @(posedge clk)
@@ -201,6 +202,12 @@ module panda_risc_v_multiplier #(
 		.pattern_detect_res()
 	);
 	
+	/** 单周期乘法器 **/
+	wire signed[64:0] sgn_prd_mul_res;
+	
+	assign sgn_prd_mul_res = 
+		$signed(mul_in_buf_dout[MUL_IN_MSG_OP_A+32:MUL_IN_MSG_OP_A]) * $signed(mul_in_buf_dout[MUL_IN_MSG_OP_B+32:MUL_IN_MSG_OP_B]);
+	
 	/** 累加器 **/
 	wire to_clr_accum; // 累加寄存器清零指示
 	wire[3:0] accum_proc_onehot; // 累加进程独热码
@@ -210,7 +217,8 @@ module panda_risc_v_multiplier #(
 	wire signed[64:0] mul_res;
 	
 	assign mul_res_s0_data = mul_in_buf_dout[MUL_IN_MSG_RES_SEL] ? 
-		mul_res[63:32]:mul_res[31:0];
+		((sgn_period_mul == "true") ? sgn_prd_mul_res[63:32]:mul_res[63:32]):
+		((sgn_period_mul == "true") ? sgn_prd_mul_res[31:0]:mul_res[31:0]);
 	assign mul_res_s0_rd_id = mul_in_buf_dout[MUL_IN_MSG_RD_ID+4:MUL_IN_MSG_RD_ID];
 	assign mul_res_s0_inst_id = mul_in_buf_dout[MUL_IN_MSG_INST_ID+inst_id_width-1:MUL_IN_MSG_INST_ID];
 	
@@ -263,9 +271,12 @@ module panda_risc_v_multiplier #(
 	reg mul_18_18_in_op_a_sel; // 18位*18位有符号乘法器操作数a选择
 	reg mul_18_18_in_op_b_sel; // 18位*18位有符号乘法器操作数b选择
 	
-	assign mul_in_buf_ren = mul_ctrl_onehot[6] & mul_res_s0_ready;
+	assign mul_in_buf_ren = 
+		(sgn_period_mul == "true") ? 
+			mul_res_s0_ready:
+			(mul_ctrl_onehot[6] & mul_res_s0_ready);
 	
-	assign mul_res_s0_valid = mul_ctrl_onehot[6];
+	assign mul_res_s0_valid = (sgn_period_mul == "true") ? mul_in_buf_empty_n:mul_ctrl_onehot[6];
 	
 	assign mul_18_18_in_op_a = 
 		mul_18_18_in_op_a_sel ? 
