@@ -1,6 +1,6 @@
 # Opensoc<br>
 ![LOGO](./img/logo.png)<br>
-包含了SOC设计中的通用IP，如外设与控制器、总线结构、基础、DMA、验证等<br>
+包含了SOC设计中的通用IP，如外设与控制器、总线结构、基础、DMA、验证、CPU核等<br>
 __本项目持续更新中__<br>
 __欢迎交流学习__<br>
 __欢迎贡献您的IP(参与开发请fork)__<br>
@@ -30,17 +30,16 @@ AXIS数据FIFO<br>
 AXI-帧缓存(视频专用DMA)<br>
 (5)__验证__<br>
 AMBA总线基本验证组件<br>
+(6)__CPU__<br>
+<span style="color: red;">小胖达RV32 I[M]</span>
 ## 待整理的IP<br>
 APB-SPI<br>
-AXI-通用卷积加速器<br>
+<span style="color: blue;">AXI-通用卷积加速器</span>
 AXI-最大池化单元<br>
 AXI-上采样单元<br>
 AXIS-浮点计算单元<br>
 ## 正在开发的IP<br>
-(1)__DMA__<br>
 AXI-通用DMA引擎<br>
-(2)__CPU__<br>
-RV32处理器(I[M])<br>
 ## 准备开发的IP<br>
 AXI-DDR3控制器<br>
 AXI-系统缓存<br>
@@ -70,3 +69,4 @@ XXX_IP<br>
 |alpha0.60  |2024.09.16 |陈家耀  |发布了AXI帧缓存|
 |alpha0.62  |2024.09.18 |陈家耀  |发布了AXIS数据fifo|
 |alpha0.65  |2024.09.21 |陈家耀  |发布了APB-TIMER|
+|alpha0.70  |2025.01.20 |陈家耀  |发布了小胖达RV32 I[M]|
