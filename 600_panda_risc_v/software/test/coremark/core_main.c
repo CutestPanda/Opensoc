@@ -44,8 +44,6 @@ void *iterate(void *pres) {
 	res->crclist=0;
 	res->crcmatrix=0;
 	res->crcstate=0;
-	
-	ee_printf("total iter_n = %d\r\n", iterations);
 
 	for (i=0; i<iterations; i++) {
 		crc=core_bench_list(res,1);
@@ -103,7 +101,6 @@ MAIN_RETURN_TYPE main(int argc, char *argv[]) {
 	ee_u8 stack_memblock[TOTAL_DATA_SIZE*MULTITHREAD];
 #endif
 	/* first call any initializations needed */
-	ee_printf("init\r\n");
 	portable_init(&(results[0].port), &argc, argv);
 	/* First some checks to make sure benchmark will run ok */
 	if (sizeof(struct list_head_s)>128) {
@@ -215,6 +212,7 @@ MAIN_RETURN_TYPE main(int argc, char *argv[]) {
 		results[0].iterations*=1+10/divisor;
 	}
 	/* perform actual benchmark */
+	ee_printf("start!\r\n\r\n");
 	start_time();
 #if (MULTITHREAD>1)
 	if (default_num_contexts>MULTITHREAD) {

@@ -12,9 +12,7 @@ TARGET = oled_disp
 #LDFLAGS +=
 #INCLUDES += -I.
 
-C_SRCS := \
-	main.c \
-	oled_i2c.c \
+C_SRCS := $(wildcard *.c)
 
 COMMON_DIR = ../..
 TOOLCHAIN_DIR = ../../..

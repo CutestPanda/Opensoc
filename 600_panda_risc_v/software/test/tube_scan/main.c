@@ -11,8 +11,11 @@
 #define TIMER0_BASEADDE 0x40002000
 
 // TIMER0配置
-#define TIMER0_PSC 50 // 预分频系数
+#define TIMER0_PSC 65 // 预分频系数
 #define TIMER0_ATL 2000 // 自动装载值
+
+// 是否需要消隐
+// #define EN_TUBE_BLANK
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -34,7 +37,9 @@ static uint16_t flow_led_div_cnt = 0; // 流水灯分频计数器
 const static uint8_t tube_seg_code[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F}; // 数字0~9对应的段码
 static uint8_t tube_disp_num[4] = {0, 0, 0, 0}; // 数码管当前显示的数字
 static uint8_t tube_dig_sel = 0; // 当前选中的数码管位号
+#ifdef EN_TUBE_BLANK
 static uint8_t tube_blank = 0; // 当前消隐标志
+#endif
 static uint16_t now_sec = 0; // 当前运行秒数
 
 // 中断事件标志
@@ -55,26 +60,36 @@ void tmr_irq_handler(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static void tube_scan_disp(void){
+#ifdef EN_TUBE_BLANK
 	if(tube_blank){
 		// 消隐
 		apb_gpio_write_pin(&gpio0, 0x00003C00, 0xFFFFFFFF);
 	}else{
+#endif
 		// 输出位码
 		apb_gpio_write_pin(&gpio0, 0x00003C00, ~(0x00000400 << tube_dig_sel));
 		
 		// 输出段码
 		apb_gpio_write_pin(&gpio0, 0x003FC000, ((uint32_t)tube_seg_code[tube_disp_num[tube_dig_sel]]) << 14);
+#ifdef EN_TUBE_BLANK
 	}
-	
+#endif
+
+#ifdef EN_TUBE_BLANK
 	tube_blank = !tube_blank;
+#endif
 	
+#ifdef EN_TUBE_BLANK
 	if(tube_blank){
+#endif
 		if(tube_dig_sel == 3){
 			tube_dig_sel = 0;
 		}else{
 			tube_dig_sel++;
 		}
+#ifdef EN_TUBE_BLANK
 	}
+#endif
 	
 }
 
@@ -137,7 +152,10 @@ int main(){
 			
 			if(flow_led_div_cnt == 500){
 				// 更新当前运行秒数
-				now_sec++;
+				
+				if(apb_gpio_read_pin(&gpio0) & 0x00000200){
+					now_sec++;
+				}
 				
 				tube_disp_num[0] = now_sec % 10;
 				tube_disp_num[1] = (now_sec / 10) % 10;

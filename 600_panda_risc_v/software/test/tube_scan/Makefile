@@ -12,8 +12,7 @@ TARGET = tube_scan
 #LDFLAGS +=
 #INCLUDES += -I.
 
-C_SRCS := \
-	main.c \
+C_SRCS := $(wildcard *.c)
 
 
 COMMON_DIR = ../..
