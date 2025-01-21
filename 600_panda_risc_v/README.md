@@ -1,0 +1,39 @@
+## 简介
+小胖达MCU是一种**基于RISC-V**、**完全开源**、**设计严谨**、**结构清晰**的处理器核，适用于交互、控制等任务，它具有以下特性：  
+
+ - RV32 I[M]（FENCE、FENCE.I、EBREAK指令除外）
+ - 支持中断/异常
+ - 可运行C程序
+ - 采用ICB总线
+
+## 配置编译环境
+1.下载MAKE工具和GNU工具链（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)）  
+2.安装MAKE工具  
+将GNU MCU Eclipse.zip解压到任意文件夹下，在GNU MCU Eclipse/Build Tools/2.11-20180428-1604/bin下找到make.exe，并添加系统环境变量。  
+3.安装GNU工具链  
+将gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64.zip解压到**600_panda_risc_v/tools**下。  
+
+## 编译C程序
+在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
+`` python .\compile.py --target flow_led ``
+等待出现"请按任意键继续. . ."后，接入`` ENTER ``，并退出终端。  
+> 生成的flow_led.txt是十六进制的机器码文件，flow_led.dump是汇编指令文件。
+其中，flow_led对应**600_panda_risc_v/software/test/**下的软件项目**flow_led**。  
+## 创建软件项目
+1.先在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
+`` python .\gen_makefile.py --target your_prj_name ``
+2.然后在**600_panda_risc_v/software/test/**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
+3.在**600_panda_risc_v/software/test/your_prj_name/**下编写若干.c和.h。  
+## 搭建硬件工程
+测评SOC的所有源码都在**600_panda_risc_v/fpga/panda_soc_eva/**下，请修改**imem_init_file**参数为生成的十六进制的机器码文件，注意修改PLL的例化。  
+
+#### <center>存储映射表</center>
+|内容|地址范围|区间长度|
+|---|---|---|
+|指令存储器|0x0000_0000 ~ ?|imem_depth|
+|数据存储器|0x1000_0000 ~ ?|dmem_depth|
+|APB-GPIO|0x4000_0000 ~ 0x4000_0FFF|4KB|
+|APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|
+|APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|
+
+> 在**600_panda_risc_v/fpga/vivado_prj**下提供了基于ZYNQ7020的示例Vivado工程。
