@@ -19,9 +19,10 @@
 等待出现"请按任意键继续. . ."后，接入`` ENTER ``，并退出终端。  
 > 生成的flow_led.txt是十六进制的机器码文件，flow_led.dump是汇编指令文件。  
 其中，flow_led对应**600_panda_risc_v/software/test/**下的软件项目**flow_led**。  
+
 ## 创建软件项目
 1.先在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
-`` python .\gen_makefile.py --target your_prj_name ``
+`` python .\gen_makefile.py --target your_prj_name ``  
 2.然后在**600_panda_risc_v/software/test**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
 3.在**600_panda_risc_v/software/test/your_prj_name**下编写若干.c和.h。  
 ## 搭建硬件工程
