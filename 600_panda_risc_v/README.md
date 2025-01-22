@@ -44,8 +44,8 @@
 |ext_resetn|外部复位输入, 低有效|
 |gpio0[7:0]|LED|
 |gpio0[9:8]|拨码开关|
-|gpio0[13:10]|数码管位码, 低有效|
-|gpio0[21:14]|数码管段码（DP、G~A）, 高有效|
+|gpio0[13:10]|数码管位码|
+|gpio0[21:14]|数码管段码|
 |i2c0_scl|OLED显示屏SCL|
 |i2c0_sda|OLED显示屏SDA|
 |uart0_tx|串口发送端|
