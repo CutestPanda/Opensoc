@@ -18,6 +18,7 @@
 将gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64.zip解压到**600_panda_risc_v/tools**下。  
 
 ## 编译C程序
+请确保已经安装好python解释器，并将python.exe所在目录添加到了环境变量里。  
 在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
 `` python .\compile.py --target flow_led ``  
 等待出现"请按任意键继续. . ."后，键入`` ENTER ``，并退出终端。  
