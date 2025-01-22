@@ -15,17 +15,17 @@
 
 ## 编译C程序
 在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
-`` python .\compile.py --target flow_led ``
+`` python .\compile.py --target flow_led ``  
 等待出现"请按任意键继续. . ."后，接入`` ENTER ``，并退出终端。  
-> 生成的flow_led.txt是十六进制的机器码文件，flow_led.dump是汇编指令文件。
+> 生成的flow_led.txt是十六进制的机器码文件，flow_led.dump是汇编指令文件。  
 其中，flow_led对应**600_panda_risc_v/software/test/**下的软件项目**flow_led**。  
 ## 创建软件项目
 1.先在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
 `` python .\gen_makefile.py --target your_prj_name ``
-2.然后在**600_panda_risc_v/software/test/**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
-3.在**600_panda_risc_v/software/test/your_prj_name/**下编写若干.c和.h。  
+2.然后在**600_panda_risc_v/software/test**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
+3.在**600_panda_risc_v/software/test/your_prj_name**下编写若干.c和.h。  
 ## 搭建硬件工程
-测评SOC的所有源码都在**600_panda_risc_v/fpga/panda_soc_eva/**下，请修改**imem_init_file**参数为生成的十六进制的机器码文件，注意修改PLL的例化。  
+测评SOC的所有源码都在**600_panda_risc_v/fpga/panda_soc_eva**下，请修改**imem_init_file**参数为生成的十六进制的机器码文件，注意修改PLL的例化。  
 
 #### <center>存储映射表</center>
 |内容|地址范围|区间长度|
@@ -35,5 +35,19 @@
 |APB-GPIO|0x4000_0000 ~ 0x4000_0FFF|4KB|
 |APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|
 |APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|
+
+#### <center>I/O表</center>
+|I/O|说明|
+|---|---|
+|osc_clk|外部晶振时钟输入|
+|ext_resetn|外部复位输入, 低有效|
+|gpio0[7:0]|LED|
+|gpio0[9:8]|拨码开关|
+|gpio0[13:10]|数码管位码, 低有效|
+|gpio0[21:14]|数码管段码（DP、G~A）, 高有效|
+|i2c0_scl|OLED显示屏SCL|
+|i2c0_sda|OLED显示屏SDA|
+|uart0_tx|串口发送端|
+|uart0_rx|串口接收端|
 
 > 在**600_panda_risc_v/fpga/vivado_prj**下提供了基于ZYNQ7020的示例Vivado工程。
