@@ -43,7 +43,8 @@ static uint8_t flow_led_id = 0; // 流水灯状态
 static uint8_t flow_led_style_sel = 0; // 流水灯样式选择
 static uint8_t flow_led_div_cnt = 0; // 流水灯分频计数器
 
-// 数码管
+// GPIO输入中断
+static uint8_t key_falling_detect_cd = 0; // 按键检测消抖计数器
 static uint8_t tube_dig_sel = 0; // 当前选中的数码管位号
 
 // 中断事件标志
@@ -73,7 +74,7 @@ void ext_irq_handler(){
 static void gpio0_itr_handler(){
 	uint32_t itr_sts = apb_gpio_get_itr_status(&gpio0);
 	
-	if(itr_sts & 0x00000200){
+	if((itr_sts & 0x00000200) && (!key_falling_detect_cd)){
 		apb_gpio_write_pin(&gpio0, 0x00003C00, ~(0x00000400 << tube_dig_sel));
 		apb_gpio_write_pin(&gpio0, 0x003FC000, ((uint32_t)0xFF) << 14);
 		
@@ -82,6 +83,8 @@ static void gpio0_itr_handler(){
 		}else{
 			tube_dig_sel++;
 		}
+		
+		key_falling_detect_cd = 10;
 	}
 	
 	apb_gpio_clear_itr_flag(&gpio0);
@@ -151,6 +154,9 @@ int main(){
 	
     while(1){
 		if(timer0_period_elapsed){
+			if(key_falling_detect_cd)
+				key_falling_detect_cd--;
+			
 			if(apb_gpio_read_pin(&gpio0) & 0x00000100){
 				flow_led_style_sel = 1;
 			}else{
