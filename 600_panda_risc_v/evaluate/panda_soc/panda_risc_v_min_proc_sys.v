@@ -5,17 +5,19 @@
 描述:
 将小胖达RISC-V的指令总线接到ICB-SRAM控制器, 并接入指令存储器
 
-将小胖达RISC-V的数据总线接到ICB一从二主分发器, 
-其中1个ICB主机接ICB-SRAM控制器并接入数据存储器, 另1个ICB主机接ICB到AXI-Lite桥并引出AXI-Lite主机
+将小胖达RISC-V的数据总线接到ICB一从三主分发器, 
+ICB主机#0接ICB-SRAM控制器并接入数据存储器, 
+ICB主机#1接平台级中断控制器(PLIC), 
+ICB主机#2接ICB到AXI-Lite桥并引出AXI-Lite主机
 
 注意：
-无
+未使用的外部中断请求信号必须接1'b0
 
 协议:
 AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2025/01/20
+日期: 2025/01/22
 ********************************************************************/
 
 
@@ -50,6 +52,8 @@ module panda_risc_v_min_proc_sys #(
 	parameter integer imem_addr_range = 16 * 1024, // 指令存储器地址区间长度
 	parameter dmem_baseaddr = 32'h1000_0000, // 数据存储器基地址
 	parameter integer dmem_addr_range = 16 * 1024, // 数据存储器地址区间长度
+	parameter plic_baseaddr = 32'hF000_0000, // PLIC基址
+	parameter integer plic_addr_range = 4 * 1024 * 1024, // PLIC地址区间长度
 	parameter ext_baseaddr = 32'h4000_0000, // 拓展总线基地址
 	parameter integer ext_addr_range = 16 * 4096, // 拓展总线地址区间长度
 	// 指令/数据ICB主机AXIS寄存器片配置
@@ -117,7 +121,7 @@ module panda_risc_v_min_proc_sys #(
 	// 注意: 中断请求保持有效直到中断清零!
 	input wire sw_itr_req, // 软件中断请求
 	input wire tmr_itr_req, // 计时器中断请求
-	input wire ext_itr_req // 外部中断请求
+	input wire[62:0] ext_itr_req_vec // 外部中断请求向量
 );
 	
 	/** 小胖达RISC-V CPU核 **/
@@ -143,6 +147,8 @@ module panda_risc_v_min_proc_sys #(
 	wire m_icb_rsp_data_err;
 	wire m_icb_rsp_data_valid;
 	wire m_icb_rsp_data_ready;
+	// 外部中断请求
+	wire ext_itr_req;
 	
 	panda_risc_v #(
 		.RST_PC(RST_PC),
@@ -290,7 +296,7 @@ module panda_risc_v_min_proc_sys #(
 		.dout(imem_dout)
 	);
 	
-	/** ICB一从二主分发器 **/
+	/** ICB一从三主分发器 **/
 	// ICB从机
 	// 命令通道
 	wire[31:0] s_icb_dstb_cmd_addr;
@@ -330,6 +336,19 @@ module panda_risc_v_min_proc_sys #(
 	wire m1_icb_dstb_rsp_err;
 	wire m1_icb_dstb_rsp_valid;
 	wire m1_icb_dstb_rsp_ready;
+	// ICB主机#2
+	// 命令通道
+	wire[31:0] m2_icb_dstb_cmd_addr;
+	wire m2_icb_dstb_cmd_read;
+	wire[31:0] m2_icb_dstb_cmd_wdata;
+	wire[3:0] m2_icb_dstb_cmd_wmask;
+	wire m2_icb_dstb_cmd_valid;
+	wire m2_icb_dstb_cmd_ready;
+	// 响应通道
+	wire[31:0] m2_icb_dstb_rsp_rdata;
+	wire m2_icb_dstb_rsp_err;
+	wire m2_icb_dstb_rsp_valid;
+	wire m2_icb_dstb_rsp_ready;
 	
 	assign s_icb_dstb_cmd_addr = m_icb_cmd_data_addr;
 	assign s_icb_dstb_cmd_read = m_icb_cmd_data_read;
@@ -342,13 +361,15 @@ module panda_risc_v_min_proc_sys #(
 	assign m_icb_rsp_data_valid = s_icb_dstb_rsp_valid;
 	assign s_icb_dstb_rsp_ready = m_icb_rsp_data_ready;
 	
-	icb_1s_to_2m #(
+	icb_1s_to_3m #(
 		.m0_baseaddr(dmem_baseaddr),
 		.m0_addr_range(dmem_addr_range),
-		.m1_baseaddr(ext_baseaddr),
-		.m1_addr_range(ext_addr_range),
+		.m1_baseaddr(plic_baseaddr),
+		.m1_addr_range(plic_addr_range),
+		.m2_baseaddr(ext_baseaddr),
+		.m2_addr_range(ext_addr_range),
 		.simulation_delay(simulation_delay)
-	)icb_1s_to_2m_u(
+	)icb_1s_to_3m_u(
 		.clk(clk),
 		.resetn(sys_resetn),
 		
@@ -383,7 +404,18 @@ module panda_risc_v_min_proc_sys #(
 		.m1_icb_rsp_rdata(m1_icb_dstb_rsp_rdata),
 		.m1_icb_rsp_err(m1_icb_dstb_rsp_err),
 		.m1_icb_rsp_valid(m1_icb_dstb_rsp_valid),
-		.m1_icb_rsp_ready(m1_icb_dstb_rsp_ready)
+		.m1_icb_rsp_ready(m1_icb_dstb_rsp_ready),
+		
+		.m2_icb_cmd_addr(m2_icb_dstb_cmd_addr),
+		.m2_icb_cmd_read(m2_icb_dstb_cmd_read),
+		.m2_icb_cmd_wdata(m2_icb_dstb_cmd_wdata),
+		.m2_icb_cmd_wmask(m2_icb_dstb_cmd_wmask),
+		.m2_icb_cmd_valid(m2_icb_dstb_cmd_valid),
+		.m2_icb_cmd_ready(m2_icb_dstb_cmd_ready),
+		.m2_icb_rsp_rdata(m2_icb_dstb_rsp_rdata),
+		.m2_icb_rsp_err(m2_icb_dstb_rsp_err),
+		.m2_icb_rsp_valid(m2_icb_dstb_rsp_valid),
+		.m2_icb_rsp_ready(m2_icb_dstb_rsp_ready)
 	);
 	
 	/** ICB-SRAM控制器 **/
@@ -467,6 +499,53 @@ module panda_risc_v_min_proc_sys #(
 		.dout(dmem_dout)
 	);
 	
+	/** PLIC **/
+	// ICB从机
+	// 命令通道
+	wire[23:0] s_icb_plic_cmd_addr;
+	wire s_icb_plic_cmd_read;
+	wire[31:0] s_icb_plic_cmd_wdata;
+	wire s_icb_plic_cmd_valid;
+	wire s_icb_plic_cmd_ready;
+	// 响应通道
+	wire[31:0] s_icb_plic_rsp_rdata;
+	wire s_icb_plic_rsp_valid;
+	wire s_icb_plic_rsp_ready;
+	
+	assign s_icb_plic_cmd_addr = m1_icb_dstb_cmd_addr[23:0];
+	assign s_icb_plic_cmd_read = m1_icb_dstb_cmd_read;
+	assign s_icb_plic_cmd_wdata = m1_icb_dstb_cmd_wdata;
+	assign s_icb_plic_cmd_valid = m1_icb_dstb_cmd_valid;
+	assign m1_icb_dstb_cmd_ready = s_icb_plic_cmd_ready;
+	assign m1_icb_dstb_rsp_rdata = s_icb_plic_rsp_rdata;
+	assign m1_icb_dstb_rsp_err = 1'b0;
+	assign m1_icb_dstb_rsp_valid = s_icb_plic_rsp_valid;
+	assign s_icb_plic_rsp_ready = m1_icb_dstb_rsp_ready;
+	
+	sirv_plic_man #(
+		.PLIC_PRIO_WIDTH(3),
+		.PLIC_IRQ_NUM(64),
+		.PLIC_IRQ_NUM_LOG2(6),
+		.PLIC_ICB_RSP_FLOP(1),
+		.PLIC_IRQ_I_FLOP(1),
+		.PLIC_IRQ_O_FLOP(1) 
+	)sirv_plic_man_u(
+		.clk(clk),
+		.rst_n(sys_resetn),
+		
+		.icb_cmd_addr(s_icb_plic_cmd_addr),
+		.icb_cmd_read(s_icb_plic_cmd_read),
+		.icb_cmd_wdata(s_icb_plic_cmd_wdata),
+		.icb_cmd_valid(s_icb_plic_cmd_valid),
+		.icb_cmd_ready(s_icb_plic_cmd_ready),
+		.icb_rsp_rdata(s_icb_plic_rsp_rdata),
+		.icb_rsp_valid(s_icb_plic_rsp_valid),
+		.icb_rsp_ready(s_icb_plic_rsp_ready),
+		
+		.plic_irq_i({ext_itr_req_vec, 1'b0}),
+		.plic_irq_o(ext_itr_req)
+	);
+	
 	/** ICB到AXI-Lite桥 **/
 	// ICB从机
 	// 命令通道
@@ -492,16 +571,16 @@ module panda_risc_v_min_proc_sys #(
 	assign m_axi_dbus_awcache = 4'b0011;
 	assign m_axi_dbus_wlast = 1'b1;
 	
-	assign s_icb_bridge_cmd_addr = m1_icb_dstb_cmd_addr;
-	assign s_icb_bridge_cmd_read = m1_icb_dstb_cmd_read;
-	assign s_icb_bridge_cmd_wdata = m1_icb_dstb_cmd_wdata;
-	assign s_icb_bridge_cmd_wmask = m1_icb_dstb_cmd_wmask;
-	assign s_icb_bridge_cmd_valid = m1_icb_dstb_cmd_valid;
-	assign m1_icb_dstb_cmd_ready = s_icb_bridge_cmd_ready;
-	assign m1_icb_dstb_rsp_rdata = s_icb_bridge_rsp_rdata;
-	assign m1_icb_dstb_rsp_err = s_icb_bridge_rsp_err;
-	assign m1_icb_dstb_rsp_valid = s_icb_bridge_rsp_valid;
-	assign s_icb_bridge_rsp_ready = m1_icb_dstb_rsp_ready;
+	assign s_icb_bridge_cmd_addr = m2_icb_dstb_cmd_addr;
+	assign s_icb_bridge_cmd_read = m2_icb_dstb_cmd_read;
+	assign s_icb_bridge_cmd_wdata = m2_icb_dstb_cmd_wdata;
+	assign s_icb_bridge_cmd_wmask = m2_icb_dstb_cmd_wmask;
+	assign s_icb_bridge_cmd_valid = m2_icb_dstb_cmd_valid;
+	assign m2_icb_dstb_cmd_ready = s_icb_bridge_cmd_ready;
+	assign m2_icb_dstb_rsp_rdata = s_icb_bridge_rsp_rdata;
+	assign m2_icb_dstb_rsp_err = s_icb_bridge_rsp_err;
+	assign m2_icb_dstb_rsp_valid = s_icb_bridge_rsp_valid;
+	assign s_icb_bridge_rsp_ready = m2_icb_dstb_rsp_ready;
 	
 	icb_axi_bridge #(
 		.simulation_delay(simulation_delay)

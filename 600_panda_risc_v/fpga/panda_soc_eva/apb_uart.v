@@ -553,29 +553,60 @@ module apb_uart #(
     // APB读寄存器
     reg[31:0] prdata_out_regs;
     
-    always @(posedge clk)
-    begin
-        if(psel & (~pwrite))
-        begin
-            # simulation_delay;
-            
-            case(paddr[3:2])
-                2'd0:
-                begin
-                    prdata_out_regs[0] <= tx_fifo_full; // 发送fifo是否满
-                    prdata_out_regs[10] <= rx_fifo_empty; // 接收fifo是否空
-                    prdata_out_regs[19:12] <= rx_fifo_dout; // 接收fifo读数据
-                    {prdata_out_regs[31:20], prdata_out_regs[11], prdata_out_regs[9:1]} <= 22'dx;
-                end
-                2'd1:
-                begin
-                    prdata_out_regs[21:16] <= uart_itr_status_en[21:16];
-                    {prdata_out_regs[31:22], prdata_out_regs[15:0]} <= 26'dx;
-                end
-                default: prdata_out_regs <= 32'dx;
-            endcase
-        end
-    end
+	generate
+		if(simulation_delay == 0)
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					# simulation_delay;
+					
+					case(paddr[3:2])
+						2'd0:
+						begin
+							prdata_out_regs[0] <= tx_fifo_full; // 发送fifo是否满
+							prdata_out_regs[10] <= rx_fifo_empty; // 接收fifo是否空
+							prdata_out_regs[19:12] <= rx_fifo_dout; // 接收fifo读数据
+							{prdata_out_regs[31:20], prdata_out_regs[11], prdata_out_regs[9:1]} <= 22'dx;
+						end
+						2'd1:
+						begin
+							prdata_out_regs[21:16] <= uart_itr_status_en[21:16];
+							{prdata_out_regs[31:22], prdata_out_regs[15:0]} <= 26'dx;
+						end
+						default: prdata_out_regs <= 32'dx;
+					endcase
+				end
+			end
+		end
+		else
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					# simulation_delay;
+					
+					case(paddr[3:2])
+						2'd0:
+						begin
+							prdata_out_regs[0] <= tx_fifo_full; // 发送fifo是否满
+							prdata_out_regs[10] <= rx_fifo_empty; // 接收fifo是否空
+							prdata_out_regs[19:12] <= rx_fifo_dout; // 接收fifo读数据
+							{prdata_out_regs[31:20], prdata_out_regs[11], prdata_out_regs[9:1]} <= 22'd0;
+						end
+						2'd1:
+						begin
+							prdata_out_regs[21:16] <= uart_itr_status_en[21:16];
+							{prdata_out_regs[31:22], prdata_out_regs[15:0]} <= 26'd0;
+						end
+						default: prdata_out_regs <= 32'd0;
+					endcase
+				end
+			end
+		end
+	endgenerate
     
     /** APB从机接口 **/
     assign pready_out = 1'b1;

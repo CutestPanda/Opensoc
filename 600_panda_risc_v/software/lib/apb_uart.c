@@ -64,10 +64,12 @@ int apb_uart_rev_byte(ApbUART* uart, uint8_t* byte){
 	if(fifo_cs & 0x400){
 		return -1;
 	}else{
-		uart->hardware->fifo_cs = (fifo_cs | 0x800);
-		uart->hardware->fifo_cs = (fifo_cs & (~0x800));
+		volatile uint32_t* LocalAddr = &(uart->hardware->fifo_cs);
 		
-		fifo_cs = uart->hardware->fifo_cs;
+		*LocalAddr = (fifo_cs | 0x800);
+		*LocalAddr = (fifo_cs & (~0x800));
+		
+		fifo_cs = *LocalAddr;
 		*byte = (fifo_cs >> 12) & 0xFF;
 		
 		return 0;

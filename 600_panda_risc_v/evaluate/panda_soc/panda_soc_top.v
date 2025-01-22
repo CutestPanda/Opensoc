@@ -9,6 +9,12 @@
 	APB-GPIO   0x4000_0000~0x4000_0FFF 4KB
 	APB-I2C    0x4000_1000~0x4000_1FFF 4KB
 	APB-TIMER  0x4000_2000~0x4000_2FFF 4KB
+	PLIC       0xF000_0000~0xF03F_FFFF 4MB
+
+外部中断 -> 
+	中断#1 GPIO0中断
+	中断#2 TIMER0中断
+	中断#3 UART0中断
 
 注意：
 无
@@ -18,7 +24,7 @@ GPIO
 I2C MASTER
 
 作者: 陈家耀
-日期: 2025/01/20
+日期: 2025/01/22
 ********************************************************************/
 
 
@@ -130,10 +136,20 @@ module panda_soc_top #(
 	// 注意: 中断请求保持有效直到中断清零!
 	wire sw_itr_req; // 软件中断请求
 	wire tmr_itr_req; // 计时器中断请求
-	wire ext_itr_req; // 外部中断请求
+	wire[62:0] ext_itr_req_vec; // 外部中断请求向量
+	// 外部中断
+	wire gpio0_itr_req; // GPIO0中断
+	wire timer0_itr_req; // TIMER0中断
+	wire uart0_itr_req; // UART0中断
 	
 	assign sw_itr_req = 1'b0;
-	assign ext_itr_req = 1'b0;
+	assign tmr_itr_req = 1'b0;
+	assign ext_itr_req_vec = {
+		60'd0, 
+		uart0_itr_req, 
+		timer0_itr_req, 
+		gpio0_itr_req
+	};
 	
 	panda_risc_v_min_proc_sys #(
 		.RST_PC(32'h0000_0000),
@@ -160,6 +176,8 @@ module panda_soc_top #(
 		.imem_addr_range(imem_depth * 4),
 		.dmem_baseaddr(32'h1000_0000),
 		.dmem_addr_range(dmem_depth * 4),
+		.plic_baseaddr(32'hF000_0000),
+		.plic_addr_range(4 * 1024 * 1024),
 		.ext_baseaddr(32'h4000_0000),
 		.ext_addr_range(16 * 4096),
 		.en_inst_cmd_fwd("false"),
@@ -208,7 +226,7 @@ module panda_soc_top #(
 		
 		.sw_itr_req(sw_itr_req),
 		.tmr_itr_req(tmr_itr_req),
-		.ext_itr_req(ext_itr_req)
+		.ext_itr_req_vec(ext_itr_req_vec)
 	);
 	
 	/** AXI-APB桥 **/
@@ -409,7 +427,7 @@ module panda_soc_top #(
 		.gpio_dire("inout"),
 		.default_output_value(32'h0000_0000),
 		.default_tri_value(32'hffff_ffff),
-		.en_itr("false"),
+		.en_itr("true"),
 		.itr_edge("neg"),
 		.simulation_delay(simulation_delay)
 	)apb_gpio_u(
@@ -429,7 +447,7 @@ module panda_soc_top #(
 		.gpio_t(gpio_t),
 		.gpio_i(gpio_i),
 		
-		.gpio_itr()
+		.gpio_itr(gpio0_itr_req)
 	);
 	
 	/** APB-I2C **/
@@ -501,7 +519,7 @@ module panda_soc_top #(
 		.cap_in(4'b0000),
 		.cmp_out(),
 		
-		.itr(tmr_itr_req)
+		.itr(timer0_itr_req)
 	);
 	
 	/** APB-UART **/
@@ -511,7 +529,7 @@ module panda_soc_top #(
 		.tx_rx_fifo_ram_type("bram"),
 		.tx_fifo_depth(2048),
 		.rx_fifo_depth(2048),
-		.en_itr("false"),
+		.en_itr("true"),
 		.simulation_delay(simulation_delay)
 	)apb_uart_u(
 		.clk(pll_clk_out),
@@ -529,7 +547,7 @@ module panda_soc_top #(
 		.uart_tx(uart0_tx),
 		.uart_rx(uart0_rx),
 		
-		.uart_itr()
+		.uart_itr(uart0_itr_req)
 	);
 	
 endmodule

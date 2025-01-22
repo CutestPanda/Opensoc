@@ -81,14 +81,15 @@ int apb_i2c_start_rd_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t len){
 @return ÊÇ·ñ³É¹¦
 *************************/
 int apb_i2c_get_rx_byte(ApbI2C* i2c, uint8_t* byte){
-	uint32_t fifo_cs = i2c->hardware->fifo_cs;
+	volatile uint32_t* LocalAddr = &(i2c->hardware->fifo_cs);
+	uint32_t fifo_cs = *LocalAddr;
 	
 	if(fifo_cs & 0x00010000){
 		return -1;
 	}else{
-		i2c->hardware->fifo_cs = 0x00020000;
+		*LocalAddr = 0x00020000;
 		
-		*byte = (uint8_t)(i2c->hardware->fifo_cs >> 18);
+		*byte = (uint8_t)((*LocalAddr) >> 18);
 		
 		return 0;
 	}

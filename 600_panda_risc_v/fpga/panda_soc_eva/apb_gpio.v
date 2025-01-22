@@ -268,23 +268,51 @@ module apb_gpio #(
     assign pslverr_out = 1'b0;
     assign prdata_out = prdata_out_regs;
     
-    always @(posedge clk)
-    begin
-        if(psel & (~pwrite))
-        begin
-            # simulation_delay;
-            
-            case(paddr[4:2])
-                3'd3: // ∂¡GPIO ‰»Î
-                    prdata_out_regs <= {{(32-gpio_width){1'bx}}, gpio_i_value_regs[gpio_width-1:0]};
-                3'd4: // ∂¡÷–∂œ±Í÷æ
-                    prdata_out_regs <= {30'dx, gpio_itr_status_regs[1], 1'bx};
-                3'd5: // ∂¡÷–∂œ◊¥Ã¨
-                    prdata_out_regs <= {{(32-gpio_width){1'bx}}, gpio_itr_mask_regs[gpio_width-1:0]};
-                default: // not care
-                    prdata_out_regs <= 32'dx;
-            endcase
-        end
-    end
+	generate
+		if(simulation_delay == 0)
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					# simulation_delay;
+					
+					case(paddr[4:2])
+						3'd3: // ∂¡GPIO ‰»Î
+							prdata_out_regs <= {{(32-gpio_width){1'bx}}, gpio_i_value_regs[gpio_width-1:0]};
+						3'd4: // ∂¡÷–∂œ±Í÷æ
+							prdata_out_regs <= {30'dx, gpio_itr_status_regs[1], 1'bx};
+						3'd5: // ∂¡÷–∂œ◊¥Ã¨
+							prdata_out_regs <= {{(32-gpio_width){1'bx}}, gpio_itr_mask_regs[gpio_width-1:0]};
+						default: // not care
+							prdata_out_regs <= 32'dx;
+					endcase
+				end
+			end
+		end
+		else
+		begin
+			always @(posedge clk)
+			begin
+				if(psel & (~pwrite))
+				begin
+					# simulation_delay;
+					
+					case(paddr[4:2])
+						3'd3: // ∂¡GPIO ‰»Î
+							prdata_out_regs <= {{(32-gpio_width){1'b0}}, gpio_i_value_regs[gpio_width-1:0]};
+						3'd4: // ∂¡÷–∂œ±Í÷æ
+							prdata_out_regs <= {30'd0, gpio_itr_status_regs[1], 1'b0};
+						3'd5: // ∂¡÷–∂œ◊¥Ã¨
+							prdata_out_regs <= {{(32-gpio_width){1'b0}}, gpio_itr_mask_regs[gpio_width-1:0]};
+						default: // not care
+							prdata_out_regs <= 32'd0;
+					endcase
+				end
+			end
+		end
+	endgenerate
+	
+    
 
 endmodule
