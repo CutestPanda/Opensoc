@@ -10,6 +10,10 @@
 1.下载MAKE工具和GNU工具链（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)）  
 2.安装MAKE工具  
 将GNU MCU Eclipse.zip解压到任意文件夹下，在GNU MCU Eclipse/Build Tools/2.11-20180428-1604/bin下找到make.exe，并添加系统环境变量。  
+比如，我们直接解压到D盘，那么在D:/GNU MCU Eclipse/Build Tools/2.11-20180428-1604/bin可以找到make.exe。  
+![说明1](../img/panda_risc_v_1.png)
+然后，添加系统环境变量。  
+![说明2](../img/panda_risc_v_2.png)
 3.安装GNU工具链  
 将gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64.zip解压到**600_panda_risc_v/tools**下。  
 
