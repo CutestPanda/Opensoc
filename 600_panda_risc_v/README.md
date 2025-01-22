@@ -58,4 +58,14 @@
 |uart0_tx|串口发送端|
 |uart0_rx|串口接收端|
 
+#### <center>外部中断表</center>
+|中断号|说明|
+|---|---|
+|1|GPIO0中断|
+|2|TIMER0中断|
+|3|UART0中断|
+
+小胖达risc-v最小系统（见panda_risc_v_min_proc_sys.v）接入了63位的外部中断向量（ext_itr_req_vec[62:0]），  
+ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此类推。  
+
 > 在**600_panda_risc_v/fpga/vivado_prj**下提供了基于ZYNQ7020的示例Vivado工程。
