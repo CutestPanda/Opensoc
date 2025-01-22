@@ -25,6 +25,8 @@
 `` python .\gen_makefile.py --target your_prj_name ``  
 2.然后在**600_panda_risc_v/software/test**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
 3.在**600_panda_risc_v/software/test/your_prj_name**下编写若干.c和.h。  
+> 软件项目引用了**600_panda_risc_v/software/lib**下的驱动或工具程序，其使用的外设都能在Opensoc仓库里找到。  
+
 ## 搭建硬件工程
 测评SOC的所有源码都在**600_panda_risc_v/fpga/panda_soc_eva**下，请修改**imem_init_file**参数为生成的十六进制的机器码文件，注意修改PLL的例化。  
 
