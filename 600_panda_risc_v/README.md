@@ -43,6 +43,7 @@
 |APB-GPIO|0x4000_0000 ~ 0x4000_0FFF|4KB|
 |APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|
 |APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|
+|PLIC|0xF000_0000~0xF03F_FFFF|4MB|
 
 #### <center>I/O表</center>
 |I/O|说明|
@@ -61,6 +62,7 @@
 #### <center>外部中断表</center>
 |中断号|说明|
 |---|---|
+|0|不可用|
 |1|GPIO0中断|
 |2|TIMER0中断|
 |3|UART0中断|
