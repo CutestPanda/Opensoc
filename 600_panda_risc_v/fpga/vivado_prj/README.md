@@ -1,4 +1,4 @@
-#### panda_soc_test_v1
+### panda_soc_test_v1
 #### <center>存储映射表</center>
 |内容|地址范围|区间长度|
 |---|---|---|
@@ -10,7 +10,7 @@
 
 v1版本不包含PLIC，TIMER0中断被连接到CPU核的计时器中断。  
 
-#### panda_soc_test_v2
+### panda_soc_test_v2
 #### <center>存储映射表</center>
 |内容|地址范围|区间长度|
 |---|---|---|
