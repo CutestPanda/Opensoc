@@ -3,12 +3,16 @@
 #include "../../include/utils.h"
 #include "../../include/apb_gpio.h"
 #include "../../include/apb_timer.h"
+#include "../../include/plic.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // 外设基地址
 #define GPIO0_BASEADDE 0x40000000
 #define TIMER0_BASEADDE 0x40002000
+
+// PLIC基地址
+#define PLIC_BASEADDE 0xF0000000
 
 // TIMER0配置
 #define TIMER0_PSC 65 // 预分频系数
@@ -17,8 +21,14 @@
 // 是否需要消隐
 // #define EN_TUBE_BLANK
 
+// 中断号
+#define GPIO0_ITR_ID 1 // GPIO0中断号
+#define TIMER0_ITR_ID 2 // TIMER0中断号
+#define UART0_ITR_ID 3 // UART0中断号
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static void timer0_itr_handler();
 static void tube_scan_disp(void);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -26,6 +36,9 @@ static void tube_scan_disp(void);
 // 外设句柄
 static ApbGPIO gpio0;
 static ApbTimer timer0;
+
+// PLIC句柄
+static PLIC plic;
 
 // 流水灯
 const static uint8_t flow_led_out_value[9] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00}; // 流水灯样式
@@ -47,7 +60,25 @@ static uint8_t timer0_period_elapsed = 0; // TIMER0计数溢出标志
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void tmr_irq_handler(){
+void ext_irq_handler(){
+	uint32_t now_itr_id = plic_claim_interrupt(&plic);
+	
+	switch(now_itr_id){
+		case GPIO0_ITR_ID:
+			break;
+		case TIMER0_ITR_ID:
+			timer0_itr_handler();
+			break;
+		case UART0_ITR_ID:
+			break;
+		default:
+			break;
+	}
+	
+	plic_complete_interrupt(&plic, now_itr_id);
+}
+
+static void timer0_itr_handler(){
 	uint8_t itr_sts = apb_timer_get_itr_status(&timer0); // 获取中断标志向量
 	
 	if(itr_sts & ITR_TIMER_ELAPSED_MASK){ // 计数溢出中断
@@ -96,12 +127,19 @@ static void tube_scan_disp(void){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(){
-	// 使能计时器中断
-    // MSIE = 0, MTIE = 1, MEIE = 0
-    write_csr(mie, 0x00000080);
+	// 使能外部中断
+    // MSIE = 0, MTIE = 0, MEIE = 1
+    write_csr(mie, 0x00000800);
 	
-	apb_gpio_init(&gpio0, GPIO0_BASEADDE); // 初始化GPIO
-	apb_gpio_set_direction(&gpio0, 0x00000300); // 设置GPIO方向
+	// 初始化PLIC
+	plic_init(&plic, PLIC_BASEADDE);
+	plic_set_threshold(&plic, 0);
+	plic_set_priority(&plic, TIMER0_ITR_ID, 1);
+	plic_enable_interrupt(&plic, TIMER0_ITR_ID);
+	
+	// 初始化GPIO
+	apb_gpio_init(&gpio0, GPIO0_BASEADDE);
+	apb_gpio_set_direction(&gpio0, 0x00000300);
 	
 	// 初始化APB-TIMER
 	ApbTimerConfig timer_config; // APB-TIMER(初始化配置结构体)
