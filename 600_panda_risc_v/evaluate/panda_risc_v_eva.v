@@ -110,7 +110,6 @@ module panda_risc_v_eva(
 	);
 	
 	panda_risc_v #(
-		.RST_PC(32'h0000_0000),
 		.imem_access_timeout_th(16),
 		.inst_addr_alignment_width(32),
 		.dbus_access_timeout_th(16),
@@ -141,6 +140,8 @@ module panda_risc_v_eva(
 	)panda_risc_v_u(
 		.clk(clk),
 		.sys_resetn(sys_resetn),
+		
+		.rst_pc(32'h0000_0000),
 		
 		.sys_reset_req(sys_reset_req),
 		

@@ -126,12 +126,13 @@ module panda_risc_v_ifu_eva(
 	panda_risc_v_ifu #(
 	    .imem_access_timeout_th(16),
 	    .inst_addr_alignment_width(32),
-	    .RST_PC(32'h0000_0000),
 		.inst_id_width(4),
 	    .simulation_delay(1)
 	)panda_risc_v_ifu_u(
 		.clk(clk),
 		.sys_resetn(sys_resetn),
+		
+		.rst_pc(32'h0000_0000),
 		
 		.sys_reset_req(sys_reset_req),
 		.flush_req(flush_req),
