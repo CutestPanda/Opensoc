@@ -23,7 +23,6 @@ if __name__ == "__main__":
     file_bat.writelines("make clean\n")
     file_bat.writelines("cd ../../../scripts\n")
     file_bat.writelines("python gen_imem_init_txt.py --file " + target_name + "\n")
-    file_bat.writelines("del " + target_name + ".bin\n")
     file_bat.writelines("pause\n")
     
     file_bat.close()

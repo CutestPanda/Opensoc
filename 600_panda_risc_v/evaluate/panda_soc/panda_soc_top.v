@@ -17,27 +17,30 @@
 	中断#3 UART0中断
 
 注意：
-无
+指令存储器的前2KB为Boot程序
 
 协议:
 GPIO
 I2C MASTER
 
 作者: 陈家耀
-日期: 2025/01/22
+日期: 2025/01/23
 ********************************************************************/
 
 
 module panda_soc_top #(
 	parameter integer imem_depth = 8192, // 指令存储器深度
 	parameter integer dmem_depth = 8192, // 数据存储器深度
-	parameter imem_init_file = "E:/scientific_research/risc-v/coremark.txt", // 指令存储器初始化文件路径
+	parameter imem_init_file = "E:/scientific_research/risc-v/boot_rom.txt", // 指令存储器初始化文件路径
 	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
 	parameter real simulation_delay = 0 // 仿真延时
 )(
 	// 时钟和复位
 	input wire osc_clk, // 外部晶振时钟输入
 	input wire ext_resetn, // 外部复位输入
+	
+	// BOOT模式(1'b0 -> UART编程, 1'b1 -> 正常运行)
+	input wire boot,
 	
 	// GPIO0
 	inout wire[21:0] gpio0,
@@ -99,6 +102,8 @@ module panda_soc_top #(
 	);
 	
 	/** 小胖达RISC-V 最小处理器系统 **/
+	// 复位时的PC
+	reg[31:0] rst_pc;
 	// 数据总线(AXI-Lite主机)
 	// 读地址通道
     wire[31:0] m_axi_dbus_araddr;
@@ -151,8 +156,14 @@ module panda_soc_top #(
 		gpio0_itr_req
 	};
 	
+	// 复位时的PC
+	always @(posedge pll_clk_out)
+	begin
+		rst_pc <= # simulation_delay boot ? 32'h0000_0800:32'h0000_0000;
+	end
+	
+	// 小胖达RISC-V最小处理器系统
 	panda_risc_v_min_proc_sys #(
-		.RST_PC(32'h0000_0000),
 		.imem_access_timeout_th(16),
 		.inst_addr_alignment_width(32),
 		.dbus_access_timeout_th(32),
@@ -192,6 +203,8 @@ module panda_soc_top #(
 		.sys_resetn(sys_resetn),
 		
 		.sys_reset_req(sys_reset_req),
+		
+		.rst_pc(rst_pc),
 		
 		.m_axi_dbus_araddr(m_axi_dbus_araddr),
 		.m_axi_dbus_arburst(m_axi_dbus_arburst),
@@ -528,7 +541,7 @@ module panda_soc_top #(
 		.baud_rate(115200),
 		.tx_rx_fifo_ram_type("bram"),
 		.tx_fifo_depth(2048),
-		.rx_fifo_depth(2048),
+		.rx_fifo_depth(4096),
 		.en_itr("true"),
 		.simulation_delay(simulation_delay)
 	)apb_uart_u(

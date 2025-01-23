@@ -12,13 +12,11 @@
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/20
+日期: 2025/01/23
 ********************************************************************/
 
 
 module panda_risc_v #(
-	// 复位时的PC
-	parameter RST_PC = 32'h0000_0000,
 	// 指令总线控制单元配置
 	parameter integer imem_access_timeout_th = 16, // 指令总线访问超时周期数(必须>=1)
 	parameter integer inst_addr_alignment_width = 32, // 指令地址对齐位宽(16 | 32)
@@ -62,6 +60,9 @@ module panda_risc_v #(
 	
 	// 系统复位请求
 	input wire sys_reset_req,
+	
+	// 复位时的PC
+	input wire[31:0] rst_pc,
 	
 	// 指令ICB主机
 	// 命令通道
@@ -435,12 +436,13 @@ module panda_risc_v #(
 	panda_risc_v_ifu #(
 		.imem_access_timeout_th(imem_access_timeout_th),
 		.inst_addr_alignment_width(inst_addr_alignment_width),
-		.RST_PC(RST_PC),
 		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_ifu_u(
 		.clk(clk),
 		.sys_resetn(sys_resetn),
+		
+		.rst_pc(rst_pc),
 		
 		.sys_reset_req(sys_reset_req),
 		.flush_req(flush_req),

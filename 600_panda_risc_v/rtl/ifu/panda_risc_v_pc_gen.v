@@ -21,15 +21,15 @@
 无
 
 作者: 陈家耀
-日期: 2024/10/19
+日期: 2025/01/23
 ********************************************************************/
 
 
-module panda_risc_v_pc_gen #(
-	parameter RST_PC = 32'h0000_0000 // 复位时的PC
-)(
+module panda_risc_v_pc_gen(
 	// 当前的PC
 	input wire[31:0] now_pc,
+	// 复位时的PC
+	input wire[31:0] rst_pc,
 	
 	// 复位状态
 	input wire to_rst,
@@ -75,7 +75,7 @@ module panda_risc_v_pc_gen #(
 	wire[31:0] pc_add_op2; // 用于生成下一PC的加法器的操作数2
 	wire[31:0] pc_nxt; // 下一PC
 	
-	assign new_pc = to_rst ? RST_PC: // 复位请求优先级最高
+	assign new_pc = to_rst ? rst_pc: // 复位请求优先级最高
 					(to_flush ? flush_addr_hold: // 冲刷请求优先级次之
 						pc_nxt);
 	

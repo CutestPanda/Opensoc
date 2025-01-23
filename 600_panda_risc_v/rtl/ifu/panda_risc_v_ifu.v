@@ -18,14 +18,13 @@ ICB MASTER
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/23
 ********************************************************************/
 
 
 module panda_risc_v_ifu #(
 	parameter integer imem_access_timeout_th = 16, // 指令总线访问超时周期数(必须>=1)
 	parameter integer inst_addr_alignment_width = 32, // 指令地址对齐位宽(16 | 32)
-	parameter RST_PC = 32'h0000_0000, // 复位时的PC
 	parameter integer inst_id_width = 4, // 指令编号的位宽
 	parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -33,6 +32,9 @@ module panda_risc_v_ifu #(
 	input wire clk,
 	// 系统复位输入
 	input wire sys_resetn,
+	
+	// 复位时的PC
+	input wire[31:0] rst_pc,
 	
 	// 系统复位请求
 	input wire sys_reset_req,
@@ -253,10 +255,9 @@ module panda_risc_v_ifu #(
 	);
 	
 	/** 下一PC生成 **/
-	panda_risc_v_pc_gen #(
-		.RST_PC(RST_PC)
-	)panda_risc_v_pc_gen_u(
+	panda_risc_v_pc_gen panda_risc_v_pc_gen_u(
 		.now_pc(now_pc),
+		.rst_pc(rst_pc),
 		
 		.to_rst(to_rst),
 		.to_flush(to_flush),

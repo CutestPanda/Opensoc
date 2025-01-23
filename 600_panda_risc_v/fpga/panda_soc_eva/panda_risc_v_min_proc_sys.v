@@ -17,13 +17,11 @@ ICB主机#2接ICB到AXI-Lite桥并引出AXI-Lite主机
 AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2025/01/22
+日期: 2025/01/23
 ********************************************************************/
 
 
 module panda_risc_v_min_proc_sys #(
-	// 复位时的PC
-	parameter RST_PC = 32'h0000_0000,
 	// 指令总线控制单元配置
 	parameter integer imem_access_timeout_th = 16, // 指令总线访问超时周期数(必须>=1)
 	parameter integer inst_addr_alignment_width = 32, // 指令地址对齐位宽(16 | 32)
@@ -75,6 +73,9 @@ module panda_risc_v_min_proc_sys #(
 	
 	// 系统复位请求
 	input wire sys_reset_req,
+	
+	// 复位时的PC
+	input wire[31:0] rst_pc,
 	
 	// 数据总线(AXI-Lite主机)
 	// 读地址通道
@@ -151,7 +152,6 @@ module panda_risc_v_min_proc_sys #(
 	wire ext_itr_req;
 	
 	panda_risc_v #(
-		.RST_PC(RST_PC),
 		.imem_access_timeout_th(imem_access_timeout_th),
 		.inst_addr_alignment_width(inst_addr_alignment_width),
 		.dbus_access_timeout_th(dbus_access_timeout_th),
@@ -184,6 +184,8 @@ module panda_risc_v_min_proc_sys #(
 		.sys_resetn(sys_resetn),
 		
 		.sys_reset_req(sys_reset_req),
+		
+		.rst_pc(rst_pc),
 		
 		.m_icb_cmd_inst_addr(m_icb_cmd_inst_addr),
 		.m_icb_cmd_inst_read(m_icb_cmd_inst_read),

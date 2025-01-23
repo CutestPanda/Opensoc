@@ -190,12 +190,13 @@ module tb_panda_risc_v_ifu();
 	panda_risc_v_ifu #(
 		.imem_access_timeout_th(imem_access_timeout_th),
 		.inst_addr_alignment_width(inst_addr_alignment_width),
-		.RST_PC(RST_PC),
 		.inst_id_width(inst_id_width),
 		.simulation_delay(simulation_delay)
 	)dut(
 		.clk(clk),
 		.sys_resetn(sys_resetn),
+		
+		.rst_pc(RST_PC),
 		
 		.sys_reset_req(sys_reset_req),
 		.flush_req(flush_req),
