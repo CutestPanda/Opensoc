@@ -79,6 +79,8 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 目前只支持UART编程烧录。  
 
 #### UART编程烧录
+请确保当前python环境已经安装了pyserial库，否则需要打开命令行终端并执行：  
+`` pip install pyserial ``  
 将boot引脚对应的拨码开关拨到**低电平**，此时CPU运行bootrom程序。  
 将编译产生的.bin文件复制到**600_panda_risc_v/scripts**下，然后在scripts文件夹打开命令行终端，输入：  
 `` python .\uart_prog.py ``  
