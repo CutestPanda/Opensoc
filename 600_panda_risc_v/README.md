@@ -11,9 +11,9 @@
 2.安装MAKE工具  
 将GNU MCU Eclipse.zip解压到任意文件夹下，在GNU MCU Eclipse/Build Tools/2.11-20180428-1604/bin下找到make.exe，并添加系统环境变量。  
 比如，我们直接解压到D盘，那么在D:/GNU MCU Eclipse/Build Tools/2.11-20180428-1604/bin可以找到make.exe。  
-![说明1](../img/panda_risc_v_1.png)
+![说明1](../img/panda_risc_v_1.png)  
 然后，添加系统环境变量。  
-![说明2](../img/panda_risc_v_2.png)
+![说明2](../img/panda_risc_v_2.png)  
 3.安装GNU工具链  
 将gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64.zip解压到**600_panda_risc_v/tools**下。  
 
@@ -85,7 +85,7 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 将boot引脚对应的拨码开关拨到**低电平**，此时CPU运行bootrom程序。  
 将编译产生的.bin文件复制到**600_panda_risc_v/scripts**下，然后在scripts文件夹打开命令行终端，输入：  
 `` python .\uart_prog.py ``  
-然后，按提示打开串口，输入.bin文件的路径，等待烧录完成。  
-![说明3](../img/panda_risc_v_3.png)
+然后，按提示打开串口（必须要输入打开的串口名才能打开，如"COM10"），输入.bin文件的路径，等待烧录完成。  
+![说明3](../img/panda_risc_v_3.png)  
 最后，将boot引脚对应的拨码开关拨到**高电平**，复位CPU，即可见CPU运行烧录的程序。  
 > 如果提示无法接收到编程应答，那么可以在打开串口后（输入了要连接的串口后），按一下外部复位引脚。  
