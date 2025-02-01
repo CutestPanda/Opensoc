@@ -10,22 +10,29 @@
 提供读/写数据fifo
 支持写字节数实时统计
 
+MM2S通道支持非对齐传输, 支持输出数据流重对齐
+S2MM通道支持非对齐传输, 支持输入数据流重对齐
+
 注意：
 不支持回环(WRAP)突发类型
 AXI主机的地址位宽固定为32位
 突发类型为固定时, 传输基地址必须是对齐的
 
-未对非对齐传输时的输出数据流做重新对齐处理
-未处理非对齐传输时的写字节掩码, 请确保在输入数据流AXIS从机上给出了正确的keep信号
-
 仅比对了写请求给出的传输次数和写数据实际的传输次数
+
+当在MM2S通道允许非对齐传输时, 每帧所对应的读数据必须能被衔接, 即keep掩码满足:
+	[4'b1100(首次传输可能是非对齐的) 4'b1111 ... 4'b1111(必须全1以衔接)]
+	[4'b1111(必须全1以衔接) 4'b1111 ... 4'b1111(必须全1以衔接)]
+	                             :
+								 :
+	[4'b1111(必须全1以衔接) 4'b1111 ... 4'b0011(最后1次传输时可以不全1)]
 
 协议:
 AXIS MASTER/SLAVE
 AXI MASTER
 
 作者: 陈家耀
-日期: 2025/01/27
+日期: 2025/01/29
 ********************************************************************/
 
 
@@ -38,6 +45,8 @@ module axi_dma_engine #(
 	parameter M_MM2S_AXIS_COMMON_CLOCK = "true", // 输出数据流AXIS主机与AXI主机是否使用相同的时钟和复位
 	parameter S_S2MM_AXIS_COMMON_CLOCK = "true", // 输入数据流AXIS从机与AXI主机是否使用相同的时钟和复位
 	parameter EN_WT_BYTES_N_STAT = "false", // 是否启用写字节数实时统计
+	parameter EN_MM2S_UNALIGNED_TRANS = "false", // 是否在MM2S通道允许非对齐传输
+	parameter EN_S2MM_UNALIGNED_TRANS = "false", // 是否在S2MM通道允许非对齐传输
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// 命令AXIS从机的时钟和复位
@@ -56,6 +65,7 @@ module axi_dma_engine #(
 	// MM2S命令AXIS从机
 	input wire[55:0] s_mm2s_cmd_axis_data, // {待传输字节数(24bit), 传输首地址(32bit)}
 	input wire s_mm2s_cmd_axis_user, // {固定(1'b1)/递增(1'b0)传输(1bit)}
+	input wire s_mm2s_cmd_axis_last, // 帧尾标志
 	input wire s_mm2s_cmd_axis_valid,
 	output wire s_mm2s_cmd_axis_ready,
 	// S2MM命令AXIS从机
@@ -73,7 +83,9 @@ module axi_dma_engine #(
 	// 输出数据流AXIS主机
 	output wire[DATA_WIDTH-1:0] m_mm2s_axis_data,
 	output wire[DATA_WIDTH/8-1:0] m_mm2s_axis_keep,
-	output wire[1:0] m_mm2s_axis_user, // 错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)
+	// 注意: 仅当在MM2S通道不允许非对齐传输时可用!
+	output wire[2:0] m_mm2s_axis_user, // {读请求最后1次传输标志(1bit), 
+	                                   //     错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)}
 	output wire m_mm2s_axis_last,
 	output wire m_mm2s_axis_valid,
 	input wire m_mm2s_axis_ready,
@@ -131,6 +143,7 @@ module axi_dma_engine #(
 				.MAX_BURST_LEN(MAX_BURST_LEN),
 				.S_AXIS_COMMON_CLOCK(S_CMD_AXIS_COMMON_CLOCK),
 				.M_AXIS_COMMON_CLOCK(M_MM2S_AXIS_COMMON_CLOCK),
+				.EN_UNALIGNED_TRANS(EN_MM2S_UNALIGNED_TRANS),
 				.SIM_DELAY(SIM_DELAY)
 			)dma_rchn_u(
 				.s_axis_aclk(s_cmd_axis_aclk),
@@ -142,6 +155,7 @@ module axi_dma_engine #(
 				
 				.s_cmd_axis_data(s_mm2s_cmd_axis_data),
 				.s_cmd_axis_user(s_mm2s_cmd_axis_user),
+				.s_cmd_axis_last(s_mm2s_cmd_axis_last),
 				.s_cmd_axis_valid(s_mm2s_cmd_axis_valid),
 				.s_cmd_axis_ready(s_mm2s_cmd_axis_ready),
 				
@@ -199,6 +213,7 @@ module axi_dma_engine #(
 				.S_CMD_AXIS_COMMON_CLOCK(S_CMD_AXIS_COMMON_CLOCK),
 				.S_S2MM_AXIS_COMMON_CLOCK(S_S2MM_AXIS_COMMON_CLOCK),
 				.EN_WT_BYTES_N_STAT(EN_WT_BYTES_N_STAT),
+				.EN_UNALIGNED_TRANS(EN_S2MM_UNALIGNED_TRANS),
 				.SIM_DELAY(SIM_DELAY)
 			)dma_wchn_u(
 				.s_cmd_axis_aclk(s_cmd_axis_aclk),

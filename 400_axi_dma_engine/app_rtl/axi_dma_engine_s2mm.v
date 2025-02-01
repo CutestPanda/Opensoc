@@ -6,12 +6,13 @@
 接收写请求命令, 接收输入数据流, 驱动AXI写通道
 提供4KB边界保护
 提供写数据fifo
+支持非对齐传输, 支持输入数据流重对齐
 
 注意：
 不支持回环(WRAP)突发类型
 AXI主机的地址位宽固定为32位
 突发类型为固定时, 传输基地址必须是对齐的
-未处理非对齐传输时的写字节掩码, 请确保在输入数据流AXIS从机上给出了正确的keep信号
+
 仅比对了写请求给出的传输次数和写数据实际的传输次数
 
 协议:
@@ -19,7 +20,7 @@ AXIS SLAVE
 AXI MASTER(WRITE ONLY)
 
 作者: 陈家耀
-日期: 2025/01/27
+日期: 2025/01/29
 ********************************************************************/
 
 
@@ -29,6 +30,7 @@ module axi_dma_engine_s2mm #(
 	parameter S_CMD_AXIS_COMMON_CLOCK = "true", // 命令AXIS从机与AXI主机是否使用相同的时钟和复位
 	parameter S_S2MM_AXIS_COMMON_CLOCK = "true", // 输入数据流AXIS从机与AXI主机是否使用相同的时钟和复位
 	parameter EN_WT_BYTES_N_STAT = "false", // 是否启用写字节数实时统计
+	parameter EN_UNALIGNED_TRANS = "false", // 是否允许非对齐传输
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// 命令AXIS从机的时钟和复位
@@ -424,6 +426,96 @@ module axi_dma_engine_s2mm #(
 			wt_burst_cmplt_ptr <= # SIM_DELAY {wt_burst_cmplt_ptr[2:0], wt_burst_cmplt_ptr[3]};
 	end
 	
+	/** 重对齐信息fifo **/
+	// fifo写端口
+	wire dre_msg_fifo_wen;
+	wire[clogb2(DATA_WIDTH/8-1):0] dre_msg_fifo_din; // 重对齐基准字节位置
+	wire dre_msg_fifo_full_n;
+	// fifo读端口
+	wire dre_msg_fifo_ren;
+	wire[clogb2(DATA_WIDTH/8-1):0] dre_msg_fifo_dout; // 重对齐基准字节位置
+	wire dre_msg_fifo_empty_n;
+	
+	generate
+		if(EN_UNALIGNED_TRANS == "true")
+		begin
+			if(S_S2MM_AXIS_COMMON_CLOCK == "false")
+			begin
+				// 注意: 异步时钟下使用深度较小的寄存器fifo也可!
+				axis_data_fifo #(
+					.is_async("true"),
+					.en_packet_mode("false"),
+					// 注意: lutram可能不具备通用性!
+					.ram_type("lutram"),
+					.fifo_depth(32),
+					.data_width(8),
+					.user_width(1),
+					.simulation_delay(SIM_DELAY)
+				)dre_msg_fifo(
+					.s_axis_aclk(m_axi_aclk),
+					.s_axis_aresetn(m_axi_aresetn),
+					.m_axis_aclk(s_s2mm_axis_aclk),
+					.m_axis_aresetn(s_s2mm_axis_aresetn),
+					
+					.s_axis_data(8'h00 | dre_msg_fifo_din),
+					.s_axis_keep(1'bx),
+					.s_axis_strb(1'bx),
+					.s_axis_user(1'bx),
+					.s_axis_last(1'bx),
+					.s_axis_valid(dre_msg_fifo_wen),
+					.s_axis_ready(dre_msg_fifo_full_n),
+					
+					.m_axis_data(dre_msg_fifo_dout), // 位宽8bit与(clogb2(DATA_WIDTH/8-1)+1)bit不符, 截取低位
+					.m_axis_keep(),
+					.m_axis_strb(),
+					.m_axis_user(),
+					.m_axis_last(),
+					.m_axis_valid(dre_msg_fifo_empty_n),
+					.m_axis_ready(dre_msg_fifo_ren)
+				);
+			end
+			else
+			begin
+				fifo_based_on_regs #(
+					.fwft_mode("true"),
+					.low_latency_mode("false"),
+					.fifo_depth(4),
+					.fifo_data_width(clogb2(DATA_WIDTH/8-1)+1),
+					.almost_full_th(2),
+					.almost_empty_th(2),
+					.simulation_delay(SIM_DELAY)
+				)dre_msg_fifo(
+					.clk(m_axi_aclk),
+					.rst_n(m_axi_aresetn),
+					
+					.fifo_wen(dre_msg_fifo_wen),
+					.fifo_din(dre_msg_fifo_din),
+					.fifo_full(),
+					.fifo_full_n(dre_msg_fifo_full_n),
+					.fifo_almost_full(),
+					.fifo_almost_full_n(),
+					
+					.fifo_ren(dre_msg_fifo_ren),
+					.fifo_dout(dre_msg_fifo_dout),
+					.fifo_empty(),
+					.fifo_empty_n(dre_msg_fifo_empty_n),
+					.fifo_almost_empty(),
+					.fifo_almost_empty_n(),
+					
+					.data_cnt()
+				);
+			end
+		end
+		else
+		begin
+			assign dre_msg_fifo_full_n = 1'b1;
+			
+			assign dre_msg_fifo_dout = {(clogb2(DATA_WIDTH/8-1)+1){1'bx}};
+			assign dre_msg_fifo_empty_n = 1'b0;
+		end
+	endgenerate
+	
+	
 	/** 预启动写突发 **/
 	reg last_burst_of_req; // 写请求最后1次突发(标志)
 	reg[1:0] wburst_pre_lc_ctrl_sts; // 写突发预启动流程控制状态
@@ -446,13 +538,16 @@ module axi_dma_engine_s2mm #(
 	reg[7:0] min_cmp_res; // 计算结果
 	reg min_cmp_a_leq_b_pre; // 上一次比较情况(操作数A <= 操作数B)
 	
-	assign in_cmd_ready = wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE;
+	assign in_cmd_ready = (wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & dre_msg_fifo_full_n;
 	
 	assign to_pre_launch_wt_burst = pre_lc_valid;
 	assign wt_burst_pre_launch_baseaddr = pre_lc_addr;
 	assign wt_burst_pre_launch_len_sub1 = pre_lc_len;
 	assign wt_burst_pre_launch_is_fixed = pre_lc_burst != AXI_BURST_INCR;
 	assign wt_burst_pre_launch_is_last_of_req = last_burst_of_req;
+	
+	assign dre_msg_fifo_wen = (wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid;
+	assign dre_msg_fifo_din = in_cmd_baseaddr[clogb2(DATA_WIDTH/8-1):0];
 	
 	assign pre_lc_len = min_cmp_res;
 	assign pre_lc_valid = wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_LAUNCH_BURST;
@@ -486,7 +581,7 @@ module axi_dma_engine_s2mm #(
 		if(~m_axi_aresetn)
 			wburst_pre_lc_ctrl_sts <= WBURST_PRE_LC_CTRL_STS_IDLE;
 		else if(
-			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid) | 
+			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid & dre_msg_fifo_full_n) | 
 			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_GEN_BURST_MSG_0) & wt_burst_item_pre_launch_permitted) | 
 			(wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_GEN_BURST_MSG_1) | 
 			(wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_LAUNCH_BURST)
@@ -504,7 +599,7 @@ module axi_dma_engine_s2mm #(
 	always @(posedge m_axi_aclk)
 	begin
 		if(
-			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid) | 
+			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid & dre_msg_fifo_full_n) | 
 			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_LAUNCH_BURST) & (~last_burst_of_req))
 		)
 			rmn_tn_sub1 <= # SIM_DELAY 
@@ -518,7 +613,7 @@ module axi_dma_engine_s2mm #(
 	always @(posedge m_axi_aclk)
 	begin
 		if(
-			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid) | 
+			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid & dre_msg_fifo_full_n) | 
 			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_LAUNCH_BURST) & (~last_burst_of_req) & (pre_lc_burst == AXI_BURST_INCR))
 		)
 			rmn_tn_sub1_at_4KB <= # SIM_DELAY 
@@ -533,19 +628,19 @@ module axi_dma_engine_s2mm #(
 	always @(posedge m_axi_aclk)
 	begin
 		if(
-			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid) | 
+			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid & dre_msg_fifo_full_n) | 
 			((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_LAUNCH_BURST) & (~last_burst_of_req) & (pre_lc_burst == AXI_BURST_INCR))
 		)
 			pre_lc_addr <= # SIM_DELAY 
 				(wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) ? 
-					in_cmd_baseaddr:
+					{in_cmd_baseaddr[31:clogb2(DATA_WIDTH/8)], {clogb2(DATA_WIDTH/8){1'b0}}}:
 					({pre_lc_addr[31:clogb2(DATA_WIDTH/8)], {clogb2(DATA_WIDTH/8){1'b0}}} + 
 						(({24'h00_0000, pre_lc_len} + 1'b1) * (DATA_WIDTH/8)));
 	end
 	// 预启动写突发的突发类型
 	always @(posedge m_axi_aclk)
 	begin
-		if((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid)
+		if((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid & dre_msg_fifo_full_n)
 			pre_lc_burst <= # SIM_DELAY in_cmd_fixed ? AXI_BURST_FIXED:AXI_BURST_INCR;
 	end
 	
@@ -602,6 +697,19 @@ module axi_dma_engine_s2mm #(
 	reg wt_trans_n_mismatched;
 	// 写突发传输计数器
 	reg[7:0] wburst_trans_cnt;
+	// 写数据重对齐输入数据流AXIS从机
+	wire[DATA_WIDTH-1:0] s_dre_axis_data;
+	wire[DATA_WIDTH/8-1:0] s_dre_axis_keep;
+	wire[4:0] s_dre_axis_user; // 重对齐基准字节位置
+	wire s_dre_axis_last;
+	wire s_dre_axis_valid;
+	wire s_dre_axis_ready;
+	// 写数据重对齐输入数据流AXIS主机
+	wire[DATA_WIDTH-1:0] m_dre_axis_data;
+	wire[DATA_WIDTH/8-1:0] m_dre_axis_keep;
+	wire m_dre_axis_last;
+	wire m_dre_axis_valid;
+	wire m_dre_axis_ready;
 	// 写数据fifo写端口
 	wire[DATA_WIDTH-1:0] s_wdata_fifo_axis_data;
 	wire[DATA_WIDTH/8-1:0] s_wdata_fifo_axis_keep;
@@ -615,11 +723,11 @@ module axi_dma_engine_s2mm #(
 	wire m_wdata_fifo_axis_valid;
 	wire m_wdata_fifo_axis_ready;
 	
-	assign s_wdata_fifo_axis_data = m_s2mm_stat_axis_data;
-	assign s_wdata_fifo_axis_keep = m_s2mm_stat_axis_keep;
+	assign s_wdata_fifo_axis_data = m_dre_axis_data;
+	assign s_wdata_fifo_axis_keep = m_dre_axis_keep;
 	assign s_wdata_fifo_axis_last = wburst_trans_cnt == wburst_trans_n_sub1_at_dprep_stage;
-	assign s_wdata_fifo_axis_valid = m_s2mm_stat_axis_valid & wt_burst_item_at_data_preparation_stage;
-	assign m_s2mm_stat_axis_ready = s_wdata_fifo_axis_ready & wt_burst_item_at_data_preparation_stage;
+	assign s_wdata_fifo_axis_valid = m_dre_axis_valid & wt_burst_item_at_data_preparation_stage;
+	assign m_dre_axis_ready = s_wdata_fifo_axis_ready & wt_burst_item_at_data_preparation_stage;
 	
 	assign m_axi_wdata = m_wdata_fifo_axis_data;
 	assign m_axi_wstrb = m_wdata_fifo_axis_keep;
@@ -629,7 +737,7 @@ module axi_dma_engine_s2mm #(
 	
 	assign err_flag[0] = wt_trans_n_mismatched;
 	
-	assign wt_data_prepared = m_s2mm_stat_axis_valid & s_wdata_fifo_axis_ready & s_wdata_fifo_axis_last;
+	assign wt_data_prepared = m_dre_axis_valid & s_wdata_fifo_axis_ready & s_wdata_fifo_axis_last;
 	
 	assign wburst_trans_n_sub1_at_dprep_stage = 
 		({8{wt_burst_data_preparation_ptr[0]}} & wt_burst_len_sub1[0]) | 
@@ -647,9 +755,9 @@ module axi_dma_engine_s2mm #(
 	begin
 		if(~m_axi_aresetn)
 			wt_trans_n_mismatched <= 1'b0;
-		else if((~wt_trans_n_mismatched) & m_s2mm_stat_axis_valid & m_s2mm_stat_axis_ready)
+		else if((~wt_trans_n_mismatched) & m_dre_axis_valid & m_dre_axis_ready)
 			wt_trans_n_mismatched <= # SIM_DELAY 
-				m_s2mm_stat_axis_last ^ (s_wdata_fifo_axis_last & wburst_is_last_of_req_at_dprep_stage);
+				m_dre_axis_last ^ (s_wdata_fifo_axis_last & wburst_is_last_of_req_at_dprep_stage);
 	end
 	
 	// 写突发传输计数器
@@ -657,11 +765,56 @@ module axi_dma_engine_s2mm #(
 	begin
 		if(~m_axi_aresetn)
 			wburst_trans_cnt <= 8'd0;
-		else if(m_s2mm_stat_axis_valid & m_s2mm_stat_axis_ready)
+		else if(m_dre_axis_valid & m_dre_axis_ready)
 			wburst_trans_cnt <= # SIM_DELAY 
 				// s_wdata_fifo_axis_last ? 8'd0:(wburst_trans_cnt + 8'd1)
 				{8{~s_wdata_fifo_axis_last}} & (wburst_trans_cnt + 8'd1);
 	end
+	
+	generate
+		if(EN_UNALIGNED_TRANS == "true")
+		begin
+			assign s_dre_axis_data = m_s2mm_stat_axis_data;
+			assign s_dre_axis_keep = m_s2mm_stat_axis_keep;
+			assign s_dre_axis_user = 5'b00000 | dre_msg_fifo_dout;
+			assign s_dre_axis_last = m_s2mm_stat_axis_last;
+			assign s_dre_axis_valid = m_s2mm_stat_axis_valid & dre_msg_fifo_empty_n;
+			assign m_s2mm_stat_axis_ready = s_dre_axis_ready & dre_msg_fifo_empty_n;
+			
+			assign dre_msg_fifo_ren = m_s2mm_stat_axis_valid & s_dre_axis_ready & m_s2mm_stat_axis_last;
+			
+			axi_dma_engine_wdata_realign #(
+				.DATA_WIDTH(DATA_WIDTH),
+				.SIM_DELAY(SIM_DELAY)
+			)dre_u(
+				.axis_aclk(s_s2mm_axis_aclk),
+				.axis_aresetn(s_s2mm_axis_aresetn),
+				
+				.s_s2mm_axis_data(s_dre_axis_data),
+				.s_s2mm_axis_keep(s_dre_axis_keep),
+				.s_s2mm_axis_user(s_dre_axis_user),
+				.s_s2mm_axis_last(s_dre_axis_last),
+				.s_s2mm_axis_valid(s_dre_axis_valid),
+				.s_s2mm_axis_ready(s_dre_axis_ready),
+				
+				.m_s2mm_axis_data(m_dre_axis_data),
+				.m_s2mm_axis_keep(m_dre_axis_keep),
+				.m_s2mm_axis_last(m_dre_axis_last),
+				.m_s2mm_axis_valid(m_dre_axis_valid),
+				.m_s2mm_axis_ready(m_dre_axis_ready)
+			);
+		end
+		else
+		begin
+			assign m_dre_axis_data = m_s2mm_stat_axis_data;
+			assign m_dre_axis_keep = m_s2mm_stat_axis_keep;
+			assign m_dre_axis_last = m_s2mm_stat_axis_last;
+			assign m_dre_axis_valid = m_s2mm_stat_axis_valid;
+			assign m_s2mm_stat_axis_ready = m_dre_axis_ready;
+			
+			assign dre_msg_fifo_ren = 1'b1;
+		end
+	endgenerate
 	
 	axis_data_fifo #(
 		.is_async((S_S2MM_AXIS_COMMON_CLOCK == "true") ? "false":"true"),

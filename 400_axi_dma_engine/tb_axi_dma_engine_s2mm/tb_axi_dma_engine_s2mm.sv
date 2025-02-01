@@ -20,7 +20,8 @@ module tb_axi_dma_engine_s2mm();
 	localparam integer MAX_BURST_LEN = 4; // 最大的突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	localparam S_CMD_AXIS_COMMON_CLOCK = "true"; // 命令AXIS从机与AXI主机是否使用相同的时钟和复位
 	localparam S_S2MM_AXIS_COMMON_CLOCK = "true"; // 输入数据流AXIS从机与AXI主机是否使用相同的时钟和复位
-	localparam EN_WT_BYTES_N_STAT = "true"; // 是否启用写字节数实时统计
+	localparam EN_WT_BYTES_N_STAT = "false"; // 是否启用写字节数实时统计
+	localparam EN_UNALIGNED_TRANS = "true"; // 是否允许非对齐传输
 	// 仿真模型配置
 	localparam integer memory_map_depth = 1024 * 64; // 存储映射深度(以字节计)
 	// 时钟和复位配置
@@ -306,6 +307,7 @@ module tb_axi_dma_engine_s2mm();
 		.S_CMD_AXIS_COMMON_CLOCK(S_CMD_AXIS_COMMON_CLOCK),
 		.S_S2MM_AXIS_COMMON_CLOCK(S_S2MM_AXIS_COMMON_CLOCK),
 		.EN_WT_BYTES_N_STAT(EN_WT_BYTES_N_STAT),
+		.EN_UNALIGNED_TRANS(EN_UNALIGNED_TRANS),
 		.SIM_DELAY(simulation_delay)
 	)dut(
 		.s_cmd_axis_aclk(clk),

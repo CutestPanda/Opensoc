@@ -28,6 +28,7 @@ class AxiDmaEngineMM2SCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_wid
 		
 		this.m_axis_trans.data.push_back({24'd104, 32'd4000});
 		this.m_axis_trans.user.push_back(1'b0);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 0;
 		`uvm_send(this.m_axis_trans)
@@ -38,6 +39,7 @@ class AxiDmaEngineMM2SCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_wid
 		
 		this.m_axis_trans.data.push_back({24'd50, 32'd4104});
 		this.m_axis_trans.user.push_back(1'b0);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 0;
 		`uvm_send(this.m_axis_trans)
@@ -48,6 +50,7 @@ class AxiDmaEngineMM2SCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_wid
 		
 		this.m_axis_trans.data.push_back({24'd104, 32'd4154});
 		this.m_axis_trans.user.push_back(1'b0);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 2;
 		`uvm_send(this.m_axis_trans)
@@ -58,6 +61,7 @@ class AxiDmaEngineMM2SCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_wid
 		
 		this.m_axis_trans.data.push_back({24'd50, 32'd8182});
 		this.m_axis_trans.user.push_back(1'b0);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 0;
 		`uvm_send(this.m_axis_trans)
@@ -68,6 +72,7 @@ class AxiDmaEngineMM2SCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_wid
 		
 		this.m_axis_trans.data.push_back({24'd2, 32'd1});
 		this.m_axis_trans.user.push_back(1'b0);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 1;
 		`uvm_send(this.m_axis_trans)
@@ -78,6 +83,7 @@ class AxiDmaEngineMM2SCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_wid
 		
 		this.m_axis_trans.data.push_back({24'd4, 32'd42});
 		this.m_axis_trans.user.push_back(1'b0);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 1;
 		`uvm_send(this.m_axis_trans)
@@ -88,16 +94,18 @@ class AxiDmaEngineMM2SCase0SAXISSeq extends uvm_sequence #(AXISTrans #(.data_wid
 		
 		this.m_axis_trans.data.push_back({24'd124, 32'd4000});
 		this.m_axis_trans.user.push_back(1'b1);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 3;
 		`uvm_send(this.m_axis_trans)
 		
-		// 传输字节数 = 6, 基地址 = 4000, 固定突发, 等待周期数 = 2
+		// 传输字节数 = 6, 基地址 = 4124, 固定突发, 等待周期数 = 2
 		`uvm_create(this.m_axis_trans)
 		this.m_axis_trans.data_n = 1;
 		
-		this.m_axis_trans.data.push_back({24'd6, 32'd4000});
+		this.m_axis_trans.data.push_back({24'd6, 32'd4124});
 		this.m_axis_trans.user.push_back(1'b1);
+		this.m_axis_trans.last.push_back(1'b1);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 2;
 		`uvm_send(this.m_axis_trans)

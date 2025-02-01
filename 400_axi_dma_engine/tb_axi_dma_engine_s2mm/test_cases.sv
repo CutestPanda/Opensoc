@@ -146,7 +146,10 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				data[i] == i;
+				(data[i][7:0] == (i * 4)) && 
+				(data[i][15:8] == (i * 4 + 1)) && 
+				(data[i][23:16] == (i * 4 + 2)) && 
+				(data[i][31:24] == (i * 4 + 3));
 			
 			foreach(keep[i])
 				keep[i] == 4'b1111;
@@ -168,7 +171,10 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				data[i] == i;
+				(data[i][7:0] == (i * 4)) && 
+				(data[i][15:8] == (i * 4 + 1)) && 
+				(data[i][23:16] == (i * 4 + 2)) && 
+				(data[i][31:24] == (i * 4 + 3));
 			
 			foreach(keep[i])
 				(i == (data_n - 1)) ? (keep[i] == 4'b0011):
@@ -183,7 +189,7 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 		
 		// 传输字节数 = 104, 基地址 = 4154, 递增突发
 		`uvm_do_with(this.m_axis_trans, {
-			data_n == 27;
+			data_n == 26;
 			
 			data.size() == data_n;
 			keep.size() == data_n;
@@ -191,12 +197,13 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				data[i] == i;
+				(data[i][7:0] == (i * 4)) && 
+				(data[i][15:8] == (i * 4 + 1)) && 
+				(data[i][23:16] == (i * 4 + 2)) && 
+				(data[i][31:24] == (i * 4 + 3));
 			
 			foreach(keep[i])
-				           (i == 0) ? (keep[i] == 4'b1100):
-				(i == (data_n - 1)) ? (keep[i] == 4'b0011):
-									  (keep[i] == 4'b1111);
+				keep[i] == 4'b1111;
 			
 			foreach(last[i])
 				last[i] == (i == (data_n - 1));
@@ -215,11 +222,14 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				data[i] == i;
+				(data[i][7:0] == (i * 4)) && 
+				(data[i][15:8] == (i * 4 + 1)) && 
+				(data[i][23:16] == (i * 4 + 2)) && 
+				(data[i][31:24] == (i * 4 + 3));
 			
 			foreach(keep[i])
-				(i == 0) ? (keep[i] == 4'b1100):
-						   (keep[i] == 4'b1111);
+				(i == (data_n - 1)) ? (keep[i] == 4'b0011):
+									  (keep[i] == 4'b1111);
 			
 			foreach(last[i])
 				last[i] == (i == (data_n - 1));
@@ -237,32 +247,25 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			last.size() == data_n;
 			wait_period_n.size() == data_n;
 			
-			data[0] == 0;
-			keep[0] == 4'b0110;
+			data[0] == {8'd3, 8'd2, 8'd1, 8'd0};
+			keep[0] == 4'b0011;
 			last[0] == 1'b1;
 			wait_period_n[0] <= 2;
 		})
 		
 		// 传输字节数 = 4, 基地址 = 42, 递增突发
 		`uvm_do_with(this.m_axis_trans, {
-			data_n == 2;
+			data_n == 1;
 			
 			data.size() == data_n;
 			keep.size() == data_n;
 			last.size() == data_n;
 			wait_period_n.size() == data_n;
 			
-			foreach(data[i])
-				data[i] == i;
-			
-			keep[0] == 4'b1100;
-			keep[1] == 4'b0011;
-			
-			foreach(last[i])
-				last[i] == (i == (data_n - 1));
-			
-			foreach(wait_period_n[i])
-				wait_period_n[i] <= 2;
+			data[0] == {8'd3, 8'd2, 8'd1, 8'd0};
+			keep[0] == 4'b1111;
+			last[0] == 1'b1;
+			wait_period_n[0] <= 2;
 		})
 		
 		// 传输字节数 = 124, 基地址 = 4000, 固定突发
@@ -275,7 +278,10 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				data[i] == i;
+				(data[i][7:0] == (i * 4)) && 
+				(data[i][15:8] == (i * 4 + 1)) && 
+				(data[i][23:16] == (i * 4 + 2)) && 
+				(data[i][31:24] == (i * 4 + 3));
 			
 			foreach(keep[i])
 				keep[i] == 4'b1111;
@@ -297,7 +303,10 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				data[i] == i;
+				(data[i][7:0] == (i * 4)) && 
+				(data[i][15:8] == (i * 4 + 1)) && 
+				(data[i][23:16] == (i * 4 + 2)) && 
+				(data[i][31:24] == (i * 4 + 3));
 			
 			keep[0] == 4'b1111;
 			keep[1] == 4'b0011;
@@ -311,7 +320,7 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 		
 		// 传输字节数 = 20, 基地址 = 1000, 固定突发
 		`uvm_do_with(this.m_axis_trans, {
-			data_n == 6;
+			data_n == 5;
 			
 			data.size() == data_n;
 			keep.size() == data_n;
@@ -319,7 +328,10 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				data[i] == i;
+				(data[i][7:0] == (i * 4)) && 
+				(data[i][15:8] == (i * 4 + 1)) && 
+				(data[i][23:16] == (i * 4 + 2)) && 
+				(data[i][31:24] == (i * 4 + 3));
 			
 			foreach(keep[i])
 				keep[i] == 4'b1111;

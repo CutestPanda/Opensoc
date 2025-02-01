@@ -20,6 +20,7 @@ module tb_axi_dma_engine_mm2s();
 	localparam integer MAX_BURST_LEN = 4; // 最大的突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	localparam S_AXIS_COMMON_CLOCK = "true"; // 命令AXIS从机与AXI主机是否使用相同的时钟和复位
 	localparam M_AXIS_COMMON_CLOCK = "true"; // 输出数据流AXIS主机与AXI主机是否使用相同的时钟和复位
+	localparam EN_UNALIGNED_TRANS = "true"; // 是否允许非对齐传输
 	// 仿真模型配置
 	localparam integer memory_map_depth = 1024 * 64; // 存储映射深度(以字节计)
 	// 时钟和复位配置
@@ -50,7 +51,7 @@ module tb_axi_dma_engine_mm2s();
 	
 	/** 接口 **/
 	AXIS #(.out_drive_t(simulation_delay), .data_width(56), .user_width(1)) m_axis_if(.clk(clk), .rst_n(rst_n));
-	AXIS #(.out_drive_t(simulation_delay), .data_width(32), .user_width(2)) s_axis_if(.clk(clk), .rst_n(rst_n));
+	AXIS #(.out_drive_t(simulation_delay), .data_width(32), .user_width(3)) s_axis_if(.clk(clk), .rst_n(rst_n));
 	AXI #(.out_drive_t(simulation_delay), .addr_width(32), .data_width(32), .bresp_width(2), .rresp_width(2))
 		axi_if_inst(.clk(clk), .rst_n(rst_n));
 	
@@ -65,10 +66,10 @@ module tb_axi_dma_engine_mm2s();
 			.data_width(56), .user_width(1)).monitor)::set(null, 
 			"uvm_test_top.env.agt1.mon", "axis_if", m_axis_if.monitor);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(32), .user_width(2)).slave)::set(null, 
+			.data_width(32), .user_width(3)).slave)::set(null, 
 			"uvm_test_top.env.agt2.drv", "axis_if", s_axis_if.slave);
 		uvm_config_db #(virtual AXIS #(.out_drive_t(simulation_delay), 
-			.data_width(32), .user_width(2)).monitor)::set(null, 
+			.data_width(32), .user_width(3)).monitor)::set(null, 
 			"uvm_test_top.env.agt2.mon", "axis_if", s_axis_if.monitor);
 		
 		// 启动testcase
@@ -232,7 +233,8 @@ module tb_axi_dma_engine_mm2s();
 	begin
 		for(int i = 0;i < (memory_map_depth / 4);i++)
 		begin
-			bram_single_port_u.mem[i] = (i << 2);
+			bram_single_port_u.mem[i][15:0] = (i << 2);
+			bram_single_port_u.mem[i][31:16] = (i << 2) + 2;
 		end
 	end
 	
@@ -240,12 +242,14 @@ module tb_axi_dma_engine_mm2s();
 	// 命令AXIS从机
 	wire[55:0] s_cmd_axis_data; // {待传输字节数(24bit), 传输首地址(32bit)}
 	wire s_cmd_axis_user; // {固定(1'b1)/递增(1'b0)传输(1bit)}
+	wire s_cmd_axis_last; // 帧尾标志
 	wire s_cmd_axis_valid;
 	wire s_cmd_axis_ready;
 	// 输出数据流AXIS主机
 	wire[DATA_WIDTH-1:0] m_mm2s_axis_data;
 	wire[DATA_WIDTH/8-1:0] m_mm2s_axis_keep;
-	wire[1:0] m_mm2s_axis_user; // 错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)
+	wire[2:0] m_mm2s_axis_user; // {读请求首次传输标志(1bit), 
+	                            //     错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)}
 	wire m_mm2s_axis_last;
 	wire m_mm2s_axis_valid;
 	wire m_mm2s_axis_ready;
@@ -270,6 +274,7 @@ module tb_axi_dma_engine_mm2s();
 	
 	assign s_cmd_axis_data = m_axis_if.data;
 	assign s_cmd_axis_user = m_axis_if.user;
+	assign s_cmd_axis_last = m_axis_if.last;
 	assign s_cmd_axis_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_cmd_axis_ready;
 	
@@ -302,6 +307,7 @@ module tb_axi_dma_engine_mm2s();
 		.MAX_BURST_LEN(MAX_BURST_LEN),
 		.S_AXIS_COMMON_CLOCK(S_AXIS_COMMON_CLOCK),
 		.M_AXIS_COMMON_CLOCK(M_AXIS_COMMON_CLOCK),
+		.EN_UNALIGNED_TRANS(EN_UNALIGNED_TRANS),
 		.SIM_DELAY(simulation_delay)
 	)dut(
 		.s_axis_aclk(clk),
@@ -313,6 +319,7 @@ module tb_axi_dma_engine_mm2s();
 		
 		.s_cmd_axis_data(s_cmd_axis_data),
 		.s_cmd_axis_user(s_cmd_axis_user),
+		.s_cmd_axis_last(s_cmd_axis_last),
 		.s_cmd_axis_valid(s_cmd_axis_valid),
 		.s_cmd_axis_ready(s_cmd_axis_ready),
 		

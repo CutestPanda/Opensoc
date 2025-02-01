@@ -15,19 +15,19 @@ class AxiDmaEngineMM2SEnv #(
 	
 	// 组件
 	local AXISMasterAgent #(.data_width(s_axis_data_width), .user_width(1)) m_axis_agt; // AXIS主机代理
-	local AXISSlaveAgent #(.data_width(m_axis_data_width), .user_width(2)) s_axis_agt; // AXIS从机代理
+	local AXISSlaveAgent #(.data_width(m_axis_data_width), .user_width(3)) s_axis_agt; // AXIS从机代理
 	
 	// 通信端口
 	local uvm_blocking_get_port #(AXISTrans #(.data_width(s_axis_data_width), .user_width(1))) m_axis_trans_port;
-	local uvm_blocking_get_port #(AXISTrans #(.data_width(m_axis_data_width), .user_width(2))) s_axis_trans_port;
+	local uvm_blocking_get_port #(AXISTrans #(.data_width(m_axis_data_width), .user_width(3))) s_axis_trans_port;
 	
 	// 通信fifo
 	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(s_axis_data_width), .user_width(1))) m_axis_agt_fifo;
-	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(m_axis_data_width), .user_width(2))) s_axis_agt_fifo;
+	local uvm_tlm_analysis_fifo #(AXISTrans #(.data_width(m_axis_data_width), .user_width(3))) s_axis_agt_fifo;
 	
 	// 事务
 	local AXISTrans #(.data_width(s_axis_data_width), .user_width(1)) m_axis_trans;
-	local AXISTrans #(.data_width(m_axis_data_width), .user_width(2)) s_axis_trans;
+	local AXISTrans #(.data_width(m_axis_data_width), .user_width(3)) s_axis_trans;
 	
 	// 注册component
 	`uvm_component_param_utils(AxiDmaEngineMM2SEnv #(.s_axis_data_width(s_axis_data_width), .m_axis_data_width(m_axis_data_width)))
@@ -43,7 +43,7 @@ class AxiDmaEngineMM2SEnv #(
 		this.m_axis_agt = AXISMasterAgent #(.data_width(s_axis_data_width), .user_width(1))::
 			type_id::create("agt1", this);
 		this.m_axis_agt.is_active = UVM_ACTIVE;
-		this.s_axis_agt = AXISSlaveAgent #(.data_width(m_axis_data_width), .user_width(2))::
+		this.s_axis_agt = AXISSlaveAgent #(.data_width(m_axis_data_width), .user_width(3))::
 			type_id::create("agt2", this);
 		this.s_axis_agt.is_active = UVM_ACTIVE;
 		
