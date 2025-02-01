@@ -10,6 +10,7 @@
 	APB-I2C    0x4000_1000~0x4000_1FFF 4KB
 	APB-TIMER  0x4000_2000~0x4000_2FFF 4KB
 	PLIC       0xF000_0000~0xF03F_FFFF 4MB
+	CLINT      0xF400_0000~0xF7FF_FFFF 64MB
 
 外部中断 -> 
 	中断#1 GPIO0中断
@@ -24,7 +25,7 @@ GPIO
 I2C MASTER
 
 作者: 陈家耀
-日期: 2025/01/23
+日期: 2025/02/01
 ********************************************************************/
 
 
@@ -189,6 +190,8 @@ module panda_soc_top #(
 		.dmem_addr_range(dmem_depth * 4),
 		.plic_baseaddr(32'hF000_0000),
 		.plic_addr_range(4 * 1024 * 1024),
+		.clint_baseaddr(32'hF400_0000),
+		.clint_addr_range(64 * 1024 * 1024),
 		.ext_baseaddr(32'h4000_0000),
 		.ext_addr_range(16 * 4096),
 		.en_inst_cmd_fwd("false"),
@@ -197,6 +200,7 @@ module panda_soc_top #(
 		.en_data_rsp_bck("true"),
 		.imem_init_file(imem_init_file),
 		.sgn_period_mul(sgn_period_mul),
+		.rtc_psc_r(50 * 1000),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_min_proc_sys_u(
 		.clk(pll_clk_out),
@@ -205,6 +209,8 @@ module panda_soc_top #(
 		.sys_reset_req(sys_reset_req),
 		
 		.rst_pc(rst_pc),
+		
+		.rtc_en(1'b1),
 		
 		.m_axi_dbus_araddr(m_axi_dbus_araddr),
 		.m_axi_dbus_arburst(m_axi_dbus_arburst),
@@ -237,8 +243,6 @@ module panda_soc_top #(
 		.ibus_timeout(),
 		.dbus_timeout(),
 		
-		.sw_itr_req(sw_itr_req),
-		.tmr_itr_req(tmr_itr_req),
 		.ext_itr_req_vec(ext_itr_req_vec)
 	);
 	

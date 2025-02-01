@@ -12,7 +12,7 @@
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/23
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -489,6 +489,8 @@ module panda_risc_v #(
 	);
 	
 	/** 译码/派遣单元 **/
+	// 内存屏障处理
+	wire lsu_idle; // 访存单元空闲(标志)
 	// 译码阶段数据相关性检查
 	wire[4:0] dcd_raw_dpc_check_rs1_id; // 待检查RAW相关性的RS1索引
 	wire dcd_rs1_raw_dpc; // RS1有RAW相关性(标志)
@@ -526,6 +528,7 @@ module panda_risc_v #(
 	wire m_alu_is_ecall_inst; // 是否ECALL指令
 	wire m_alu_is_mret_inst; // 是否MRET指令
 	wire m_alu_is_csr_rw_inst; // 是否CSR读写指令
+	wire m_alu_is_fence_i_inst; // 是否FENCE.I指令
 	wire[31:0] m_alu_brc_pc_upd; // 分支预测失败时修正的PC
 	wire m_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] m_alu_rd_id; // RD索引
@@ -589,6 +592,8 @@ module panda_risc_v #(
 		.sys_reset_req(sys_reset_req),
 		.flush_req(flush_req),
 		
+		.lsu_idle(lsu_idle),
+		
 		.raw_dpc_check_rs1_id(dcd_raw_dpc_check_rs1_id),
 		.rs1_raw_dpc(dcd_rs1_raw_dpc),
 		.raw_dpc_check_rs2_id(dcd_raw_dpc_check_rs2_id),
@@ -621,6 +626,7 @@ module panda_risc_v #(
 		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
 		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_is_csr_rw_inst(m_alu_is_csr_rw_inst),
+		.m_alu_is_fence_i_inst(m_alu_is_fence_i_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),
@@ -681,6 +687,7 @@ module panda_risc_v #(
 	wire s_alu_is_ecall_inst; // 是否ECALL指令
 	wire s_alu_is_mret_inst; // 是否MRET指令
 	wire s_alu_is_csr_rw_inst; // 是否CSR读写指令
+	wire s_alu_is_fence_i_inst; // 是否FENCE.I指令
 	wire[31:0] s_alu_brc_pc_upd; // 分支预测失败时修正的PC
 	wire s_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] s_alu_rd_id; // RD索引
@@ -759,6 +766,7 @@ module panda_risc_v #(
 	assign s_alu_is_ecall_inst = m_alu_is_ecall_inst;
 	assign s_alu_is_mret_inst = m_alu_is_mret_inst;
 	assign s_alu_is_csr_rw_inst = m_alu_is_csr_rw_inst;
+	assign s_alu_is_fence_i_inst = m_alu_is_fence_i_inst;
 	assign s_alu_brc_pc_upd = m_alu_brc_pc_upd;
 	assign s_alu_prdt_jump = m_alu_prdt_jump;
 	assign s_alu_rd_id = m_alu_rd_id;
@@ -823,6 +831,8 @@ module panda_risc_v #(
 		.clk(clk),
 		.sys_resetn(sys_resetn),
 		
+		.lsu_idle(lsu_idle),
+		
 		.dcd_reg_file_rd_p0_req(dcd_reg_file_rd_p0_req),
 		.dcd_reg_file_rd_p0_addr(dcd_reg_file_rd_p0_addr),
 		.dcd_reg_file_rd_p0_grant(dcd_reg_file_rd_p0_grant),
@@ -847,6 +857,7 @@ module panda_risc_v #(
 		.s_alu_is_ecall_inst(s_alu_is_ecall_inst),
 		.s_alu_is_mret_inst(s_alu_is_mret_inst),
 		.s_alu_is_csr_rw_inst(s_alu_is_csr_rw_inst),
+		.s_alu_is_fence_i_inst(s_alu_is_fence_i_inst),
 		.s_alu_brc_pc_upd(s_alu_brc_pc_upd),
 		.s_alu_prdt_jump(s_alu_prdt_jump),
 		.s_alu_rd_id(s_alu_rd_id),

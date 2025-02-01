@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -28,6 +28,9 @@ module panda_risc_v_dcd_dsptc #(
 	// 复位/冲刷请求
 	input wire sys_reset_req, // 系统复位请求
 	input wire flush_req, // 冲刷请求
+	
+	// 内存屏障处理
+	input wire lsu_idle, // 访存单元空闲(标志)
 	
 	// 数据相关性
 	output wire[4:0] raw_dpc_check_rs1_id, // 待检查RAW相关性的RS1索引
@@ -68,6 +71,7 @@ module panda_risc_v_dcd_dsptc #(
 	output wire m_alu_is_ecall_inst, // 是否ECALL指令
 	output wire m_alu_is_mret_inst, // 是否MRET指令
 	output wire m_alu_is_csr_rw_inst, // 是否CSR读写指令
+	output wire m_alu_is_fence_i_inst, // 是否FENCE.I指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
@@ -199,7 +203,7 @@ module panda_risc_v_dcd_dsptc #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	wire[70:0] m_dispatch_req_msg_reused; // 复用的派遣信息
-	wire[8:0] m_dispatch_req_inst_type_packeted; // 打包的指令类型标志
+	wire[10:0] m_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] m_dispatch_req_pc_of_inst; // 指令对应的PC
 	wire[31:0] m_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	wire[4:0] m_dispatch_req_rd_id; // RD索引
@@ -282,7 +286,7 @@ module panda_risc_v_dcd_dsptc #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	wire[70:0] s_dispatch_req_msg_reused; // 复用的派遣信息
-	wire[8:0] s_dispatch_req_inst_type_packeted; // 打包的指令类型标志
+	wire[10:0] s_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] s_dispatch_req_pc_of_inst; // 指令对应的PC
 	wire[31:0] s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	wire[4:0] s_dispatch_req_rd_id; // RD索引
@@ -311,6 +315,8 @@ module panda_risc_v_dcd_dsptc #(
 		.waw_dpc_check_rd_id(waw_dpc_check_rd_id),
 		.rd_waw_dpc(rd_waw_dpc),
 		
+		.lsu_idle(lsu_idle),
+		
 		.s_dispatch_req_msg_reused(s_dispatch_req_msg_reused),
 		.s_dispatch_req_inst_type_packeted(s_dispatch_req_inst_type_packeted),
 		.s_dispatch_req_pc_of_inst(s_dispatch_req_pc_of_inst),
@@ -332,6 +338,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
 		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_is_csr_rw_inst(m_alu_is_csr_rw_inst),
+		.m_alu_is_fence_i_inst(m_alu_is_fence_i_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),

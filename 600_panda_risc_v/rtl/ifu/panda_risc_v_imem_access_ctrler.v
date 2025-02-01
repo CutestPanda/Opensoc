@@ -17,10 +17,10 @@ IMEM访问请求的生命周期:
 要求指令总线控制单元的响应时延>=1clk
 
 协议:
-无
+REQ/ACK
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -120,11 +120,13 @@ module panda_risc_v_imem_access_ctrler #(
 	localparam integer PRE_DCD_MSG_IS_B_INST_SID = 8;
 	localparam integer PRE_DCD_MSG_IS_ECALL_INST_SID = 9;
 	localparam integer PRE_DCD_MSG_IS_MRET_INST_SID = 10;
-	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 11;
-	localparam integer PRE_DCD_MSG_RD_VLD_SID = 32;
-	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 33;
-	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 34;
-	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 35;
+	localparam integer PRE_DCD_MSG_IS_FENCE_INST_SID = 11;
+	localparam integer PRE_DCD_MSG_IS_FENCE_I_INST_SID = 12;
+	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 13;
+	localparam integer PRE_DCD_MSG_RD_VLD_SID = 34;
+	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 35;
+	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 36;
+	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 37;
 	
 	/**
 	取指结果缓存区

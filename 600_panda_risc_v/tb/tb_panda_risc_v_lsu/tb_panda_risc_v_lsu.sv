@@ -152,6 +152,8 @@ module tb_panda_risc_v_lsu();
 		.clk(clk),
 		.resetn(rst_n),
 		
+		.lsu_idle(),
+		
 		.s_req_ls_sel(s_req_ls_sel),
 		.s_req_ls_type(s_req_ls_type),
 		.s_req_rd_id_for_ld(s_req_rd_id_for_ld),

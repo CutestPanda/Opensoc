@@ -14,7 +14,7 @@ IFU取指结果 -> 向通用寄存器读控制提交请求 -> 译码单元 -> �
 无
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -64,7 +64,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	output wire[70:0] m_dispatch_req_msg_reused, // 复用的派遣信息
-	output wire[8:0] m_dispatch_req_inst_type_packeted, // 打包的指令类型标志
+	output wire[10:0] m_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	output wire[31:0] m_dispatch_req_pc_of_inst, // 指令对应的PC
 	output wire[31:0] m_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
 	output wire[4:0] m_dispatch_req_rd_id, // RD索引
@@ -98,12 +98,16 @@ module panda_risc_v_dispatch_msg_gen #(
 	localparam integer PRE_DCD_MSG_IS_B_INST_SID = 8;
 	localparam integer PRE_DCD_MSG_IS_ECALL_INST_SID = 9;
 	localparam integer PRE_DCD_MSG_IS_MRET_INST_SID = 10;
-	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 11;
-	localparam integer PRE_DCD_MSG_RD_VLD_SID = 32;
-	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 33;
-	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 34;
-	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 35;
+	localparam integer PRE_DCD_MSG_IS_FENCE_INST_SID = 11;
+	localparam integer PRE_DCD_MSG_IS_FENCE_I_INST_SID = 12;
+	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 13;
+	localparam integer PRE_DCD_MSG_RD_VLD_SID = 34;
+	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 35;
+	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 36;
+	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 37;
 	// 打包的指令类型标志各项的起始索引
+	localparam integer INST_TYPE_FLAG_IS_FENCE_I_INST_SID = 10;
+	localparam integer INST_TYPE_FLAG_IS_FENCE_INST_SID = 9;
 	localparam integer INST_TYPE_FLAG_IS_MRET_INST_SID = 8;
 	localparam integer INST_TYPE_FLAG_IS_ECALL_INST_SID = 7;
 	localparam integer INST_TYPE_FLAG_IS_B_INST_SID = 6;
@@ -217,7 +221,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	wire ls_addr_aligned; // 访存地址对齐(标志)
 	wire is_ls_inst; // 是否L/S指令
 	// 打包的译码结果
-	wire[8:0] dcd_res_inst_type_packeted; // 打包的指令类型标志
+	wire[10:0] dcd_res_inst_type_packeted; // 打包的指令类型标志
 	wire[67:0] dcd_res_alu_op_msg_packeted; // 打包的ALU操作信息
 	wire[2:0] dcd_res_lsu_op_msg_packeted; // 打包的LSU操作信息
 	wire[45:0] dcd_res_csr_rw_op_msg_packeted; // 打包的CSR原子读写操作信息
@@ -252,6 +256,8 @@ module panda_risc_v_dispatch_msg_gen #(
 		.is_rem_inst(),
 		.is_ecall_inst(),
 		.is_mret_inst(),
+		.is_fence_inst(),
+		.is_fence_i_inst(),
 		
 		.prdt_jump(if_res_prdt_jump),
 		.brc_pc_upd(brc_pc_upd),
@@ -295,7 +301,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	reg[70:0] dispatch_msg_reused; // 复用的派遣信息
-	reg[8:0] dispatch_inst_type_packeted; // 打包的指令类型标志
+	reg[10:0] dispatch_inst_type_packeted; // 打包的指令类型标志
 	reg[31:0] dispatch_pc_of_inst; // 指令对应的PC
 	reg[31:0] dispatch_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	reg[4:0] dispatch_rd_id; // RD索引
@@ -352,8 +358,8 @@ module panda_risc_v_dispatch_msg_gen #(
 	always @(posedge clk)
 	begin
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
-			// 注意: 非法指令不属于B/CSR读写/LS/乘除法/ECALL/MRET指令!
-			dispatch_inst_type_packeted <= # simulation_delay {9{~if_res_illegal_inst}} & dcd_res_inst_type_packeted;
+			// 注意: 非法指令不属于B/CSR读写/LS/乘除法/ECALL/MRET/FENCE/FENCE.I指令!
+			dispatch_inst_type_packeted <= # simulation_delay {11{~if_res_illegal_inst}} & dcd_res_inst_type_packeted;
 	end
 	// 指令对应的PC
 	always @(posedge clk)

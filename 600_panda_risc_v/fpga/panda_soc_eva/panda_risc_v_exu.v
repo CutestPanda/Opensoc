@@ -35,7 +35,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/20
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -69,6 +69,9 @@ module panda_risc_v_exu #(
 	// 系统复位输入
 	input wire sys_resetn,
 	
+	// 内存屏障处理
+	output wire lsu_idle, // 访存单元空闲(标志)
+	
 	// 译码器给出的通用寄存器堆读端口#0
 	input wire dcd_reg_file_rd_p0_req, // 读请求
 	input wire[4:0] dcd_reg_file_rd_p0_addr, // 读地址
@@ -100,6 +103,7 @@ module panda_risc_v_exu #(
 	input wire s_alu_is_ecall_inst, // 是否ECALL指令
 	input wire s_alu_is_mret_inst, // 是否MRET指令
 	input wire s_alu_is_csr_rw_inst, // 是否CSR读写指令
+	input wire s_alu_is_fence_i_inst, // 是否FENCE.I指令
 	input wire[31:0] s_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	input wire s_alu_prdt_jump, // 是否预测跳转
 	input wire[4:0] s_alu_rd_id, // RD索引
@@ -198,6 +202,7 @@ module panda_risc_v_exu #(
 	wire s_pst_is_b_inst; // 是否B指令
 	wire s_pst_is_ecall_inst; // 是否ECALL指令
 	wire s_pst_is_mret_inst; // 是否MRET指令
+	wire s_pst_is_fence_i_inst; // 是否FENCE.I指令
 	wire[31:0] s_pst_brc_pc_upd; // 分支预测失败时修正的PC(仅在B指令下有效)
 	wire s_pst_prdt_jump; // 是否预测跳转
 	wire s_pst_is_long_inst; // 是否长指令
@@ -234,6 +239,7 @@ module panda_risc_v_exu #(
 	assign s_pst_is_b_inst = s_alu_is_b_inst;
 	assign s_pst_is_ecall_inst = s_alu_is_ecall_inst;
 	assign s_pst_is_mret_inst = s_alu_is_mret_inst;
+	assign s_pst_is_fence_i_inst = s_alu_is_fence_i_inst;
 	assign s_pst_brc_pc_upd = s_alu_brc_pc_upd;
 	assign s_pst_prdt_jump = s_alu_prdt_jump;
 	assign s_pst_is_long_inst = s_alu_is_long_inst;
@@ -257,6 +263,7 @@ module panda_risc_v_exu #(
 		.s_pst_is_b_inst(s_pst_is_b_inst),
 		.s_pst_is_ecall_inst(s_pst_is_ecall_inst),
 		.s_pst_is_mret_inst(s_pst_is_mret_inst),
+		.s_pst_is_fence_i_inst(s_pst_is_fence_i_inst),
 		.s_pst_brc_pc_upd(s_pst_brc_pc_upd),
 		.s_pst_prdt_jump(s_pst_prdt_jump),
 		.s_pst_is_long_inst(s_pst_is_long_inst),
@@ -429,6 +436,8 @@ module panda_risc_v_exu #(
 	)panda_risc_v_lsu_u(
 		.clk(clk),
 		.resetn(sys_resetn),
+		
+		.lsu_idle(lsu_idle),
 		
 		.s_req_ls_sel(s_req_ls_sel),
 		.s_req_ls_type(s_req_ls_type),

@@ -1,10 +1,11 @@
 ## 简介
 小胖达MCU是一种**基于RISC-V**、**完全开源**、**设计严谨**、**结构清晰**的处理器核，适用于交互、控制等任务，它具有以下特性：  
 
- - RV32 I[M]（FENCE、FENCE.I、EBREAK指令除外）
+ - RV32 I[M]（EBREAK指令除外）
  - 支持中断/异常
  - 可运行C程序
  - 采用ICB总线
+ - 配备内置ITCM、DTCM、PLIC和CLINT的最小处理器系统
 
 ## 配置编译环境
 1.下载MAKE工具和GNU工具链（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)）  
@@ -46,6 +47,7 @@
 |APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|
 |APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|
 |PLIC|0xF000_0000~0xF03F_FFFF|4MB|
+|CLINT|0xF400_0000~0xF7FF_FFFF|64MB|
 
 #### <center>I/O表</center>
 |I/O|说明|

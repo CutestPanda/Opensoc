@@ -23,7 +23,7 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/13
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -49,6 +49,7 @@ module panda_risc_v_commit #(
 	input wire s_pst_is_b_inst, // 是否B指令
 	input wire s_pst_is_ecall_inst, // 是否ECALL指令
 	input wire s_pst_is_mret_inst, // 是否MRET指令
+	input wire s_pst_is_fence_i_inst, // 是否FENCE.I指令
 	input wire[31:0] s_pst_brc_pc_upd, // 分支预测失败时修正的PC(仅在B指令下有效)
 	input wire s_pst_prdt_jump, // 是否预测跳转
 	input wire s_pst_is_long_inst, // 是否长指令(L/S, 乘除法)
@@ -241,13 +242,15 @@ module panda_risc_v_commit #(
 		s_pst_valid & s_pst_ready & // 当前指令交付完成
 		(brc_prdt_failed | // 分支预测失败
 			((~(s_pst_err_code[0] | s_pst_err_code[1])) & 
-				(s_pst_is_ecall_inst | s_pst_is_mret_inst)) | // 待交付指令没有异常且为ECALL或MRET指令
+				(s_pst_is_ecall_inst | s_pst_is_mret_inst | s_pst_is_fence_i_inst)) | // 待交付指令没有异常且为ECALL/MRET/FENCE.I指令
 			sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | sync_expt_req_vld); // 当前有中断/异常
 	assign flush_addr = 
-		({32{brc_prdt_failed}} & s_pst_brc_pc_upd) | // 分支预测失败时冲刷到修正的PC
-		({32{(~(s_pst_err_code[0] | s_pst_err_code[1])) & 
-			s_pst_is_mret_inst}} & mepc_ret_addr) | // 中断/异常返回时冲刷到mepc状态寄存器定义的中断/异常返回地址
-		({32{(~brc_prdt_failed) & (~s_pst_is_mret_inst)}} & itr_expt_vec_baseaddr); // 其余情况冲刷到中断/异常向量表基地址
+		// 分支预测失败或者是FENCE.I指令时冲刷到修正的PC
+		({32{brc_prdt_failed | ((~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_fence_i_inst)}} & s_pst_brc_pc_upd) | 
+		// 中断/异常返回时冲刷到mepc状态寄存器定义的中断/异常返回地址
+		({32{(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_mret_inst}} & mepc_ret_addr) | 
+		// 其余情况冲刷到中断/异常向量表基地址
+		({32{(~brc_prdt_failed) & (~s_pst_is_fence_i_inst) & (~s_pst_is_mret_inst)}} & itr_expt_vec_baseaddr);
 	
 	// 正在处理的冲刷(标志)
 	always @(posedge clk or negedge resetn)

@@ -15,7 +15,7 @@
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -28,6 +28,9 @@ module panda_risc_v_lsu #(
 	// 时钟和复位
 	input wire clk,
 	input wire resetn,
+	
+	// 内存屏障处理
+	output wire lsu_idle, // 访存单元空闲(标志)
 	
 	// 访存请求
 	input wire s_req_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
@@ -203,6 +206,12 @@ module panda_risc_v_lsu #(
 	// 完成阶段
 	wire retire_ls_task; // 访存任务退休(指示)
 	reg[1:0] ls_msg_table_rptr; // 访存信息表读指针
+	
+	assign lsu_idle = 
+		(ls_task_life_cycle_vec[0][LS_TASK_START_STAGE_FID] | ls_task_life_cycle_vec[0][LS_TASK_DONE_STAGE_FID]) & 
+		(ls_task_life_cycle_vec[1][LS_TASK_START_STAGE_FID] | ls_task_life_cycle_vec[1][LS_TASK_DONE_STAGE_FID]) & 
+		(ls_task_life_cycle_vec[2][LS_TASK_START_STAGE_FID] | ls_task_life_cycle_vec[2][LS_TASK_DONE_STAGE_FID]) & 
+		(ls_task_life_cycle_vec[3][LS_TASK_START_STAGE_FID] | ls_task_life_cycle_vec[3][LS_TASK_DONE_STAGE_FID]);
 	
 	assign s_req_ready = 
 		(ls_addr_aligned | (~ls_msg_table_empty_n)) & // 访存地址非对齐时必须等待访存信息表空
@@ -446,7 +455,7 @@ module panda_risc_v_lsu #(
 			always @(posedge clk or negedge resetn)
 			begin
 				if(~resetn)
-					ls_task_life_cycle_vec[ls_task_life_cycle_vec_i] <= 4'b0001;
+					ls_task_life_cycle_vec[ls_task_life_cycle_vec_i] <= (4'b0001 << LS_TASK_START_STAGE_FID);
 				else if(
 				// 启动新的访存任务
 				(ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_START_STAGE_FID] & 
@@ -463,30 +472,37 @@ module panda_risc_v_lsu #(
 					ls_task_life_cycle_vec[ls_task_life_cycle_vec_i] <= # simulation_delay 
 						// 现处于开始阶段, 不跳过命令阶段
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_START_STAGE_FID] & 
-							(~ls_task_skip_cmd_stage) & (~ls_task_skip_resp_stage_at_start)}} & 4'b0010) | 
+							(~ls_task_skip_cmd_stage) & (~ls_task_skip_resp_stage_at_start)}} & 
+								(4'b0001 << LS_TASK_CMD_STAGE_FID)) | 
 						// 现处于开始阶段, 跳过命令阶段, 不跳过响应阶段, 
 						// 在请求旁路到数据ICB主机命令通道并被立即接受[但响应未立即返回]时发生
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_START_STAGE_FID] & 
 							ls_task_skip_cmd_stage & ((icb_zero_latency_supported == "false") | 
-							(~(m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i])))}} & 4'b0100) | 
+							(~(m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i])))}} & 
+								(4'b0001 << LS_TASK_RESP_STAGE_FID)) | 
 						// 现处于开始阶段, 跳过命令阶段, 跳过响应阶段, 在访存地址非对齐[或旁路的请求立即完成ICB传输]时发生
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_START_STAGE_FID] & 
 							(ls_task_skip_resp_stage_at_start | ((icb_zero_latency_supported == "true") & 
-							m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i]))}} & 4'b1000) | 
+							m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i]))}} & 
+								(4'b0001 << LS_TASK_DONE_STAGE_FID)) | 
 						// 现处于命令阶段, 直接更新为响应阶段
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_CMD_STAGE_FID] & 
 							((icb_zero_latency_supported == "false") | 
-							(~(m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i])))}} & 4'b0100) | 
+							(~(m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i])))}} & 
+								(4'b0001 << LS_TASK_RESP_STAGE_FID)) | 
 						// [现处于命令阶段, 跳过响应阶段, 在响应立即返回时发生]
 						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_CMD_STAGE_FID] & 
 							(icb_zero_latency_supported == "true") & 
-							m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i]}} & 4'b1000) | 
+							m_icb_rsp_valid & m_icb_rsp_ready & ls_msg_table_resp_stage_wptr[ls_task_life_cycle_vec_i]}} & 
+								(4'b0001 << LS_TASK_DONE_STAGE_FID)) | 
 						// 现处于响应阶段, 直接更新为完成阶段
-						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_RESP_STAGE_FID]}} & 4'b1000) | 
+						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_RESP_STAGE_FID]}} & 
+							(4'b0001 << LS_TASK_DONE_STAGE_FID)) | 
 						// 现处于完成阶段, 直接更新为开始阶段
-						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_DONE_STAGE_FID]}} & 4'b0001);
+						({4{ls_task_life_cycle_vec[ls_task_life_cycle_vec_i][LS_TASK_DONE_STAGE_FID]}} & 
+							(4'b0001 << LS_TASK_START_STAGE_FID));
 			end
 		end
 	endgenerate
-    
+	
 endmodule

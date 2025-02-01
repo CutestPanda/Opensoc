@@ -26,7 +26,7 @@ ALU操作 ->
 无
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -54,6 +54,8 @@ module panda_risc_v_decoder(
 	output wire is_rem_inst, // 是否求余指令
 	output wire is_ecall_inst, // 是否ECALL指令
 	output wire is_mret_inst, // 是否MRET指令
+	output wire is_fence_inst, // 是否FENCE指令
+	output wire is_fence_i_inst, // 是否FENCE.I指令
 	
 	// 分支预测回退处理
 	input wire prdt_jump, // 是否预测跳转
@@ -84,7 +86,7 @@ module panda_risc_v_decoder(
 	output wire[31:0] alu_op2, // 操作数2
 	
 	// 打包的译码结果
-	output wire[8:0] dcd_res_inst_type_packeted, // 打包的指令类型标志
+	output wire[10:0] dcd_res_inst_type_packeted, // 打包的指令类型标志
 	output wire[67:0] dcd_res_alu_op_msg_packeted, // 打包的ALU操作信息
 	output wire[2:0] dcd_res_lsu_op_msg_packeted, // 打包的LSU操作信息
 	output wire[45:0] dcd_res_csr_rw_op_msg_packeted, // 打包的CSR原子读写操作信息
@@ -104,11 +106,13 @@ module panda_risc_v_decoder(
 	localparam integer PRE_DCD_MSG_IS_B_INST_SID = 8;
 	localparam integer PRE_DCD_MSG_IS_ECALL_INST_SID = 9;
 	localparam integer PRE_DCD_MSG_IS_MRET_INST_SID = 10;
-	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 11;
-	localparam integer PRE_DCD_MSG_RD_VLD_SID = 32;
-	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 33;
-	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 34;
-	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 35;
+	localparam integer PRE_DCD_MSG_IS_FENCE_INST_SID = 11;
+	localparam integer PRE_DCD_MSG_IS_FENCE_I_INST_SID = 12;
+	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 13;
+	localparam integer PRE_DCD_MSG_RD_VLD_SID = 34;
+	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 35;
+	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 36;
+	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 37;
 	// 操作类型
 	localparam OP_MODE_ADD = 4'd0; // 加法
 	localparam OP_MODE_SUB = 4'd1; // 减法
@@ -180,8 +184,8 @@ module panda_risc_v_decoder(
 	wire is_sra_inst; // 是否SRA指令
 	wire is_or_inst; // 是否OR指令
 	wire is_and_inst; // 是否AND指令
-	wire is_fence_inst; // 是否FENCE指令
-	wire is_fence_i_inst; // 是否FENCE.I指令
+	wire is_fence_inst_acc; // 是否FENCE指令(精确的)
+	wire is_fence_i_inst_acc; // 是否FENCE.I指令(精确的)
 	wire is_ebreak_inst; // 是否EBREAK指令
 	wire is_csrrw_inst; // 是否CSRRW指令
 	wire is_csrrs_inst; // 是否CSRRS指令
@@ -208,6 +212,8 @@ module panda_risc_v_decoder(
 	assign is_rem_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_REM_INST_SID];
 	assign is_ecall_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_ECALL_INST_SID];
 	assign is_mret_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_MRET_INST_SID];
+	assign is_fence_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_FENCE_INST_SID];
+	assign is_fence_i_inst = pre_decoding_msg_packeted[PRE_DCD_MSG_IS_FENCE_I_INST_SID];
 	
 	assign is_arth_imm_inst = inst[6:0] == OPCODE_ARTH_IMM;
 	assign is_arth_regs_inst = (inst[6:0] == OPCODE_ARTH_REG) & (~inst[25]);
@@ -241,8 +247,8 @@ module panda_risc_v_decoder(
 	assign is_sra_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b101) & inst[30] & (~inst[25]);
 	assign is_or_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b110) & (~inst[25]);
 	assign is_and_inst = (inst[6:0] == OPCODE_ARTH_REG) & (inst[14:12] == 3'b111) & (~inst[25]);
-	assign is_fence_inst = (inst[6:0] == OPCODE_FENCE) & (~inst[12]);
-	assign is_fence_i_inst = (inst[6:0] == OPCODE_FENCE) & inst[12];
+	assign is_fence_inst_acc = (inst[6:0] == OPCODE_FENCE) & (~inst[12]);
+	assign is_fence_i_inst_acc = (inst[6:0] == OPCODE_FENCE) & inst[12];
 	assign is_ebreak_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b000) & (inst[21:20] == 2'b01);
 	assign is_csrrw_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b001);
 	assign is_csrrs_inst = (inst[6:0] == OPCODE_ENV_CSR) & (inst[14:12] == 3'b010);
@@ -263,9 +269,10 @@ module panda_risc_v_decoder(
 	/** 跳转后的PC **/
 	wire[20:0] jump_ofs_imm; // 跳转偏移量立即数
 	
-	// 是否一定要在译码单元里重新计算分支预测失败时修正的PC, 能不能复用加法器???
+	// 是否一定要在译码单元里重新计算分支预测失败时修正的PC或FENCE.I冲刷地址, 能不能复用加法器???
 	assign brc_pc_upd = pc_of_inst + 
-		(prdt_jump ? (32'd2 << inst_len_type): // 预测跳转, 预测失败时修正到(PC + 指令长度)
+		((prdt_jump | is_fence_i_inst) ? (32'd2 << inst_len_type): // 预测跳转, 预测失败时修正到(PC + 指令长度)
+		                                                           // 若为FENCE.I指令, 也冲刷到(PC + 指令长度)
 			{{11{jump_ofs_imm[20]}}, jump_ofs_imm}); // 预测不跳, 预测失败时修正到(PC + 跳转偏移量)
 	
 	assign jump_ofs_imm = pre_decoding_msg_packeted[PRE_DCD_MSG_JUMP_OFS_IMM_SID+20:PRE_DCD_MSG_JUMP_OFS_IMM_SID];
@@ -376,6 +383,7 @@ module panda_risc_v_decoder(
 	
 	/** 打包的译码结果 **/
 	assign dcd_res_inst_type_packeted = {
+		is_fence_i_inst, is_fence_inst, 
 		is_mret_inst, is_ecall_inst, 
 		is_b_inst, is_csr_rw_inst, is_load_inst, is_store_inst, 
 		is_mul_inst, is_div_inst, is_rem_inst

@@ -12,7 +12,7 @@
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/14
+日期: 2025/02/01
 ********************************************************************/
 
 
@@ -27,6 +27,9 @@ module panda_risc_v_dcd_dsptc_eva(
 	
 	// 冲刷请求
 	input wire flush_req,
+	
+	// 内存屏障处理
+	input wire lsu_idle, // 访存单元空闲(标志)
 	
 	// 数据相关性
 	output wire[4:0] raw_dpc_check_rs1_id, // 待检查RAW相关性的RS1索引
@@ -68,6 +71,7 @@ module panda_risc_v_dcd_dsptc_eva(
 	output wire m_alu_is_ecall_inst, // 是否ECALL指令
 	output wire m_alu_is_mret_inst, // 是否MRET指令
 	output wire m_alu_is_csr_rw_inst, // 是否CSR读写指令
+	output wire m_alu_is_fence_i_inst, // 是否FENCE.I指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
@@ -148,6 +152,8 @@ module panda_risc_v_dcd_dsptc_eva(
 		.sys_reset_req(sys_reset_req),
 		.flush_req(flush_req),
 		
+		.lsu_idle(lsu_idle),
+		
 		.raw_dpc_check_rs1_id(raw_dpc_check_rs1_id),
 		.rs1_raw_dpc(rs1_raw_dpc),
 		.raw_dpc_check_rs2_id(raw_dpc_check_rs2_id),
@@ -181,6 +187,7 @@ module panda_risc_v_dcd_dsptc_eva(
 		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
 		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_is_csr_rw_inst(m_alu_is_csr_rw_inst),
+		.m_alu_is_fence_i_inst(m_alu_is_fence_i_inst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),

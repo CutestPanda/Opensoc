@@ -5,6 +5,8 @@
 描述:
 将译码/读寄存器堆后的指令派遣给EXU(ALU/LSU/CSR原子读写单元/乘法器/除法器)
 
+派遣指令时需要确保RD不存在WAW相关性, 若为内存屏障指令, 还需要等待访存单元空闲
+
 指令类型  |  派遣到ALU | 派遣到LSU | 派遣到CSR原子读写单元 | 派遣到乘法器 | 派遣到除法器
 -----------------------------------------------------------------------------------------
  CSR读写  |    Yes     |           |          Yes          |              |             |
@@ -20,7 +22,7 @@
 无
 
 作者: 陈家耀
-日期: 2025/01/09
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -30,6 +32,9 @@ module panda_risc_v_dispatcher #(
 	// 数据相关性
 	output wire[4:0] waw_dpc_check_rd_id, // 待检查WAW相关性的RD索引
 	input wire rd_waw_dpc, // RD有WAW相关性(标志)
+	
+	// 内存屏障处理
+	input wire lsu_idle, // 访存单元空闲(标志)
 	
 	// 派遣请求
 	/*
@@ -44,7 +49,7 @@ module panda_risc_v_dispatcher #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	input wire[70:0] s_dispatch_req_msg_reused, // 复用的派遣信息
-	input wire[8:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
+	input wire[10:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	input wire[31:0] s_dispatch_req_pc_of_inst, // 指令对应的PC
 	input wire[31:0] s_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
 	input wire[4:0] s_dispatch_req_rd_id, // RD索引
@@ -69,6 +74,7 @@ module panda_risc_v_dispatcher #(
 	output wire m_alu_is_ecall_inst, // 是否ECALL指令
 	output wire m_alu_is_mret_inst, // 是否MRET指令
 	output wire m_alu_is_csr_rw_inst, // 是否CSR读写指令
+	output wire m_alu_is_fence_i_inst, // 是否FENCE.I指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
@@ -117,6 +123,8 @@ module panda_risc_v_dispatcher #(
 	
 	/** 常量 **/
 	// 打包的指令类型标志各项的起始索引
+	localparam integer INST_TYPE_FLAG_IS_FENCE_I_INST_SID = 10;
+	localparam integer INST_TYPE_FLAG_IS_FENCE_INST_SID = 9;
 	localparam integer INST_TYPE_FLAG_IS_MRET_INST_SID = 8;
 	localparam integer INST_TYPE_FLAG_IS_ECALL_INST_SID = 7;
 	localparam integer INST_TYPE_FLAG_IS_B_INST_SID = 6;
@@ -176,6 +184,7 @@ module panda_risc_v_dispatcher #(
 	wire is_ls_inst; // 是否加载/存储指令
 	wire is_mul_inst; // 是否乘法指令
 	wire is_div_rem_inst; // 是否除法/求余指令
+	wire is_fence_inst; // 是否FENCE/FENCE.I指令
 	
 	assign is_b_inst = 
 		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_B_INST_SID];
@@ -189,6 +198,9 @@ module panda_risc_v_dispatcher #(
 	assign is_div_rem_inst = 
 		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_DIV_INST_SID] | 
 		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_REM_INST_SID];
+	assign is_fence_inst = 
+		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_FENCE_INST_SID] | 
+		s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_FENCE_I_INST_SID];
 	
 	/** 派遣控制 **/
 	// 派遣请求
@@ -199,7 +211,8 @@ module panda_risc_v_dispatcher #(
 			((~is_ls_inst) | s_dispatch_req_err_code[2] | m_lsu_ready) & // 仅加载/存储指令需要用到LSU, 访存地址非对齐时不派遣到LSU
 			((~is_csr_rw_inst) | m_csr_rw_ready) & // 仅CSR读写指令需要用到CSR原子读写单元
 			((~is_mul_inst) | m_mul_ready) & // 仅乘法指令需要用到乘法器
-			((~is_div_rem_inst) | m_div_ready) // 仅除法/求余指令需要用到除法器
+			((~is_div_rem_inst) | m_div_ready) & // 仅除法/求余指令需要用到除法器
+			((~is_fence_inst) | lsu_idle) // 内存屏障指令需要等待访存单元空闲
 		);
 	
 	// 派遣给ALU
@@ -213,6 +226,7 @@ module panda_risc_v_dispatcher #(
 	assign m_alu_is_ecall_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_ECALL_INST_SID];
 	assign m_alu_is_mret_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_MRET_INST_SID];
 	assign m_alu_is_csr_rw_inst = is_csr_rw_inst;
+	assign m_alu_is_fence_i_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_FENCE_I_INST_SID];
 	assign m_alu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
 	assign m_alu_prdt_jump = dispatch_req_prdt_jump;
 	assign m_alu_rd_id = s_dispatch_req_rd_id;
@@ -233,7 +247,8 @@ module panda_risc_v_dispatcher #(
 			(is_csr_rw_inst & m_csr_rw_ready) | // 若为CSR读写指令, 需要确保ALU执行请求和CSR原子读写单元执行请求同时握手
 			(is_mul_inst & m_mul_ready) | // 若为乘法指令, 需要确保ALU执行请求和乘法器执行请求同时握手
 			(is_div_rem_inst & m_div_ready) | // 若为除法/求余指令, 需要确保ALU执行请求和除法器执行请求同时握手
-			(~(is_ls_inst | is_csr_rw_inst | is_mul_inst | is_div_rem_inst))
+			(is_fence_inst & lsu_idle) | // 若为内存屏障指令, 需要等待访存单元空闲
+			(~(is_ls_inst | is_csr_rw_inst | is_mul_inst | is_div_rem_inst | is_fence_inst))
 		);
 	
 	// 派遣给LSU

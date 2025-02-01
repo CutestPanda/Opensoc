@@ -15,10 +15,11 @@
 
 协议:
 ICB MASTER
+REQ/ACK
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/23
+日期: 2025/01/31
 ********************************************************************/
 
 
@@ -174,6 +175,8 @@ module panda_risc_v_ifu #(
 		.is_rem_inst(),
 		.is_ecall_inst(),
 		.is_mret_inst(),
+		.is_fence_inst(),
+		.is_fence_i_inst(),
 		.jump_ofs_imm(jump_ofs_imm),
 		.rs1_vld(),
 		.rs2_vld(),
