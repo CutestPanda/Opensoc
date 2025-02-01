@@ -10,11 +10,22 @@
  - 可运行C程序
  - 支持中断/异常，可处理多达63个外部中断
  - 在最小处理器系统中配备ITCM、DTCM、PLIC和CLINT
+ - 支持UART编程烧录
+ - 易于移植到FPGA
 
 小胖达MCU尚未支持以下特性：  
 
  - JTAG在线调试（包括对EBREAK指令的支持）
  - ICache和DCache
+
+## 文件结构
+**doc**: 设计文档、参考手册  
+**fpga**: 测评SOC源码、Vivado工程  
+**rtl**: 处理器核的RTL代码  
+**scripts**: 用于编译、UART编程烧录的脚本  
+**software**: 外设驱动、软件程序示例  
+**tb**: 测试平台  
+**tools**: GNU工具链  
 
 ## 配置编译环境
 1.下载MAKE工具和GNU工具链（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)）  
