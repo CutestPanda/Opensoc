@@ -37,6 +37,9 @@
 ![说明2](../img/panda_risc_v_2.png)  
 3.安装GNU工具链  
 将gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64.zip解压到**600_panda_risc_v/tools**下。  
+4.安装Python  
+安装好Python并将其添加到环境变量里。  
+> 作者在测试时使用的是python3.12。  
 
 ## 编译C程序
 请确保已经安装好python解释器，并将python.exe所在目录添加到了环境变量里。  
