@@ -38,11 +38,12 @@
 3.安装GNU工具链  
 将gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64.zip解压到**600_panda_risc_v/tools**下。  
 4.安装Python  
-安装好Python并将其添加到环境变量里。  
+安装好Python并将python.exe所在目录添加到环境变量里。  
+然后，为当前python环境安装pyserial库，打开命令行终端并执行：  
+`` pip install pyserial ``  
 > 作者在测试时使用的是python3.12。  
 
 ## 编译C程序
-请确保已经安装好python解释器，并将python.exe所在目录添加到了环境变量里。  
 在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
 `` python .\compile.py --target flow_led ``  
 等待出现"请按任意键继续. . ."后，键入`` ENTER ``，并退出终端。  
@@ -105,8 +106,6 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 目前只支持UART编程烧录。  
 
 #### UART编程烧录
-请确保当前python环境已经安装了pyserial库，否则需要打开命令行终端并执行：  
-`` pip install pyserial ``  
 将boot引脚对应的拨码开关拨到**低电平**，此时CPU运行bootrom程序。  
 将编译产生的.bin文件复制到**600_panda_risc_v/scripts**下，然后在scripts文件夹打开命令行终端，输入：  
 `` python .\uart_prog.py ``  
