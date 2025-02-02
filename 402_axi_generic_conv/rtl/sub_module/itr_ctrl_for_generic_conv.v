@@ -1,56 +1,80 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: Í¨ÓÃ¾í»ı¼ÆËãµ¥ÔªµÄÖĞ¶Ï¿ØÖÆÄ£¿é
+æœ¬æ¨¡å—: é€šç”¨å·ç§¯è®¡ç®—å•å…ƒçš„ä¸­æ–­æ§åˆ¶æ¨¡å—
 
-ÃèÊö:
-²úÉúÖĞ¶ÏÇëÇó -> 
-	¶ÁÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³É
-	Ğ´ÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³É
-	Íê³ÉĞ´ÇëÇó
+æè¿°:
+äº§ç”Ÿä¸­æ–­è¯·æ±‚ -> 
+	è¯»è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆ
+	å†™è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆ
+	å®Œæˆå†™è¯·æ±‚
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/12
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/12
 ********************************************************************/
 
 
 module itr_ctrl_for_generic_conv #(
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
 	
-	// ÖĞ¶ÏÊÂ¼şÖ¸Ê¾
-	input wire rd_req_dsc_dma_blk_done, // ¶ÁÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³É(Ö¸Ê¾)
-	input wire wt_req_dsc_dma_blk_done, // Ğ´ÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³É(Ö¸Ê¾)
-	input wire wt_req_fns, // Íê³ÉĞ´ÇëÇó(Ö¸Ê¾)
+	// ä¸­æ–­äº‹ä»¶æŒ‡ç¤º
+	input wire rd_req_dsc_dma_blk_done, // è¯»è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆ(æŒ‡ç¤º)
+	input wire wt_req_dsc_dma_blk_done, // å†™è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆ(æŒ‡ç¤º)
+	input wire wt_req_fns, // å®Œæˆå†™è¯·æ±‚(æŒ‡ç¤º)
 	
-	// ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı
+	// å·²å®Œæˆçš„å†™è¯·æ±‚ä¸ªæ•°
 	input wire[3:0] to_set_wt_req_fns_n,
 	input wire[31:0] wt_req_fns_n_set_v,
 	output wire[31:0] wt_req_fns_n_cur_v,
 	
-	// ÖĞ¶ÏÊ¹ÄÜ
-	input wire en_wt_req_fns_itr, // ÊÇ·ñÊ¹ÄÜĞ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶Ï
+	// ä¸­æ–­ä½¿èƒ½
+	input wire en_wt_req_fns_itr, // æ˜¯å¦ä½¿èƒ½å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­
 	
-	// ÖĞ¶ÏãĞÖµ
-	input wire[31:0] wt_req_itr_th, // Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏãĞÖµ
+	// ä¸­æ–­é˜ˆå€¼
+	input wire[31:0] wt_req_itr_th, // å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­é˜ˆå€¼
 	
-	// ÖĞ¶ÏÇëÇó
+	// ä¸­æ–­è¯·æ±‚
 	output wire[2:0] itr_req
 );
 	
 	reg rd_req_dsc_dma_blk_done_d;
 	reg wt_req_dsc_dma_blk_done_d;
-	reg[31:0] wt_req_fns_n; // ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı
-	wire[31:0] wt_req_fns_n_add1; // ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı + 1
-	reg wt_req_fns_itr_req; // Ğ´Íê³ÉÖĞ¶ÏÇëÇó
+	reg[31:0] wt_req_fns_n; // å·²å®Œæˆçš„å†™è¯·æ±‚ä¸ªæ•°
+	wire[31:0] wt_req_fns_n_add1; // å·²å®Œæˆçš„å†™è¯·æ±‚ä¸ªæ•° + 1
+	reg wt_req_fns_itr_req; // å†™å®Œæˆä¸­æ–­è¯·æ±‚
 	reg wt_req_fns_d;
 	
 	assign wt_req_fns_n_cur_v = wt_req_fns_n;
@@ -74,7 +98,7 @@ module itr_ctrl_for_generic_conv #(
 			wt_req_dsc_dma_blk_done_d <= # simulation_delay wt_req_dsc_dma_blk_done;
 	end
 	
-	// ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı
+	// å·²å®Œæˆçš„å†™è¯·æ±‚ä¸ªæ•°
 	genvar wt_req_fns_n_i;
 	
 	generate
@@ -92,7 +116,7 @@ module itr_ctrl_for_generic_conv #(
 		end
 	endgenerate
 	
-	// Ğ´Íê³ÉÖĞ¶ÏÇëÇó
+	// å†™å®Œæˆä¸­æ–­è¯·æ±‚
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)

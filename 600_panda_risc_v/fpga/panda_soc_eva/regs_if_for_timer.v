@@ -1,54 +1,78 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: APB-TIMERµÄ¼Ä´æÆ÷½Ó¿Ú
+æœ¬æ¨¡å—: APB-TIMERçš„å¯„å­˜å™¨æ¥å£
 
-ÃèÊö: 
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ    |        ±¸×¢
-    0x00    timer_width-1~0:Ô¤·ÖÆµÏµÊı-1         W
-    0x04    timer_width-1~0:×Ô¶¯×°ÔØÖµ-1         W
-    0x08    timer_width-1~0:¶¨Ê±Æ÷¼ÆÊıÖµ         RW
-    0x0C    0:ÊÇ·ñÆô¶¯¶¨Ê±Æ÷                     W
-            11~8:²¶»ñ/±È½ÏÑ¡Ôñ(4¸öÍ¨µÀ)          W
-    0x10    0:È«¾ÖÖĞ¶ÏÊ¹ÄÜ                       W
-            8:¼ÆÊıÒç³öÖĞ¶ÏÊ¹ÄÜ                   W
-            12~9:ÊäÈë²¶»ñÖĞ¶ÏÊ¹ÄÜ                W
-    0x14    0:È«¾ÖÖĞ¶Ï±êÖ¾                       RWC
-            8:¼ÆÊıÒç³öÖĞ¶Ï±êÖ¾                   R
-            12~9:ÊäÈë²¶»ñÖĞ¶Ï±êÖ¾                R
-    0x18    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ1)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ1Ê±¿ÉÓÃ
-    0x1C    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ1Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
-    0x20    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ2)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ2Ê±¿ÉÓÃ
-    0x24    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ2Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
-    0x28    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ3)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ3Ê±¿ÉÓÃ
-    0x2C    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ3Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
-    0x30    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ4)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ4Ê±¿ÉÓÃ
-    0x34    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ4Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
+æè¿°: 
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§    |        å¤‡æ³¨
+    0x00    timer_width-1~0:é¢„åˆ†é¢‘ç³»æ•°-1         W
+    0x04    timer_width-1~0:è‡ªåŠ¨è£…è½½å€¼-1         W
+    0x08    timer_width-1~0:å®šæ—¶å™¨è®¡æ•°å€¼         RW
+    0x0C    0:æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨                     W
+            11~8:æ•è·/æ¯”è¾ƒé€‰æ‹©(4ä¸ªé€šé“)          W
+    0x10    0:å…¨å±€ä¸­æ–­ä½¿èƒ½                       W
+            8:è®¡æ•°æº¢å‡ºä¸­æ–­ä½¿èƒ½                   W
+            12~9:è¾“å…¥æ•è·ä¸­æ–­ä½¿èƒ½                W
+    0x14    0:å…¨å±€ä¸­æ–­æ ‡å¿—                       RWC
+            8:è®¡æ•°æº¢å‡ºä¸­æ–­æ ‡å¿—                   R
+            12~9:è¾“å…¥æ•è·ä¸­æ–­æ ‡å¿—                R
+    0x18    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“1)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“1æ—¶å¯ç”¨
+    0x1C    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“1æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
+    0x20    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“2)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“2æ—¶å¯ç”¨
+    0x24    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“2æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
+    0x28    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“3)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“3æ—¶å¯ç”¨
+    0x2C    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“3æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
+    0x30    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“4)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“4æ—¶å¯ç”¨
+    0x34    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“4æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 APB SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/09
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/09
 ********************************************************************/
 
 
 module regs_if_for_timer #(
-    parameter integer timer_width = 16, // ¶¨Ê±Æ÷Î»¿í(16 | 32)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer timer_width = 16, // å®šæ—¶å™¨ä½å®½(16 | 32)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // APB´Ó»ú½Ó¿Ú
+    // APBä»æœºæ¥å£
     input wire[31:0] paddr,
     input wire psel,
     input wire penable,
@@ -58,107 +82,107 @@ module regs_if_for_timer #(
     output wire[31:0] prdata_out,
     output wire pslverr_out, // const -> 1'b0
     
-    // Ô¤·ÖÆµÏµÊı - 1
+    // é¢„åˆ†é¢‘ç³»æ•° - 1
     output wire[timer_width-1:0] prescale,
-    // ×Ô¶¯×°ÔØÖµ - 1
+    // è‡ªåŠ¨è£…è½½å€¼ - 1
     output wire[timer_width-1:0] autoload,
     
-    // ¶¨Ê±Æ÷¼ÆÊıÖµ
+    // å®šæ—¶å™¨è®¡æ•°å€¼
     output wire timer_cnt_to_set,
     output wire[timer_width-1:0] timer_cnt_set_v,
     input wire[timer_width-1:0] timer_cnt_now_v,
     
-    // ÊÇ·ñÆô¶¯¶¨Ê±Æ÷
+    // æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨
     output wire timer_started,
-    // ²¶»ñ/±È½ÏÑ¡Ôñ(4¸öÍ¨µÀ)
-    // 1'b0 -> ²¶»ñ, 1'b1 -> ±È½Ï
+    // æ•è·/æ¯”è¾ƒé€‰æ‹©(4ä¸ªé€šé“)
+    // 1'b0 -> æ•è·, 1'b1 -> æ¯”è¾ƒ
     output wire[3:0] cap_cmp_sel,
     
-    // ²¶»ñ/±È½ÏÖµ(Í¨µÀ1)
+    // æ•è·/æ¯”è¾ƒå€¼(é€šé“1)
     output wire[timer_width-1:0] timer_chn1_cmp,
     input wire[timer_width-1:0] timer_chn1_cap_cmp_i,
-    // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ1)
+    // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“1)
     output wire[7:0] timer_chn1_cap_filter_th,
-    // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ1)
-    // 2'b00 -> ÉÏÉıÑØ, 2'b01 -> ÏÂ½µÑØ, 2'b10 -> ÉÏÉı/ÏÂ½µÑØ, 2'b11 -> ±£Áô
+    // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“1)
+    // 2'b00 -> ä¸Šå‡æ²¿, 2'b01 -> ä¸‹é™æ²¿, 2'b10 -> ä¸Šå‡/ä¸‹é™æ²¿, 2'b11 -> ä¿ç•™
     output wire[1:0] timer_chn1_cap_edge,
     
-    // ²¶»ñ/±È½ÏÖµ(Í¨µÀ2)
+    // æ•è·/æ¯”è¾ƒå€¼(é€šé“2)
     output wire[timer_width-1:0] timer_chn2_cmp,
     input wire[timer_width-1:0] timer_chn2_cap_cmp_i,
-    // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ2)
+    // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“2)
     output wire[7:0] timer_chn2_cap_filter_th,
-    // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ2)
-    // 2'b00 -> ÉÏÉıÑØ, 2'b01 -> ÏÂ½µÑØ, 2'b1x -> ÉÏÉı/ÏÂ½µÑØ
+    // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“2)
+    // 2'b00 -> ä¸Šå‡æ²¿, 2'b01 -> ä¸‹é™æ²¿, 2'b1x -> ä¸Šå‡/ä¸‹é™æ²¿
     output wire[1:0] timer_chn2_cap_edge,
     
-    // ²¶»ñ/±È½ÏÖµ(Í¨µÀ3)
+    // æ•è·/æ¯”è¾ƒå€¼(é€šé“3)
     output wire[timer_width-1:0] timer_chn3_cmp,
     input wire[timer_width-1:0] timer_chn3_cap_cmp_i,
-    // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ3)
+    // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“3)
     output wire[7:0] timer_chn3_cap_filter_th,
-    // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ3)
-    // 2'b00 -> ÉÏÉıÑØ, 2'b01 -> ÏÂ½µÑØ, 2'b1x -> ÉÏÉı/ÏÂ½µÑØ
+    // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“3)
+    // 2'b00 -> ä¸Šå‡æ²¿, 2'b01 -> ä¸‹é™æ²¿, 2'b1x -> ä¸Šå‡/ä¸‹é™æ²¿
     output wire[1:0] timer_chn3_cap_edge,
     
-    // ²¶»ñ/±È½ÏÖµ(Í¨µÀ4)
+    // æ•è·/æ¯”è¾ƒå€¼(é€šé“4)
     output wire[timer_width-1:0] timer_chn4_cmp,
     input wire[timer_width-1:0] timer_chn4_cap_cmp_i,
-    // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ4)
+    // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“4)
     output wire[7:0] timer_chn4_cap_filter_th,
-    // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ4)
-    // 2'b00 -> ÉÏÉıÑØ, 2'b01 -> ÏÂ½µÑØ, 2'b1x -> ÉÏÉı/ÏÂ½µÑØ
+    // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“4)
+    // 2'b00 -> ä¸Šå‡æ²¿, 2'b01 -> ä¸‹é™æ²¿, 2'b1x -> ä¸Šå‡/ä¸‹é™æ²¿
     output wire[1:0] timer_chn4_cap_edge,
     
-    // ÖĞ¶ÏÇëÇó
-    input wire timer_expired_itr_req, // ¼ÆÊıÒç³öÖĞ¶ÏÇëÇó
-    input wire[3:0] timer_cap_itr_req, // ÊäÈë²¶»ñÖĞ¶ÏÇëÇó
+    // ä¸­æ–­è¯·æ±‚
+    input wire timer_expired_itr_req, // è®¡æ•°æº¢å‡ºä¸­æ–­è¯·æ±‚
+    input wire[3:0] timer_cap_itr_req, // è¾“å…¥æ•è·ä¸­æ–­è¯·æ±‚
     
-    // ÖĞ¶ÏĞÅºÅ
+    // ä¸­æ–­ä¿¡å·
     output wire itr
 );
 
-    /** APBĞ´¼Ä´æÆ÷ **/
+    /** APBå†™å¯„å­˜å™¨ **/
     // 0x00
-    reg[31:0] prescale_regs; // Ô¤·ÖÆµÏµÊı-1
+    reg[31:0] prescale_regs; // é¢„åˆ†é¢‘ç³»æ•°-1
     // 0x04
-    reg[31:0] autoload_regs; // ×Ô¶¯×°ÔØÖµ - 1
+    reg[31:0] autoload_regs; // è‡ªåŠ¨è£…è½½å€¼ - 1
     // 0x08
-    reg timer_cnt_to_set_reg; // ¶¨Ê±Æ÷¼ÆÊıÖµÉèÖÃÖ¸Ê¾
-    reg[31:0] timer_cnt_set_v_regs; // ¶¨Ê±Æ÷¼ÆÊıÖµÉèÖÃÁ¿
+    reg timer_cnt_to_set_reg; // å®šæ—¶å™¨è®¡æ•°å€¼è®¾ç½®æŒ‡ç¤º
+    reg[31:0] timer_cnt_set_v_regs; // å®šæ—¶å™¨è®¡æ•°å€¼è®¾ç½®é‡
     // 0x0C
-    reg timer_started_reg; // ÊÇ·ñÆô¶¯¶¨Ê±Æ÷
-    reg[3:0] cap_cmp_sel_regs; // ²¶»ñ/±È½ÏÑ¡Ôñ
+    reg timer_started_reg; // æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨
+    reg[3:0] cap_cmp_sel_regs; // æ•è·/æ¯”è¾ƒé€‰æ‹©
     // 0x10
-    reg global_itr_en; // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-    reg timer_expired_itr_en; // ¼ÆÊıÒç³öÖĞ¶ÏÊ¹ÄÜ
-    reg[3:0] timer_cap_itr_en; // ÊäÈë²¶»ñÖĞ¶ÏÊ¹ÄÜ
+    reg global_itr_en; // å…¨å±€ä¸­æ–­ä½¿èƒ½
+    reg timer_expired_itr_en; // è®¡æ•°æº¢å‡ºä¸­æ–­ä½¿èƒ½
+    reg[3:0] timer_cap_itr_en; // è¾“å…¥æ•è·ä¸­æ–­ä½¿èƒ½
     // 0x14
-    wire[4:0] org_itr_req_vec; // Ô­Ê¼ÖĞ¶ÏÇëÇóÏòÁ¿
-    wire org_global_itr_req; // Ô­Ê¼×ÜÖĞ¶ÏÇëÇó
-    reg global_itr_flag; // È«¾ÖÖĞ¶Ï±êÖ¾
-    reg timer_expired_itr_flag; // ¼ÆÊıÒç³öÖĞ¶Ï±êÖ¾
-    reg[3:0] timer_cap_itr_flag; // ÊäÈë²¶»ñÖĞ¶Ï±êÖ¾
+    wire[4:0] org_itr_req_vec; // åŸå§‹ä¸­æ–­è¯·æ±‚å‘é‡
+    wire org_global_itr_req; // åŸå§‹æ€»ä¸­æ–­è¯·æ±‚
+    reg global_itr_flag; // å…¨å±€ä¸­æ–­æ ‡å¿—
+    reg timer_expired_itr_flag; // è®¡æ•°æº¢å‡ºä¸­æ–­æ ‡å¿—
+    reg[3:0] timer_cap_itr_flag; // è¾“å…¥æ•è·ä¸­æ–­æ ‡å¿—
     // 0x18
-    reg[31:0] timer_chn1_cmp_regs; // ¶¨Ê±Æ÷±È½ÏÖµÉèÖÃÁ¿(Í¨µÀ1)
+    reg[31:0] timer_chn1_cmp_regs; // å®šæ—¶å™¨æ¯”è¾ƒå€¼è®¾ç½®é‡(é€šé“1)
     // 0x1C
-    reg[7:0] timer_chn1_cap_filter_th_regs; // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ1)
-    reg[1:0] timer_chn1_cap_edge_regs; // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ1)
+    reg[7:0] timer_chn1_cap_filter_th_regs; // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“1)
+    reg[1:0] timer_chn1_cap_edge_regs; // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“1)
     // 0x20
-    reg[31:0] timer_chn2_cmp_regs; // ¶¨Ê±Æ÷±È½ÏÖµÉèÖÃÁ¿(Í¨µÀ2)
+    reg[31:0] timer_chn2_cmp_regs; // å®šæ—¶å™¨æ¯”è¾ƒå€¼è®¾ç½®é‡(é€šé“2)
     // 0x24
-    reg[7:0] timer_chn2_cap_filter_th_regs; // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ2)
-    reg[1:0] timer_chn2_cap_edge_regs; // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ2)
+    reg[7:0] timer_chn2_cap_filter_th_regs; // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“2)
+    reg[1:0] timer_chn2_cap_edge_regs; // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“2)
     // 0x28
-    reg[31:0] timer_chn3_cmp_regs; // ¶¨Ê±Æ÷±È½ÏÖµÉèÖÃÁ¿(Í¨µÀ3)
+    reg[31:0] timer_chn3_cmp_regs; // å®šæ—¶å™¨æ¯”è¾ƒå€¼è®¾ç½®é‡(é€šé“3)
     // 0x2C
-    reg[7:0] timer_chn3_cap_filter_th_regs; // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ3)
-    reg[1:0] timer_chn3_cap_edge_regs; // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ3)
+    reg[7:0] timer_chn3_cap_filter_th_regs; // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“3)
+    reg[1:0] timer_chn3_cap_edge_regs; // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“3)
     // 0x30
-    reg[31:0] timer_chn4_cmp_regs; // ¶¨Ê±Æ÷±È½ÏÖµÉèÖÃÁ¿(Í¨µÀ4)
+    reg[31:0] timer_chn4_cmp_regs; // å®šæ—¶å™¨æ¯”è¾ƒå€¼è®¾ç½®é‡(é€šé“4)
     // 0x34
-    reg[7:0] timer_chn4_cap_filter_th_regs; // ÊäÈëÂË²¨ãĞÖµ(Í¨µÀ4)
-    reg[1:0] timer_chn4_cap_edge_regs; // ±ßÑØ¼ì²âÀàĞÍ(Í¨µÀ4)
+    reg[7:0] timer_chn4_cap_filter_th_regs; // è¾“å…¥æ»¤æ³¢é˜ˆå€¼(é€šé“4)
+    reg[1:0] timer_chn4_cap_edge_regs; // è¾¹æ²¿æ£€æµ‹ç±»å‹(é€šé“4)
     
     assign prescale = prescale_regs[timer_width-1:0];
     assign autoload = autoload_regs[timer_width-1:0];
@@ -175,21 +199,21 @@ module regs_if_for_timer #(
     assign timer_chn4_cmp = timer_chn4_cmp_regs[timer_width-1:0];
     assign {timer_chn4_cap_edge, timer_chn4_cap_filter_th} = {timer_chn4_cap_edge_regs, timer_chn4_cap_filter_th_regs};
     
-    // Ô¤·ÖÆµÏµÊı-1
+    // é¢„åˆ†é¢‘ç³»æ•°-1
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[5:2] == 4'd0))
             # simulation_delay prescale_regs <= pwdata;
     end
     
-    // ×Ô¶¯×°ÔØÖµ - 1
+    // è‡ªåŠ¨è£…è½½å€¼ - 1
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[5:2] == 4'd1))
             # simulation_delay autoload_regs <= pwdata;
     end
     
-    // ¶¨Ê±Æ÷¼ÆÊıÖµÉèÖÃÖ¸Ê¾
+    // å®šæ—¶å™¨è®¡æ•°å€¼è®¾ç½®æŒ‡ç¤º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -197,14 +221,14 @@ module regs_if_for_timer #(
         else
             # simulation_delay timer_cnt_to_set_reg <= psel & penable & pwrite & (paddr[5:2] == 4'd2);
     end
-    // ¶¨Ê±Æ÷¼ÆÊıÖµÉèÖÃÁ¿
+    // å®šæ—¶å™¨è®¡æ•°å€¼è®¾ç½®é‡
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[5:2] == 4'd2))
             # simulation_delay timer_cnt_set_v_regs <= pwdata;
     end
     
-    // ÊÇ·ñÆô¶¯¶¨Ê±Æ÷
+    // æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -212,16 +236,16 @@ module regs_if_for_timer #(
         else if(psel & penable & pwrite & (paddr[5:2] == 4'd3))
             # simulation_delay timer_started_reg <= pwdata[0];
     end
-    // ²¶»ñ/±È½ÏÑ¡Ôñ
+    // æ•è·/æ¯”è¾ƒé€‰æ‹©
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[5:2] == 4'd3))
             # simulation_delay cap_cmp_sel_regs <= pwdata[11:8];
     end
     
-    // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-    // ¼ÆÊıÒç³öÖĞ¶ÏÊ¹ÄÜ
-    // ÊäÈë²¶»ñÖĞ¶ÏÊ¹ÄÜ
+    // å…¨å±€ä¸­æ–­ä½¿èƒ½
+    // è®¡æ•°æº¢å‡ºä¸­æ–­ä½¿èƒ½
+    // è¾“å…¥æ•è·ä¸­æ–­ä½¿èƒ½
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -230,7 +254,7 @@ module regs_if_for_timer #(
             # simulation_delay {timer_cap_itr_en, timer_expired_itr_en, global_itr_en} <= {pwdata[12:8], pwdata[0]};
     end
     
-    // È«¾ÖÖĞ¶Ï±êÖ¾
+    // å…¨å±€ä¸­æ–­æ ‡å¿—
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -240,8 +264,8 @@ module regs_if_for_timer #(
         else if(~global_itr_flag)
             # simulation_delay global_itr_flag <= org_global_itr_req;
     end
-    // ¼ÆÊıÒç³öÖĞ¶Ï±êÖ¾
-    // ÊäÈë²¶»ñÖĞ¶Ï±êÖ¾
+    // è®¡æ•°æº¢å‡ºä¸­æ–­æ ‡å¿—
+    // è¾“å…¥æ•è·ä¸­æ–­æ ‡å¿—
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -250,7 +274,7 @@ module regs_if_for_timer #(
             # simulation_delay {timer_cap_itr_flag, timer_expired_itr_flag} <= org_itr_req_vec;
     end
     
-    // ¶¨Ê±Æ÷±È½ÏÖµÉèÖÃÁ¿
+    // å®šæ—¶å™¨æ¯”è¾ƒå€¼è®¾ç½®é‡
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[5:2] == 4'd6))
@@ -272,8 +296,8 @@ module regs_if_for_timer #(
             # simulation_delay timer_chn4_cmp_regs <= pwdata;
     end
     
-    // ÊäÈëÂË²¨ãĞÖµ
-    // ±ßÑØ¼ì²âÀàĞÍ
+    // è¾“å…¥æ»¤æ³¢é˜ˆå€¼
+    // è¾¹æ²¿æ£€æµ‹ç±»å‹
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[5:2] == 4'd7))
@@ -295,18 +319,18 @@ module regs_if_for_timer #(
             # simulation_delay {timer_chn4_cap_edge_regs, timer_chn4_cap_filter_th_regs} <= pwdata[9:0];
     end
     
-    /** ÖĞ¶Ï´¦Àí **/
+    /** ä¸­æ–­å¤„ç† **/
     assign org_itr_req_vec = {timer_cap_itr_req, timer_expired_itr_req} & {timer_cap_itr_en, timer_expired_itr_en};
     assign org_global_itr_req = (|org_itr_req_vec) & global_itr_en & (~global_itr_flag);
     
-    /** APB¶Á¼Ä´æÆ÷ **/
+    /** APBè¯»å¯„å­˜å™¨ **/
     reg[31:0] prdata_out_regs;
     
     assign pready_out = 1'b1;
     assign prdata_out = prdata_out_regs;
     assign pslverr_out = 1'b0;
     
-    // APB¶ÁÊı¾İ
+    // APBè¯»æ•°æ®
 	generate
 		if(simulation_delay == 0)
 		begin
@@ -346,7 +370,7 @@ module regs_if_for_timer #(
 		end
 	endgenerate
     
-    // ÖĞ¶Ï·¢ÉúÆ÷
+    // ä¸­æ–­å‘ç”Ÿå™¨
     itr_generator #(
         .pulse_w(10),
         .simulation_delay(simulation_delay)

@@ -1,43 +1,67 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIÍ»·¢»®·Ö(ÓÃÓÚ±ß½ç±£»¤)
+æœ¬æ¨¡å—: AXIçªå‘åˆ’åˆ†(ç”¨äºè¾¹ç•Œä¿æŠ¤)
 
-ÃèÊö: 
-32Î»µØÖ·/Êı¾İ×ÜÏß
-Ö§³Ö·Ç¶ÔÆë´«Êä/Õ­´ø´«Êä
-´¿×éºÏÂß¼­, Ê±ÑÓ = 0clk
+æè¿°: 
+32ä½åœ°å€/æ•°æ®æ€»çº¿
+æ”¯æŒéå¯¹é½ä¼ è¾“/çª„å¸¦ä¼ è¾“
+çº¯ç»„åˆé€»è¾‘, æ—¶å»¶ = 0clk
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module axi_burst_seperator_for_boundary_protect #(
-    parameter en_narrow_transfer = "false", // ÊÇ·ñÔÊĞíÕ­´ø´«Êä
-    parameter integer boundary_size = 1 // ±ß½ç´óĞ¡(ÒÔKB¼Æ)(1 | 2 | 4)
+    parameter en_narrow_transfer = "false", // æ˜¯å¦å…è®¸çª„å¸¦ä¼ è¾“
+    parameter integer boundary_size = 1 // è¾¹ç•Œå¤§å°(ä»¥KBè®¡)(1 | 2 | 4)
 )(
-    // AXI´Ó»úµÄµØÖ·ĞÅÏ¢
+    // AXIä»æœºçš„åœ°å€ä¿¡æ¯
     input wire[31:0] s_axi_ax_addr,
     input wire[7:0] s_axi_ax_len,
     input wire[2:0] s_axi_ax_size,
     
-    // Í»·¢»®·Ö½á¹û
-    // ¶Ô32Î»Êı¾İ×ÜÏßÀ´Ëµ, Ã¿´ÎÍ»·¢×î¶à´«Êä1KB, Òò´Ë½øĞĞ1/2/4KB±ß½ç±£»¤, ×î¶à°ÑÔ­À´µÄ1´ÎÍ»·¢»®·ÖÎª2´Î
-    output wire across_boundary, // ÊÇ·ñ¿çÔ½±ß½ç
-    output wire[31:0] burst0_addr, // Í»·¢0µÄÊ×µØÖ·
-    output wire[7:0] burst0_len, // Í»·¢0µÄ³¤¶È - 1
-    output wire[31:0] burst1_addr, // Í»·¢1µÄÊ×µØÖ·
-    output wire[7:0] burst1_len // Í»·¢1µÄ³¤¶È - 1
+    // çªå‘åˆ’åˆ†ç»“æœ
+    // å¯¹32ä½æ•°æ®æ€»çº¿æ¥è¯´, æ¯æ¬¡çªå‘æœ€å¤šä¼ è¾“1KB, å› æ­¤è¿›è¡Œ1/2/4KBè¾¹ç•Œä¿æŠ¤, æœ€å¤šæŠŠåŸæ¥çš„1æ¬¡çªå‘åˆ’åˆ†ä¸º2æ¬¡
+    output wire across_boundary, // æ˜¯å¦è·¨è¶Šè¾¹ç•Œ
+    output wire[31:0] burst0_addr, // çªå‘0çš„é¦–åœ°å€
+    output wire[7:0] burst0_len, // çªå‘0çš„é•¿åº¦ - 1
+    output wire[31:0] burst1_addr, // çªå‘1çš„é¦–åœ°å€
+    output wire[7:0] burst1_len // çªå‘1çš„é•¿åº¦ - 1
 );
     
     wire[1:0] s_axi_ax_size_w;
-    wire[7:0] now_regoin_trans_remaining; // µ±Ç°1/2/4KBÇø¼äÊ£Óà´«Êä´ÎÊı
+    wire[7:0] now_regoin_trans_remaining; // å½“å‰1/2/4KBåŒºé—´å‰©ä½™ä¼ è¾“æ¬¡æ•°
     
     assign s_axi_ax_size_w = (en_narrow_transfer == "true") ? s_axi_ax_size[1:0]:2'b10;
     

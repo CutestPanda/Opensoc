@@ -1,61 +1,85 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: APB-TIMER
+æœ¬æ¨¡å—: APB-TIMER
 
-ÃèÊö: 
-´øAPB´Ó½Ó¿ÚµÄÍ¨ÓÃ¶¨Ê±Æ÷
-8~32Î»¶¨Ê±Æ÷
-Ö§³Ö¶à´ïËÄÍ¨µÀÊäÈë²¶»ñ/Êä³ö±È½Ï
-ÊäÈë²¶»ñÖ§³ÖÊäÈëÂË²¨£¬¿É²¶»ñÉÏÉıÑØ/ÏÂ½µÑØ/Ë«ÑØ
-¿ÉÆôÓÃ¼ÆÊıÒç³öÖĞ¶ÏºÍÊäÈë²¶»ñÖĞ¶Ï
+æè¿°: 
+å¸¦APBä»æ¥å£çš„é€šç”¨å®šæ—¶å™¨
+8~32ä½å®šæ—¶å™¨
+æ”¯æŒå¤šè¾¾å››é€šé“è¾“å…¥æ•è·/è¾“å‡ºæ¯”è¾ƒ
+è¾“å…¥æ•è·æ”¯æŒè¾“å…¥æ»¤æ³¢ï¼Œå¯æ•è·ä¸Šå‡æ²¿/ä¸‹é™æ²¿/åŒæ²¿
+å¯å¯ç”¨è®¡æ•°æº¢å‡ºä¸­æ–­å’Œè¾“å…¥æ•è·ä¸­æ–­
 
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ    |        ±¸×¢
-    0x00    timer_width-1~0:Ô¤·ÖÆµÏµÊı-1         W
-    0x04    timer_width-1~0:×Ô¶¯×°ÔØÖµ-1         W
-    0x08    timer_width-1~0:¶¨Ê±Æ÷¼ÆÊıÖµ         RW
-    0x0C    0:ÊÇ·ñÆô¶¯¶¨Ê±Æ÷                     W
-            11~8:²¶»ñ/±È½ÏÑ¡Ôñ(4¸öÍ¨µÀ)          W
-    0x10    0:È«¾ÖÖĞ¶ÏÊ¹ÄÜ                       W
-            8:¼ÆÊıÒç³öÖĞ¶ÏÊ¹ÄÜ                   W
-            12~9:ÊäÈë²¶»ñÖĞ¶ÏÊ¹ÄÜ                W
-    0x14    0:È«¾ÖÖĞ¶Ï±êÖ¾                       RWC
-            8:¼ÆÊıÒç³öÖĞ¶Ï±êÖ¾                   R
-            12~9:ÊäÈë²¶»ñÖĞ¶Ï±êÖ¾                R
-    0x18    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ1)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ1Ê±¿ÉÓÃ
-    0x1C    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ1Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
-    0x20    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ2)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ2Ê±¿ÉÓÃ
-    0x24    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ2Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
-    0x28    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ3)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ3Ê±¿ÉÓÃ
-    0x2C    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ3Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
-    0x30    timer_width-1~0:²¶»ñ/±È½ÏÖµ(Í¨µÀ4)   RW       ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ4Ê±¿ÉÓÃ
-    0x34    7~0:ÊäÈëÂË²¨ãĞÖµ                     W        ½öÊ¹ÄÜ²¶»ñ/±È½ÏÍ¨µÀ4Ê±¿ÉÓÃ
-            9~8:±ßÑØ¼ì²âÀàĞÍ                     W
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§    |        å¤‡æ³¨
+    0x00    timer_width-1~0:é¢„åˆ†é¢‘ç³»æ•°-1         W
+    0x04    timer_width-1~0:è‡ªåŠ¨è£…è½½å€¼-1         W
+    0x08    timer_width-1~0:å®šæ—¶å™¨è®¡æ•°å€¼         RW
+    0x0C    0:æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨                     W
+            11~8:æ•è·/æ¯”è¾ƒé€‰æ‹©(4ä¸ªé€šé“)          W
+    0x10    0:å…¨å±€ä¸­æ–­ä½¿èƒ½                       W
+            8:è®¡æ•°æº¢å‡ºä¸­æ–­ä½¿èƒ½                   W
+            12~9:è¾“å…¥æ•è·ä¸­æ–­ä½¿èƒ½                W
+    0x14    0:å…¨å±€ä¸­æ–­æ ‡å¿—                       RWC
+            8:è®¡æ•°æº¢å‡ºä¸­æ–­æ ‡å¿—                   R
+            12~9:è¾“å…¥æ•è·ä¸­æ–­æ ‡å¿—                R
+    0x18    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“1)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“1æ—¶å¯ç”¨
+    0x1C    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“1æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
+    0x20    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“2)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“2æ—¶å¯ç”¨
+    0x24    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“2æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
+    0x28    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“3)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“3æ—¶å¯ç”¨
+    0x2C    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“3æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
+    0x30    timer_width-1~0:æ•è·/æ¯”è¾ƒå€¼(é€šé“4)   RW       ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“4æ—¶å¯ç”¨
+    0x34    7~0:è¾“å…¥æ»¤æ³¢é˜ˆå€¼                     W        ä»…ä½¿èƒ½æ•è·/æ¯”è¾ƒé€šé“4æ—¶å¯ç”¨
+            9~8:è¾¹æ²¿æ£€æµ‹ç±»å‹                     W
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 APB SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/09
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/09
 ********************************************************************/
 
 
 module apb_timer #(
-    parameter integer timer_width = 16, // ¶¨Ê±Æ÷Î»¿í(8~32)
-    parameter integer channel_n = 1, // ²¶»ñ/±È½ÏÍ¨µÀÊı(0~4)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer timer_width = 16, // å®šæ—¶å™¨ä½å®½(8~32)
+    parameter integer channel_n = 1, // æ•è·/æ¯”è¾ƒé€šé“æ•°(0~4)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // APB´Ó»ú½Ó¿Ú
+    // APBä»æœºæ¥å£
     input wire[31:0] paddr,
     input wire psel,
     input wire penable,
@@ -65,37 +89,37 @@ module apb_timer #(
     output wire[31:0] prdata_out,
     output wire pslverr_out, // const -> 1'b0
     
-    // ²¶»ñ/±È½Ï
-    input wire[channel_n-1:0] cap_in, // ²¶»ñÊäÈë
-    output wire[channel_n-1:0] cmp_out, // ±È½ÏÊä³ö
+    // æ•è·/æ¯”è¾ƒ
+    input wire[channel_n-1:0] cap_in, // æ•è·è¾“å…¥
+    output wire[channel_n-1:0] cmp_out, // æ¯”è¾ƒè¾“å‡º
     
-    // ÖĞ¶ÏĞÅºÅ
+    // ä¸­æ–­ä¿¡å·
     output wire itr
 );
     
-    /** ¼Ä´æÆ÷½Ó¿Ú **/
-    wire[timer_width-1:0] prescale; // Ô¤·ÖÆµÏµÊı - 1
-    wire[timer_width-1:0] autoload; // ×Ô¶¯×°ÔØÖµ - 1
-    // ¶¨Ê±Æ÷¼ÆÊıÖµ
+    /** å¯„å­˜å™¨æ¥å£ **/
+    wire[timer_width-1:0] prescale; // é¢„åˆ†é¢‘ç³»æ•° - 1
+    wire[timer_width-1:0] autoload; // è‡ªåŠ¨è£…è½½å€¼ - 1
+    // å®šæ—¶å™¨è®¡æ•°å€¼
     wire timer_cnt_to_set;
     wire[timer_width-1:0] timer_cnt_set_v;
     wire[timer_width-1:0] timer_cnt_now_v;
-    // ÊÇ·ñÆô¶¯¶¨Ê±Æ÷
+    // æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨
     wire timer_started;
-    // ²¶»ñ/±È½ÏÑ¡Ôñ(4¸öÍ¨µÀ)
-    // 1'b0 -> ²¶»ñ, 1'b1 -> ±È½Ï
+    // æ•è·/æ¯”è¾ƒé€‰æ‹©(4ä¸ªé€šé“)
+    // 1'b0 -> æ•è·, 1'b1 -> æ¯”è¾ƒ
     wire[3:0] cap_cmp_sel;
-    // ²¶»ñ/±È½ÏÖµ
+    // æ•è·/æ¯”è¾ƒå€¼
     wire[timer_width-1:0] timer_cmp[3:0];
     wire[timer_width-1:0] timer_cap_cmp_i[3:0];
-    // ÊäÈëÂË²¨ãĞÖµ
+    // è¾“å…¥æ»¤æ³¢é˜ˆå€¼
     wire[7:0] timer_cap_filter_th[3:0];
-    // ±ßÑØ¼ì²âÀàĞÍ
-    // 2'b00 -> ÉÏÉıÑØ, 2'b01 -> ÏÂ½µÑØ, 2'b10 -> ÉÏÉı/ÏÂ½µÑØ, 2'b11 -> ±£Áô
+    // è¾¹æ²¿æ£€æµ‹ç±»å‹
+    // 2'b00 -> ä¸Šå‡æ²¿, 2'b01 -> ä¸‹é™æ²¿, 2'b10 -> ä¸Šå‡/ä¸‹é™æ²¿, 2'b11 -> ä¿ç•™
     wire[1:0] timer_cap_edge[3:0];
-    // ÖĞ¶ÏÇëÇó
-    wire timer_expired_itr_req; // ¼ÆÊıÒç³öÖĞ¶ÏÇëÇó
-    wire[3:0] timer_cap_itr_req; // ÊäÈë²¶»ñÖĞ¶ÏÇëÇó
+    // ä¸­æ–­è¯·æ±‚
+    wire timer_expired_itr_req; // è®¡æ•°æº¢å‡ºä¸­æ–­è¯·æ±‚
+    wire[3:0] timer_cap_itr_req; // è¾“å…¥æ•è·ä¸­æ–­è¯·æ±‚
     
     regs_if_for_timer #(
         .timer_width(timer_width),
@@ -149,8 +173,8 @@ module apb_timer #(
         .itr(itr)
     );
     
-    /** »ù±¾¶¨Ê±Æ÷ **/
-	// ¶¨Ê±Æ÷¼ÆÊıÒç³ö(Ö¸Ê¾)
+    /** åŸºæœ¬å®šæ—¶å™¨ **/
+	// å®šæ—¶å™¨è®¡æ•°æº¢å‡º(æŒ‡ç¤º)
     wire timer_expired;
 	
     basic_timer #(
@@ -174,7 +198,7 @@ module apb_timer #(
         .timer_expired_itr_req(timer_expired_itr_req)
     );
     
-    /** ÊäÈë²¶»ñ/Êä³ö±È½ÏÍ¨µÀ **/
+    /** è¾“å…¥æ•è·/è¾“å‡ºæ¯”è¾ƒé€šé“ **/
     genvar cap_cmp_chn_i;
     generate
         for(cap_cmp_chn_i = 0;cap_cmp_chn_i < 4;cap_cmp_chn_i = cap_cmp_chn_i + 1)

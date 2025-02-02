@@ -1,29 +1,53 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: Òì²½fifo¿ØÖÆÆ÷
+æœ¬æ¨¡å—: å¼‚æ­¥fifoæ§åˆ¶å™¨
 
-ÃèÊö: 
-Ê¹ÓÃ¼òµ¥Ë«¿ÚRAM×÷Îªfifo´æ´¢Æ÷
+æè¿°: 
+ä½¿ç”¨ç®€å•åŒå£RAMä½œä¸ºfifoå­˜å‚¨å™¨
 
-×¢Òâ£º
-¼òµ¥Ë«¿ÚRAMµÄ¶ÁÑÓ³Ù = 1clk
-½öÖ§³Ö±ê×¼Ä£Ê½
+æ³¨æ„ï¼š
+ç®€å•åŒå£RAMçš„è¯»å»¶è¿Ÿ = 1clk
+ä»…æ”¯æŒæ ‡å‡†æ¨¡å¼
 
-Ğ­Òé:
+åè®®:
 FIFO READ/WRITE
 MEM READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/09
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/09
 ********************************************************************/
 
 
 module async_fifo #(
-    parameter integer depth = 32, // fifoÉî¶È(16 | 32 | 64 | ...)
-    parameter integer data_width = 32, // Êı¾İÎ»¿í
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer depth = 32, // fifoæ·±åº¦(16 | 32 | 64 | ...)
+    parameter integer data_width = 32, // æ•°æ®ä½å®½
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk_wt,
     input wire rst_n_wt,
     input wire clk_rd,
@@ -48,7 +72,7 @@ module async_fifo #(
     output wire[data_width-1:0] fifo_dout
 );
     
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -58,17 +82,17 @@ module async_fifo #(
     end
     endfunction
     
-    /** ³£Á¿ **/
-    localparam integer rw_ptr_width = clogb2(depth-1) + 2; // ¶ÁĞ´Ö¸ÕëÎ»¿í
+    /** å¸¸é‡ **/
+    localparam integer rw_ptr_width = clogb2(depth-1) + 2; // è¯»å†™æŒ‡é’ˆä½å®½
     
-    /** Ğ´¶Ë¿Ú **/
-    reg[rw_ptr_width-1:0] wptr_bin_at_w; // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸Õë(¶ş½øÖÆÂë)
-    reg[rw_ptr_width-1:0] wptr_add1_bin_at_w; // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸Õë+1(¶ş½øÖÆÂë)
-    wire[rw_ptr_width-1:0] wptr_gray_at_w_cvt_cmb; // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸ÕëµÄ¸ñÀ×Âë×ª»»×éºÏÂß¼­
-    wire[rw_ptr_width-1:0] wptr_add1_gray_at_w_cvt_cmb; // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸Õë+1µÄ¸ñÀ×Âë×ª»»×éºÏÂß¼­
-    reg[rw_ptr_width-1:0] wptr_gray_at_w; // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸Õë(¸ñÀ×Âë)
-    wire[rw_ptr_width-1:0] rptr_gray_at_w; // Í¬²½µ½Ğ´¶Ë¿ÚµÄ¶ÁÖ¸Õë(¸ñÀ×Âë)
-    reg fifo_full_reg; // fifoÂú±êÖ¾
+    /** å†™ç«¯å£ **/
+    reg[rw_ptr_width-1:0] wptr_bin_at_w; // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆ(äºŒè¿›åˆ¶ç )
+    reg[rw_ptr_width-1:0] wptr_add1_bin_at_w; // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆ+1(äºŒè¿›åˆ¶ç )
+    wire[rw_ptr_width-1:0] wptr_gray_at_w_cvt_cmb; // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆçš„æ ¼é›·ç è½¬æ¢ç»„åˆé€»è¾‘
+    wire[rw_ptr_width-1:0] wptr_add1_gray_at_w_cvt_cmb; // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆ+1çš„æ ¼é›·ç è½¬æ¢ç»„åˆé€»è¾‘
+    reg[rw_ptr_width-1:0] wptr_gray_at_w; // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆ(æ ¼é›·ç )
+    wire[rw_ptr_width-1:0] rptr_gray_at_w; // åŒæ­¥åˆ°å†™ç«¯å£çš„è¯»æŒ‡é’ˆ(æ ¼é›·ç )
+    reg fifo_full_reg; // fifoæ»¡æ ‡å¿—
     
     assign ram_clk_w = clk_wt;
     assign ram_waddr = wptr_bin_at_w[rw_ptr_width-2:0];
@@ -80,7 +104,7 @@ module async_fifo #(
     assign wptr_gray_at_w_cvt_cmb = {1'b0, wptr_bin_at_w[rw_ptr_width-1:1]} ^ wptr_bin_at_w;
     assign wptr_add1_gray_at_w_cvt_cmb = {1'b0, wptr_add1_bin_at_w[rw_ptr_width-1:1]} ^ wptr_add1_bin_at_w;
     
-    // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸Õë(¶ş½øÖÆÂë)
+    // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆ(äºŒè¿›åˆ¶ç )
     always @(posedge clk_wt or negedge rst_n_wt)
     begin
         if(~rst_n_wt)
@@ -88,7 +112,7 @@ module async_fifo #(
         else if(fifo_wen & (~fifo_full))
             # simulation_delay wptr_bin_at_w <= wptr_bin_at_w + 1;
     end
-    // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸Õë+1(¶ş½øÖÆÂë)
+    // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆ+1(äºŒè¿›åˆ¶ç )
     always @(posedge clk_wt or negedge rst_n_wt)
     begin
         if(~rst_n_wt)
@@ -96,7 +120,7 @@ module async_fifo #(
         else if(fifo_wen & (~fifo_full))
             # simulation_delay wptr_add1_bin_at_w <= wptr_add1_bin_at_w + 1;
     end
-    // Î»ÓÚĞ´¶Ë¿ÚµÄĞ´Ö¸Õë(¸ñÀ×Âë)
+    // ä½äºå†™ç«¯å£çš„å†™æŒ‡é’ˆ(æ ¼é›·ç )
     always @(posedge clk_wt or negedge rst_n_wt)
     begin
         if(~rst_n_wt)
@@ -105,8 +129,8 @@ module async_fifo #(
             # simulation_delay wptr_gray_at_w <= wptr_gray_at_w_cvt_cmb;
     end
     
-    // fifoÂú±êÖ¾
-    // Í¬²½µ½Ğ´¶Ë¿ÚµÄ¶ÁÖ¸ÕëÖÍºó¼¸¸öclk, »á²úÉú"ĞéÂú"
+    // fifoæ»¡æ ‡å¿—
+    // åŒæ­¥åˆ°å†™ç«¯å£çš„è¯»æŒ‡é’ˆæ»åå‡ ä¸ªclk, ä¼šäº§ç”Ÿ"è™šæ»¡"
     always @(posedge clk_wt or negedge rst_n_wt)
     begin
         if(~rst_n_wt)
@@ -116,14 +140,14 @@ module async_fifo #(
                 {~rptr_gray_at_w[rw_ptr_width-1:rw_ptr_width-2], rptr_gray_at_w[rw_ptr_width-3:0]};
     end
     
-    /** ¶Á¶Ë¿Ú **/
-    reg[rw_ptr_width-1:0] rptr_bin_at_r; // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë(¶ş½øÖÆÂë)
-    reg[rw_ptr_width-1:0] rptr_add1_bin_at_r; // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë+1(¶ş½øÖÆÂë)
-    wire[rw_ptr_width-1:0] rptr_gray_at_r_cvt_cmb; // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸ÕëµÄ¸ñÀ×Âë×ª»»×éºÏÂß¼­
-    wire[rw_ptr_width-1:0] rptr_add1_gray_at_r_cvt_cmb; // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë+1µÄ¸ñÀ×Âë×ª»»×éºÏÂß¼­
-    reg[rw_ptr_width-1:0] rptr_gray_at_r; // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë(¸ñÀ×Âë)
-    wire[rw_ptr_width-1:0] wptr_gray_at_r; // Í¬²½µ½¶Á¶Ë¿ÚµÄĞ´Ö¸Õë(¸ñÀ×Âë)
-    reg fifo_empty_reg; // fifo¿Õ±êÖ¾
+    /** è¯»ç«¯å£ **/
+    reg[rw_ptr_width-1:0] rptr_bin_at_r; // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆ(äºŒè¿›åˆ¶ç )
+    reg[rw_ptr_width-1:0] rptr_add1_bin_at_r; // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆ+1(äºŒè¿›åˆ¶ç )
+    wire[rw_ptr_width-1:0] rptr_gray_at_r_cvt_cmb; // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆçš„æ ¼é›·ç è½¬æ¢ç»„åˆé€»è¾‘
+    wire[rw_ptr_width-1:0] rptr_add1_gray_at_r_cvt_cmb; // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆ+1çš„æ ¼é›·ç è½¬æ¢ç»„åˆé€»è¾‘
+    reg[rw_ptr_width-1:0] rptr_gray_at_r; // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆ(æ ¼é›·ç )
+    wire[rw_ptr_width-1:0] wptr_gray_at_r; // åŒæ­¥åˆ°è¯»ç«¯å£çš„å†™æŒ‡é’ˆ(æ ¼é›·ç )
+    reg fifo_empty_reg; // fifoç©ºæ ‡å¿—
     
     assign ram_clk_r = clk_rd;
     assign ram_ren = fifo_ren & (~fifo_empty);
@@ -135,7 +159,7 @@ module async_fifo #(
     assign rptr_gray_at_r_cvt_cmb = {1'b0, rptr_bin_at_r[rw_ptr_width-1:1]} ^ rptr_bin_at_r;
     assign rptr_add1_gray_at_r_cvt_cmb = {1'b0, rptr_add1_bin_at_r[rw_ptr_width-1:1]} ^ rptr_add1_bin_at_r;
     
-    // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë(¶ş½øÖÆÂë)
+    // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆ(äºŒè¿›åˆ¶ç )
     always @(posedge clk_rd or negedge rst_n_rd)
     begin
         if(~rst_n_rd)
@@ -143,7 +167,7 @@ module async_fifo #(
         else if(fifo_ren & (~fifo_empty))
             # simulation_delay rptr_bin_at_r <= rptr_bin_at_r + 1;
     end
-    // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë+1(¶ş½øÖÆÂë)
+    // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆ+1(äºŒè¿›åˆ¶ç )
     always @(posedge clk_rd or negedge rst_n_rd)
     begin
         if(~rst_n_rd)
@@ -151,7 +175,7 @@ module async_fifo #(
         else if(fifo_ren & (~fifo_empty))
             # simulation_delay rptr_add1_bin_at_r <= rptr_add1_bin_at_r + 1;
     end
-    // Î»ÓÚ¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë(¸ñÀ×Âë)
+    // ä½äºè¯»ç«¯å£çš„è¯»æŒ‡é’ˆ(æ ¼é›·ç )
     always @(posedge clk_rd or negedge rst_n_rd)
     begin
         if(~rst_n_rd)
@@ -160,8 +184,8 @@ module async_fifo #(
             # simulation_delay rptr_gray_at_r <= rptr_gray_at_r_cvt_cmb;
     end
     
-    // fifo¿Õ±êÖ¾
-    // Í¬²½µ½¶Á¶Ë¿ÚµÄĞ´Ö¸ÕëÖÍºó¼¸¸öclk, »á²úÉú"Ğé¿Õ"
+    // fifoç©ºæ ‡å¿—
+    // åŒæ­¥åˆ°è¯»ç«¯å£çš„å†™æŒ‡é’ˆæ»åå‡ ä¸ªclk, ä¼šäº§ç”Ÿ"è™šç©º"
     always @(posedge clk_rd or negedge rst_n_rd)
     begin
         if(~rst_n_rd)
@@ -171,18 +195,18 @@ module async_fifo #(
                 wptr_gray_at_r;
     end
     
-    /** ¶ÁĞ´Ö¸ÕëÍ¬²½ **/
-    // Í¬²½¶ÁÖ¸Õë
+    /** è¯»å†™æŒ‡é’ˆåŒæ­¥ **/
+    // åŒæ­¥è¯»æŒ‡é’ˆ
     reg[rw_ptr_width-1:0] rptr_gray_at_w_p2;
     reg[rw_ptr_width-1:0] rptr_gray_at_w_p1;
-    // Í¬²½Ğ´Ö¸Õë
+    // åŒæ­¥å†™æŒ‡é’ˆ
     reg[rw_ptr_width-1:0] wptr_gray_at_r_p2;
     reg[rw_ptr_width-1:0] wptr_gray_at_r_p1;
     
     assign rptr_gray_at_w = rptr_gray_at_w_p1;
     assign wptr_gray_at_r = wptr_gray_at_r_p1;
     
-    // ÓÃĞ´Ê±ÖÓÀ´Í¬²½¶Á¶Ë¿ÚµÄ¶ÁÖ¸Õë
+    // ç”¨å†™æ—¶é’Ÿæ¥åŒæ­¥è¯»ç«¯å£çš„è¯»æŒ‡é’ˆ
     always @(posedge clk_wt or negedge rst_n_wt)
     begin
         if(~rst_n_wt)
@@ -194,7 +218,7 @@ module async_fifo #(
             # simulation_delay {rptr_gray_at_w_p1, rptr_gray_at_w_p2} <= {rptr_gray_at_w_p2, rptr_gray_at_r};
     end
     
-    // ÓÃ¶ÁÊ±ÖÓÀ´Í¬²½Ğ´¶Ë¿ÚµÄĞ´Ö¸Õë
+    // ç”¨è¯»æ—¶é’Ÿæ¥åŒæ­¥å†™ç«¯å£çš„å†™æŒ‡é’ˆ
     always @(posedge clk_rd or negedge rst_n_rd)
     begin
         if(~rst_n_rd)

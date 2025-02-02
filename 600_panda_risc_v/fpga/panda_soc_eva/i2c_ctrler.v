@@ -1,100 +1,124 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: I2C¿ØÖÆÆ÷
+æœ¬æ¨¡å—: I2Cæ§åˆ¶å™¨
 
-ÃèÊö: 
-Í¨ÓÃIC2¿ØÖÆÆ÷
-Ö§³Ö7Î»/10Î»µØÖ·
+æè¿°: 
+é€šç”¨IC2æ§åˆ¶å™¨
+æ”¯æŒ7ä½/10ä½åœ°å€
 
-·¢ËÍfifoÊı¾İ°ü¸ñÊ½£º
-    Ğ´Êı¾İ -> last0 xxxx_xxx0 µØÖ·½×¶Î
-             [last0 xxxx_xxxx µØÖ·½×¶Î(½ö10Î»µØÖ·Ê±ĞèÒª)]
-             last0 xxxx_xxxx Êı¾İ½×¶Î
+å‘é€fifoæ•°æ®åŒ…æ ¼å¼ï¼š
+    å†™æ•°æ® -> last0 xxxx_xxx0 åœ°å€é˜¶æ®µ
+             [last0 xxxx_xxxx åœ°å€é˜¶æ®µ(ä»…10ä½åœ°å€æ—¶éœ€è¦)]
+             last0 xxxx_xxxx æ•°æ®é˜¶æ®µ
              ...
-             last1 xxxx_xxxx Êı¾İ½×¶Î
-    ¶ÁÊı¾İ -> last0 xxxx_xxx1 µØÖ·½×¶Î
-             [last0 xxxx_xxxx µØÖ·½×¶Î(½ö10Î»µØÖ·Ê±ĞèÒª)]
-             last1 8Î»´ı¶ÁÈ¡×Ö½ÚÊı
+             last1 xxxx_xxxx æ•°æ®é˜¶æ®µ
+    è¯»æ•°æ® -> last0 xxxx_xxx1 åœ°å€é˜¶æ®µ
+             [last0 xxxx_xxxx åœ°å€é˜¶æ®µ(ä»…10ä½åœ°å€æ—¶éœ€è¦)]
+             last1 8ä½å¾…è¯»å–å­—èŠ‚æ•°
 
-×¢Òâ£º
-Ã¿¸öI2CÊı¾İ°ü²»ÄÜ³¬¹ı15×Ö½Ú
+æ³¨æ„ï¼š
+æ¯ä¸ªI2Cæ•°æ®åŒ…ä¸èƒ½è¶…è¿‡15å­—èŠ‚
 
-Ğ­Òé:
+åè®®:
 I2C MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/14
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/14
 ********************************************************************/
 
 
 module i2c_ctrler #(
-    parameter integer addr_bits_n = 7, // µØÖ·Î»Êı(7|10)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer addr_bits_n = 7, // åœ°å€ä½æ•°(7|10)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // I2CÊ±ÖÓ·ÖÆµÏµÊı
-    // ·ÖÆµÊı = (·ÖÆµÏµÊı + 1) * 2
-    // ¶ÏÑÔ:·ÖÆµÏµÊı>=1!
+    // I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°
+    // åˆ†é¢‘æ•° = (åˆ†é¢‘ç³»æ•° + 1) * 2
+    // æ–­è¨€:åˆ†é¢‘ç³»æ•°>=1!
     input wire[7:0] i2c_scl_div_rate,
     
-    // ·¢ËÍfifo¶Á¶Ë¿Ú
+    // å‘é€fifoè¯»ç«¯å£
     output wire tx_fifo_ren,
     input wire tx_fifo_empty,
     input wire[7:0] tx_fifo_dout,
     input wire tx_fifo_dout_last,
-    // ½ÓÊÕfifoĞ´¶Ë¿Ú
+    // æ¥æ”¶fifoå†™ç«¯å£
     output wire rx_fifo_wen,
     input wire rx_fifo_full,
     output wire[7:0] rx_fifo_din,
     
-    // I2C·¢ËÍÍê³ÉÖ¸Ê¾
+    // I2Cå‘é€å®ŒæˆæŒ‡ç¤º
     output wire i2c_tx_done,
     output wire[3:0] i2c_tx_bytes_n,
-    // I2C½ÓÊÕÍê³ÉÖ¸Ê¾
+    // I2Cæ¥æ”¶å®ŒæˆæŒ‡ç¤º
     output wire i2c_rx_done,
     output wire[3:0] i2c_rx_bytes_n,
-    // I2C´Ó»úÏìÓ¦´íÎó
+    // I2Cä»æœºå“åº”é”™è¯¯
     output wire i2c_slave_resp_err,
-    // I2C½ÓÊÕÒç³ö
+    // I2Cæ¥æ”¶æº¢å‡º
     output wire i2c_rx_overflow,
     
-    // I2CÖ÷»ú½Ó¿Ú
+    // I2Cä¸»æœºæ¥å£
     // scl
-    output wire scl_t, // 1'b1ÎªÊäÈë, 1'b0ÎªÊä³ö
+    output wire scl_t, // 1'b1ä¸ºè¾“å…¥, 1'b0ä¸ºè¾“å‡º
     input wire scl_i,
     output wire scl_o,
     // sda
-    output wire sda_t, // 1'b1ÎªÊäÈë, 1'b0ÎªÊä³ö
+    output wire sda_t, // 1'b1ä¸ºè¾“å…¥, 1'b0ä¸ºè¾“å‡º
     input wire sda_i,
     output wire sda_o
 );
     
-    /** ³£Á¿ **/
-    // ×´Ì¬³£Á¿
-    localparam I2C_CTRLER_STS_IDLE = 2'b00; // ×´Ì¬:¿ÕÏĞ
-    localparam I2C_CTRLER_STS_LOAD = 2'b01; // ×´Ì¬:¼ÓÔØÊı¾İ
-    localparam I2C_CTRLER_STS_RX_TX = 2'b10; // ×´Ì¬:ÊÕ·¢
-    localparam I2C_CTRLER_STS_DONE = 2'b11; // ×´Ì¬:Íê³É
+    /** å¸¸é‡ **/
+    // çŠ¶æ€å¸¸é‡
+    localparam I2C_CTRLER_STS_IDLE = 2'b00; // çŠ¶æ€:ç©ºé—²
+    localparam I2C_CTRLER_STS_LOAD = 2'b01; // çŠ¶æ€:åŠ è½½æ•°æ®
+    localparam I2C_CTRLER_STS_RX_TX = 2'b10; // çŠ¶æ€:æ”¶å‘
+    localparam I2C_CTRLER_STS_DONE = 2'b11; // çŠ¶æ€:å®Œæˆ
     
-    /** Á÷³Ì¿ØÖÆ **/
-    reg[1:0] i2c_ctrler_sts; // ¿ØÖÆÆ÷×´Ì¬
-    reg[2:0] tx_fifo_ren_onehot; // ·¢ËÍfifo¶ÁÊ¹ÄÜ(¶ÀÈÈÂë)
-    reg[2:0] i2c_if_stage_onehot; // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷½×¶Î(¶ÀÈÈÂë)
-    wire i2c_if_ctrler_done; // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷Íê³É(Ö¸Ê¾)
-    reg is_rd_trans; // ÊÇ·ñ¶Á´«Êä
-    reg last_loaded; // ÔØÈëµÄlastĞÅºÅ
-    wire is_addr_stage; // ÊÇ·ñ´¦ÓÚµØÖ·½×¶Î
-    reg[3:0] bytes_n_to_rx; // ´ı½ÓÊÕ×Ö½ÚÊı
-    reg trans_first; // ÊÕ·¢µÚ1¸ö×Ö½Ú(±êÖ¾)
-    reg[3:0] trans_bytes_n; // ÒÑÊÕ·¢µÄ×Ö½ÚÊı
-    reg[3:0] trans_bytes_n_add1; // ÒÑÊÕ·¢µÄ×Ö½ÚÊı + 1
+    /** æµç¨‹æ§åˆ¶ **/
+    reg[1:0] i2c_ctrler_sts; // æ§åˆ¶å™¨çŠ¶æ€
+    reg[2:0] tx_fifo_ren_onehot; // å‘é€fifoè¯»ä½¿èƒ½(ç‹¬çƒ­ç )
+    reg[2:0] i2c_if_stage_onehot; // i2cä¸»æ¥å£æ§åˆ¶å™¨é˜¶æ®µ(ç‹¬çƒ­ç )
+    wire i2c_if_ctrler_done; // i2cä¸»æ¥å£æ§åˆ¶å™¨å®Œæˆ(æŒ‡ç¤º)
+    reg is_rd_trans; // æ˜¯å¦è¯»ä¼ è¾“
+    reg last_loaded; // è½½å…¥çš„lastä¿¡å·
+    wire is_addr_stage; // æ˜¯å¦å¤„äºåœ°å€é˜¶æ®µ
+    reg[3:0] bytes_n_to_rx; // å¾…æ¥æ”¶å­—èŠ‚æ•°
+    reg trans_first; // æ”¶å‘ç¬¬1ä¸ªå­—èŠ‚(æ ‡å¿—)
+    reg[3:0] trans_bytes_n; // å·²æ”¶å‘çš„å­—èŠ‚æ•°
+    reg[3:0] trans_bytes_n_add1; // å·²æ”¶å‘çš„å­—èŠ‚æ•° + 1
     
     assign tx_fifo_ren = tx_fifo_ren_onehot[1];
     
-    // ¿ØÖÆÆ÷×´Ì¬
+    // æ§åˆ¶å™¨çŠ¶æ€
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -104,28 +128,28 @@ module i2c_ctrler #(
             # simulation_delay;
             
             case(i2c_ctrler_sts)
-                I2C_CTRLER_STS_IDLE: // ×´Ì¬:¿ÕÏĞ
+                I2C_CTRLER_STS_IDLE: // çŠ¶æ€:ç©ºé—²
                     if(~tx_fifo_empty)
-                        i2c_ctrler_sts <= I2C_CTRLER_STS_LOAD; // -> ×´Ì¬:¼ÓÔØÊı¾İ
-                I2C_CTRLER_STS_LOAD: // ×´Ì¬:¼ÓÔØÊı¾İ
+                        i2c_ctrler_sts <= I2C_CTRLER_STS_LOAD; // -> çŠ¶æ€:åŠ è½½æ•°æ®
+                I2C_CTRLER_STS_LOAD: // çŠ¶æ€:åŠ è½½æ•°æ®
                     if(tx_fifo_ren_onehot[2])
-                        i2c_ctrler_sts <= I2C_CTRLER_STS_RX_TX; // -> ×´Ì¬:ÊÕ·¢
-                I2C_CTRLER_STS_RX_TX: // ×´Ì¬:ÊÕ·¢
+                        i2c_ctrler_sts <= I2C_CTRLER_STS_RX_TX; // -> çŠ¶æ€:æ”¶å‘
+                I2C_CTRLER_STS_RX_TX: // çŠ¶æ€:æ”¶å‘
                     if(i2c_if_stage_onehot[2] & i2c_if_ctrler_done)
-                        i2c_ctrler_sts <= I2C_CTRLER_STS_DONE; // -> ×´Ì¬:Íê³É
+                        i2c_ctrler_sts <= I2C_CTRLER_STS_DONE; // -> çŠ¶æ€:å®Œæˆ
                 I2C_CTRLER_STS_DONE:
                 begin
                     if(is_rd_trans)
                     begin
                         if(last_loaded)
-                            i2c_ctrler_sts <= (trans_bytes_n == bytes_n_to_rx) ? I2C_CTRLER_STS_IDLE: // -> ×´Ì¬:¿ÕÏĞ
-                                                                                 I2C_CTRLER_STS_RX_TX; // -> ×´Ì¬:ÊÕ·¢
+                            i2c_ctrler_sts <= (trans_bytes_n == bytes_n_to_rx) ? I2C_CTRLER_STS_IDLE: // -> çŠ¶æ€:ç©ºé—²
+                                                                                 I2C_CTRLER_STS_RX_TX; // -> çŠ¶æ€:æ”¶å‘
                         else
-                            i2c_ctrler_sts <= I2C_CTRLER_STS_LOAD; // -> ×´Ì¬:¼ÓÔØÊı¾İ
+                            i2c_ctrler_sts <= I2C_CTRLER_STS_LOAD; // -> çŠ¶æ€:åŠ è½½æ•°æ®
                     end
                     else
-                        i2c_ctrler_sts <= last_loaded ? I2C_CTRLER_STS_IDLE: // -> ×´Ì¬:¿ÕÏĞ
-                                                        I2C_CTRLER_STS_LOAD; // -> ×´Ì¬:¼ÓÔØÊı¾İ
+                        i2c_ctrler_sts <= last_loaded ? I2C_CTRLER_STS_IDLE: // -> çŠ¶æ€:ç©ºé—²
+                                                        I2C_CTRLER_STS_LOAD; // -> çŠ¶æ€:åŠ è½½æ•°æ®
                 end
                 default:
                     i2c_ctrler_sts <= I2C_CTRLER_STS_IDLE;
@@ -133,7 +157,7 @@ module i2c_ctrler #(
         end
     end
     
-    // ·¢ËÍfifo¶ÁÊ¹ÄÜ(¶ÀÈÈÂë)
+    // å‘é€fifoè¯»ä½¿èƒ½(ç‹¬çƒ­ç )
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -142,7 +166,7 @@ module i2c_ctrler #(
             # simulation_delay tx_fifo_ren_onehot <= {tx_fifo_ren_onehot[1:0], tx_fifo_ren_onehot[2]};
     end
     
-    // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷½×¶Î(¶ÀÈÈÂë)
+    // i2cä¸»æ¥å£æ§åˆ¶å™¨é˜¶æ®µ(ç‹¬çƒ­ç )
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -151,7 +175,7 @@ module i2c_ctrler #(
             # simulation_delay i2c_if_stage_onehot <= {i2c_if_stage_onehot[1:0], i2c_if_stage_onehot[2]};
     end
     
-    // ÊÕ·¢µÚ1¸ö×Ö½Ú(±êÖ¾)
+    // æ”¶å‘ç¬¬1ä¸ªå­—èŠ‚(æ ‡å¿—)
     always @(posedge clk)
     begin
         if(i2c_ctrler_sts == I2C_CTRLER_STS_IDLE)
@@ -160,7 +184,7 @@ module i2c_ctrler #(
             # simulation_delay trans_first <= ~(i2c_if_stage_onehot[2] & i2c_if_ctrler_done);
     end
     
-    // ÒÑÊÕ·¢µÄ×Ö½ÚÊı
+    // å·²æ”¶å‘çš„å­—èŠ‚æ•°
     always @(posedge clk)
     begin
         if(i2c_ctrler_sts == I2C_CTRLER_STS_IDLE)
@@ -168,7 +192,7 @@ module i2c_ctrler #(
         else if(i2c_if_stage_onehot[2] & i2c_if_ctrler_done & (~is_addr_stage))
             # simulation_delay trans_bytes_n <= trans_bytes_n + 4'd1;
     end
-    // ÒÑÊÕ·¢µÄ×Ö½ÚÊı + 1
+    // å·²æ”¶å‘çš„å­—èŠ‚æ•° + 1
     always @(posedge clk)
     begin
         if(i2c_ctrler_sts == I2C_CTRLER_STS_IDLE)
@@ -177,14 +201,14 @@ module i2c_ctrler #(
             # simulation_delay trans_bytes_n_add1 <= trans_bytes_n_add1 + 4'd1;
     end
     
-    /** Êı¾İÔØÈë **/
-    reg first_load; // ±¾I2CÊı¾İ°üµÚ1´ÎÔØÈëÊı¾İ(±êÖ¾)
-    reg[7:0] data_loaded; // ÔØÈëµÄÊı¾İ
-    wire resp_dire; // ÏìÓ¦·½Ïò(1'b0 -> Ö÷»ú½ÓÊÕÏìÓ¦, 1'b1 -> Ö÷»ú·¢ËÍÏìÓ¦)
+    /** æ•°æ®è½½å…¥ **/
+    reg first_load; // æœ¬I2Cæ•°æ®åŒ…ç¬¬1æ¬¡è½½å…¥æ•°æ®(æ ‡å¿—)
+    reg[7:0] data_loaded; // è½½å…¥çš„æ•°æ®
+    wire resp_dire; // å“åº”æ–¹å‘(1'b0 -> ä¸»æœºæ¥æ”¶å“åº”, 1'b1 -> ä¸»æœºå‘é€å“åº”)
     
     assign resp_dire = is_addr_stage ? 1'b0:is_rd_trans;
     
-    // ±¾I2CÊı¾İ°üµÚ1´ÎÔØÈëÊı¾İ(±êÖ¾)
+    // æœ¬I2Cæ•°æ®åŒ…ç¬¬1æ¬¡è½½å…¥æ•°æ®(æ ‡å¿—)
     always @(posedge clk)
     begin
         if(i2c_ctrler_sts == I2C_CTRLER_STS_IDLE)
@@ -193,24 +217,24 @@ module i2c_ctrler #(
             # simulation_delay first_load <= ~tx_fifo_ren_onehot[2];
     end
     
-    // ÔØÈëµÄÊı¾İ
-    // ÔØÈëµÄlastĞÅºÅ
+    // è½½å…¥çš„æ•°æ®
+    // è½½å…¥çš„lastä¿¡å·
     always @(posedge clk)
     begin
         if(tx_fifo_ren_onehot[2])
             # simulation_delay {last_loaded, data_loaded} <= {tx_fifo_dout_last, tx_fifo_dout};
     end
     
-    // ÊÇ·ñ¶Á´«Êä
+    // æ˜¯å¦è¯»ä¼ è¾“
     always @(posedge clk)
     begin
         if(tx_fifo_ren_onehot[2] & first_load)
             # simulation_delay is_rd_trans <= tx_fifo_dout[0];
     end
     
-    // ÊÇ·ñ´¦ÓÚµØÖ·½×¶Î
+    // æ˜¯å¦å¤„äºåœ°å€é˜¶æ®µ
     generate
-        if(addr_bits_n == 7) // 7Î»µØÖ·
+        if(addr_bits_n == 7) // 7ä½åœ°å€
         begin
             reg[1:0] is_addr_stage_onehot;
             
@@ -224,7 +248,7 @@ module i2c_ctrler #(
                     # simulation_delay is_addr_stage_onehot <= {is_addr_stage_onehot[0], is_addr_stage_onehot[1]};
             end
         end
-        else // 10Î»µØÖ·
+        else // 10ä½åœ°å€
         begin
             reg[2:0] is_addr_stage_onehot;
             
@@ -240,19 +264,19 @@ module i2c_ctrler #(
         end
     endgenerate
     
-    // ´ı½ÓÊÕ×Ö½ÚÊı
+    // å¾…æ¥æ”¶å­—èŠ‚æ•°
     always @(posedge clk)
     begin
         if(tx_fifo_ren_onehot[2] & tx_fifo_dout_last & is_rd_trans)
             # simulation_delay bytes_n_to_rx <= tx_fifo_dout[3:0];
     end
     
-    /** I2CÖ÷½Ó¿Ú **/
-    wire[7:0] byte_recv; // ½ÓÊÕµ½Êı¾İ
-    reg i2c_rx_overflow_reg; // I2C½ÓÊÕÒç³ö
-    wire i2c_if_ctrler_start; // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷¿ªÊ¼(Ö¸Ê¾)
-    reg[1:0] i2c_if_ctrler_mode; // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷´«ÊäÄ£Ê½(2'b00 -> ´øÆğÊ¼Î», 2'b01 -> ´ø½áÊøÎ», 2'b10 -> Õı³£, 2'b11 -> Ô¤Áô)
-    wire i2c_if_ctrler_dire; // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷´«Êä·½Ïò(1'b0 -> ·¢ËÍ, 1'b1 -> ½ÓÊÕ)
+    /** I2Cä¸»æ¥å£ **/
+    wire[7:0] byte_recv; // æ¥æ”¶åˆ°æ•°æ®
+    reg i2c_rx_overflow_reg; // I2Cæ¥æ”¶æº¢å‡º
+    wire i2c_if_ctrler_start; // i2cä¸»æ¥å£æ§åˆ¶å™¨å¼€å§‹(æŒ‡ç¤º)
+    reg[1:0] i2c_if_ctrler_mode; // i2cä¸»æ¥å£æ§åˆ¶å™¨ä¼ è¾“æ¨¡å¼(2'b00 -> å¸¦èµ·å§‹ä½, 2'b01 -> å¸¦ç»“æŸä½, 2'b10 -> æ­£å¸¸, 2'b11 -> é¢„ç•™)
+    wire i2c_if_ctrler_dire; // i2cä¸»æ¥å£æ§åˆ¶å™¨ä¼ è¾“æ–¹å‘(1'b0 -> å‘é€, 1'b1 -> æ¥æ”¶)
     
     assign rx_fifo_wen = i2c_if_ctrler_done & resp_dire;
     assign rx_fifo_din = byte_recv;
@@ -262,7 +286,7 @@ module i2c_ctrler #(
     assign i2c_if_ctrler_start = i2c_if_stage_onehot[1];
     assign i2c_if_ctrler_dire = resp_dire;
     
-    // I2C½ÓÊÕÒç³ö
+    // I2Cæ¥æ”¶æº¢å‡º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -271,7 +295,7 @@ module i2c_ctrler #(
             # simulation_delay i2c_rx_overflow_reg <= rx_fifo_wen & rx_fifo_full;
     end
     
-    // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷´«ÊäÄ£Ê½
+    // i2cä¸»æ¥å£æ§åˆ¶å™¨ä¼ è¾“æ¨¡å¼
     always @(posedge clk)
     begin
         if(trans_first)
@@ -282,7 +306,7 @@ module i2c_ctrler #(
             # simulation_delay i2c_if_ctrler_mode <= 2'b10;
     end
     
-    // i2cÖ÷½Ó¿Ú¿ØÖÆÆ÷
+    // i2cä¸»æ¥å£æ§åˆ¶å™¨
     i2c_master_if #(
         .simulation_delay(simulation_delay)
     )i2c_master_if_u(
@@ -310,16 +334,16 @@ module i2c_ctrler #(
         .sda_o(sda_o)
     );
     
-    /** I2CÊÕ·¢Íê³ÉÖ¸Ê¾ **/
-    reg i2c_tx_done_reg; // I2C·¢ËÍÍê³ÉÖ¸Ê¾
-    reg i2c_rx_done_reg; // I2C½ÓÊÕÍê³ÉÖ¸Ê¾
+    /** I2Cæ”¶å‘å®ŒæˆæŒ‡ç¤º **/
+    reg i2c_tx_done_reg; // I2Cå‘é€å®ŒæˆæŒ‡ç¤º
+    reg i2c_rx_done_reg; // I2Cæ¥æ”¶å®ŒæˆæŒ‡ç¤º
     
     assign i2c_tx_done = i2c_tx_done_reg;
     assign i2c_tx_bytes_n = trans_bytes_n;
     assign i2c_rx_done = i2c_rx_done_reg;
     assign i2c_rx_bytes_n = trans_bytes_n;
     
-    // I2C·¢ËÍÍê³ÉÖ¸Ê¾
+    // I2Cå‘é€å®ŒæˆæŒ‡ç¤º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -327,7 +351,7 @@ module i2c_ctrler #(
         else
             # simulation_delay i2c_tx_done_reg <= (i2c_ctrler_sts == I2C_CTRLER_STS_DONE) & (~is_rd_trans) & last_loaded;
     end
-    // I2C½ÓÊÕÍê³ÉÖ¸Ê¾
+    // I2Cæ¥æ”¶å®ŒæˆæŒ‡ç¤º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)

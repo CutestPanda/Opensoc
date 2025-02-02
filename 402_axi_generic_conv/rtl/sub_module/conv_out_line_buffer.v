@@ -1,50 +1,74 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ¶àÍ¨µÀ¾í»ı½á¹ûĞĞ»º´æÇø
+æœ¬æ¨¡å—: å¤šé€šé“å·ç§¯ç»“æœè¡Œç¼“å­˜åŒº
 
-ÃèÊö:
-´æ´¢Êä³öÌØÕ÷Í¼Ä³¸öÍ¨µÀµÄÄ³1ĞĞ
+æè¿°:
+å­˜å‚¨è¾“å‡ºç‰¹å¾å›¾æŸä¸ªé€šé“çš„æŸ1è¡Œ
 
-Ğ´ĞĞ»º´æÇøÊ±ÏÈ¶Á³öÔ­Êı¾İÔÙ¼ÓÉÏĞÂµÄÖĞ¼ä½á¹ûºóĞ´»Ø
+å†™è¡Œç¼“å­˜åŒºæ—¶å…ˆè¯»å‡ºåŸæ•°æ®å†åŠ ä¸Šæ–°çš„ä¸­é—´ç»“æœåå†™å›
 
-MEMÎ»¿í = ft_vld_width
-MEMÉî¶È = max_feature_map_w
-MEMĞ´ÑÓ³Ù = 2clk
-MEM¶ÁÑÓ³Ù = 1clk
+MEMä½å®½ = ft_vld_width
+MEMæ·±åº¦ = max_feature_map_w
+MEMå†™å»¶è¿Ÿ = 2clk
+MEMè¯»å»¶è¿Ÿ = 1clk
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 MEM READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/02
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/02
 ********************************************************************/
 
 
 module conv_out_line_buffer #(
-	parameter integer ft_vld_width = 20, // ÌØÕ÷µãÓĞĞ§Î»¿í(±ØĞë<=ft_ext_width)
-	parameter integer max_feature_map_w = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer ft_vld_width = 20, // ç‰¹å¾ç‚¹æœ‰æ•ˆä½å®½(å¿…é¡»<=ft_ext_width)
+	parameter integer max_feature_map_w = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ĞĞ»º´æÇø¶Á/Ğ´¶Ë¿Ú
+	// è¡Œç¼“å­˜åŒºè¯»/å†™ç«¯å£
 	input wire buffer_en,
 	input wire buffer_wen,
 	input wire[15:0] buffer_addr,
-	input wire buffer_w_first_grp, // Ğ´µÚ1×éÖĞ¼ä½á¹û(±êÖ¾)
+	input wire buffer_w_first_grp, // å†™ç¬¬1ç»„ä¸­é—´ç»“æœ(æ ‡å¿—)
 	input wire[ft_vld_width-1:0] buffer_din,
 	output wire[ft_vld_width-1:0] buffer_dout,
 	
-	// ĞĞ»º´æÇø×´Ì¬
-	output wire conv_mid_res_updating // ÕıÔÚ¸üĞÂ¾í»ıÖĞ¼ä½á¹û
+	// è¡Œç¼“å­˜åŒºçŠ¶æ€
+	output wire conv_mid_res_updating // æ­£åœ¨æ›´æ–°å·ç§¯ä¸­é—´ç»“æœ
 );
     
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -57,25 +81,25 @@ module conv_out_line_buffer #(
     end
     endfunction
 	
-	/** ĞĞ»º´æÇøMEM **/
-	// MEMĞ´¶Ë¿Ú
+	/** è¡Œç¼“å­˜åŒºMEM **/
+	// MEMå†™ç«¯å£
 	wire mem_wen_a;
 	wire[clogb2(max_feature_map_w-1):0] mem_addr_a;
     wire[ft_vld_width-1:0] mem_din_a;
-	// MEM¶Á¶Ë¿Ú
+	// MEMè¯»ç«¯å£
 	wire mem_ren_b;
     wire[clogb2(max_feature_map_w-1):0] mem_addr_b;
     wire[ft_vld_width-1:0] mem_dout_b;
-	// Ğ´»ØĞÂµÄÖĞ¼ä½á¹û
-	reg on_mem_wen_d; // ÑÓ³Ù1clkµÄÓĞĞ§µÄMEMĞ´Ê¹ÄÜ
-	reg on_mem_wen_d2; // ÑÓ³Ù2clkµÄÓĞĞ§µÄMEMĞ´Ê¹ÄÜ
-	reg buffer_w_first_grp_d; // ÑÓ³Ù1clkµÄĞ´µÚ1×éÖĞ¼ä½á¹û±êÖ¾
-	reg[ft_vld_width-1:0] buffer_din_d; // ÑÓ³Ù1clkµÄĞ´Êı¾İ
-	reg[clogb2(max_feature_map_w-1):0] buffer_waddr_d; // ÑÓ³Ù1clkµÄĞ´µØÖ·
-	reg[clogb2(max_feature_map_w-1):0] buffer_waddr_d2; // ÑÓ³Ù2clkµÄĞ´µØÖ·
-	reg[ft_vld_width-1:0] new_conv_mid_res; // ĞÂµÄ¾í»ıÖĞ¼ä½á¹û
-	// ĞĞ»º´æÇø×´Ì¬
-	reg buffer_updating; // ÕıÔÚ¸üĞÂ¾í»ıÖĞ¼ä½á¹û(±êÖ¾)
+	// å†™å›æ–°çš„ä¸­é—´ç»“æœ
+	reg on_mem_wen_d; // å»¶è¿Ÿ1clkçš„æœ‰æ•ˆçš„MEMå†™ä½¿èƒ½
+	reg on_mem_wen_d2; // å»¶è¿Ÿ2clkçš„æœ‰æ•ˆçš„MEMå†™ä½¿èƒ½
+	reg buffer_w_first_grp_d; // å»¶è¿Ÿ1clkçš„å†™ç¬¬1ç»„ä¸­é—´ç»“æœæ ‡å¿—
+	reg[ft_vld_width-1:0] buffer_din_d; // å»¶è¿Ÿ1clkçš„å†™æ•°æ®
+	reg[clogb2(max_feature_map_w-1):0] buffer_waddr_d; // å»¶è¿Ÿ1clkçš„å†™åœ°å€
+	reg[clogb2(max_feature_map_w-1):0] buffer_waddr_d2; // å»¶è¿Ÿ2clkçš„å†™åœ°å€
+	reg[ft_vld_width-1:0] new_conv_mid_res; // æ–°çš„å·ç§¯ä¸­é—´ç»“æœ
+	// è¡Œç¼“å­˜åŒºçŠ¶æ€
+	reg buffer_updating; // æ­£åœ¨æ›´æ–°å·ç§¯ä¸­é—´ç»“æœ(æ ‡å¿—)
 	
 	assign mem_wen_a = on_mem_wen_d2;
 	assign mem_addr_a = buffer_waddr_d2;
@@ -87,7 +111,7 @@ module conv_out_line_buffer #(
 	
 	assign conv_mid_res_updating = buffer_updating;
 	
-	// ÑÓ³Ù1clkµÄÓĞĞ§µÄMEMĞ´Ê¹ÄÜ
+	// å»¶è¿Ÿ1clkçš„æœ‰æ•ˆçš„MEMå†™ä½¿èƒ½
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -95,7 +119,7 @@ module conv_out_line_buffer #(
 		else
 			on_mem_wen_d <= # simulation_delay buffer_en & buffer_wen;
 	end
-	// ÑÓ³Ù2clkµÄÓĞĞ§µÄMEMĞ´Ê¹ÄÜ
+	// å»¶è¿Ÿ2clkçš„æœ‰æ•ˆçš„MEMå†™ä½¿èƒ½
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -104,34 +128,34 @@ module conv_out_line_buffer #(
 			on_mem_wen_d2 <= # simulation_delay on_mem_wen_d;
 	end
 	
-	// ÑÓ³Ù1clkµÄĞ´µÚ1×éÖĞ¼ä½á¹û±êÖ¾
+	// å»¶è¿Ÿ1clkçš„å†™ç¬¬1ç»„ä¸­é—´ç»“æœæ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(buffer_en & buffer_wen)
 			buffer_w_first_grp_d <= # simulation_delay buffer_w_first_grp;
 	end
 	
-	// ÑÓ³Ù1clkµÄĞ´Êı¾İ
+	// å»¶è¿Ÿ1clkçš„å†™æ•°æ®
 	always @(posedge clk)
 	begin
 		if(buffer_en & buffer_wen)
 			buffer_din_d <= # simulation_delay buffer_din;
 	end
 	
-	// ÑÓ³Ù1clkµÄĞ´µØÖ·
+	// å»¶è¿Ÿ1clkçš„å†™åœ°å€
 	always @(posedge clk)
 	begin
 		if(buffer_en & buffer_wen)
 			buffer_waddr_d <= # simulation_delay buffer_addr[clogb2(max_feature_map_w-1):0];
 	end
-	// ÑÓ³Ù2clkµÄĞ´µØÖ·
+	// å»¶è¿Ÿ2clkçš„å†™åœ°å€
 	always @(posedge clk)
 	begin
 		if(on_mem_wen_d)
 			buffer_waddr_d2 <= # simulation_delay buffer_waddr_d;
 	end
 	
-	// ĞÂµÄ¾í»ıÖĞ¼ä½á¹û
+	// æ–°çš„å·ç§¯ä¸­é—´ç»“æœ
 	always @(posedge clk)
 	begin
 		if(on_mem_wen_d)
@@ -140,7 +164,7 @@ module conv_out_line_buffer #(
 				({ft_vld_width{~buffer_w_first_grp_d}} & mem_dout_b);
 	end
 	
-	// ÕıÔÚ¸üĞÂ¾í»ıÖĞ¼ä½á¹û(±êÖ¾)
+	// æ­£åœ¨æ›´æ–°å·ç§¯ä¸­é—´ç»“æœ(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -149,7 +173,7 @@ module conv_out_line_buffer #(
 			buffer_updating <= # simulation_delay (buffer_en & buffer_wen) | on_mem_wen_d;
 	end
 	
-	// ĞĞ»º´æÇøMEM
+	// è¡Œç¼“å­˜åŒºMEM
 	bram_simple_dual_port #(
 		.style("LOW_LATENCY"),
 		.mem_width(ft_vld_width),

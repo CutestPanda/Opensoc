@@ -1,39 +1,63 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIS¼Ä´æÆ÷Æ¬(ºËĞÄ)
+æœ¬æ¨¡å—: AXISå¯„å­˜å™¨ç‰‡(æ ¸å¿ƒ)
 
-ÃèÊö:
-s_payload -> (ºóÏò·´À¡µÄpayload) -> Ç°Ïò¼Ä´æÆ÷ -> m_payload
-s_valid -> (ºóÏò·´À¡µÄvalid) -> Ç°Ïò¼Ä´æÆ÷ -> m_valid
-s_ready <- ºóÏò¼Ä´æÆ÷ <- (Ç°Ïò·´À¡µÄready) <- m_ready
+æè¿°:
+s_payload -> (åå‘åé¦ˆçš„payload) -> å‰å‘å¯„å­˜å™¨ -> m_payload
+s_valid -> (åå‘åé¦ˆçš„valid) -> å‰å‘å¯„å­˜å™¨ -> m_valid
+s_ready <- åå‘å¯„å­˜å™¨ <- (å‰å‘åé¦ˆçš„ready) <- m_ready
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/03/27
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/03/27
 ********************************************************************/
 
 
 module axis_reg_slice_core #(
-    parameter forward_registered = "false", // ÊÇ·ñÊ¹ÄÜÇ°Ïò¼Ä´æÆ÷
-    parameter back_registered = "false", // ÊÇ·ñÊ¹ÄÜºóÏò¼Ä´æÆ÷
-    parameter payload_width = 32, // ¸ºÔØÎ»¿í
-    parameter real simulation_delay = 0 // ·ÂÕæÑÓÊ±
+    parameter forward_registered = "false", // æ˜¯å¦ä½¿èƒ½å‰å‘å¯„å­˜å™¨
+    parameter back_registered = "false", // æ˜¯å¦ä½¿èƒ½åå‘å¯„å­˜å™¨
+    parameter payload_width = 32, // è´Ÿè½½ä½å®½
+    parameter real simulation_delay = 0 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
 
-    // ´Ó»ú
+    // ä»æœº
     input wire[payload_width-1:0] s_payload,
     input wire s_valid,
     output wire s_ready,
     
-    // Ö÷»ú
+    // ä¸»æœº
     output wire[payload_width-1:0] m_payload,
     output wire m_valid,
     input wire m_ready
@@ -56,13 +80,13 @@ module axis_reg_slice_core #(
             assign m_valid = fwd_valid;
             assign s_ready = (~m_valid) | m_ready;
             
-            // Ç°Ïòpayload
+            // å‰å‘payload
             always @(posedge clk)
             begin
                 if((~fwd_valid) | m_ready) 
                     # simulation_delay fwd_payload <= s_payload;
             end
-            // Ç°Ïòvalid
+            // å‰å‘valid
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -85,13 +109,13 @@ module axis_reg_slice_core #(
             assign m_valid = (~s_ready) | s_valid;
             assign s_ready = bwd_ready;
             
-            // ºóÏòpayload
+            // åå‘payload
             always @(posedge clk)
             begin
                 if(s_ready)
                     # simulation_delay bwd_payload <= s_payload;
             end
-            // ºóÏòready
+            // åå‘ready
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -117,17 +141,17 @@ module axis_reg_slice_core #(
             assign m_valid = fwd_valid;
             assign s_ready = bwd_ready;
             
-            assign fwd_ready_to_s = (~fwd_valid) | m_ready; // Ç°Ïò·´À¡¸øºóÏòµÄready
-            assign bwd_payload_to_s = bwd_ready ? s_payload:bwd_payload; // ºóÏò·´À¡¸øÇ°ÏòµÄpayload
-            assign bwd_valid_to_s = (~bwd_ready) | s_valid; // ºóÏò·´À¡¸øÇ°ÏòµÄvalid
+            assign fwd_ready_to_s = (~fwd_valid) | m_ready; // å‰å‘åé¦ˆç»™åå‘çš„ready
+            assign bwd_payload_to_s = bwd_ready ? s_payload:bwd_payload; // åå‘åé¦ˆç»™å‰å‘çš„payload
+            assign bwd_valid_to_s = (~bwd_ready) | s_valid; // åå‘åé¦ˆç»™å‰å‘çš„valid
             
-            // Ç°Ïòpayload
+            // å‰å‘payload
             always @(posedge clk)
             begin
                 if((~fwd_valid) | m_ready) 
                     # simulation_delay fwd_payload <= bwd_payload_to_s;
             end
-            // Ç°Ïòvalid
+            // å‰å‘valid
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -141,13 +165,13 @@ module axis_reg_slice_core #(
                 end 
             end
             
-            // ºóÏòpayload
+            // åå‘payload
             always @(posedge clk)
             begin
                 if(bwd_ready)
                     # simulation_delay bwd_payload <= s_payload;
             end
-            // ºóÏòready
+            // åå‘ready
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)

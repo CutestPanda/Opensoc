@@ -1,40 +1,64 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ÀäÈ´¼ÆÊıÆ÷
+æœ¬æ¨¡å—: å†·å´è®¡æ•°å™¨
 
-ÃèÊö:
-¾ÍĞ÷ -> ´¥·¢ -> ÀäÈ´ -> ¾ÍĞ÷ -> ...
+æè¿°:
+å°±ç»ª -> è§¦å‘ -> å†·å´ -> å°±ç»ª -> ...
 
-×¢Òâ£º
-ÀäÈ´Á¿½öÔÚ¼ÆÊıÆ÷¾ÍĞ÷»òÕß»ØÁãÊ±²ÉÑù
-ÀäÈ´Á¿ÊÇÖ¸´Ó´¥·¢µ½ÏÂÒ»´Î¾ÍĞ÷¾­¹ıµÄÊ±ÖÓÖÜÆÚÊı
+æ³¨æ„ï¼š
+å†·å´é‡ä»…åœ¨è®¡æ•°å™¨å°±ç»ªæˆ–è€…å›é›¶æ—¶é‡‡æ ·
+å†·å´é‡æ˜¯æŒ‡ä»è§¦å‘åˆ°ä¸‹ä¸€æ¬¡å°±ç»ªç»è¿‡çš„æ—¶é’Ÿå‘¨æœŸæ•°
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/13
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/13
 ********************************************************************/
 
 
 module cool_down_cnt #(
-    parameter integer max_cd = 20000 // ÀäÈ´Á¿µÄ×î´óÖµ
+    parameter integer max_cd = 20000 // å†·å´é‡çš„æœ€å¤§å€¼
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ÔËĞĞÊ±²ÎÊı
-    input wire[clogb2(max_cd-1):0] cd, // ÀäÈ´Á¿ - 1
+    // è¿è¡Œæ—¶å‚æ•°
+    input wire[clogb2(max_cd-1):0] cd, // å†·å´é‡ - 1
     
-    // ¼ÆÊıÆ÷¿ØÖÆ/×´Ì¬
-    input wire timer_trigger, // ´¥·¢
-    output wire timer_done, // Íê³É
-    output wire timer_ready, // ¾ÍĞ÷
-    output wire[clogb2(max_cd-1):0] timer_v // µ±Ç°¼ÆÊıÖµ
+    // è®¡æ•°å™¨æ§åˆ¶/çŠ¶æ€
+    input wire timer_trigger, // è§¦å‘
+    output wire timer_done, // å®Œæˆ
+    output wire timer_ready, // å°±ç»ª
+    output wire[clogb2(max_cd-1):0] timer_v // å½“å‰è®¡æ•°å€¼
 );
     
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -44,15 +68,15 @@ module cool_down_cnt #(
     end
     endfunction
     
-    /** ÀäÈ´¼ÆÊıÆ÷ **/
-    reg[clogb2(max_cd-1):0] cd_cnt; // ÀäÈ´¼ÆÊıÖµ
-    reg timer_ready_reg; // ¼ÆÊıÆ÷¾ÍĞ÷
+    /** å†·å´è®¡æ•°å™¨ **/
+    reg[clogb2(max_cd-1):0] cd_cnt; // å†·å´è®¡æ•°å€¼
+    reg timer_ready_reg; // è®¡æ•°å™¨å°±ç»ª
     
     assign timer_done = timer_ready ? (timer_trigger & cd == 0):(cd_cnt == 1);
     assign timer_ready = timer_ready_reg;
     assign timer_v = cd_cnt;
     
-    // ÀäÈ´¼ÆÊıÖµ
+    // å†·å´è®¡æ•°å€¼
     always @(posedge clk)
     begin
         if(timer_ready | (cd_cnt == 0))
@@ -61,7 +85,7 @@ module cool_down_cnt #(
             cd_cnt <= cd_cnt - 1;
     end
     
-    // ¼ÆÊıÆ÷¾ÍĞ÷
+    // è®¡æ•°å™¨å°±ç»ª
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

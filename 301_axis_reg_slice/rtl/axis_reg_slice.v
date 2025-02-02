@@ -1,35 +1,59 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIS¼Ä´æÆ÷Æ¬
+æœ¬æ¨¡å—: AXISå¯„å­˜å™¨ç‰‡
 
-ÃèÊö: 
-ÔÚAXISÖ÷´Ó½Ó¿Ú¼äÔö¼Ó¸ôÀë
-ÇĞ¸îÁ½¸öAXISÖ÷´Ó½Ó¿ÚµÄÊ±ĞòÂ·¾¶
+æè¿°: 
+åœ¨AXISä¸»ä»æ¥å£é—´å¢åŠ éš”ç¦»
+åˆ‡å‰²ä¸¤ä¸ªAXISä¸»ä»æ¥å£çš„æ—¶åºè·¯å¾„
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/10/13
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/10/13
 ********************************************************************/
 
 
 module axis_reg_slice #(
-    parameter integer data_width = 32, // Êı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter integer user_width = 1, // ÓÃ»§ĞÅºÅÎ»¿í(±ØĞë>=1, ²»ÓÃÊ±Ğü¿Õ¼´¿É)
-    parameter forward_registered = "true", // ÊÇ·ñÊ¹ÄÜÇ°Ïò¼Ä´æÆ÷
-    parameter back_registered = "true", // ÊÇ·ñÊ¹ÄÜºóÏò¼Ä´æÆ÷
-    parameter en_ready = "true", // ÊÇ·ñÊ¹ÓÃreadyĞÅºÅ
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer data_width = 32, // æ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter integer user_width = 1, // ç”¨æˆ·ä¿¡å·ä½å®½(å¿…é¡»>=1, ä¸ç”¨æ—¶æ‚¬ç©ºå³å¯)
+    parameter forward_registered = "true", // æ˜¯å¦ä½¿èƒ½å‰å‘å¯„å­˜å™¨
+    parameter back_registered = "true", // æ˜¯å¦ä½¿èƒ½åå‘å¯„å­˜å™¨
+    parameter en_ready = "true", // æ˜¯å¦ä½¿ç”¨readyä¿¡å·
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXIS SLAVE(´Ó»úÊäÈë)
+    // AXIS SLAVE(ä»æœºè¾“å…¥)
     input wire[data_width-1:0] s_axis_data,
     input wire[data_width/8-1:0] s_axis_keep,
     input wire[user_width-1:0] s_axis_user,
@@ -37,7 +61,7 @@ module axis_reg_slice #(
     input wire s_axis_valid,
     output wire s_axis_ready,
     
-    // AXIS MASTER(Ö÷»úÊä³ö)
+    // AXIS MASTER(ä¸»æœºè¾“å‡º)
     output wire[data_width-1:0] m_axis_data,
     output wire[data_width/8-1:0] m_axis_keep,
     output wire[user_width-1:0] m_axis_user,

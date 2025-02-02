@@ -1,48 +1,72 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ÈıÊäÈë¼Ó·¨Æ÷
+æœ¬æ¨¡å—: ä¸‰è¾“å…¥åŠ æ³•å™¨
 
-ÃèÊö:
-ÓĞ·ûºÅ¼Ó·¨Æ÷: add_out = (op_a + op_d) + op_c
-¿ÉÑ¡Ê¹ÓÃDSP
-3¼¶Á÷Ë®Ïß
+æè¿°:
+æœ‰ç¬¦å·åŠ æ³•å™¨: add_out = (op_a + op_d) + op_c
+å¯é€‰ä½¿ç”¨DSP
+3çº§æµæ°´çº¿
 
-×¢Òâ£º
-¶ÔÓÚxilinxÏµÁĞFPGA, 1¸öDSPµ¥Ôª¿ÉÒÔÍê³É¼ÆËã:
+æ³¨æ„ï¼š
+å¯¹äºxilinxç³»åˆ—FPGA, 1ä¸ªDSPå•å…ƒå¯ä»¥å®Œæˆè®¡ç®—:
 	P[47:0] = A[24:0] + D[24:0] + C[47:0]
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/12/25
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/12/25
 ********************************************************************/
 
 
 module add_3_in_dsp #(
-	parameter en_use_dsp = "false", // ÊÇ·ñÊ¹ÓÃDSP
-	parameter integer op_a_width = 16, // ²Ù×÷ÊıAÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer op_c_width = 16, // ²Ù×÷ÊıCÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer op_d_width = 16, // ²Ù×÷ÊıDÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer output_width = 16, // Êä³öÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter en_use_dsp = "false", // æ˜¯å¦ä½¿ç”¨DSP
+	parameter integer op_a_width = 16, // æ“ä½œæ•°Aä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer op_c_width = 16, // æ“ä½œæ•°Cä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer op_d_width = 16, // æ“ä½œæ•°Dä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer output_width = 16, // è¾“å‡ºä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓ
+    // æ—¶é’Ÿ
 	input wire clk,
 	
-	// Ê¹ÄÜ
-	input wire ce_s1_pre_adder, // ½öÊ¹ÓÃDSPÊ±¿ÉÓÃ
+	// ä½¿èƒ½
+	input wire ce_s1_pre_adder, // ä»…ä½¿ç”¨DSPæ—¶å¯ç”¨
 	input wire ce_s1_op_c,
-	input wire ce_s2_mul, // ½öÊ¹ÓÃDSPÊ±¿ÉÓÃ
+	input wire ce_s2_mul, // ä»…ä½¿ç”¨DSPæ—¶å¯ç”¨
 	input wire ce_s2_op_c,
 	input wire ce_s3_p,
 	
-	// ¼Ó·¨Æ÷ÊäÈë
+	// åŠ æ³•å™¨è¾“å…¥
 	input wire signed[op_a_width-1:0] op_a,
 	input wire signed[op_c_width-1:0] op_c,
 	input wire signed[op_d_width-1:0] op_d,
 	
-	// ¼Ó·¨Æ÷Êä³ö
+	// åŠ æ³•å™¨è¾“å‡º
 	output wire signed[output_width-1:0] res
 );
     

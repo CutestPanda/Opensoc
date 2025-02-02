@@ -1,95 +1,119 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXISÏßĞÔ³Ë¼ÓÓë¼¤»î¼ÆËãµ¥Ôª
+æœ¬æ¨¡å—: AXISçº¿æ€§ä¹˜åŠ ä¸æ¿€æ´»è®¡ç®—å•å…ƒ
 
-ÃèÊö:
-ÏßĞÔ³Ë¼Ó -> 
-y = ax + b, Í¨³£ÓÃÓÚÊµÏÖBN²ã»òÆ«ÖÃ
+æè¿°:
+çº¿æ€§ä¹˜åŠ  -> 
+y = ax + b, é€šå¸¸ç”¨äºå®ç°BNå±‚æˆ–åç½®
 
-Ö§³ÖRelu¼¤»î/Sigmoid¼¤»î/Tanh¼¤»î
+æ”¯æŒReluæ¿€æ´»/Sigmoidæ¿€æ´»/Tanhæ¿€æ´»
 
-Ê±ÑÓ = ÏßĞÔ³Ë¼Ó(4clk) + Relu¼¤»î(2clk)/·ÇÏßĞÔ¼¤»î(3clk)
+æ—¶å»¶ = çº¿æ€§ä¹˜åŠ (4clk) + Reluæ¿€æ´»(2clk)/éçº¿æ€§æ¿€æ´»(3clk)
 
-±äÁ¿x/y/z: Î»¿í = xyz_ext_int_width + cal_width + xyz_ext_frac_width, Á¿»¯¾«¶È = xyz_quaz_acc + xyz_ext_frac_width
-ÏµÊıa/b: Î»¿í = cal_width, Á¿»¯¾«¶È = ab_quaz_acc
-ÏµÊıc: Î»¿í = cal_width, Á¿»¯¾«¶È = c_quaz_acc
+å˜é‡x/y/z: ä½å®½ = xyz_ext_int_width + cal_width + xyz_ext_frac_width, é‡åŒ–ç²¾åº¦ = xyz_quaz_acc + xyz_ext_frac_width
+ç³»æ•°a/b: ä½å®½ = cal_width, é‡åŒ–ç²¾åº¦ = ab_quaz_acc
+ç³»æ•°c: ä½å®½ = cal_width, é‡åŒ–ç²¾åº¦ = c_quaz_acc
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/12/29
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/12/29
 ********************************************************************/
 
 
 module axis_linear_act_cal #(
-	parameter integer xyz_quaz_acc = 10, // x/y/z±äÁ¿Á¿»¯¾«¶È(±ØĞëÔÚ·¶Î§[1, cal_width-1]ÄÚ)
-	parameter integer ab_quaz_acc = 12, // a/bÏµÊıÁ¿»¯¾«¶È(±ØĞëÔÚ·¶Î§[1, cal_width-1]ÄÚ)
-	parameter integer c_quaz_acc = 14, // cÏµÊıÁ¿»¯¾«¶È(±ØĞëÔÚ·¶Î§[1, cal_width-1]ÄÚ)
-	parameter integer cal_width = 16, // ¼ÆËãÎ»¿í(¶ÔÓÚx/y/zºÍa/b/cÀ´Ëµ, ¿ÉÑ¡8 | 16)
-	parameter integer xyz_ext_int_width = 4, // x/y/z¶îÍâ¿¼ÂÇµÄÕûÊıÎ»Êı(±ØĞë<=(cal_width-xyz_quaz_acc))
-	parameter integer xyz_ext_frac_width = 4, // x/y/z¶îÍâ¿¼ÂÇµÄĞ¡ÊıÎ»Êı(±ØĞë<=xyz_quaz_acc)
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer xyz_quaz_acc = 10, // x/y/zå˜é‡é‡åŒ–ç²¾åº¦(å¿…é¡»åœ¨èŒƒå›´[1, cal_width-1]å†…)
+	parameter integer ab_quaz_acc = 12, // a/bç³»æ•°é‡åŒ–ç²¾åº¦(å¿…é¡»åœ¨èŒƒå›´[1, cal_width-1]å†…)
+	parameter integer c_quaz_acc = 14, // cç³»æ•°é‡åŒ–ç²¾åº¦(å¿…é¡»åœ¨èŒƒå›´[1, cal_width-1]å†…)
+	parameter integer cal_width = 16, // è®¡ç®—ä½å®½(å¯¹äºx/y/zå’Œa/b/cæ¥è¯´, å¯é€‰8 | 16)
+	parameter integer xyz_ext_int_width = 4, // x/y/zé¢å¤–è€ƒè™‘çš„æ•´æ•°ä½æ•°(å¿…é¡»<=(cal_width-xyz_quaz_acc))
+	parameter integer xyz_ext_frac_width = 4, // x/y/zé¢å¤–è€ƒè™‘çš„å°æ•°ä½æ•°(å¿…é¡»<=xyz_quaz_acc)
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire[1:0] act_type, // ¼¤»îÀàĞÍ(2'b00 -> Relu, 2'b01 -> ±£Áô, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
-	input wire[cal_width-1:0] act_rate_c, // Relu¼¤»îÏµÊıc
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire[1:0] act_type, // æ¿€æ´»ç±»å‹(2'b00 -> Relu, 2'b01 -> ä¿ç•™, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
+	input wire[cal_width-1:0] act_rate_c, // Reluæ¿€æ´»ç³»æ•°c
 	
-	// ¶àÍ¨µÀ¾í»ı¼ÆËã½á¹ûÊäÈë(AXIS´Ó»ú)
-	// ½öµÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»ÓĞĞ§
+	// å¤šé€šé“å·ç§¯è®¡ç®—ç»“æœè¾“å…¥(AXISä»æœº)
+	// ä»…ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½æœ‰æ•ˆ
 	input wire[cal_width*2-1:0] s_axis_conv_res_data,
-	input wire[15:0] s_axis_conv_res_user, // µ±Ç°Êä³öÌØÕ÷ĞĞËùÔÚµÄÍ¨µÀºÅ
-	input wire s_axis_conv_res_last, // ±íÊ¾ĞĞÎ²
+	input wire[15:0] s_axis_conv_res_user, // å½“å‰è¾“å‡ºç‰¹å¾è¡Œæ‰€åœ¨çš„é€šé“å·
+	input wire s_axis_conv_res_last, // è¡¨ç¤ºè¡Œå°¾
 	input wire s_axis_conv_res_valid,
 	output wire s_axis_conv_res_ready,
 	
-	// ÏßĞÔ³Ë¼ÓÓë¼¤»î¼ÆËã½á¹ûÊä³ö(AXISÖ÷»ú)
-	// ½öµÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»ÓĞĞ§
+	// çº¿æ€§ä¹˜åŠ ä¸æ¿€æ´»è®¡ç®—ç»“æœè¾“å‡º(AXISä¸»æœº)
+	// ä»…ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½æœ‰æ•ˆ
 	output wire[cal_width*2-1:0] m_axis_linear_act_res_data,
-	output wire m_axis_linear_act_res_last, // ±íÊ¾ĞĞÎ²
+	output wire m_axis_linear_act_res_last, // è¡¨ç¤ºè¡Œå°¾
 	output wire m_axis_linear_act_res_valid,
 	input wire m_axis_linear_act_res_ready,
 	
-	// ÏßĞÔ²ÎÊı»º´æÇø¼ÓÔØÍê³É±êÖ¾
+	// çº¿æ€§å‚æ•°ç¼“å­˜åŒºåŠ è½½å®Œæˆæ ‡å¿—
 	input wire linear_pars_buf_load_completed,
 	
-	// ÏßĞÔ²ÎÊı»ñÈ¡(MEM¶Á)
+	// çº¿æ€§å‚æ•°è·å–(MEMè¯»)
 	output wire linear_pars_buffer_ren_s0,
 	output wire linear_pars_buffer_ren_s1,
 	output wire[15:0] linear_pars_buffer_raddr,
 	input wire[cal_width-1:0] linear_pars_buffer_dout_a,
 	input wire[cal_width-1:0] linear_pars_buffer_dout_b,
 	
-	// ·ÇÏßĞÔ¼¤»î²éÕÒ±í(¶Á¶Ë¿Ú)
+	// éçº¿æ€§æ¿€æ´»æŸ¥æ‰¾è¡¨(è¯»ç«¯å£)
 	output wire non_ln_act_lut_ren,
 	output wire[10:0] non_ln_act_lut_raddr,
 	input wire[15:0] non_ln_act_lut_dout // Q15
 );
     
-	/** ³£Á¿ **/
-	// ¼¤»îÀàĞÍ
+	/** å¸¸é‡ **/
+	// æ¿€æ´»ç±»å‹
 	localparam ACT_RELU = 2'b00;
 	localparam ACT_SIGMOID = 2'b10;
 	localparam ACT_TANH = 2'b11;
 	
-    /** Êä³öfifo **/
-	// fifoĞ´¶Ë¿Ú
+    /** è¾“å‡ºfifo **/
+	// fifoå†™ç«¯å£
 	wire out_fifo_wen;
 	wire out_fifo_almost_full_n;
-	wire[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0] out_fifo_din; // Á¿»¯¾«¶È = xyz_quaz_acc+xyz_ext_frac_width
-	wire out_fifo_din_last; // ±íÊ¾ĞĞÎ²
-	// fifo¶Á¶Ë¿Ú
+	wire[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0] out_fifo_din; // é‡åŒ–ç²¾åº¦ = xyz_quaz_acc+xyz_ext_frac_width
+	wire out_fifo_din_last; // è¡¨ç¤ºè¡Œå°¾
+	// fifoè¯»ç«¯å£
 	wire out_fifo_ren;
 	wire out_fifo_empty_n;
-	wire[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0] out_fifo_dout; // Á¿»¯¾«¶È = xyz_quaz_acc+xyz_ext_frac_width
-	wire out_fifo_dout_last; // ±íÊ¾ĞĞÎ²
+	wire[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0] out_fifo_dout; // é‡åŒ–ç²¾åº¦ = xyz_quaz_acc+xyz_ext_frac_width
+	wire out_fifo_dout_last; // è¡¨ç¤ºè¡Œå°¾
 	
 	generate
 		if((xyz_ext_int_width+cal_width+xyz_ext_frac_width) == (cal_width*2))
@@ -97,17 +121,17 @@ module axis_linear_act_cal #(
 		else
 			assign m_axis_linear_act_res_data = 
 				{{(cal_width-xyz_ext_int_width-xyz_ext_frac_width)
-					{out_fifo_dout[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1]}}, // ½øĞĞ·ûºÅÎ»ÍØÕ¹
+					{out_fifo_dout[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1]}}, // è¿›è¡Œç¬¦å·ä½æ‹“å±•
 				out_fifo_dout};
 	endgenerate
 	
 	assign m_axis_linear_act_res_last = out_fifo_dout_last;
-	// ÎÕÊÖÌõ¼ş: out_fifo_empty_n & m_axis_linear_act_res_ready
+	// æ¡æ‰‹æ¡ä»¶: out_fifo_empty_n & m_axis_linear_act_res_ready
 	assign m_axis_linear_act_res_valid = out_fifo_empty_n;
-	// ÎÕÊÖÌõ¼ş: out_fifo_empty_n & m_axis_linear_act_res_ready
+	// æ¡æ‰‹æ¡ä»¶: out_fifo_empty_n & m_axis_linear_act_res_ready
 	assign out_fifo_ren = m_axis_linear_act_res_ready;
 	
-	// Êä³öfifo
+	// è¾“å‡ºfifo
 	ram_fifo_wrapper #(
 		.fwft_mode("true"),
 		.ram_type("bram"),
@@ -135,19 +159,19 @@ module axis_linear_act_cal #(
 		.fifo_empty_n(out_fifo_empty_n)
 	);
 	
-	/** ÏßĞÔ³Ë¼Ó **/
-	reg conv_res_in_vld_d; // ÑÓ³Ù1clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
-	reg conv_res_in_vld_d2; // ÑÓ³Ù2clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
-	reg conv_res_in_vld_d3; // ÑÓ³Ù3clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
-	reg conv_res_in_vld_d4; // ÑÓ³Ù4clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
-	reg conv_res_last_d; // ÑÓ³Ù1clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
-	reg conv_res_last_d2; // ÑÓ³Ù2clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
-	reg conv_res_last_d3; // ÑÓ³Ù3clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
-	reg conv_res_last_d4; // ÑÓ³Ù4clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
-	wire[xyz_ext_int_width+2*cal_width+xyz_ext_frac_width-1:0] linear_mul_add_res; // ÏßĞÔ³Ë¼Ó½á¹û(Á¿»¯¾«¶È = xyz_quaz_acc+xyz_ext_frac_width+ab_quaz_acc)
-	wire[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0] linear_mul_add_res_quaz; // ÉáÈëµÄÏßĞÔ³Ë¼Ó½á¹û(Á¿»¯¾«¶È = xyz_quaz_acc+xyz_ext_frac_width)
+	/** çº¿æ€§ä¹˜åŠ  **/
+	reg conv_res_in_vld_d; // å»¶è¿Ÿ1clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
+	reg conv_res_in_vld_d2; // å»¶è¿Ÿ2clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
+	reg conv_res_in_vld_d3; // å»¶è¿Ÿ3clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
+	reg conv_res_in_vld_d4; // å»¶è¿Ÿ4clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
+	reg conv_res_last_d; // å»¶è¿Ÿ1clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
+	reg conv_res_last_d2; // å»¶è¿Ÿ2clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
+	reg conv_res_last_d3; // å»¶è¿Ÿ3clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
+	reg conv_res_last_d4; // å»¶è¿Ÿ4clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
+	wire[xyz_ext_int_width+2*cal_width+xyz_ext_frac_width-1:0] linear_mul_add_res; // çº¿æ€§ä¹˜åŠ ç»“æœ(é‡åŒ–ç²¾åº¦ = xyz_quaz_acc+xyz_ext_frac_width+ab_quaz_acc)
+	wire[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0] linear_mul_add_res_quaz; // èˆå…¥çš„çº¿æ€§ä¹˜åŠ ç»“æœ(é‡åŒ–ç²¾åº¦ = xyz_quaz_acc+xyz_ext_frac_width)
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_conv_res_valid & out_fifo_almost_full_n & linear_pars_buf_load_completed
+	// æ¡æ‰‹æ¡ä»¶: s_axis_conv_res_valid & out_fifo_almost_full_n & linear_pars_buf_load_completed
 	assign s_axis_conv_res_ready = out_fifo_almost_full_n & linear_pars_buf_load_completed;
 	
 	assign linear_pars_buffer_ren_s0 = s_axis_conv_res_valid & s_axis_conv_res_ready;
@@ -156,7 +180,7 @@ module axis_linear_act_cal #(
 	
 	assign linear_mul_add_res_quaz = linear_mul_add_res[(xyz_ext_int_width+cal_width+xyz_ext_frac_width+ab_quaz_acc-1):ab_quaz_acc];
 	
-	// ÑÓ³Ù1clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
+	// å»¶è¿Ÿ1clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -164,7 +188,7 @@ module axis_linear_act_cal #(
 		else
 			conv_res_in_vld_d <= # simulation_delay s_axis_conv_res_valid & s_axis_conv_res_ready;
 	end
-	// ÑÓ³Ù2clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
+	// å»¶è¿Ÿ2clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -172,7 +196,7 @@ module axis_linear_act_cal #(
 		else
 			conv_res_in_vld_d2 <= # simulation_delay conv_res_in_vld_d;
 	end
-	// ÑÓ³Ù3clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
+	// å»¶è¿Ÿ3clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -180,7 +204,7 @@ module axis_linear_act_cal #(
 		else
 			conv_res_in_vld_d3 <= # simulation_delay conv_res_in_vld_d2;
 	end
-	// ÑÓ³Ù4clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
+	// å»¶è¿Ÿ4clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -189,25 +213,25 @@ module axis_linear_act_cal #(
 			conv_res_in_vld_d4 <= # simulation_delay conv_res_in_vld_d3;
 	end
 	
-	// ÑÓ³Ù1clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
+	// å»¶è¿Ÿ1clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(s_axis_conv_res_valid & s_axis_conv_res_ready)
 			conv_res_last_d <= # simulation_delay s_axis_conv_res_last;
 	end
-	// ÑÓ³Ù2clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
+	// å»¶è¿Ÿ2clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(conv_res_in_vld_d)
 			conv_res_last_d2 <= # simulation_delay conv_res_last_d;
 	end
-	// ÑÓ³Ù3clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
+	// å»¶è¿Ÿ3clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(conv_res_in_vld_d2)
 			conv_res_last_d3 <= # simulation_delay conv_res_last_d2;
 	end
-	// ÑÓ³Ù4clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
+	// å»¶è¿Ÿ4clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(conv_res_in_vld_d3)
@@ -215,13 +239,13 @@ module axis_linear_act_cal #(
 	end
 	
 	/*
-	³Ë¼ÓÆ÷
+	ä¹˜åŠ å™¨
 	
-	op_a ---> {µÚ0¼¶¼Ä´æÆ÷} ----|
-	                           {+} --> {µÚ1¼¶¼Ä´æÆ÷} ----|
-	  0  -----------------------|                       {*} ---> {µÚ2¼¶¼Ä´æÆ÷} ----|
-	op_b ------------------------------------------------|                        {+} ---> {µÚ3¼¶¼Ä´æÆ÷}
-	op_c ------------------------------------------------------> {µÚ2¼¶¼Ä´æÆ÷} ----|
+	op_a ---> {ç¬¬0çº§å¯„å­˜å™¨} ----|
+	                           {+} --> {ç¬¬1çº§å¯„å­˜å™¨} ----|
+	  0  -----------------------|                       {*} ---> {ç¬¬2çº§å¯„å­˜å™¨} ----|
+	op_b ------------------------------------------------|                        {+} ---> {ç¬¬3çº§å¯„å­˜å™¨}
+	op_c ------------------------------------------------------> {ç¬¬2çº§å¯„å­˜å™¨} ----|
 	*/
 	mul_add_dsp #(
 		.en_op_a_in_regs("true"),
@@ -252,12 +276,12 @@ module axis_linear_act_cal #(
 		.ce_s2_op_c(conv_res_in_vld_d2),
 		.ce_s3_p(conv_res_in_vld_d3),
 		
-		// Á¿»¯¾«¶È = xyz_quaz_acc+xyz_ext_frac_width
+		// é‡åŒ–ç²¾åº¦ = xyz_quaz_acc+xyz_ext_frac_width
 		.op_a(s_axis_conv_res_data[xyz_ext_int_width+cal_width+xyz_ext_frac_width-1:0]),
-		// Á¿»¯¾«¶È = ab_quaz_acc
+		// é‡åŒ–ç²¾åº¦ = ab_quaz_acc
 		.op_b(linear_pars_buffer_dout_a),
-		// Á¿»¯¾«¶È = xyz_quaz_acc+xyz_ext_frac_width+ab_quaz_acc
-		.op_c({{(xyz_ext_int_width+cal_width-xyz_quaz_acc){linear_pars_buffer_dout_b[cal_width-1]}}, // ½øĞĞ·ûºÅÎ»ÍØÕ¹
+		// é‡åŒ–ç²¾åº¦ = xyz_quaz_acc+xyz_ext_frac_width+ab_quaz_acc
+		.op_c({{(xyz_ext_int_width+cal_width-xyz_quaz_acc){linear_pars_buffer_dout_b[cal_width-1]}}, // è¿›è¡Œç¬¦å·ä½æ‹“å±•
 			linear_pars_buffer_dout_b, 
 			{(xyz_quaz_acc+xyz_ext_frac_width){1'b0}}}),
 		.op_d({(xyz_ext_int_width+cal_width+xyz_ext_frac_width){1'b0}}),
@@ -266,25 +290,25 @@ module axis_linear_act_cal #(
 		.pattern_detect_res()
 	);
 	
-	/** ¼¤»î **/
-	reg conv_res_in_vld_d5; // ÑÓ³Ù5clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
-	reg conv_res_in_vld_d6; // ÑÓ³Ù6clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
-	reg conv_res_in_vld_d7; // ÑÓ³Ù7clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
-	reg conv_res_last_d5; // ÑÓ³Ù5clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
-	reg conv_res_last_d6; // ÑÓ³Ù6clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
-	reg conv_res_last_d7; // ÑÓ³Ù7clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
-	// Relu¼¤»î
-	// ½öµÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»ÓĞĞ§
+	/** æ¿€æ´» **/
+	reg conv_res_in_vld_d5; // å»¶è¿Ÿ5clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
+	reg conv_res_in_vld_d6; // å»¶è¿Ÿ6clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
+	reg conv_res_in_vld_d7; // å»¶è¿Ÿ7clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
+	reg conv_res_last_d5; // å»¶è¿Ÿ5clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
+	reg conv_res_last_d6; // å»¶è¿Ÿ6clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
+	reg conv_res_last_d7; // å»¶è¿Ÿ7clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
+	// Reluæ¿€æ´»
+	// ä»…ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[cal_width*2-1:0] relu_act_in;
 	wire relu_act_in_vld;
-	// ½öµÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»ÓĞĞ§
+	// ä»…ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[cal_width*2-1:0] relu_act_out;
 	wire relu_act_out_vld;
-	// ·ÇÏßĞÔ¼¤»î
-	// ½öµÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»ÓĞĞ§
+	// éçº¿æ€§æ¿€æ´»
+	// ä»…ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[cal_width*2-1:0] non_ln_act_in;
 	wire non_ln_act_in_vld;
-	// ½öµÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»ÓĞĞ§
+	// ä»…ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[cal_width*2-1:0] non_ln_act_out;
 	wire non_ln_act_out_vld;
 	
@@ -297,13 +321,13 @@ module axis_linear_act_cal #(
 	assign out_fifo_din_last = 
 		((act_type == ACT_SIGMOID) | (act_type == ACT_TANH)) ? conv_res_last_d7:conv_res_last_d6;
 	
-	assign relu_act_in = linear_mul_add_res_quaz; // Î»¿í²»Æ¥Åä, È¡µÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»
+	assign relu_act_in = linear_mul_add_res_quaz; // ä½å®½ä¸åŒ¹é…, å–ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½
 	assign relu_act_in_vld = conv_res_in_vld_d4 & (act_type == ACT_RELU);
 	
-	assign non_ln_act_in = linear_mul_add_res_quaz; // Î»¿í²»Æ¥Åä, È¡µÍ(xyz_ext_int_width+cal_width+xyz_ext_frac_width)Î»
+	assign non_ln_act_in = linear_mul_add_res_quaz; // ä½å®½ä¸åŒ¹é…, å–ä½(xyz_ext_int_width+cal_width+xyz_ext_frac_width)ä½
 	assign non_ln_act_in_vld = conv_res_in_vld_d4 & ((act_type == ACT_SIGMOID) | (act_type == ACT_TANH));
 	
-	// ÑÓ³Ù5~7clkµÄ¾í»ı½á¹ûÊäÈëÓĞĞ§Ö¸Ê¾
+	// å»¶è¿Ÿ5~7clkçš„å·ç§¯ç»“æœè¾“å…¥æœ‰æ•ˆæŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -313,26 +337,26 @@ module axis_linear_act_cal #(
 				{conv_res_in_vld_d6, conv_res_in_vld_d5, conv_res_in_vld_d4};
 	end
 	
-	// ÑÓ³Ù5clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
+	// å»¶è¿Ÿ5clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(conv_res_in_vld_d4)
 			conv_res_last_d5 <= # simulation_delay conv_res_last_d4;
 	end
-	// ÑÓ³Ù6clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
+	// å»¶è¿Ÿ6clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(conv_res_in_vld_d5)
 			conv_res_last_d6 <= # simulation_delay conv_res_last_d5;
 	end
-	// ÑÓ³Ù7clkµÄ¾í»ı½á¹ûĞĞÎ²±êÖ¾
+	// å»¶è¿Ÿ7clkçš„å·ç§¯ç»“æœè¡Œå°¾æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(conv_res_in_vld_d6)
 			conv_res_last_d7 <= # simulation_delay conv_res_last_d6;
 	end
 	
-	// Relu¼¤»î¼ÆËãµ¥Ôª
+	// Reluæ¿€æ´»è®¡ç®—å•å…ƒ
 	relu_act #(
 		.act_cal_width(cal_width),
 		.act_in_quaz_acc(xyz_quaz_acc),
@@ -353,7 +377,7 @@ module axis_linear_act_cal #(
 		.act_out_vld(relu_act_out_vld)
 	);
 	
-	// ·ÇÏßĞÔ¼¤»î¼ÆËãµ¥Ôª
+	// éçº¿æ€§æ¿€æ´»è®¡ç®—å•å…ƒ
 	non_linear_act #(
 		.act_cal_width(cal_width),
 		.act_in_quaz_acc(xyz_quaz_acc),

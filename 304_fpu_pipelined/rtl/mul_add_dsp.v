@@ -1,49 +1,73 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ³Ë¼ÓÆ÷DSPµ¥Ôª
+æœ¬æ¨¡å—: ä¹˜åŠ å™¨DSPå•å…ƒ
 
-ÃèÊö:
-ÓĞ·ûºÅ³Ë¼ÓÆ÷: mul_add_out = (op_a + op_d) * op_b + op_c
-            »òmul_add_out = op_a * op_b + op_c
-Ö§³Ö¶ÔÊä³ö½á¹û½øĞĞÄ£Ê½Æ¥Åä
-¿ÉÑ¡µÄ²Ù×÷ÊıA/B/DÊäÈë¼Ä´æÆ÷
-¿ÉÑ¡µÄÔ¤¼ÓÆ÷
-2/3¼¶Á÷Ë®Ïß
+æè¿°:
+æœ‰ç¬¦å·ä¹˜åŠ å™¨: mul_add_out = (op_a + op_d) * op_b + op_c
+            æˆ–mul_add_out = op_a * op_b + op_c
+æ”¯æŒå¯¹è¾“å‡ºç»“æœè¿›è¡Œæ¨¡å¼åŒ¹é…
+å¯é€‰çš„æ“ä½œæ•°A/B/Dè¾“å…¥å¯„å­˜å™¨
+å¯é€‰çš„é¢„åŠ å™¨
+2/3çº§æµæ°´çº¿
 
-×¢Òâ£º
-¶ÔÓÚxilinxÏµÁĞFPGA, 1¸öDSPµ¥Ôª¿ÉÒÔÍê³É¼ÆËã:
+æ³¨æ„ï¼š
+å¯¹äºxilinxç³»åˆ—FPGA, 1ä¸ªDSPå•å…ƒå¯ä»¥å®Œæˆè®¡ç®—:
 	P[47:0] = (A[24:0] + D[24:0]) * B[17:0] + C[47:0]
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/18
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/18
 ********************************************************************/
 
 
 module mul_add_dsp #(
-    parameter en_op_a_in_regs = "true", // ÊÇ·ñÊ¹ÄÜ²Ù×÷ÊıAÊäÈë¼Ä´æÆ÷
-    parameter en_op_b_in_regs = "true", // ÊÇ·ñÊ¹ÄÜ²Ù×÷ÊıBÊäÈë¼Ä´æÆ÷
-    parameter en_op_d_in_regs = "false", // ÊÇ·ñÊ¹ÄÜ²Ù×÷ÊıDÊäÈë¼Ä´æÆ÷
-    parameter en_pre_adder = "true", // ÊÇ·ñÊ¹ÄÜÔ¤¼ÓÆ÷
-	parameter en_op_b_in_s1_regs = "true", // ÊÇ·ñÊ¹ÄÜ²Ù×÷ÊıBµÚ1¼¶ÊäÈë¼Ä´æÆ÷
-	parameter en_op_c_in_s1_regs = "false", // ÊÇ·ñÊ¹ÄÜ²Ù×÷ÊıCµÚ1¼¶ÊäÈë¼Ä´æÆ÷
-	parameter en_op_c_in_s2_regs = "true", // ÊÇ·ñÊ¹ÄÜ²Ù×÷ÊıCµÚ2¼¶ÊäÈë¼Ä´æÆ÷
-	parameter integer op_a_width = 16, // ²Ù×÷ÊıAÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer op_b_width = 16, // ²Ù×÷ÊıBÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer op_c_width = 32, // ²Ù×÷ÊıCÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer op_d_width = 16, // ²Ù×÷ÊıDÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer output_width = 32, // Êä³öÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer pattern_detect_msb_id = 11, // Ä£Ê½¼ì²âMSB±àºÅ
-	parameter integer pattern_detect_lsb_id = 4, // Ä£Ê½¼ì²âLSB±àºÅ
-	parameter pattern_detect_cmp = 8'h34, // Ä£Ê½¼ì²â±È½ÏÖµ
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter en_op_a_in_regs = "true", // æ˜¯å¦ä½¿èƒ½æ“ä½œæ•°Aè¾“å…¥å¯„å­˜å™¨
+    parameter en_op_b_in_regs = "true", // æ˜¯å¦ä½¿èƒ½æ“ä½œæ•°Bè¾“å…¥å¯„å­˜å™¨
+    parameter en_op_d_in_regs = "false", // æ˜¯å¦ä½¿èƒ½æ“ä½œæ•°Dè¾“å…¥å¯„å­˜å™¨
+    parameter en_pre_adder = "true", // æ˜¯å¦ä½¿èƒ½é¢„åŠ å™¨
+	parameter en_op_b_in_s1_regs = "true", // æ˜¯å¦ä½¿èƒ½æ“ä½œæ•°Bç¬¬1çº§è¾“å…¥å¯„å­˜å™¨
+	parameter en_op_c_in_s1_regs = "false", // æ˜¯å¦ä½¿èƒ½æ“ä½œæ•°Cç¬¬1çº§è¾“å…¥å¯„å­˜å™¨
+	parameter en_op_c_in_s2_regs = "true", // æ˜¯å¦ä½¿èƒ½æ“ä½œæ•°Cç¬¬2çº§è¾“å…¥å¯„å­˜å™¨
+	parameter integer op_a_width = 16, // æ“ä½œæ•°Aä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer op_b_width = 16, // æ“ä½œæ•°Bä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer op_c_width = 32, // æ“ä½œæ•°Cä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer op_d_width = 16, // æ“ä½œæ•°Dä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer output_width = 32, // è¾“å‡ºä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer pattern_detect_msb_id = 11, // æ¨¡å¼æ£€æµ‹MSBç¼–å·
+	parameter integer pattern_detect_lsb_id = 4, // æ¨¡å¼æ£€æµ‹LSBç¼–å·
+	parameter pattern_detect_cmp = 8'h34, // æ¨¡å¼æ£€æµ‹æ¯”è¾ƒå€¼
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓ
+    // æ—¶é’Ÿ
 	input wire clk,
 	
-	// Ê¹ÄÜ
+	// ä½¿èƒ½
 	input wire ce_s0_op_a,
 	input wire ce_s0_op_b,
 	input wire ce_s0_op_d,
@@ -54,26 +78,26 @@ module mul_add_dsp #(
 	input wire ce_s2_op_c,
 	input wire ce_s3_p,
 	
-	// ³Ë¼ÓÆ÷ÊäÈë
+	// ä¹˜åŠ å™¨è¾“å…¥
 	input wire signed[op_a_width-1:0] op_a,
 	input wire signed[op_b_width-1:0] op_b,
 	input wire signed[op_c_width-1:0] op_c,
 	input wire signed[op_d_width-1:0] op_d,
 	
-	// ³Ë¼ÓÆ÷Êä³ö
+	// ä¹˜åŠ å™¨è¾“å‡º
 	output wire signed[output_width-1:0] res,
-	// Ä£Ê½¼ì²â½á¹û
+	// æ¨¡å¼æ£€æµ‹ç»“æœ
 	output wire pattern_detect_res
 );
     
-    /** ÄÚ²¿ÅäÖÃ **/
-    localparam integer pre_adder_out_width = 25; // Ô¤¼ÓÆ÷Êä³öÎ»¿í
+    /** å†…éƒ¨é…ç½® **/
+    localparam integer pre_adder_out_width = 25; // é¢„åŠ å™¨è¾“å‡ºä½å®½
 	
-	/** ³£Á¿ **/
-	localparam integer mul_in1_width = (en_pre_adder == "true") ? pre_adder_out_width:op_a_width; // ³Ë·¨Æ÷ÊäÈë1Î»¿í
-	localparam integer mul_in2_width = op_b_width; // ³Ë·¨Æ÷ÊäÈë2Î»¿í
+	/** å¸¸é‡ **/
+	localparam integer mul_in1_width = (en_pre_adder == "true") ? pre_adder_out_width:op_a_width; // ä¹˜æ³•å™¨è¾“å…¥1ä½å®½
+	localparam integer mul_in2_width = op_b_width; // ä¹˜æ³•å™¨è¾“å…¥2ä½å®½
     
-    /** ¿ÉÑ¡µÄÊäÈë¼Ä´æÆ÷ **/
+    /** å¯é€‰çš„è¾“å…¥å¯„å­˜å™¨ **/
     wire signed[op_a_width-1:0] op_a_in;
 	wire signed[op_b_width-1:0] op_b_in;
 	wire signed[op_d_width-1:0] op_d_in;
@@ -104,7 +128,7 @@ module mul_add_dsp #(
 	end
     
 	/**
-	µÚ1¼¶
+	ç¬¬1çº§
 	
 	[
 		op_a_in  ---
@@ -141,7 +165,7 @@ module mul_add_dsp #(
 	end
 	
 	/**
-	µÚ2¼¶
+	ç¬¬2çº§
 	
 	mul_in1  ---------
 	                  --> mul_in1 * mul_in2 --> mul_res
@@ -172,13 +196,13 @@ module mul_add_dsp #(
 	end
 	
 	/**
-	µÚ3¼¶
+	ç¬¬3çº§
 	
 	mul_res ---------
 	                 --> mul_res + mul_add_c_in --> mul_add_res
 	mul_add_c_in  ---
 	
-	Ä£Ê½¼ì²â
+	æ¨¡å¼æ£€æµ‹
 	**/
 	wire signed[output_width-1:0] mul_add;
 	reg signed[output_width-1:0] mul_add_res;

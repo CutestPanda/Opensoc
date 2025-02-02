@@ -1,28 +1,52 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ·ûºÏAHBĞ­ÒéµÄBram¿ØÖÆÆ÷
+æœ¬æ¨¡å—: ç¬¦åˆAHBåè®®çš„Bramæ§åˆ¶å™¨
 
-ÃèÊö: 
-AHB-Bram¿ØÖÆÆ÷
-¿ÉÑ¡Bram¶ÁÑÓ³ÙÎª1clk»ò2clk
+æè¿°: 
+AHB-Bramæ§åˆ¶å™¨
+å¯é€‰Bramè¯»å»¶è¿Ÿä¸º1clkæˆ–2clk
 
-×¢Òâ£º
-BramÎ»¿í¹Ì¶¨Îª32bit
+æ³¨æ„ï¼š
+Bramä½å®½å›ºå®šä¸º32bit
 
-Ğ­Òé:
+åè®®:
 AHB SLAVE
 MEM READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/07
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/07
 ********************************************************************/
 
 
 module ahb_bram_ctrler #(
-    parameter integer bram_read_la = 1, // Bram¶ÁÑÓ³Ù(1 | 2)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer bram_read_la = 1, // Bramè¯»å»¶è¿Ÿ(1 | 2)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
@@ -44,7 +68,7 @@ module ahb_bram_ctrler #(
     output wire[31:0] s_ahb_hrdata,
     output wire s_ahb_hresp, // const -> 1'b0
     
-    // ´æ´¢Æ÷½Ó¿Ú
+    // å­˜å‚¨å™¨æ¥å£
     output wire bram_clk,
     output wire bram_rst,
     output wire bram_en,
@@ -54,13 +78,13 @@ module ahb_bram_ctrler #(
     input wire[31:0] bram_dout
 );
 
-    /** AHB -> ¶ÁĞ´Bram **/
-    wire ahb_trans_start; // AHB´«Êä¿ªÊ¼(Ö¸Ê¾)
-    reg[3:0] mem_wen; // BramĞ´Ê¹ÄÜ
-	reg to_wt_mem_d; // ÑÓ³Ù1clkµÄBramĞ´Ö¸Ê¾
-	reg ahb_wt_transfering; // AHBÕıÔÚ½øĞĞĞ´´«Êä(±êÖ¾)
-    reg ahb_rd_transfering; // AHBÕıÔÚ½øĞĞ¶Á´«Êä(±êÖ¾)
-    reg[31:0] haddr_latched; // Ëø´æµÄAHB´«ÊäµØÖ·
+    /** AHB -> è¯»å†™Bram **/
+    wire ahb_trans_start; // AHBä¼ è¾“å¼€å§‹(æŒ‡ç¤º)
+    reg[3:0] mem_wen; // Bramå†™ä½¿èƒ½
+	reg to_wt_mem_d; // å»¶è¿Ÿ1clkçš„Bramå†™æŒ‡ç¤º
+	reg ahb_wt_transfering; // AHBæ­£åœ¨è¿›è¡Œå†™ä¼ è¾“(æ ‡å¿—)
+    reg ahb_rd_transfering; // AHBæ­£åœ¨è¿›è¡Œè¯»ä¼ è¾“(æ ‡å¿—)
+    reg[31:0] haddr_latched; // é”å­˜çš„AHBä¼ è¾“åœ°å€
     
     assign bram_clk = clk;
     assign bram_rst = ~rst_n;
@@ -71,7 +95,7 @@ module ahb_bram_ctrler #(
     
     assign ahb_trans_start = s_ahb_hsel & s_ahb_hready & s_ahb_htrans[1];
 	
-    // BramĞ´Ê¹ÄÜ
+    // Bramå†™ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -80,7 +104,7 @@ module ahb_bram_ctrler #(
         begin
             if(ahb_trans_start & s_ahb_hwrite)
             begin
-                // ¶ÏÑÔ:AHBÍ»·¢´óĞ¡Ö»ÄÜÎª1/2/4×Ö½Ú!
+                // æ–­è¨€:AHBçªå‘å¤§å°åªèƒ½ä¸º1/2/4å­—èŠ‚!
                 # simulation_delay;
                 
                 case({s_ahb_haddr[1:0], s_ahb_hsize[1:0]})
@@ -101,7 +125,7 @@ module ahb_bram_ctrler #(
         end
     end
 	
-	// ÑÓ³Ù1clkµÄBramĞ´Ö¸Ê¾
+	// å»¶è¿Ÿ1clkçš„Bramå†™æŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -110,7 +134,7 @@ module ahb_bram_ctrler #(
 			# simulation_delay to_wt_mem_d <= |mem_wen;
 	end
     
-	// AHBÕıÔÚ½øĞĞĞ´´«Êä(±êÖ¾)
+	// AHBæ­£åœ¨è¿›è¡Œå†™ä¼ è¾“(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -118,7 +142,7 @@ module ahb_bram_ctrler #(
         else
             # simulation_delay ahb_wt_transfering <= ahb_trans_start & s_ahb_hwrite;
     end
-    // AHBÕıÔÚ½øĞĞ¶Á´«Êä(±êÖ¾)
+    // AHBæ­£åœ¨è¿›è¡Œè¯»ä¼ è¾“(æ ‡å¿—)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -126,21 +150,21 @@ module ahb_bram_ctrler #(
         else
             # simulation_delay ahb_rd_transfering <= ahb_trans_start & (~s_ahb_hwrite);
     end
-	// Ëø´æµÄAHB´«ÊäµØÖ·
+	// é”å­˜çš„AHBä¼ è¾“åœ°å€
     always @(posedge clk)
 	begin
 		if(ahb_trans_start)
 			# simulation_delay haddr_latched <= s_ahb_haddr;
 	end
     
-    /** AHB´Ó»ú·µ»Ø **/
-    reg hready_out; // AHBÉÏÒ»¸ö´«ÊäÍê³É
+    /** AHBä»æœºè¿”å› **/
+    reg hready_out; // AHBä¸Šä¸€ä¸ªä¼ è¾“å®Œæˆ
     
     assign s_ahb_hready_out = hready_out;
     assign s_ahb_hrdata = bram_dout;
     assign s_ahb_hresp = 1'b0;
     
-    // AHBÉÏÒ»¸ö´«ÊäÍê³É
+    // AHBä¸Šä¸€ä¸ªä¼ è¾“å®Œæˆ
 	generate
 		if(bram_read_la == 1)
 		begin

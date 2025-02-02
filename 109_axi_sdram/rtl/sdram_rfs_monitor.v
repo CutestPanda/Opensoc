@@ -1,44 +1,68 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: sdramË¢ĞÂ¼à²âÆ÷
+æœ¬æ¨¡å—: sdramåˆ·æ–°ç›‘æµ‹å™¨
 
-ÃèÊö:
-¼ì²éÊÇ·ñÔÚ¹æ¶¨µÄÊ±¼ä¼ä¸ôÄÚË¢ĞÂsdram
+æè¿°:
+æ£€æŸ¥æ˜¯å¦åœ¨è§„å®šçš„æ—¶é—´é—´éš”å†…åˆ·æ–°sdram
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/17
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/17
 ********************************************************************/
 
 
 module sdram_rfs_monitor #(
-    parameter real clk_period = 7.0, // Ê±ÖÓÖÜÆÚ
-    parameter real max_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0, // ×î´óË¢ĞÂ¼ä¸ô(ÒÔns¼Æ)
-    parameter en_expt_tip = "false" // ÊÇ·ñÊ¹ÄÜÒì³£Ö¸Ê¾
+    parameter real clk_period = 7.0, // æ—¶é’Ÿå‘¨æœŸ
+    parameter real max_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0, // æœ€å¤§åˆ·æ–°é—´éš”(ä»¥nsè®¡)
+    parameter en_expt_tip = "false" // æ˜¯å¦ä½¿èƒ½å¼‚å¸¸æŒ‡ç¤º
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ×Ô¶¯Ë¢ĞÂ¶¨Ê±¿ªÊ¼(Ö¸Ê¾)
+    // è‡ªåŠ¨åˆ·æ–°å®šæ—¶å¼€å§‹(æŒ‡ç¤º)
     output wire start_rfs_timing,
     
-    // sdramÃüÁîÏß¼à²â
+    // sdramå‘½ä»¤çº¿ç›‘æµ‹
     input wire sdram_cs_n,
     input wire sdram_ras_n,
     input wire sdram_cas_n,
     input wire sdram_we_n,
     
-    // Òì³£Ö¸Ê¾
-    output wire rfs_timeout // Ë¢ĞÂ³¬Ê±
+    // å¼‚å¸¸æŒ‡ç¤º
+    output wire rfs_timeout // åˆ·æ–°è¶…æ—¶
 );
     
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -48,19 +72,19 @@ module sdram_rfs_monitor #(
     end
     endfunction
     
-    /** ³£Á¿ **/
-    localparam integer max_refresh_itv_p = $floor(max_refresh_itv / clk_period); // ×î´óË¢ĞÂ¼ä¸ôÖÜÆÚÊı
-    // ÃüÁîµÄÎïÀí±àÂë(CS_N, RAS_N, CAS_N, WE_N)
-    localparam CMD_PHY_AUTO_REFRESH = 4'b0001; // ÃüÁî:×Ô¶¯Ë¢ĞÂ
+    /** å¸¸é‡ **/
+    localparam integer max_refresh_itv_p = $floor(max_refresh_itv / clk_period); // æœ€å¤§åˆ·æ–°é—´éš”å‘¨æœŸæ•°
+    // å‘½ä»¤çš„ç‰©ç†ç¼–ç (CS_N, RAS_N, CAS_N, WE_N)
+    localparam CMD_PHY_AUTO_REFRESH = 4'b0001; // å‘½ä»¤:è‡ªåŠ¨åˆ·æ–°
     
-    /** ×Ô¶¯Ë¢ĞÂ¶¨Ê±¿ªÊ¼(Ö¸Ê¾) **/
-    reg[2:0] init_rfs_cnt; // ³õÊ¼»¯Ê±Ë¢ĞÂ¼ÆÊıÆ÷
-    reg start_rfs_timing_reg; // ×Ô¶¯Ë¢ĞÂ¶¨Ê±¿ªÊ¼(Ö¸Ê¾)
-    reg monitor_en; // ¼à²âÊ¹ÄÜ
+    /** è‡ªåŠ¨åˆ·æ–°å®šæ—¶å¼€å§‹(æŒ‡ç¤º) **/
+    reg[2:0] init_rfs_cnt; // åˆå§‹åŒ–æ—¶åˆ·æ–°è®¡æ•°å™¨
+    reg start_rfs_timing_reg; // è‡ªåŠ¨åˆ·æ–°å®šæ—¶å¼€å§‹(æŒ‡ç¤º)
+    reg monitor_en; // ç›‘æµ‹ä½¿èƒ½
     
     assign start_rfs_timing = start_rfs_timing_reg;
     
-    // ³õÊ¼»¯Ê±Ë¢ĞÂ¼ÆÊıÆ÷
+    // åˆå§‹åŒ–æ—¶åˆ·æ–°è®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -68,7 +92,7 @@ module sdram_rfs_monitor #(
         else if(({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH) & (~init_rfs_cnt[2]))
             init_rfs_cnt <= {init_rfs_cnt[1:0], init_rfs_cnt[2]};
     end
-    // ×Ô¶¯Ë¢ĞÂ¶¨Ê±¿ªÊ¼(Ö¸Ê¾)
+    // è‡ªåŠ¨åˆ·æ–°å®šæ—¶å¼€å§‹(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -77,7 +101,7 @@ module sdram_rfs_monitor #(
             start_rfs_timing_reg <= ({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH) & init_rfs_cnt[1];
     end
     
-    // ¼à²âÊ¹ÄÜ
+    // ç›‘æµ‹ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -86,14 +110,14 @@ module sdram_rfs_monitor #(
             monitor_en <= start_rfs_timing;
     end
     
-    /** Ë¢ĞÂ³¬Ê±¼à²â **/
-    reg[clogb2(max_refresh_itv_p-1):0] rfs_timeout_cnt; // Ë¢ĞÂ³¬Ê±¼ÆÊıÆ÷
-    reg rfs_timeout_cnt_suspend; // Ë¢ĞÂ³¬Ê±¼ÆÊıÆ÷¹ÒÆğ
-    reg rfs_timeout_reg; // Ë¢ĞÂ³¬Ê±
+    /** åˆ·æ–°è¶…æ—¶ç›‘æµ‹ **/
+    reg[clogb2(max_refresh_itv_p-1):0] rfs_timeout_cnt; // åˆ·æ–°è¶…æ—¶è®¡æ•°å™¨
+    reg rfs_timeout_cnt_suspend; // åˆ·æ–°è¶…æ—¶è®¡æ•°å™¨æŒ‚èµ·
+    reg rfs_timeout_reg; // åˆ·æ–°è¶…æ—¶
     
     assign rfs_timeout = (en_expt_tip == "true") ? rfs_timeout_reg:1'b0;
     
-    // Ë¢ĞÂ³¬Ê±¼ÆÊıÆ÷
+    // åˆ·æ–°è¶…æ—¶è®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -103,7 +127,7 @@ module sdram_rfs_monitor #(
         else if(monitor_en & (~rfs_timeout_cnt_suspend))
             rfs_timeout_cnt <= rfs_timeout_cnt + 1;
     end
-    // Ë¢ĞÂ³¬Ê±¼ÆÊıÆ÷¹ÒÆğ
+    // åˆ·æ–°è¶…æ—¶è®¡æ•°å™¨æŒ‚èµ·
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -113,7 +137,7 @@ module sdram_rfs_monitor #(
         else if(~rfs_timeout_cnt_suspend)
             rfs_timeout_cnt_suspend <= rfs_timeout_cnt == max_refresh_itv_p - 1;
     end
-    // Ë¢ĞÂ³¬Ê±
+    // åˆ·æ–°è¶…æ—¶
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

@@ -1,68 +1,92 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI¶ÁÊı¾İÍ¨µÀµÄ±ß½ç±£»¤
+æœ¬æ¨¡å—: AXIè¯»æ•°æ®é€šé“çš„è¾¹ç•Œä¿æŠ¤
 
-ÃèÊö: 
-¶ÔAXI´Ó»úµÄRÍ¨µÀ½øĞĞ±ß½ç±£»¤
-32Î»µØÖ·/Êı¾İ×ÜÏß
+æè¿°: 
+å¯¹AXIä»æœºçš„Ré€šé“è¿›è¡Œè¾¹ç•Œä¿æŠ¤
+32ä½åœ°å€/æ•°æ®æ€»çº¿
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
 
-ÒÔÏÂ·Ç¼Ä´æÆ÷Êä³ö ->
-    AXI´Ó»úµÄRÍ¨µÀ: m_axis_r_last, m_axis_r_valid
-    AXIÖ÷»úµÄRÍ¨µÀ: m_axi_rready
+ä»¥ä¸‹éå¯„å­˜å™¨è¾“å‡º ->
+    AXIä»æœºçš„Ré€šé“: m_axis_r_last, m_axis_r_valid
+    AXIä¸»æœºçš„Ré€šé“: m_axi_rready
 
-Ğ­Òé:
+åè®®:
 AXI MASTER(ONLY R)
 AXIS MASTER
 FIFO READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/02
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/02
 ********************************************************************/
 
 
 module axi_r_boundary_protect #(
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»úµÄR
+    // AXIä»æœºçš„R
     output wire[31:0] m_axis_r_data,
     output wire[1:0] m_axis_r_user, // {rresp(2bit)}
     output wire m_axis_r_last,
     output wire m_axis_r_valid,
     input wire m_axis_r_ready,
     
-    // AXIÖ÷»úµÄR
+    // AXIä¸»æœºçš„R
     input wire[31:0] m_axi_rdata,
     input wire m_axi_rlast,
     input wire[1:0] m_axi_rresp,
     input wire m_axi_rvalid,
     output wire m_axi_rready,
     
-    // ¶Á¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú
+    // è¯»è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£
     output wire rd_across_boundary_fifo_ren,
     input wire rd_across_boundary_fifo_dout,
     input wire rd_across_boundary_fifo_empty_n
 );
     
-    reg rd_burst_transmitting; // ¶ÁÍ»·¢´«ÊäÖĞ
-    reg burst_merged; // ¶ÁÍ»·¢ÒÑºÏ²¢
+    reg rd_burst_transmitting; // è¯»çªå‘ä¼ è¾“ä¸­
+    reg burst_merged; // è¯»çªå‘å·²åˆå¹¶
     
     assign m_axis_r_data = m_axi_rdata;
     assign m_axis_r_user = m_axi_rresp;
     assign m_axis_r_last = m_axi_rlast & ((~rd_across_boundary_fifo_dout) | burst_merged);
-    // ÎÕÊÖÌõ¼ş: rd_burst_transmitting & m_axi_rvalid & m_axis_r_ready
+    // æ¡æ‰‹æ¡ä»¶: rd_burst_transmitting & m_axi_rvalid & m_axis_r_ready
     assign m_axis_r_valid = rd_burst_transmitting & m_axi_rvalid;
     assign m_axi_rready = rd_burst_transmitting & m_axis_r_ready;
     
     assign rd_across_boundary_fifo_ren = ~rd_burst_transmitting;
     
-    // ¶ÁÍ»·¢´«ÊäÖĞ
+    // è¯»çªå‘ä¼ è¾“ä¸­
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -71,7 +95,7 @@ module axi_r_boundary_protect #(
             # simulation_delay rd_burst_transmitting <= rd_burst_transmitting ? (~(m_axi_rvalid & m_axis_r_ready & m_axis_r_last)):rd_across_boundary_fifo_empty_n;
     end
     
-    // ¶ÁÍ»·¢ÒÑºÏ²¢
+    // è¯»çªå‘å·²åˆå¹¶
     always @(posedge clk)
     begin
         if((~rd_burst_transmitting) & rd_across_boundary_fifo_empty_n)

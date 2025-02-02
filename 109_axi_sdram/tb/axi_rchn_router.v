@@ -1,45 +1,69 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI¶ÁÊı¾İÍ¨µÀÂ·ÓÉ
+æœ¬æ¨¡å—: AXIè¯»æ•°æ®é€šé“è·¯ç”±
 
-ÃèÊö: 
-½«Ö÷»úµÄ¶ÁÊı¾İÍ¨µÀ(R)Â·ÓÉµ½¸ø¶¨µÄ´Ó»ú
+æè¿°: 
+å°†ä¸»æœºçš„è¯»æ•°æ®é€šé“(R)è·¯ç”±åˆ°ç»™å®šçš„ä»æœº
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 FIFO READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/29
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/29
 ********************************************************************/
 
 
 module axi_rchn_router #(
-    parameter integer master_n = 4, // Ö÷»ú¸öÊı(±ØĞëÔÚ·¶Î§[2, 8]ÄÚ)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer master_n = 4, // ä¸»æœºä¸ªæ•°(å¿…é¡»åœ¨èŒƒå›´[2, 8]å†…)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»úRÍ¨µÀµÄ¿ØÖÆĞÅºÅ×é
-    output wire[7:0] s_rvalid, // Ã¿¸ö´Ó»úµÄvalid
-    input wire[7:0] s_rready, // Ã¿¸ö´Ó»úµÄready
+    // AXIä»æœºRé€šé“çš„æ§åˆ¶ä¿¡å·ç»„
+    output wire[7:0] s_rvalid, // æ¯ä¸ªä»æœºçš„valid
+    input wire[7:0] s_rready, // æ¯ä¸ªä»æœºçš„ready
     
-    // AXIÖ÷»úRÍ¨µÀµÄ¿ØÖÆĞÅºÅ×é
+    // AXIä¸»æœºRé€šé“çš„æ§åˆ¶ä¿¡å·ç»„
     input wire m_axi_rlast,
     input wire m_axi_rvalid,
     output wire m_axi_rready,
     
-    // ÊÚÈ¨Ö÷»ú±àºÅfifo¶Á¶Ë¿Ú
+    // æˆæƒä¸»æœºç¼–å·fifoè¯»ç«¯å£
     output wire grant_mid_fifo_ren,
     input wire grant_mid_fifo_empty_n,
-    input wire[master_n-1:0] grant_mid_fifo_dout_onehot // ¶ÀÈÈÂë±àºÅ
+    input wire[master_n-1:0] grant_mid_fifo_dout_onehot // ç‹¬çƒ­ç ç¼–å·
 );
     
-    // ¶ÔÓÚÃ¿¸ö´Ó»úµÄRÍ¨µÀ, ÎÕÊÖÌõ¼şÊÇ: grant_mid_fifo_empty_n & m_axi_rvalid & grant_mid_fifo_dout_onehot[i] & s_rready[i]
+    // å¯¹äºæ¯ä¸ªä»æœºçš„Ré€šé“, æ¡æ‰‹æ¡ä»¶æ˜¯: grant_mid_fifo_empty_n & m_axi_rvalid & grant_mid_fifo_dout_onehot[i] & s_rready[i]
     assign s_rvalid = {{(8-master_n){1'b1}}, {master_n{grant_mid_fifo_empty_n & m_axi_rvalid}} & grant_mid_fifo_dout_onehot};
     assign m_axi_rready = grant_mid_fifo_empty_n & ((s_rready[master_n-1:0] & grant_mid_fifo_dout_onehot) != {master_n{1'b0}});
     assign grant_mid_fifo_ren = m_axi_rvalid & ((s_rready[master_n-1:0] & grant_mid_fifo_dout_onehot) != {master_n{1'b0}}) & m_axi_rlast;

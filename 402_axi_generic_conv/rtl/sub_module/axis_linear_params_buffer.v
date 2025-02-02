@@ -1,50 +1,74 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXISÏßĞÔ²ÎÊı»º´æÇø
+æœ¬æ¨¡å—: AXISçº¿æ€§å‚æ•°ç¼“å­˜åŒº
 
-ÃèÊö:
-ÓÉAXIS´Ó»úÊäÈëÏßĞÔ²ÎÊıÁ÷, Ğ´Èë»º´æÇø
-Í¨¹ıMEM¶Á¶Ë¿Ú»ñÈ¡ÏßĞÔ²ÎÊı
+æè¿°:
+ç”±AXISä»æœºè¾“å…¥çº¿æ€§å‚æ•°æµ, å†™å…¥ç¼“å­˜åŒº
+é€šè¿‡MEMè¯»ç«¯å£è·å–çº¿æ€§å‚æ•°
 
-¶ÁÊ±ÑÓ = 2clk
+è¯»æ—¶å»¶ = 2clk
 
-ÏßĞÔ²ÎÊı(A, B): AX + B
+çº¿æ€§å‚æ•°(A, B): AX + B
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS SLAVE
 MEM READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/21
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/21
 ********************************************************************/
 
 
 module axis_linear_params_buffer #(
-	parameter integer kernal_param_data_width = 16, // ¾í»ıºË²ÎÊıÎ»¿í(8 | 16 | 32 | 64)
-	parameter integer max_kernal_n = 512, // ×î´óµÄ¾í»ıºË¸öÊı
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer kernal_param_data_width = 16, // å·ç§¯æ ¸å‚æ•°ä½å®½(8 | 16 | 32 | 64)
+	parameter integer max_kernal_n = 512, // æœ€å¤§çš„å·ç§¯æ ¸ä¸ªæ•°
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ¸´Î»ÏßĞÔ²ÎÊı»º´æÇø
+	// å¤ä½çº¿æ€§å‚æ•°ç¼“å­˜åŒº
 	input wire rst_linear_pars_buf,
-	// ÏßĞÔ²ÎÊı»º´æÇø¼ÓÔØÍê³É±êÖ¾
+	// çº¿æ€§å‚æ•°ç¼“å­˜åŒºåŠ è½½å®Œæˆæ ‡å¿—
 	output wire linear_pars_buf_load_completed,
 	
-	// ÊäÈëÏßĞÔ²ÎÊıÁ÷(AXIS´Ó»ú)
+	// è¾“å…¥çº¿æ€§å‚æ•°æµ(AXISä»æœº)
 	input wire[63:0] s_axis_linear_pars_data,
 	input wire[7:0] s_axis_linear_pars_keep,
-	input wire s_axis_linear_pars_last, // ±íÊ¾×îºó1×éÏßĞÔ²ÎÊı
-	input wire[1:0] s_axis_linear_pars_user, // {ÏßĞÔ²ÎÊıÊÇ·ñÓĞĞ§, ÏßĞÔ²ÎÊıÀàĞÍ(1'b0 -> A, 1'b1 -> B)}
+	input wire s_axis_linear_pars_last, // è¡¨ç¤ºæœ€å1ç»„çº¿æ€§å‚æ•°
+	input wire[1:0] s_axis_linear_pars_user, // {çº¿æ€§å‚æ•°æ˜¯å¦æœ‰æ•ˆ, çº¿æ€§å‚æ•°ç±»å‹(1'b0 -> A, 1'b1 -> B)}
 	input wire s_axis_linear_pars_valid,
 	output wire s_axis_linear_pars_ready,
 	
-	// ÏßĞÔ²ÎÊı»ñÈ¡(MEM¶Á)
+	// çº¿æ€§å‚æ•°è·å–(MEMè¯»)
 	input wire linear_pars_buffer_ren_s0,
 	input wire linear_pars_buffer_ren_s1,
 	input wire[15:0] linear_pars_buffer_raddr,
@@ -52,7 +76,7 @@ module axis_linear_params_buffer #(
 	output wire[kernal_param_data_width-1:0] linear_pars_buffer_dout_b
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -65,9 +89,9 @@ module axis_linear_params_buffer #(
     end
     endfunction
 	
-	/** ÊäÈëÏßĞÔ²ÎÊıÁ÷ **/
-	wire[kernal_param_data_width-1:0] linear_pars[0:64/kernal_param_data_width-1]; // ÏßĞÔ²ÎÊı
-	wire[64/kernal_param_data_width-1:0] linear_pars_vld; // ÏßĞÔ²ÎÊıÓĞĞ§±êÖ¾
+	/** è¾“å…¥çº¿æ€§å‚æ•°æµ **/
+	wire[kernal_param_data_width-1:0] linear_pars[0:64/kernal_param_data_width-1]; // çº¿æ€§å‚æ•°
+	wire[64/kernal_param_data_width-1:0] linear_pars_vld; // çº¿æ€§å‚æ•°æœ‰æ•ˆæ ‡å¿—
 	
 	genvar linear_pars_i;
 	generate
@@ -79,18 +103,18 @@ module axis_linear_params_buffer #(
 		end
 	endgenerate
 	
-	/** »º´æÇøĞ´¶Ë¿Ú **/
-	wire buffer_wen_a; // ÏßĞÔ²ÎÊıA»º´æÇøĞ´Ê¹ÄÜ
-	wire buffer_wen_b; // ÏßĞÔ²ÎÊıB»º´æÇøĞ´Ê¹ÄÜ
-	reg[clogb2(max_kernal_n-1):0] buffer_waddr; // Ã¿¸öĞ´µØÖ·¶ÔÓ¦1¸öÏßĞÔ²ÎÊı
-	wire[kernal_param_data_width-1:0] buffer_din_a; // ÏßĞÔ²ÎÊıA»º´æÇøĞ´Êı¾İ
-	wire[kernal_param_data_width-1:0] buffer_din_b; // ÏßĞÔ²ÎÊıB»º´æÇøĞ´Êı¾İ
-	reg[64/kernal_param_data_width-1:0] linear_pars_sel_onehot; // ÏßĞÔ²ÎÊıÑ¡Ôñ(¶ÀÈÈÂë)
-	reg[clogb2(64/kernal_param_data_width-1):0] linear_pars_sel_bin; // ÏßĞÔ²ÎÊıÑ¡Ôñ(¶ş½øÖÆÂë)
-	wire[kernal_param_data_width-1:0] linear_pars_buffer_mem_dout_a; // »º´æMEMÏßĞÔ²ÎÊıA¶ÁÊı¾İ
-	wire[kernal_param_data_width-1:0] linear_pars_buffer_mem_dout_b; // »º´æMEMÏßĞÔ²ÎÊıB¶ÁÊı¾İ
+	/** ç¼“å­˜åŒºå†™ç«¯å£ **/
+	wire buffer_wen_a; // çº¿æ€§å‚æ•°Aç¼“å­˜åŒºå†™ä½¿èƒ½
+	wire buffer_wen_b; // çº¿æ€§å‚æ•°Bç¼“å­˜åŒºå†™ä½¿èƒ½
+	reg[clogb2(max_kernal_n-1):0] buffer_waddr; // æ¯ä¸ªå†™åœ°å€å¯¹åº”1ä¸ªçº¿æ€§å‚æ•°
+	wire[kernal_param_data_width-1:0] buffer_din_a; // çº¿æ€§å‚æ•°Aç¼“å­˜åŒºå†™æ•°æ®
+	wire[kernal_param_data_width-1:0] buffer_din_b; // çº¿æ€§å‚æ•°Bç¼“å­˜åŒºå†™æ•°æ®
+	reg[64/kernal_param_data_width-1:0] linear_pars_sel_onehot; // çº¿æ€§å‚æ•°é€‰æ‹©(ç‹¬çƒ­ç )
+	reg[clogb2(64/kernal_param_data_width-1):0] linear_pars_sel_bin; // çº¿æ€§å‚æ•°é€‰æ‹©(äºŒè¿›åˆ¶ç )
+	wire[kernal_param_data_width-1:0] linear_pars_buffer_mem_dout_a; // ç¼“å­˜MEMçº¿æ€§å‚æ•°Aè¯»æ•°æ®
+	wire[kernal_param_data_width-1:0] linear_pars_buffer_mem_dout_b; // ç¼“å­˜MEMçº¿æ€§å‚æ•°Bè¯»æ•°æ®
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_linear_pars_valid & linear_pars_sel_onehot[64/kernal_param_data_width-1]
+	// æ¡æ‰‹æ¡ä»¶: s_axis_linear_pars_valid & linear_pars_sel_onehot[64/kernal_param_data_width-1]
 	assign s_axis_linear_pars_ready = linear_pars_sel_onehot[64/kernal_param_data_width-1];
 	
 	assign buffer_wen_a = s_axis_linear_pars_valid & (~s_axis_linear_pars_user[0]) & 
@@ -100,7 +124,7 @@ module axis_linear_params_buffer #(
 	assign buffer_din_a = linear_pars[linear_pars_sel_bin];
 	assign buffer_din_b = linear_pars[linear_pars_sel_bin];
 	
-	// ÏßĞÔ²ÎÊı»º´æÇøĞ´µØÖ·
+	// çº¿æ€§å‚æ•°ç¼“å­˜åŒºå†™åœ°å€
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -112,7 +136,7 @@ module axis_linear_params_buffer #(
 					linear_pars_sel_onehot[64/kernal_param_data_width-1])}} & (buffer_waddr + 1);
 	end
 	
-	// ÏßĞÔ²ÎÊıÑ¡Ôñ(¶ÀÈÈÂë)
+	// çº¿æ€§å‚æ•°é€‰æ‹©(ç‹¬çƒ­ç )
 	generate
 		if(kernal_param_data_width == 64)
 		begin
@@ -131,7 +155,7 @@ module axis_linear_params_buffer #(
 			end
 		end
 	endgenerate
-	// ÏßĞÔ²ÎÊıÑ¡Ôñ(¶ş½øÖÆÂë)
+	// çº¿æ€§å‚æ•°é€‰æ‹©(äºŒè¿›åˆ¶ç )
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -143,7 +167,7 @@ module axis_linear_params_buffer #(
 				(linear_pars_sel_bin + 1);
 	end
 	
-	// ÏßĞÔ²ÎÊı»º´æÇøMEM
+	// çº¿æ€§å‚æ•°ç¼“å­˜åŒºMEM
 	linear_params_buffer #(
 		.kernal_param_data_width(kernal_param_data_width),
 		.max_kernal_n(max_kernal_n),
@@ -163,44 +187,44 @@ module axis_linear_params_buffer #(
 		.buffer_dout_b(linear_pars_buffer_mem_dout_b)
 	);
 	
-	/** ÏßĞÔ²ÎÊıÓĞĞ§ÑÚÂë **/
-	reg linear_pars_a_vld; // ÏßĞÔ²ÎÊıAÓĞĞ§±êÖ¾
-	reg linear_pars_b_vld; // ÏßĞÔ²ÎÊıBÓĞĞ§±êÖ¾
-	reg linear_pars_a_vld_d; // ¶ÔÆëµ½»º´æMEMÏßĞÔ²ÎÊıA¶ÁÊı¾İµÄÓĞĞ§±êÖ¾
-	reg linear_pars_b_vld_d; // ¶ÔÆëµ½»º´æMEMÏßĞÔ²ÎÊıB¶ÁÊı¾İµÄÓĞĞ§±êÖ¾
-	reg[kernal_param_data_width-1:0] linear_pars_buffer_dout_a_regs; // ÏßĞÔ²ÎÊıA»º´æÇøÊä³ö¼Ä´æÆ÷
-	reg[kernal_param_data_width-1:0] linear_pars_buffer_dout_b_regs; // ÏßĞÔ²ÎÊıB»º´æÇøÊä³ö¼Ä´æÆ÷
+	/** çº¿æ€§å‚æ•°æœ‰æ•ˆæ©ç  **/
+	reg linear_pars_a_vld; // çº¿æ€§å‚æ•°Aæœ‰æ•ˆæ ‡å¿—
+	reg linear_pars_b_vld; // çº¿æ€§å‚æ•°Bæœ‰æ•ˆæ ‡å¿—
+	reg linear_pars_a_vld_d; // å¯¹é½åˆ°ç¼“å­˜MEMçº¿æ€§å‚æ•°Aè¯»æ•°æ®çš„æœ‰æ•ˆæ ‡å¿—
+	reg linear_pars_b_vld_d; // å¯¹é½åˆ°ç¼“å­˜MEMçº¿æ€§å‚æ•°Bè¯»æ•°æ®çš„æœ‰æ•ˆæ ‡å¿—
+	reg[kernal_param_data_width-1:0] linear_pars_buffer_dout_a_regs; // çº¿æ€§å‚æ•°Aç¼“å­˜åŒºè¾“å‡ºå¯„å­˜å™¨
+	reg[kernal_param_data_width-1:0] linear_pars_buffer_dout_b_regs; // çº¿æ€§å‚æ•°Bç¼“å­˜åŒºè¾“å‡ºå¯„å­˜å™¨
 	
 	assign linear_pars_buffer_dout_a = linear_pars_buffer_dout_a_regs;
 	assign linear_pars_buffer_dout_b = linear_pars_buffer_dout_b_regs;
 	
-	// ÏßĞÔ²ÎÊıAÓĞĞ§±êÖ¾
+	// çº¿æ€§å‚æ•°Aæœ‰æ•ˆæ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(s_axis_linear_pars_valid & s_axis_linear_pars_ready & s_axis_linear_pars_last & (~s_axis_linear_pars_user[0]))
 			linear_pars_a_vld <= #simulation_delay s_axis_linear_pars_user[1];
 	end
-	// ÏßĞÔ²ÎÊıBÓĞĞ§±êÖ¾
+	// çº¿æ€§å‚æ•°Bæœ‰æ•ˆæ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(s_axis_linear_pars_valid & s_axis_linear_pars_ready & s_axis_linear_pars_last & s_axis_linear_pars_user[0])
 			linear_pars_b_vld <= #simulation_delay s_axis_linear_pars_user[1];
 	end
 	
-	// ¶ÔÆëµ½»º´æMEMÏßĞÔ²ÎÊıA¶ÁÊı¾İµÄÓĞĞ§±êÖ¾
+	// å¯¹é½åˆ°ç¼“å­˜MEMçº¿æ€§å‚æ•°Aè¯»æ•°æ®çš„æœ‰æ•ˆæ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(linear_pars_buffer_ren_s0)
 			linear_pars_a_vld_d <= # simulation_delay linear_pars_a_vld;
 	end
-	// ¶ÔÆëµ½»º´æMEMÏßĞÔ²ÎÊıB¶ÁÊı¾İµÄÓĞĞ§±êÖ¾
+	// å¯¹é½åˆ°ç¼“å­˜MEMçº¿æ€§å‚æ•°Bè¯»æ•°æ®çš„æœ‰æ•ˆæ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(linear_pars_buffer_ren_s0)
 			linear_pars_b_vld_d <= # simulation_delay linear_pars_b_vld;
 	end
 	
-	// ÏßĞÔ²ÎÊıA»º´æÇøÊä³ö¼Ä´æÆ÷
+	// çº¿æ€§å‚æ•°Aç¼“å­˜åŒºè¾“å‡ºå¯„å­˜å™¨
 	always @(posedge clk)
 	begin
 		if(linear_pars_buffer_ren_s1)
@@ -208,7 +232,7 @@ module axis_linear_params_buffer #(
 			linear_pars_buffer_dout_a_regs <= # simulation_delay {kernal_param_data_width{linear_pars_a_vld_d}} & 
 				linear_pars_buffer_mem_dout_a;
 	end
-	// ÏßĞÔ²ÎÊıB»º´æÇøÊä³ö¼Ä´æÆ÷
+	// çº¿æ€§å‚æ•°Bç¼“å­˜åŒºè¾“å‡ºå¯„å­˜å™¨
 	always @(posedge clk)
 	begin
 		if(linear_pars_buffer_ren_s1)
@@ -217,13 +241,13 @@ module axis_linear_params_buffer #(
 				linear_pars_buffer_mem_dout_b;
 	end
 	
-	/** ÏßĞÔ²ÎÊı»º´æÇø¼ÓÔØ×´Ì¬ **/
-	reg linear_pars_a_loaded; // ÏßĞÔ²ÎÊıA¼ÓÔØÍê³É±êÖ¾
-	reg linear_pars_b_loaded; // ÏßĞÔ²ÎÊıB¼ÓÔØÍê³É±êÖ¾
+	/** çº¿æ€§å‚æ•°ç¼“å­˜åŒºåŠ è½½çŠ¶æ€ **/
+	reg linear_pars_a_loaded; // çº¿æ€§å‚æ•°AåŠ è½½å®Œæˆæ ‡å¿—
+	reg linear_pars_b_loaded; // çº¿æ€§å‚æ•°BåŠ è½½å®Œæˆæ ‡å¿—
 	
 	assign linear_pars_buf_load_completed = linear_pars_a_loaded & linear_pars_b_loaded;
 	
-	// ÏßĞÔ²ÎÊıA¼ÓÔØÍê³É±êÖ¾
+	// çº¿æ€§å‚æ•°AåŠ è½½å®Œæˆæ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -232,7 +256,7 @@ module axis_linear_params_buffer #(
 			(s_axis_linear_pars_valid & s_axis_linear_pars_ready & s_axis_linear_pars_last & (~s_axis_linear_pars_user[0])))
 			linear_pars_a_loaded <= ~rst_linear_pars_buf;
 	end
-	// ÏßĞÔ²ÎÊıB¼ÓÔØÍê³É±êÖ¾
+	// çº¿æ€§å‚æ•°BåŠ è½½å®Œæˆæ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)

@@ -1,66 +1,90 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ÓÃÓÚ»ñÈ¡¶Á/Ğ´ÇëÇóÃèÊö×ÓµÄAXI¶ÁÍ¨µÀ
+æœ¬æ¨¡å—: ç”¨äºè·å–è¯»/å†™è¯·æ±‚æè¿°å­çš„AXIè¯»é€šé“
 
-ÃèÊö:
-Í¨¹ıAXI¶ÁÍ¨µÀ´Ó¶Á/Ğ´ÇëÇó»º´æÇø»ñÈ¡ÃèÊö×Ó, ²úÉúÃèÊö×ÓÁ÷
+æè¿°:
+é€šè¿‡AXIè¯»é€šé“ä»è¯»/å†™è¯·æ±‚ç¼“å­˜åŒºè·å–æè¿°å­, äº§ç”Ÿæè¿°å­æµ
 
-32Î»µØÖ·64Î»Êı¾İµÄAXI¶ÁÍ¨µÀ
+32ä½åœ°å€64ä½æ•°æ®çš„AXIè¯»é€šé“
 
-Ã¿¸ö¶ÁÇëÇóÃèÊö×ÓµÄ³¤¶ÈÊÇ64bit -> 
-	Î»±àºÅ            ÄÚÈİ
-	 31~0            »ùµØÖ·
-	 33~32      ÅÉ·¢Ä¿±êÀàĞÍ±àºÅ
-	         (2'b00 -> ÏßĞÔ²ÎÊı»º´æ, 
-			 2'b01 -> ¾í»ıºË²ÎÊı»º´æ, 
-			 2'b10 -> ÊäÈëÌØÕ÷Í¼»º´æ)
-	 35~34         Êı¾İ°üĞÅÏ¢
-              (¼ûÅÉ·¢ĞÅÏ¢Á÷µÄÃèÊö)
-	 63~36       ´ı¶ÁÈ¡µÄ×Ö½ÚÊı
+æ¯ä¸ªè¯»è¯·æ±‚æè¿°å­çš„é•¿åº¦æ˜¯64bit -> 
+	ä½ç¼–å·            å†…å®¹
+	 31~0            åŸºåœ°å€
+	 33~32      æ´¾å‘ç›®æ ‡ç±»å‹ç¼–å·
+	         (2'b00 -> çº¿æ€§å‚æ•°ç¼“å­˜, 
+			 2'b01 -> å·ç§¯æ ¸å‚æ•°ç¼“å­˜, 
+			 2'b10 -> è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜)
+	 35~34         æ•°æ®åŒ…ä¿¡æ¯
+              (è§æ´¾å‘ä¿¡æ¯æµçš„æè¿°)
+	 63~36       å¾…è¯»å–çš„å­—èŠ‚æ•°
 
-Ã¿¸öĞ´ÇëÇóÃèÊö×ÓµÄ³¤¶ÈÊÇ64bit -> 
-	Î»±àºÅ            ÄÚÈİ
-	 31~0            »ùµØÖ·
-	 63~32       ´ıĞ´ÈëµÄ×Ö½ÚÊı
+æ¯ä¸ªå†™è¯·æ±‚æè¿°å­çš„é•¿åº¦æ˜¯64bit -> 
+	ä½ç¼–å·            å†…å®¹
+	 31~0            åŸºåœ°å€
+	 63~32       å¾…å†™å…¥çš„å­—èŠ‚æ•°
 
-×¢Òâ£º
-±ØĞë±£Ö¤¶Á/Ğ´ÇëÇó»º´æÇøÊ×µØÖ·ÄÜ±»(axi_rchn_max_burst_len*8)Õû³ı, ´Ó¶øÈ·±£Ã¿´ÎÍ»·¢´«Êä²»»á¿çÔ½4KB±ß½ç
+æ³¨æ„ï¼š
+å¿…é¡»ä¿è¯è¯»/å†™è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€èƒ½è¢«(axi_rchn_max_burst_len*8)æ•´é™¤, ä»è€Œç¡®ä¿æ¯æ¬¡çªå‘ä¼ è¾“ä¸ä¼šè·¨è¶Š4KBè¾¹ç•Œ
 
-Ğ­Òé:
+åè®®:
 BLK CTRL
 AXIS MASTER
 AXI MASTER(READ ONLY)
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/08
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/08
 ********************************************************************/
 
 
 module axi_rw_req_dsc_dma #(
-	parameter integer max_req_n = 1024, // ×î´óµÄ¶Á/Ğ´ÇëÇó¸öÊı
-	parameter integer axi_rchn_max_burst_len = 8, // AXI¶ÁÍ¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-	parameter integer rw_req_dsc_buffer_depth = 512, // ¶Á/Ğ´ÇëÇóÃèÊö×ÓbufferÉî¶È(256 | 512 | 1024 | ...)
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer max_req_n = 1024, // æœ€å¤§çš„è¯»/å†™è¯·æ±‚ä¸ªæ•°
+	parameter integer axi_rchn_max_burst_len = 8, // AXIè¯»é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+	parameter integer rw_req_dsc_buffer_depth = 512, // è¯»/å†™è¯·æ±‚æè¿°å­bufferæ·±åº¦(256 | 512 | 1024 | ...)
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire[31:0] req_buf_baseaddr, // ¶Á/Ğ´ÇëÇó»º´æÇøÊ×µØÖ·
-	input wire[31:0] req_n, // ¶Á/Ğ´ÇëÇó¸öÊı - 1
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire[31:0] req_buf_baseaddr, // è¯»/å†™è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€
+	input wire[31:0] req_n, // è¯»/å†™è¯·æ±‚ä¸ªæ•° - 1
 	
-	// ¿é¼¶¿ØÖÆ
+	// å—çº§æ§åˆ¶
 	input wire blk_start,
 	output wire blk_idle,
 	output wire blk_done,
 	
-	// ¶Á/Ğ´ÇëÇóÃèÊö×Ó(AXISÖ÷»ú)
+	// è¯»/å†™è¯·æ±‚æè¿°å­(AXISä¸»æœº)
 	output wire[63:0] m_axis_dsc_data,
 	output wire m_axis_dsc_valid,
 	input wire m_axis_dsc_ready,
 	
-	// AXIÖ÷»ú(¶ÁÍ¨µÀ)
+	// AXIä¸»æœº(è¯»é€šé“)
 	// AR
     output wire[31:0] m_axi_araddr,
     output wire[1:0] m_axi_arburst, // const -> 2'b01(INCR)
@@ -76,7 +100,7 @@ module axi_rw_req_dsc_dma #(
     output wire m_axi_rready
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -89,12 +113,12 @@ module axi_rw_req_dsc_dma #(
     end
     endfunction
 	
-	/** ¿é¼¶¿ØÖÆ **/
-	reg blk_idle_reg; // DMA¿ÕÏĞ±êÖ¾
+	/** å—çº§æ§åˆ¶ **/
+	reg blk_idle_reg; // DMAç©ºé—²æ ‡å¿—
 	
 	assign blk_idle = blk_idle_reg;
 	
-	// DMA¿ÕÏĞ±êÖ¾
+	// DMAç©ºé—²æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -103,16 +127,16 @@ module axi_rw_req_dsc_dma #(
 			blk_idle_reg <= # simulation_delay blk_idle ? (~blk_start):blk_done;
 	end
 	
-	/** AXI¶ÁµØÖ·Í¨µÀ **/
-	wire rw_req_dsc_buf_allow_ar_trans; // ¶Á/Ğ´ÇëÇóÃèÊö×ÓbufferÔÊĞíÆô¶¯¶ÁµØÖ·´«Êä(±êÖ¾)
-	reg[31:0] araddr; // ¶ÁµØÖ·
-	reg[7:0] arlen; // ¶ÁÍ»·¢³¤¶È
-	reg arvalid; // ¶ÁµØÖ·Í¨µÀÓĞĞ§
-	reg[clogb2(max_req_n-1):0] req_n_remaining; // Ê£ÓàµÄ¶Á/Ğ´ÇëÇó¸öÊı - 1
-	wire[clogb2(max_req_n-1):0] arlen_cmp; // ÓÃÓÚÉú³É¶ÁÍ»·¢³¤¶ÈµÄ(Ê£ÓàµÄ¶Á/Ğ´ÇëÇó¸öÊı - 1)
-	reg ar_last; // ×îºó1¸ö¶ÁµØÖ·(±êÖ¾)
-	reg last_rd_burst_processing; // ÕıÔÚ´¦Àí×îºó1¸ö¶ÁÍ»·¢(±êÖ¾)
-	reg rd_burst_processing; // ¶ÁÍ»·¢´¦ÀíÖĞ(±êÖ¾)
+	/** AXIè¯»åœ°å€é€šé“ **/
+	wire rw_req_dsc_buf_allow_ar_trans; // è¯»/å†™è¯·æ±‚æè¿°å­bufferå…è®¸å¯åŠ¨è¯»åœ°å€ä¼ è¾“(æ ‡å¿—)
+	reg[31:0] araddr; // è¯»åœ°å€
+	reg[7:0] arlen; // è¯»çªå‘é•¿åº¦
+	reg arvalid; // è¯»åœ°å€é€šé“æœ‰æ•ˆ
+	reg[clogb2(max_req_n-1):0] req_n_remaining; // å‰©ä½™çš„è¯»/å†™è¯·æ±‚ä¸ªæ•° - 1
+	wire[clogb2(max_req_n-1):0] arlen_cmp; // ç”¨äºç”Ÿæˆè¯»çªå‘é•¿åº¦çš„(å‰©ä½™çš„è¯»/å†™è¯·æ±‚ä¸ªæ•° - 1)
+	reg ar_last; // æœ€å1ä¸ªè¯»åœ°å€(æ ‡å¿—)
+	reg last_rd_burst_processing; // æ­£åœ¨å¤„ç†æœ€å1ä¸ªè¯»çªå‘(æ ‡å¿—)
+	reg rd_burst_processing; // è¯»çªå‘å¤„ç†ä¸­(æ ‡å¿—)
 	
 	assign blk_done = m_axi_rvalid & m_axi_rready & m_axi_rlast & last_rd_burst_processing;
 	
@@ -124,7 +148,7 @@ module axi_rw_req_dsc_dma #(
 	
 	assign arlen_cmp = (blk_start & blk_idle) ? req_n[clogb2(max_req_n-1):0]:req_n_remaining;
 	
-	// ¶ÁµØÖ·
+	// è¯»åœ°å€
 	always @(posedge clk)
 	begin
 		if((blk_start & blk_idle) | (m_axi_arvalid & m_axi_arready))
@@ -132,7 +156,7 @@ module axi_rw_req_dsc_dma #(
 				req_buf_baseaddr:(araddr + (axi_rchn_max_burst_len * 8));
 	end
 	
-	// ¶ÁÍ»·¢³¤¶È
+	// è¯»çªå‘é•¿åº¦
 	always @(posedge clk)
 	begin
 		if((blk_start & blk_idle) | (m_axi_arvalid & m_axi_arready))
@@ -140,7 +164,7 @@ module axi_rw_req_dsc_dma #(
 				arlen_cmp:(axi_rchn_max_burst_len - 1);
 	end
 	
-	// ¶ÁµØÖ·Í¨µÀÓĞĞ§
+	// è¯»åœ°å€é€šé“æœ‰æ•ˆ
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -150,50 +174,50 @@ module axi_rw_req_dsc_dma #(
 				(~m_axi_arready):((~blk_idle) & rw_req_dsc_buf_allow_ar_trans & (~rd_burst_processing));
 	end
 	
-	// Ê£ÓàµÄ¶Á/Ğ´ÇëÇó¸öÊı - 1
+	// å‰©ä½™çš„è¯»/å†™è¯·æ±‚ä¸ªæ•° - 1
 	always @(posedge clk)
 	begin
 		if((blk_start & blk_idle) | (m_axi_arvalid & m_axi_arready))
 			req_n_remaining <= # simulation_delay arlen_cmp - axi_rchn_max_burst_len;
 	end
 	
-	// ×îºó1¸ö¶ÁµØÖ·(±êÖ¾)
+	// æœ€å1ä¸ªè¯»åœ°å€(æ ‡å¿—)
 	always @(posedge clk)
 	begin
 		if((blk_start & blk_idle) | (m_axi_arvalid & m_axi_arready))
 			ar_last <= # simulation_delay arlen_cmp <= (axi_rchn_max_burst_len - 1);
 	end
 	
-	// ÕıÔÚ´¦Àí×îºó1¸ö¶ÁÍ»·¢(±êÖ¾)
+	// æ­£åœ¨å¤„ç†æœ€å1ä¸ªè¯»çªå‘(æ ‡å¿—)
 	always @(posedge clk)
 	begin
 		if(m_axi_arvalid & m_axi_arready)
 			last_rd_burst_processing <= # simulation_delay ar_last;
 	end
 	
-	// ¶ÁÍ»·¢´¦ÀíÖĞ(±êÖ¾)
+	// è¯»çªå‘å¤„ç†ä¸­(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
 			rd_burst_processing <= 1'b0;
 		else if((m_axi_arvalid & m_axi_arready) | (m_axi_rvalid & m_axi_rready & m_axi_rlast))
-			// ¶ÏÑÔ: ARÍ¨µÀÎÕÊÖºÍRÍ¨µÀÎÕÊÖÇÒ´¦ÓÚ¶ÁÍ»·¢×îºó1¸öÊı¾İ²»¿ÉÄÜÍ¬Ê±·¢Éú!
+			// æ–­è¨€: ARé€šé“æ¡æ‰‹å’ŒRé€šé“æ¡æ‰‹ä¸”å¤„äºè¯»çªå‘æœ€å1ä¸ªæ•°æ®ä¸å¯èƒ½åŒæ—¶å‘ç”Ÿ!
 			rd_burst_processing <= # simulation_delay m_axi_arvalid & m_axi_arready;
 	end
 	
-	/** ¶Á/Ğ´ÇëÇóÃèÊö×Óbuffer **/
-	wire on_new_rd_burst_start; // Æô¶¯ĞÂµÄ¶ÁÍ»·¢(Ö¸Ê¾)
-	wire on_fetch_rd_burst_data; // È¡×ß¶ÁÍ»·¢Êı¾İ(Ö¸Ê¾)
-	reg[clogb2(rw_req_dsc_buffer_depth/axi_rchn_max_burst_len):0] rd_burst_launched; // ÒÑÆô¶¯µÄ¶ÁÍ»·¢¸öÊı(µØÖ·Í¨µÀÎÕÊÖµ«ºó¼¶Î´È¡×ß¶ÁÊı¾İ)
-	reg rw_req_dsc_buf_full_n; // ¶Á/Ğ´ÇëÇóÃèÊö×ÓbufferÂú±êÖ¾
-	wire m_axis_dsc_last; // ±êÖ¾¶ÁÍ»·¢×îºó1¸öÊı¾İ
+	/** è¯»/å†™è¯·æ±‚æè¿°å­buffer **/
+	wire on_new_rd_burst_start; // å¯åŠ¨æ–°çš„è¯»çªå‘(æŒ‡ç¤º)
+	wire on_fetch_rd_burst_data; // å–èµ°è¯»çªå‘æ•°æ®(æŒ‡ç¤º)
+	reg[clogb2(rw_req_dsc_buffer_depth/axi_rchn_max_burst_len):0] rd_burst_launched; // å·²å¯åŠ¨çš„è¯»çªå‘ä¸ªæ•°(åœ°å€é€šé“æ¡æ‰‹ä½†åçº§æœªå–èµ°è¯»æ•°æ®)
+	reg rw_req_dsc_buf_full_n; // è¯»/å†™è¯·æ±‚æè¿°å­bufferæ»¡æ ‡å¿—
+	wire m_axis_dsc_last; // æ ‡å¿—è¯»çªå‘æœ€å1ä¸ªæ•°æ®
 	
 	assign rw_req_dsc_buf_allow_ar_trans = rw_req_dsc_buf_full_n;
 	
 	assign on_new_rd_burst_start = m_axi_arvalid & m_axi_arready;
 	assign on_fetch_rd_burst_data = m_axis_dsc_valid & m_axis_dsc_ready & m_axis_dsc_last;
 	
-	// ÒÑÆô¶¯µÄ¶ÁÍ»·¢¸öÊı
+	// å·²å¯åŠ¨çš„è¯»çªå‘ä¸ªæ•°
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -202,7 +226,7 @@ module axi_rw_req_dsc_dma #(
 			rd_burst_launched <= # simulation_delay on_new_rd_burst_start ? (rd_burst_launched + 1):(rd_burst_launched - 1);
 	end
 	
-	// ¶Á/Ğ´ÇëÇóÃèÊö×ÓbufferÂú±êÖ¾
+	// è¯»/å†™è¯·æ±‚æè¿°å­bufferæ»¡æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -213,7 +237,7 @@ module axi_rw_req_dsc_dma #(
 				(~on_new_rd_burst_start) | (rd_burst_launched != (rw_req_dsc_buffer_depth/axi_rchn_max_burst_len-1));
 	end
 	
-	// ¶Á/Ğ´ÇëÇóÃèÊö×Ó»º´æAXISÊı¾İfifo
+	// è¯»/å†™è¯·æ±‚æè¿°å­ç¼“å­˜AXISæ•°æ®fifo
 	axis_data_fifo #(
 		.is_async("false"),
 		.en_packet_mode("false"),

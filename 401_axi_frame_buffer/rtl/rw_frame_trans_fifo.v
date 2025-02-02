@@ -1,40 +1,64 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: Ö¡¶ÁĞ´´«ÊäÊÂÎñfifo
+æœ¬æ¨¡å—: å¸§è¯»å†™ä¼ è¾“äº‹åŠ¡fifo
 
-ÃèÊö: 
-»ùÓÚ¼Ä´æÆ÷µÄfifo
-Î»¿í = 1
-Éî¶È = axi_rwaddr_outstanding
+æè¿°: 
+åŸºäºå¯„å­˜å™¨çš„fifo
+ä½å®½ = 1
+æ·±åº¦ = axi_rwaddr_outstanding
 FWFT = true
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 FIFO READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/08
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/08
 ********************************************************************/
 
 
 module rw_frame_trans_fifo #(
-    parameter integer axi_rwaddr_outstanding = 2, // AXI¶ÁĞ´µØÖ·»º³åÉî¶È(1 | 2 | 4 | 8 | 16)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer axi_rwaddr_outstanding = 2, // AXIè¯»å†™åœ°å€ç¼“å†²æ·±åº¦(1 | 2 | 4 | 8 | 16)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // fifoĞ´¶Ë¿Ú
+    // fifoå†™ç«¯å£
     input wire rw_frame_trans_fifo_wen,
     output wire rw_frame_trans_fifo_full,
-    input wire rw_frame_trans_fifo_din, // µ±Ç°ÊÇ·ñÖ¡ÄÚ×îºó1´Î´«Êä
-    // fifo¶Á¶Ë¿Ú
+    input wire rw_frame_trans_fifo_din, // å½“å‰æ˜¯å¦å¸§å†…æœ€å1æ¬¡ä¼ è¾“
+    // fifoè¯»ç«¯å£
     input wire rw_frame_trans_fifo_ren,
     output wire rw_frame_trans_fifo_empty,
-    output wire rw_frame_trans_fifo_dout // µ±Ç°ÊÇ·ñÖ¡ÄÚ×îºó1´Î´«Êä
+    output wire rw_frame_trans_fifo_dout // å½“å‰æ˜¯å¦å¸§å†…æœ€å1æ¬¡ä¼ è¾“
 );
 
     generate

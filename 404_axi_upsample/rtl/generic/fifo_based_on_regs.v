@@ -1,40 +1,64 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-��ģ��: ���ڼĴ���Ƭ��ͬ��fifo
+本模块: 基于寄存器片的同步fifo
 
-����: 
-������ͬ��fifo
-���ڼĴ���Ƭ
-֧��first word fall through����(READ LA = 0)
-��ѡ�Ĺ̶���ֵ����/�����ź�
+描述: 
+高性能同步fifo
+基于寄存器片
+支持first word fall through特性(READ LA = 0)
+可选的固定阈值将满/将空信号
 
-ע�⣺
-�����źŵ��洢���� >= almost_full_thʱ��Ч
-�����źŵ��洢���� <= almost_empty_thʱ��Ч
-almost_full_th��almost_empty_th������[1, fifo_depth-1]��Χ��
-������FWFT����ʱ, fifo_dout�ǼĴ������
+注意：
+将满信号当存储计数 >= almost_full_th时有效
+将空信号当存储计数 <= almost_empty_th时有效
+almost_full_th和almost_empty_th必须在[1, fifo_depth-1]范围内
+当启用FWFT特性时, fifo_dout非寄存器输出
 
-Э��:
+协议:
 FIFO READ/WRITE
 
-����: �¼�ҫ
-����: 2024/11/07
+作者: 陈家耀
+日期: 2024/11/07
 ********************************************************************/
 
 
 module fifo_based_on_regs #(
-    parameter fwft_mode = "true", // �Ƿ�����first word fall through����
-    parameter integer fifo_depth = 4, // fifo���(�����ڷ�Χ[2, 8]��)
-    parameter integer fifo_data_width = 32, // fifoλ��
-    parameter integer almost_full_th = 3, // fifo������ֵ
-    parameter integer almost_empty_th = 1, // fifo������ֵ
-    parameter real simulation_delay = 1 // ������ʱ
+    parameter fwft_mode = "true", // 是否启用first word fall through特性
+    parameter integer fifo_depth = 4, // fifo深度(必须在范围[2, 8]内)
+    parameter integer fifo_data_width = 32, // fifo位宽
+    parameter integer almost_full_th = 3, // fifo将满阈值
+    parameter integer almost_empty_th = 1, // fifo将空阈值
+    parameter real simulation_delay = 1 // 仿真延时
 )(
-    // ʱ�Ӻ͸�λ
+    // 时钟和复位
     input wire clk,
     input wire rst_n,
     
-    // FIFO WRITE(fifoд�˿�)
+    // FIFO WRITE(fifo写端口)
     input wire fifo_wen,
     input wire[fifo_data_width-1:0] fifo_din,
     output wire fifo_full,
@@ -42,7 +66,7 @@ module fifo_based_on_regs #(
     output wire fifo_almost_full,
     output wire fifo_almost_full_n,
     
-    // FIFO READ(fifo���˿�)
+    // FIFO READ(fifo读端口)
     input wire fifo_ren,
     output wire[fifo_data_width-1:0] fifo_dout,
     output wire fifo_empty,
@@ -50,11 +74,11 @@ module fifo_based_on_regs #(
     output wire fifo_almost_empty,
     output wire fifo_almost_empty_n,
     
-    // �洢����
+    // 存储计数
     output wire[clogb2(fifo_depth):0] data_cnt
 );
 	
-    // ����bit_depth�������Чλ���(��λ��-1)
+    // 计算bit_depth的最高有效位编号(即位数-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -67,7 +91,7 @@ module fifo_based_on_regs #(
     end
     endfunction
     
-    /** ������־�ʹ洢���� **/
+    /** 空满标志和存储计数 **/
 	reg[clogb2(fifo_depth):0] data_cnt_regs;
 	wire[clogb2(fifo_depth):0] data_cnt_nxt;
     reg fifo_empty_reg;
@@ -169,7 +193,7 @@ module fifo_based_on_regs #(
 			fifo_almost_full_n_reg <= # simulation_delay data_cnt_nxt < almost_full_th;
 	end
     
-    /** ��дָ�� **/
+    /** 读写指针 **/
     reg[clogb2(fifo_depth-1):0] fifo_rptr;
     reg[clogb2(fifo_depth-1):0] fifo_wptr;
     
@@ -191,7 +215,7 @@ module fifo_based_on_regs #(
 			fifo_wptr <= # simulation_delay {(clogb2(fifo_depth-1)+1){fifo_wptr != (fifo_depth - 1)}} & (fifo_wptr + 1);
     end
     
-    /** ��д���� **/
+    /** 读写数据 **/
     (* ram_style="register" *) reg[fifo_data_width-1:0] fifo_regs[0:fifo_depth-1];
     reg[fifo_data_width-1:0] fifo_dout_regs;
     

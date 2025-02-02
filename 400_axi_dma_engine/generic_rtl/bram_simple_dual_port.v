@@ -1,27 +1,51 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ¼òµ¥Ë«¶Ë¿ÚBram
+æœ¬æ¨¡å—: ç®€å•åŒç«¯å£Bram
 
-ÃèÊö: 
-¿ÉÑ¡¶ÁÑÓ³Ù1clk»ò2clk
+æè¿°: 
+å¯é€‰è¯»å»¶è¿Ÿ1clkæˆ–2clk
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 MEM READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2022/1/11
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2022/1/11
 ********************************************************************/
 
 
 module bram_simple_dual_port #(
-    parameter style = "HIGH_PERFORMANCE", // ´æ´¢Æ÷ÑùÊ½(HIGH_PERFORMANCE|LOW_LATENCY)
-    parameter integer mem_width = 32, // ´æ´¢Æ÷Î»¿í
-    parameter integer mem_depth = 4096, // ´æ´¢Æ÷Éî¶È
-    parameter INIT_FILE = "no_init", // ³õÊ¼»¯ÎÄ¼şÂ·¾¶
-    parameter integer simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter style = "HIGH_PERFORMANCE", // å­˜å‚¨å™¨æ ·å¼(HIGH_PERFORMANCE|LOW_LATENCY)
+    parameter integer mem_width = 32, // å­˜å‚¨å™¨ä½å®½
+    parameter integer mem_depth = 4096, // å­˜å‚¨å™¨æ·±åº¦
+    parameter INIT_FILE = "no_init", // åˆå§‹åŒ–æ–‡ä»¶è·¯å¾„
+    parameter integer simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )
 (
     // clk
@@ -38,7 +62,7 @@ module bram_simple_dual_port #(
     output wire[mem_width-1:0] dout_b
 );
 
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)             
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)             
     function integer clogb2 (input integer bit_depth);              
     begin                                                           
         for(clogb2=-1; bit_depth>0; clogb2=clogb2+1)                   
@@ -46,7 +70,7 @@ module bram_simple_dual_port #(
         end                                        
     endfunction
     
-    (* ram_style="block" *) reg[mem_width-1:0] mem[mem_depth-1:0]; // ´æ´¢Æ÷
+    (* ram_style="block" *) reg[mem_width-1:0] mem[mem_depth-1:0]; // å­˜å‚¨å™¨
     reg[mem_width-1:0] ram_data_b;
     
     generate
@@ -74,7 +98,7 @@ module bram_simple_dual_port #(
         end
     endgenerate
     
-    // ¶ÁĞ´¿ØÖÆÂß¼­
+    // è¯»å†™æ§åˆ¶é€»è¾‘
     always @(posedge clk)
     begin
         if(wen_a)
@@ -90,7 +114,7 @@ module bram_simple_dual_port #(
     generate
         if(style == "HIGH_PERFORMANCE")
         begin
-            // Ê¹ÓÃÊä³ö¼Ä´æÆ÷
+            // ä½¿ç”¨è¾“å‡ºå¯„å­˜å™¨
             reg[mem_width-1:0] data_b;
             
             assign dout_b = data_b;
@@ -100,7 +124,7 @@ module bram_simple_dual_port #(
         end
         else
         begin
-            // ²»Ê¹ÓÃÊä³ö¼Ä´æÆ÷
+            // ä¸ä½¿ç”¨è¾“å‡ºå¯„å­˜å™¨
             assign dout_b = ram_data_b;
         end
     endgenerate

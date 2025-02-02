@@ -1,37 +1,61 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: Round-RobinÖÙ²ÃÆ÷
+æœ¬æ¨¡å—: Round-Robinä»²è£å™¨
 
-ÃèÊö: 
-»ùÓÚRound-RobinËã·¨µÄ0Ê±ÑÓÖÙ²ÃÆ÷
+æè¿°: 
+åŸºäºRound-Robinç®—æ³•çš„0æ—¶å»¶ä»²è£å™¨
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 ARB SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/28
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/28
 ********************************************************************/
 
 
 module round_robin_arbitrator #(
-    parameter integer chn_n = 4, // Í¨µÀ¸öÊı(±ØĞë>=2)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer chn_n = 4, // é€šé“ä¸ªæ•°(å¿…é¡»>=2)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ÖÙ²ÃÆ÷
-    input wire[chn_n-1:0] req, // ÇëÇó
-    output wire[chn_n-1:0] grant, // ÊÚÈ¨(¶ÀÈÈÂë)
-    output wire[clogb2(chn_n-1):0] sel, // Ñ¡Ôñ(Ïàµ±ÓÚÊÚÈ¨µÄ¶ş½øÖÆ±íÊ¾)
-    output wire arb_valid // ÖÙ²Ã½á¹ûÓĞĞ§
+    // ä»²è£å™¨
+    input wire[chn_n-1:0] req, // è¯·æ±‚
+    output wire[chn_n-1:0] grant, // æˆæƒ(ç‹¬çƒ­ç )
+    output wire[clogb2(chn_n-1):0] sel, // é€‰æ‹©(ç›¸å½“äºæˆæƒçš„äºŒè¿›åˆ¶è¡¨ç¤º)
+    output wire arb_valid // ä»²è£ç»“æœæœ‰æ•ˆ
 );
     
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -40,7 +64,7 @@ module round_robin_arbitrator #(
             temp = temp >> 1;
     end
     endfunction
-    // ¶ÀÈÈÂë -> ¶ş½øÖÆÂë
+    // ç‹¬çƒ­ç  -> äºŒè¿›åˆ¶ç 
     function [clogb2(chn_n-1):0] onehot_to_bin(input[chn_n-1:0] onehot);
         integer i;
     begin
@@ -54,20 +78,20 @@ module round_robin_arbitrator #(
     end
     endfunction
 
-    /** ÖÙ²ÃÓÅÏÈ¼¶ **/
-    reg[chn_n-1:0] priority_cnt; // ÓÅÏÈ¼¶¶ÀÈÈÂë¼ÆÊıÆ÷
+    /** ä»²è£ä¼˜å…ˆçº§ **/
+    reg[chn_n-1:0] priority_cnt; // ä¼˜å…ˆçº§ç‹¬çƒ­ç è®¡æ•°å™¨
     
-    // ÓÅÏÈ¼¶¶ÀÈÈÂë¼ÆÊıÆ÷
-    // 1µÄÎ»ÖÃ±íÕ÷×î¸ßÓÅÏÈ¼¶µÄÍ¨µÀ
+    // ä¼˜å…ˆçº§ç‹¬çƒ­ç è®¡æ•°å™¨
+    // 1çš„ä½ç½®è¡¨å¾æœ€é«˜ä¼˜å…ˆçº§çš„é€šé“
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
             priority_cnt <= {{(chn_n-1){1'b0}}, 1'b1};
-        else if(|req) // µ±Ç°ÓĞÇëÇó
+        else if(|req) // å½“å‰æœ‰è¯·æ±‚
             # simulation_delay priority_cnt <= {grant[chn_n-2:0], grant[chn_n-1]};
     end
     
-    /** ÖÙ²ÃÊÚÈ¨ÓëÑ¡Ôñ **/
+    /** ä»²è£æˆæƒä¸é€‰æ‹© **/
     wire[chn_n*2-1:0] double_req;
     wire[chn_n*2-1:0] double_grant;
     

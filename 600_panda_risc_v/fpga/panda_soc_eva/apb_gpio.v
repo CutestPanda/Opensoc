@@ -1,48 +1,72 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ·ûºÏAPBĞ­ÒéµÄGPIO¿ØÖÆÆ÷
+æœ¬æ¨¡å—: ç¬¦åˆAPBåè®®çš„GPIOæ§åˆ¶å™¨
 
-ÃèÊö: 
-APB-GPIO¿ØÖÆÆ÷
-Ö§³ÖGPIOÊäÈëÖĞ¶Ï
+æè¿°: 
+APB-GPIOæ§åˆ¶å™¨
+æ”¯æŒGPIOè¾“å…¥ä¸­æ–­
 
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ   |    ±¸×¢
-    0x00    gpio_width-1~0:GPIOÊä³ö             W
-    0x04    gpio_width-1~0:GPIOĞ´µçÆ½ÑÚÂë       W
-    0x08    gpio_width-1~0:GPIO·½Ïò             W         0ÎªÊä³ö, 1ÎªÊäÈë
-    0x0C    gpio_width-1~0:GPIOÊäÈë             R
-    0x10    0:È«¾ÖÖĞ¶ÏÊ¹ÄÜ                      W
-            1:È«¾ÖÖĞ¶Ï±êÖ¾                      RWC   ÇëÔÚÖĞ¶Ï·şÎñº¯ÊıÖĞÇå³ıÖĞ¶Ï±êÖ¾
-    0x14    gpio_width-1~0:ÖĞ¶Ï×´Ì¬             R
-    0x18    gpio_width-1~0:ÖĞ¶ÏÊ¹ÄÜ             W
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§   |    å¤‡æ³¨
+    0x00    gpio_width-1~0:GPIOè¾“å‡º             W
+    0x04    gpio_width-1~0:GPIOå†™ç”µå¹³æ©ç        W
+    0x08    gpio_width-1~0:GPIOæ–¹å‘             W         0ä¸ºè¾“å‡º, 1ä¸ºè¾“å…¥
+    0x0C    gpio_width-1~0:GPIOè¾“å…¥             R
+    0x10    0:å…¨å±€ä¸­æ–­ä½¿èƒ½                      W
+            1:å…¨å±€ä¸­æ–­æ ‡å¿—                      RWC   è¯·åœ¨ä¸­æ–­æœåŠ¡å‡½æ•°ä¸­æ¸…é™¤ä¸­æ–­æ ‡å¿—
+    0x14    gpio_width-1~0:ä¸­æ–­çŠ¶æ€             R
+    0x18    gpio_width-1~0:ä¸­æ–­ä½¿èƒ½             W
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 APB SLAVE
 GPIO
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/06
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/06
 ********************************************************************/
 
 
 module apb_gpio #(
-    parameter integer gpio_width = 16, // GPIOÎ»¿í(1~32)
-    parameter gpio_dire = "inout", // GPIO·½Ïò(inout|input|output)
-    parameter default_output_value = 32'hffff_ffff, // GPIOÄ¬ÈÏÊä³öµçÆ½
-    parameter default_tri_value = 32'hffff_ffff, // GPIOÄ¬ÈÏ·½Ïò(0->Êä³ö 1->ÊäÈë)(½öÔÚinoutÄ£Ê½ÏÂ¿ÉÓÃ)
-    parameter en_itr = "true", // ÊÇ·ñÊ¹ÄÜGPIOÖĞ¶Ï
-    parameter itr_edge = "neg", // ÖĞ¶Ï¼«ĞÔ(pos|neg)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer gpio_width = 16, // GPIOä½å®½(1~32)
+    parameter gpio_dire = "inout", // GPIOæ–¹å‘(inout|input|output)
+    parameter default_output_value = 32'hffff_ffff, // GPIOé»˜è®¤è¾“å‡ºç”µå¹³
+    parameter default_tri_value = 32'hffff_ffff, // GPIOé»˜è®¤æ–¹å‘(0->è¾“å‡º 1->è¾“å…¥)(ä»…åœ¨inoutæ¨¡å¼ä¸‹å¯ç”¨)
+    parameter en_itr = "true", // æ˜¯å¦ä½¿èƒ½GPIOä¸­æ–­
+    parameter itr_edge = "neg", // ä¸­æ–­ææ€§(pos|neg)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // APB´Ó»ú½Ó¿Ú
+    // APBä»æœºæ¥å£
     input wire[31:0] paddr,
     input wire psel,
     input wire penable,
@@ -54,14 +78,14 @@ module apb_gpio #(
     
     // GPIO
     output wire[gpio_width-1:0] gpio_o,
-    output wire[gpio_width-1:0] gpio_t, // 0->Êä³ö, 1->ÊäÈë
+    output wire[gpio_width-1:0] gpio_t, // 0->è¾“å‡º, 1->è¾“å…¥
     input wire[gpio_width-1:0] gpio_i,
     
-    // ÖĞ¶Ï
+    // ä¸­æ–­
     output wire gpio_itr
 );
     
-    /** GPIOÈıÌ¬×ÜÏß **/
+    /** GPIOä¸‰æ€æ€»çº¿ **/
     wire[gpio_width-1:0] gpio_o_w;
     wire[gpio_width-1:0] gpio_t_w;
     wire[gpio_width-1:0] gpio_i_w;
@@ -98,15 +122,15 @@ module apb_gpio #(
             assign gpio_i_w = gpio_o_w;
     endgenerate
     
-    /** GPIOÖĞ¶Ï **/
-    wire[gpio_width-1:0] gpio_i_w_d; // ÑÓ³Ù1clkµÄgpioÊäÈë
-    wire gpio_global_itr_en_w; // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-    wire[gpio_width-1:0] gpio_itr_en_w; // ÖĞ¶ÏÊ¹ÄÜ
-    wire gpio_itr_flag_w; // ÖĞ¶Ï±êÖ¾
-    wire[gpio_width-1:0] gpio_itr_mask_w; // ÖĞ¶ÏÑÚÂë
-    wire[gpio_width-1:0] gpio_itr_mask_w_d; // ÑÓ³Ù1clkµÄÖĞ¶ÏÑÚÂë
-    wire gpio_org_itr_pulse; // Ô­Ê¼ÖĞ¶ÏÂö³å
-    wire gpio_itr_w; // ÖĞ¶ÏĞÅºÅ
+    /** GPIOä¸­æ–­ **/
+    wire[gpio_width-1:0] gpio_i_w_d; // å»¶è¿Ÿ1clkçš„gpioè¾“å…¥
+    wire gpio_global_itr_en_w; // å…¨å±€ä¸­æ–­ä½¿èƒ½
+    wire[gpio_width-1:0] gpio_itr_en_w; // ä¸­æ–­ä½¿èƒ½
+    wire gpio_itr_flag_w; // ä¸­æ–­æ ‡å¿—
+    wire[gpio_width-1:0] gpio_itr_mask_w; // ä¸­æ–­æ©ç 
+    wire[gpio_width-1:0] gpio_itr_mask_w_d; // å»¶è¿Ÿ1clkçš„ä¸­æ–­æ©ç 
+    wire gpio_org_itr_pulse; // åŸå§‹ä¸­æ–­è„‰å†²
+    wire gpio_itr_w; // ä¸­æ–­ä¿¡å·
     
     assign gpio_itr = gpio_itr_w;
     
@@ -133,15 +157,15 @@ module apb_gpio #(
                 begin
                     # simulation_delay;
                     
-                    gpio_org_itr_pulse_reg <= (gpio_org_itr_mask_regs != {gpio_width{1'b0}}) & gpio_global_itr_en_w & (~gpio_itr_flag_w); // Ô­Ê¼ÖĞ¶ÏÂö³å
-                    gpio_org_itr_mask_regs <= ((itr_edge == "pos") ? (gpio_i_w & (~gpio_i_w_d)):((~gpio_i_w) & gpio_i_w_d)) & // ²¶»ñÉÏÉıÑØ»òÏÂ½µÑØ
-                        gpio_t_w & // ½ö¿¼ÂÇÊäÈëÄ£Ê½gpioµÄÖĞ¶Ï
-                        gpio_itr_en_w; // gpioÊäÈëÖĞ¶ÏÊ¹ÄÜ
-                    gpio_itr_mask_regs_d <= gpio_org_itr_mask_regs; // ¶ÔÖĞ¶Ï×´Ì¬´ò1ÅÄ
+                    gpio_org_itr_pulse_reg <= (gpio_org_itr_mask_regs != {gpio_width{1'b0}}) & gpio_global_itr_en_w & (~gpio_itr_flag_w); // åŸå§‹ä¸­æ–­è„‰å†²
+                    gpio_org_itr_mask_regs <= ((itr_edge == "pos") ? (gpio_i_w & (~gpio_i_w_d)):((~gpio_i_w) & gpio_i_w_d)) & // æ•è·ä¸Šå‡æ²¿æˆ–ä¸‹é™æ²¿
+                        gpio_t_w & // ä»…è€ƒè™‘è¾“å…¥æ¨¡å¼gpioçš„ä¸­æ–­
+                        gpio_itr_en_w; // gpioè¾“å…¥ä¸­æ–­ä½¿èƒ½
+                    gpio_itr_mask_regs_d <= gpio_org_itr_mask_regs; // å¯¹ä¸­æ–­çŠ¶æ€æ‰“1æ‹
                 end
             end
             
-            // ¶ÔÔ­Ê¼ÖĞ¶ÏÂö³å½øĞĞÑÓÕ¹
+            // å¯¹åŸå§‹ä¸­æ–­è„‰å†²è¿›è¡Œå»¶å±•
             itr_generator #(
                 .pulse_w(10),
                 .simulation_delay(simulation_delay)
@@ -161,14 +185,14 @@ module apb_gpio #(
         end
     endgenerate
     
-    /** APBĞ´¼Ä´æÆ÷ **/
-    reg[31:0] gpio_o_value_regs; // GPIOÊä³ö
-    reg[31:0] gpio_o_mask_regs; // GPIOĞ´µçÆ½ÑÚÂë
-    reg[31:0] gpio_direction_regs; // GPIO·½Ïò
-    reg[31:0] gpio_i_value_regs; // GPIOÊäÈë
-    reg[31:0] gpio_itr_status_regs; // È«¾ÖÖĞ¶ÏÊ¹ÄÜ, ÖĞ¶Ï±êÖ¾
-    reg[31:0] gpio_itr_mask_regs; // ÖĞ¶Ï×´Ì¬
-    reg[31:0] gpio_itr_en_regs; // ÖĞ¶ÏÊ¹ÄÜ
+    /** APBå†™å¯„å­˜å™¨ **/
+    reg[31:0] gpio_o_value_regs; // GPIOè¾“å‡º
+    reg[31:0] gpio_o_mask_regs; // GPIOå†™ç”µå¹³æ©ç 
+    reg[31:0] gpio_direction_regs; // GPIOæ–¹å‘
+    reg[31:0] gpio_i_value_regs; // GPIOè¾“å…¥
+    reg[31:0] gpio_itr_status_regs; // å…¨å±€ä¸­æ–­ä½¿èƒ½, ä¸­æ–­æ ‡å¿—
+    reg[31:0] gpio_itr_mask_regs; // ä¸­æ–­çŠ¶æ€
+    reg[31:0] gpio_itr_en_regs; // ä¸­æ–­ä½¿èƒ½
     
     assign gpio_o_w = gpio_o_value_regs[gpio_width-1:0];
     assign gpio_t_w = gpio_direction_regs[gpio_width-1:0];
@@ -186,7 +210,7 @@ module apb_gpio #(
             begin
                 if(~resetn)
                     gpio_o_value_regs[gpio_o_value_regs_i] <= default_output_value[gpio_o_value_regs_i];
-                else if(psel & pwrite & penable & (paddr[4:2] == 3'd0) & gpio_o_mask_regs[gpio_o_value_regs_i]) // Ğ´GPIOÊä³öµçÆ½
+                else if(psel & pwrite & penable & (paddr[4:2] == 3'd0) & gpio_o_mask_regs[gpio_o_value_regs_i]) // å†™GPIOè¾“å‡ºç”µå¹³
                     # simulation_delay gpio_o_value_regs[gpio_o_value_regs_i] <= pwdata[gpio_o_value_regs_i];
             end
         end
@@ -213,13 +237,13 @@ module apb_gpio #(
             # simulation_delay;
             
             case(paddr[4:2])
-                3'd1: // Ğ´GPIOĞ´µçÆ½ÑÚÂë
+                3'd1: // å†™GPIOå†™ç”µå¹³æ©ç 
                     gpio_o_mask_regs[gpio_width-1:0] <= pwdata[gpio_width-1:0];
-                3'd2: // Ğ´GPIO·½Ïò, ½öinoutÏÂĞŞ¸ÄÓĞĞ§
+                3'd2: // å†™GPIOæ–¹å‘, ä»…inoutä¸‹ä¿®æ”¹æœ‰æ•ˆ
                     gpio_direction_regs[gpio_width-1:0] <= pwdata[gpio_width-1:0];
-                3'd4: // Ğ´È«¾ÖÖĞ¶ÏÊ¹ÄÜ
+                3'd4: // å†™å…¨å±€ä¸­æ–­ä½¿èƒ½
                     gpio_itr_status_regs[0] <= pwdata[0];
-                3'd6: // Ğ´ÖĞ¶ÏÊ¹ÄÜ
+                3'd6: // å†™ä¸­æ–­ä½¿èƒ½
                     gpio_itr_en_regs[gpio_width-1:0] <= pwdata[gpio_width-1:0];
                 default: // hold
                 begin
@@ -236,13 +260,13 @@ module apb_gpio #(
     begin
         if(~resetn)
             gpio_itr_status_regs[1] <= 1'b0;
-        else if(psel & pwrite & penable & (paddr[4:2] == 3'd4)) // Çå³ıÖĞ¶Ï±êÖ¾
+        else if(psel & pwrite & penable & (paddr[4:2] == 3'd4)) // æ¸…é™¤ä¸­æ–­æ ‡å¿—
             # simulation_delay gpio_itr_status_regs[1] <= 1'b0;
-        else if(~gpio_itr_status_regs[1]) // µÈ´ıĞÂµÄGPIOÖĞ¶Ï, ÖĞ¶Ï±êÖ¾Îª¸ßÊ±ÆÁ±ÎĞÂµÄGPIOÖĞ¶Ï
+        else if(~gpio_itr_status_regs[1]) // ç­‰å¾…æ–°çš„GPIOä¸­æ–­, ä¸­æ–­æ ‡å¿—ä¸ºé«˜æ—¶å±è”½æ–°çš„GPIOä¸­æ–­
             # simulation_delay gpio_itr_status_regs[1] <= gpio_org_itr_pulse;
     end
     
-    // Éú³É×´Ì¬ĞÅÏ¢
+    // ç”ŸæˆçŠ¶æ€ä¿¡æ¯
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -254,14 +278,14 @@ module apb_gpio #(
         begin
             # simulation_delay;
             
-            gpio_i_value_regs[gpio_width-1:0] <= gpio_i_w; // ÔØÈëGPIOÊäÈëµçÆ½
+            gpio_i_value_regs[gpio_width-1:0] <= gpio_i_w; // è½½å…¥GPIOè¾“å…¥ç”µå¹³
             
-            if(gpio_org_itr_pulse) // ÔØÈëÖĞ¶Ï×´Ì¬
+            if(gpio_org_itr_pulse) // è½½å…¥ä¸­æ–­çŠ¶æ€
                 gpio_itr_mask_regs[gpio_width-1:0] <= gpio_itr_mask_w_d;
         end
     end
     
-    /** APB¶Á¼Ä´æÆ÷ **/
+    /** APBè¯»å¯„å­˜å™¨ **/
     reg[31:0] prdata_out_regs;
 	
 	assign pready_out = 1'b1;
@@ -278,11 +302,11 @@ module apb_gpio #(
 					# simulation_delay;
 					
 					case(paddr[4:2])
-						3'd3: // ¶ÁGPIOÊäÈë
+						3'd3: // è¯»GPIOè¾“å…¥
 							prdata_out_regs <= {{(32-gpio_width){1'bx}}, gpio_i_value_regs[gpio_width-1:0]};
-						3'd4: // ¶ÁÖĞ¶Ï±êÖ¾
+						3'd4: // è¯»ä¸­æ–­æ ‡å¿—
 							prdata_out_regs <= {30'dx, gpio_itr_status_regs[1], 1'bx};
-						3'd5: // ¶ÁÖĞ¶Ï×´Ì¬
+						3'd5: // è¯»ä¸­æ–­çŠ¶æ€
 							prdata_out_regs <= {{(32-gpio_width){1'bx}}, gpio_itr_mask_regs[gpio_width-1:0]};
 						default: // not care
 							prdata_out_regs <= 32'dx;
@@ -299,11 +323,11 @@ module apb_gpio #(
 					# simulation_delay;
 					
 					case(paddr[4:2])
-						3'd3: // ¶ÁGPIOÊäÈë
+						3'd3: // è¯»GPIOè¾“å…¥
 							prdata_out_regs <= {{(32-gpio_width){1'b0}}, gpio_i_value_regs[gpio_width-1:0]};
-						3'd4: // ¶ÁÖĞ¶Ï±êÖ¾
+						3'd4: // è¯»ä¸­æ–­æ ‡å¿—
 							prdata_out_regs <= {30'd0, gpio_itr_status_regs[1], 1'b0};
-						3'd5: // ¶ÁÖĞ¶Ï×´Ì¬
+						3'd5: // è¯»ä¸­æ–­çŠ¶æ€
 							prdata_out_regs <= {{(32-gpio_width){1'b0}}, gpio_itr_mask_regs[gpio_width-1:0]};
 						default: // not care
 							prdata_out_regs <= 32'd0;

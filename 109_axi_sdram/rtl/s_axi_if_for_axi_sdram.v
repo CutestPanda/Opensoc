@@ -1,40 +1,64 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI-SDRAMµÄAXI´Ó½Ó¿Ú
+æœ¬æ¨¡å—: AXI-SDRAMçš„AXIä»æ¥å£
 
-ÃèÊö: 
-32Î»µØÖ·/Êı¾İ×ÜÏß
-Ö§³Ö·Ç¶ÔÆë´«Êä
+æè¿°: 
+32ä½åœ°å€/æ•°æ®æ€»çº¿
+æ”¯æŒéå¯¹é½ä¼ è¾“
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
-²»Ö§³ÖÕ­´ø´«Êä
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
+ä¸æ”¯æŒçª„å¸¦ä¼ è¾“
 
-ÒÔÏÂ·Ç¼Ä´æÆ÷Êä³ö ->
-    AXI´Ó»úµÄ¶ÁÊı¾İÍ¨µÀ: s_axi_rlast, s_axi_rvalid
-    AXI´Ó»úµÄĞ´Êı¾İÍ¨µÀ: s_axi_wready
-    AXI´Ó»úµÄĞ´ÏìÓ¦Í¨µÀ: s_axi_bvalid
-    SDRAMÓÃ»§ÃüÁîAXIS: m_axis_usr_cmd_data, m_axis_usr_cmd_user, m_axis_usr_cmd_valid
-    SDRAMĞ´Êı¾İAXIS: m_axis_wt_keep(ÈôÔÊĞí·Ç¶ÔÆë´«ÊäÊ±Îª·Ç¼Ä´æÆ÷Êä³ö), m_axi_wlast, m_axis_wt_valid
+ä»¥ä¸‹éå¯„å­˜å™¨è¾“å‡º ->
+    AXIä»æœºçš„è¯»æ•°æ®é€šé“: s_axi_rlast, s_axi_rvalid
+    AXIä»æœºçš„å†™æ•°æ®é€šé“: s_axi_wready
+    AXIä»æœºçš„å†™å“åº”é€šé“: s_axi_bvalid
+    SDRAMç”¨æˆ·å‘½ä»¤AXIS: m_axis_usr_cmd_data, m_axis_usr_cmd_user, m_axis_usr_cmd_valid
+    SDRAMå†™æ•°æ®AXIS: m_axis_wt_keep(è‹¥å…è®¸éå¯¹é½ä¼ è¾“æ—¶ä¸ºéå¯„å­˜å™¨è¾“å‡º), m_axi_wlast, m_axis_wt_valid
 
-Ğ­Òé:
+åè®®:
 AXI SLAVE
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module s_axi_if_for_axi_sdram #(
-    parameter arb_algorithm = "round-robin", // ÖÙ²ÃËã·¨("round-robin" | "fixed-r" | "fixed-w")
-    parameter en_unaligned_transfer = "false" // ÊÇ·ñÔÊĞí·Ç¶ÔÆë´«Êä
+    parameter arb_algorithm = "round-robin", // ä»²è£ç®—æ³•("round-robin" | "fixed-r" | "fixed-w")
+    parameter en_unaligned_transfer = "false" // æ˜¯å¦å…è®¸éå¯¹é½ä¼ è¾“
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»ú
+    // AXIä»æœº
     // AR
     input wire[31:0] s_axi_araddr,
     input wire[7:0] s_axi_arlen,
@@ -64,27 +88,27 @@ module s_axi_if_for_axi_sdram #(
     output wire s_axi_bvalid,
     input wire s_axi_bready,
     
-    // SDRAMÓÃ»§ÃüÁîAXIS
-    output wire[31:0] m_axis_usr_cmd_data, // {±£Áô(5bit), ba(2bit), ĞĞµØÖ·(11bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    output wire[8:0] m_axis_usr_cmd_user, // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}
+    // SDRAMç”¨æˆ·å‘½ä»¤AXIS
+    output wire[31:0] m_axis_usr_cmd_data, // {ä¿ç•™(5bit), ba(2bit), è¡Œåœ°å€(11bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    output wire[8:0] m_axis_usr_cmd_user, // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}
     output wire m_axis_usr_cmd_valid,
     input wire m_axis_usr_cmd_ready,
     
-    // SDRAMĞ´Êı¾İAXIS
+    // SDRAMå†™æ•°æ®AXIS
     output wire[31:0] m_axis_wt_data,
     output wire[3:0] m_axis_wt_keep,
     output wire m_axis_wt_last,
     output wire m_axis_wt_valid,
     input wire m_axis_wt_ready,
-    // SDRAM¶ÁÊı¾İAXIS
+    // SDRAMè¯»æ•°æ®AXIS
     input wire[31:0] s_axis_rd_data,
     input wire s_axis_rd_last,
     input wire s_axis_rd_valid,
     output wire s_axis_rd_ready
 );
     
-    /** 1KB±ß½ç±£»¤ **/
-    // ½øĞĞÁË1KB±ß½ç±£»¤ºóµÄAXIÖ÷»ú
+    /** 1KBè¾¹ç•Œä¿æŠ¤ **/
+    // è¿›è¡Œäº†1KBè¾¹ç•Œä¿æŠ¤åçš„AXIä¸»æœº
     // AR
     wire[31:0] m_axi_araddr;
     wire[7:0] m_axi_arlen;
@@ -138,7 +162,7 @@ module s_axi_if_for_axi_sdram #(
         .m_axis_r_last(s_axi_rlast),
         .m_axis_r_valid(s_axi_rvalid),
         .m_axis_r_ready(s_axi_rready),
-        .m_axis_b_data(s_axi_bresp), // m_axis_b_dataÊÇ8bitµÄ, µ«s_axi_brespÊÇ2bitµÄ
+        .m_axis_b_data(s_axi_bresp), // m_axis_b_dataæ˜¯8bitçš„, ä½†s_axi_brespæ˜¯2bitçš„
         .m_axis_b_valid(s_axi_bvalid),
         .m_axis_b_ready(s_axi_bready),
         
@@ -175,10 +199,10 @@ module s_axi_if_for_axi_sdram #(
         .m_axi_bready(m_axi_bready)
     );
     
-    /** ¶ÁĞ´ÖÙ²Ã **/
-    // Ğ´Í»·¢·Ç¶ÔÆëµØÖ·ĞÅÏ¢fifoĞ´¶Ë¿Ú
+    /** è¯»å†™ä»²è£ **/
+    // å†™çªå‘éå¯¹é½åœ°å€ä¿¡æ¯fifoå†™ç«¯å£
     wire wt_burst_unaligned_msg_fifo_wen;
-    wire[1:0] wt_burst_unaligned_msg_fifo_din; // Ğ´µØÖ·(awaddr)µÍ2Î»
+    wire[1:0] wt_burst_unaligned_msg_fifo_din; // å†™åœ°å€(awaddr)ä½2ä½
     wire wt_burst_unaligned_msg_fifo_full_n;
     
     axi_sdram_rw_arb #(
@@ -208,10 +232,10 @@ module s_axi_if_for_axi_sdram #(
         .wt_burst_unaligned_msg_fifo_full_n(wt_burst_unaligned_msg_fifo_full_n)
     );
     
-    /** Ğ´Êı¾İºÍĞ´ÏìÓ¦ **/
-    // Ğ´Í»·¢·Ç¶ÔÆëµØÖ·ĞÅÏ¢fifo¶Á¶Ë¿Ú
+    /** å†™æ•°æ®å’Œå†™å“åº” **/
+    // å†™çªå‘éå¯¹é½åœ°å€ä¿¡æ¯fifoè¯»ç«¯å£
     wire wt_burst_unaligned_msg_fifo_ren;
-    wire[1:0] wt_burst_unaligned_msg_fifo_dout; // Ğ´µØÖ·(awaddr)µÍ2Î»
+    wire[1:0] wt_burst_unaligned_msg_fifo_dout; // å†™åœ°å€(awaddr)ä½2ä½
     wire wt_burst_unaligned_msg_fifo_empty_n;
     
     axi_sdram_w_b_chn axi_sdram_w_b_chn_u(
@@ -238,7 +262,7 @@ module s_axi_if_for_axi_sdram #(
         .wt_burst_unaligned_msg_fifo_empty_n(wt_burst_unaligned_msg_fifo_empty_n)
     );
     
-    /** Ğ´Í»·¢·Ç¶ÔÆëµØÖ·ĞÅÏ¢fifo **/
+    /** å†™çªå‘éå¯¹é½åœ°å€ä¿¡æ¯fifo **/
     generate
         if(en_unaligned_transfer == "true")
             fifo_based_on_regs #(
@@ -268,8 +292,8 @@ module s_axi_if_for_axi_sdram #(
         end
     endgenerate
     
-    /** ¶ÁÊı¾İ **/
-    // ½«sdram¶ÁÊı¾İÖ±½Ópass¸ø½øĞĞÁË1KB±ß½ç±£»¤ºóAXIÖ÷»úµÄ¶ÁÊı¾İ(R)Í¨µÀ
+    /** è¯»æ•°æ® **/
+    // å°†sdramè¯»æ•°æ®ç›´æ¥passç»™è¿›è¡Œäº†1KBè¾¹ç•Œä¿æŠ¤åAXIä¸»æœºçš„è¯»æ•°æ®(R)é€šé“
     assign m_axi_rdata = s_axis_rd_data;
     assign m_axi_rlast = s_axis_rd_last;
     assign m_axi_rresp = 2'b00;

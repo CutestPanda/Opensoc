@@ -1,49 +1,73 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ¾í»ıµ¥ÔªµÄÏßĞÔ²ÎÊı»º´æÇø
+æœ¬æ¨¡å—: å·ç§¯å•å…ƒçš„çº¿æ€§å‚æ•°ç¼“å­˜åŒº
 
-ÃèÊö:
-ÓÃÓÚ»º´æÏßĞÔ²ÎÊı
+æè¿°:
+ç”¨äºç¼“å­˜çº¿æ€§å‚æ•°
 
-ÏßĞÔ²ÎÊı»º´æMEM: max_kernal_nÉî¶È * (2*kernal_param_data_width)Î»¿í
-¶ÁÊ±ÑÓ = 1clk
+çº¿æ€§å‚æ•°ç¼“å­˜MEM: max_kernal_næ·±åº¦ * (2*kernal_param_data_width)ä½å®½
+è¯»æ—¶å»¶ = 1clk
 
-ÏßĞÔ²ÎÊı(A, B): AX + B
+çº¿æ€§å‚æ•°(A, B): AX + B
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 MEM READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/19
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/19
 ********************************************************************/
 
 
 module linear_params_buffer #(
-	parameter integer kernal_param_data_width = 16, // ¾í»ıºË²ÎÊıÎ»¿í(8 | 16 | 32 | 64)
-	parameter integer max_kernal_n = 512, // ×î´óµÄ¾í»ıºË¸öÊı
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer kernal_param_data_width = 16, // å·ç§¯æ ¸å‚æ•°ä½å®½(8 | 16 | 32 | 64)
+	parameter integer max_kernal_n = 512, // æœ€å¤§çš„å·ç§¯æ ¸ä¸ªæ•°
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓ
+    // æ—¶é’Ÿ
 	input wire clk,
 	
-	// ÏßĞÔ²ÎÊı»º´æÇøĞ´¶Ë¿Ú
-	input wire buffer_wen_a, // ÏßĞÔ²ÎÊıA»º´æÇøĞ´Ê¹ÄÜ
-	input wire buffer_wen_b, // ÏßĞÔ²ÎÊıB»º´æÇøĞ´Ê¹ÄÜ
-	input wire[15:0] buffer_waddr, // Ã¿¸öĞ´µØÖ·¶ÔÓ¦1¸öÏßĞÔ²ÎÊı
-	input wire[kernal_param_data_width-1:0] buffer_din_a, // ÏßĞÔ²ÎÊıA»º´æÇøĞ´Êı¾İ
-	input wire[kernal_param_data_width-1:0] buffer_din_b, // ÏßĞÔ²ÎÊıB»º´æÇøĞ´Êı¾İ
+	// çº¿æ€§å‚æ•°ç¼“å­˜åŒºå†™ç«¯å£
+	input wire buffer_wen_a, // çº¿æ€§å‚æ•°Aç¼“å­˜åŒºå†™ä½¿èƒ½
+	input wire buffer_wen_b, // çº¿æ€§å‚æ•°Bç¼“å­˜åŒºå†™ä½¿èƒ½
+	input wire[15:0] buffer_waddr, // æ¯ä¸ªå†™åœ°å€å¯¹åº”1ä¸ªçº¿æ€§å‚æ•°
+	input wire[kernal_param_data_width-1:0] buffer_din_a, // çº¿æ€§å‚æ•°Aç¼“å­˜åŒºå†™æ•°æ®
+	input wire[kernal_param_data_width-1:0] buffer_din_b, // çº¿æ€§å‚æ•°Bç¼“å­˜åŒºå†™æ•°æ®
 	
-	// ÏßĞÔ²ÎÊı»º´æÇø¶Á¶Ë¿Ú
+	// çº¿æ€§å‚æ•°ç¼“å­˜åŒºè¯»ç«¯å£
 	input wire buffer_ren,
-	input wire[15:0] buffer_raddr, // Ã¿¸ö¶ÁµØÖ·¶ÔÓ¦1¸öÏßĞÔ²ÎÊı
-	output wire[kernal_param_data_width-1:0] buffer_dout_a, // ÏßĞÔ²ÎÊıA»º´æÇø¶ÁÊı¾İ
-	output wire[kernal_param_data_width-1:0] buffer_dout_b // ÏßĞÔ²ÎÊıB»º´æÇø¶ÁÊı¾İ
+	input wire[15:0] buffer_raddr, // æ¯ä¸ªè¯»åœ°å€å¯¹åº”1ä¸ªçº¿æ€§å‚æ•°
+	output wire[kernal_param_data_width-1:0] buffer_dout_a, // çº¿æ€§å‚æ•°Aç¼“å­˜åŒºè¯»æ•°æ®
+	output wire[kernal_param_data_width-1:0] buffer_dout_b // çº¿æ€§å‚æ•°Bç¼“å­˜åŒºè¯»æ•°æ®
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -56,12 +80,12 @@ module linear_params_buffer #(
     end
     endfunction
 	
-	/** ÏßĞÔ²ÎÊı»º´æMEM **/
-	wire[kernal_param_data_width*2-1:0] linear_pars_buffer_mem_dout; // ÏßĞÔ²ÎÊı»º´æMEM¶ÁÊı¾İ
+	/** çº¿æ€§å‚æ•°ç¼“å­˜MEM **/
+	wire[kernal_param_data_width*2-1:0] linear_pars_buffer_mem_dout; // çº¿æ€§å‚æ•°ç¼“å­˜MEMè¯»æ•°æ®
 	
 	assign {buffer_dout_b, buffer_dout_a} = linear_pars_buffer_mem_dout;
 	
-	// ¼òµ¥Ë«¿ÚRAM
+	// ç®€å•åŒå£RAM
 	bram_simple_dual_port #(
 		.style("LOW_LATENCY"),
 		.mem_width(2*kernal_param_data_width),

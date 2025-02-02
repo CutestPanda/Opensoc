@@ -1,147 +1,171 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: Í¨ÓÃ¾í»ı¼ÆËãµ¥ÔªµÄ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú
+æœ¬æ¨¡å—: é€šç”¨å·ç§¯è®¡ç®—å•å…ƒçš„å¯„å­˜å™¨é…ç½®æ¥å£
 
-ÃèÊö:
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                        |   ¶ÁĞ´ÌØĞÔ    |        ±¸×¢
-    0x00    0:¸´Î»ÏßĞÔ²ÎÊı»º´æÇø                   WO        Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±Ö´ĞĞ¸´Î»
-	        1:¸´Î»Êı¾İÍ¨Â·ÉÏµÄ¾í»ıºË²ÎÊı»º´æ       WO        Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±Ö´ĞĞ¸´Î»
-			8:Æô¶¯¶ÁÇëÇóÃèÊö×ÓDMA                  WO        Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±Ö´ĞĞÆô¶¯
-			9:Æô¶¯Ğ´ÇëÇóÃèÊö×ÓDMA                  WO        Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±Ö´ĞĞÆô¶¯
-			16:¶ÁÇëÇóÃèÊö×ÓDMA¿ÕÏĞ±êÖ¾             RO
-			17:Ğ´ÇëÇóÃèÊö×ÓDMA¿ÕÏĞ±êÖ¾             RO
-	0x04    0:È«¾ÖÖĞ¶ÏÊ¹ÄÜ                         RW
-			8:¶ÁÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÊ¹ÄÜ  RW
-	        9:Ğ´ÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÊ¹ÄÜ  RW
-			10:Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÊ¹ÄÜ              RW
-	0x08    0:È«¾ÖÖĞ¶Ï±êÖ¾                         WC
-	        8:¶ÁÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶Ï±êÖ¾  RO
-			9:Ğ´ÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶Ï±êÖ¾  RO
-			10:Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶Ï±êÖ¾              RO
-	0x0C    31~0:Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏãĞÖµ            RW
-	0x10    0:Ê¹ÄÜ¾í»ı¼ÆËã                         RW
-	0x14    0:¾í»ıºËÀàĞÍ                           RW        1'b0 -> 1x1, 1'b1 -> 3x3
-	        11~8:ÍâÍØÌî³äÊ¹ÄÜ                      RW
-	0x18    31~0:¶ÁÇëÇó»º´æÇøÊ×µØÖ·                RW
-	0x1C    31~0:¶ÁÇëÇó¸öÊı - 1                    RW
-	0x20    31~0:Ğ´ÇëÇó»º´æÇøÊ×µØÖ·                RW
-	0x24    31~0:Ğ´ÇëÇó¸öÊı - 1                    RW
-	0x28    15~0:ÊäÈëÌØÕ÷Í¼¿í¶È - 1                RW
-	        31~16:ÊäÈëÌØÕ÷Í¼¸ß¶È - 1               RW
-	0x2C    15~0:ÊäÈëÌØÕ÷Í¼Í¨µÀÊı - 1              RW
-	        31~16:¾í»ıºË¸öÊı - 1                   RW
-	0x30    31~0:Relu¼¤»îÏµÊıc[31:0]               RW
-	0x34    31~0:Relu¼¤»îÏµÊıc[63:32]              RW
-	0x38    31~0:ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı                RW
-	0x3C    15~0:Êä³öÌØÕ÷Í¼¿í¶È - 1                RW
-	        31~16:Êä³öÌØÕ÷Í¼¸ß¶È - 1               RW
-	0x40    2~0:Ë®Æ½²½³¤ - 1                       RW
-	        10~8:´¹Ö±²½³¤ - 1                      RW
-	        16:²½³¤ÀàĞÍ                            RW        1'b0 -> ´ÓµÚ1¸öROI¿ªÊ¼, 1'b1 -> ÉáÆúµÚ1¸öROI
-	0x44    1~0:¼¤»îÀàĞÍ                           RW        2'b00 -> Relu, 2'b01 -> ±£Áô, 2'b10 -> Sigmoid, 2'b11 -> Tanh
-	0x48    10~0:·ÇÏßĞÔ¼¤»î²éÕÒ±íĞ´µØÖ·            WO        Ğ´¸Ã¼Ä´æÆ÷Ê±²úÉú²éÕÒ±íĞ´Ê¹ÄÜ, Ğ´Êı¾İµÄÁ¿»¯¾«¶ÈÓ¦ÎªQ15
-	        31~16:·ÇÏßĞÔ¼¤»î²éÕÒ±íĞ´Êı¾İ           WO
+æè¿°:
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                        |   è¯»å†™ç‰¹æ€§    |        å¤‡æ³¨
+    0x00    0:å¤ä½çº¿æ€§å‚æ•°ç¼“å­˜åŒº                   WO        å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶æ‰§è¡Œå¤ä½
+	        1:å¤ä½æ•°æ®é€šè·¯ä¸Šçš„å·ç§¯æ ¸å‚æ•°ç¼“å­˜       WO        å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶æ‰§è¡Œå¤ä½
+			8:å¯åŠ¨è¯»è¯·æ±‚æè¿°å­DMA                  WO        å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶æ‰§è¡Œå¯åŠ¨
+			9:å¯åŠ¨å†™è¯·æ±‚æè¿°å­DMA                  WO        å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶æ‰§è¡Œå¯åŠ¨
+			16:è¯»è¯·æ±‚æè¿°å­DMAç©ºé—²æ ‡å¿—             RO
+			17:å†™è¯·æ±‚æè¿°å­DMAç©ºé—²æ ‡å¿—             RO
+	0x04    0:å…¨å±€ä¸­æ–­ä½¿èƒ½                         RW
+			8:è¯»è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­ä½¿èƒ½  RW
+	        9:å†™è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­ä½¿èƒ½  RW
+			10:å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­ä½¿èƒ½              RW
+	0x08    0:å…¨å±€ä¸­æ–­æ ‡å¿—                         WC
+	        8:è¯»è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­æ ‡å¿—  RO
+			9:å†™è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­æ ‡å¿—  RO
+			10:å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­æ ‡å¿—              RO
+	0x0C    31~0:å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­é˜ˆå€¼            RW
+	0x10    0:ä½¿èƒ½å·ç§¯è®¡ç®—                         RW
+	0x14    0:å·ç§¯æ ¸ç±»å‹                           RW        1'b0 -> 1x1, 1'b1 -> 3x3
+	        11~8:å¤–æ‹“å¡«å……ä½¿èƒ½                      RW
+	0x18    31~0:è¯»è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€                RW
+	0x1C    31~0:è¯»è¯·æ±‚ä¸ªæ•° - 1                    RW
+	0x20    31~0:å†™è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€                RW
+	0x24    31~0:å†™è¯·æ±‚ä¸ªæ•° - 1                    RW
+	0x28    15~0:è¾“å…¥ç‰¹å¾å›¾å®½åº¦ - 1                RW
+	        31~16:è¾“å…¥ç‰¹å¾å›¾é«˜åº¦ - 1               RW
+	0x2C    15~0:è¾“å…¥ç‰¹å¾å›¾é€šé“æ•° - 1              RW
+	        31~16:å·ç§¯æ ¸ä¸ªæ•° - 1                   RW
+	0x30    31~0:Reluæ¿€æ´»ç³»æ•°c[31:0]               RW
+	0x34    31~0:Reluæ¿€æ´»ç³»æ•°c[63:32]              RW
+	0x38    31~0:å·²å®Œæˆçš„å†™è¯·æ±‚ä¸ªæ•°                RW
+	0x3C    15~0:è¾“å‡ºç‰¹å¾å›¾å®½åº¦ - 1                RW
+	        31~16:è¾“å‡ºç‰¹å¾å›¾é«˜åº¦ - 1               RW
+	0x40    2~0:æ°´å¹³æ­¥é•¿ - 1                       RW
+	        10~8:å‚ç›´æ­¥é•¿ - 1                      RW
+	        16:æ­¥é•¿ç±»å‹                            RW        1'b0 -> ä»ç¬¬1ä¸ªROIå¼€å§‹, 1'b1 -> èˆå¼ƒç¬¬1ä¸ªROI
+	0x44    1~0:æ¿€æ´»ç±»å‹                           RW        2'b00 -> Relu, 2'b01 -> ä¿ç•™, 2'b10 -> Sigmoid, 2'b11 -> Tanh
+	0x48    10~0:éçº¿æ€§æ¿€æ´»æŸ¥æ‰¾è¡¨å†™åœ°å€            WO        å†™è¯¥å¯„å­˜å™¨æ—¶äº§ç”ŸæŸ¥æ‰¾è¡¨å†™ä½¿èƒ½, å†™æ•°æ®çš„é‡åŒ–ç²¾åº¦åº”ä¸ºQ15
+	        31~16:éçº¿æ€§æ¿€æ´»æŸ¥æ‰¾è¡¨å†™æ•°æ®           WO
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXI-Lite SLAVE
 BLK CTRL
 MEM WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/12/29
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/12/29
 ********************************************************************/
 
 
 module reg_if_for_generic_conv #(
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
 	
-	// ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú(AXI-Lite´Ó»ú)
-    // ¶ÁµØÖ·Í¨µÀ
+	// å¯„å­˜å™¨é…ç½®æ¥å£(AXI-Liteä»æœº)
+    // è¯»åœ°å€é€šé“
     input wire[31:0] s_axi_lite_araddr,
 	input wire[2:0] s_axi_lite_arprot, // ignored
     input wire s_axi_lite_arvalid,
     output wire s_axi_lite_arready,
-    // Ğ´µØÖ·Í¨µÀ
+    // å†™åœ°å€é€šé“
     input wire[31:0] s_axi_lite_awaddr,
 	input wire[2:0] s_axi_lite_awprot, // ignored
     input wire s_axi_lite_awvalid,
     output wire s_axi_lite_awready,
-    // Ğ´ÏìÓ¦Í¨µÀ
+    // å†™å“åº”é€šé“
     output wire[1:0] s_axi_lite_bresp, // const -> 2'b00(OKAY)
     output wire s_axi_lite_bvalid,
     input wire s_axi_lite_bready,
-    // ¶ÁÊı¾İÍ¨µÀ
+    // è¯»æ•°æ®é€šé“
     output wire[31:0] s_axi_lite_rdata,
     output wire[1:0] s_axi_lite_rresp, // const -> 2'b00(OKAY)
     output wire s_axi_lite_rvalid,
     input wire s_axi_lite_rready,
-    // Ğ´Êı¾İÍ¨µÀ
+    // å†™æ•°æ®é€šé“
     input wire[31:0] s_axi_lite_wdata,
 	input wire[3:0] s_axi_lite_wstrb,
     input wire s_axi_lite_wvalid,
     output wire s_axi_lite_wready,
 	
-	// ¿é¼¶¿ØÖÆ
-	// ¶ÁÇëÇóÃèÊö×ÓDMA
+	// å—çº§æ§åˆ¶
+	// è¯»è¯·æ±‚æè¿°å­DMA
 	output wire rd_req_dsc_dma_blk_start,
 	input wire rd_req_dsc_dma_blk_idle,
-	// Ğ´ÇëÇóÃèÊö×ÓDMA
+	// å†™è¯·æ±‚æè¿°å­DMA
 	output wire wt_req_dsc_dma_blk_start,
 	input wire wt_req_dsc_dma_blk_idle,
 	
-	// Ê¹ÄÜ
-	output wire en_conv_cal, // ÊÇ·ñÊ¹ÄÜ¾í»ı¼ÆËã
+	// ä½¿èƒ½
+	output wire en_conv_cal, // æ˜¯å¦ä½¿èƒ½å·ç§¯è®¡ç®—
 	
-	// ¸´Î»
-	output wire rst_linear_pars_buf, // ¸´Î»ÏßĞÔ²ÎÊı»º´æÇø
-	output wire rst_cal_path_kernal_buf, // ¸´Î»Êı¾İÍ¨Â·ÉÏµÄ¾í»ıºË²ÎÊı»º´æ
+	// å¤ä½
+	output wire rst_linear_pars_buf, // å¤ä½çº¿æ€§å‚æ•°ç¼“å­˜åŒº
+	output wire rst_cal_path_kernal_buf, // å¤ä½æ•°æ®é€šè·¯ä¸Šçš„å·ç§¯æ ¸å‚æ•°ç¼“å­˜
 	
-	// ÖĞ¶Ï
-	output wire[31:0] wt_req_itr_th, // Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏãĞÖµ
-	input wire[2:0] itr_req, // ÖĞ¶ÏÇëÇó({Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÇëÇó, 
-	                         //     Ğ´ÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÇëÇó, ¶ÁÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÇëÇó})
-	output wire en_wt_req_fns_itr, // ÊÇ·ñÊ¹ÄÜĞ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶Ï
-	output wire itr, // ÖĞ¶ÏĞÅºÅ
+	// ä¸­æ–­
+	output wire[31:0] wt_req_itr_th, // å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­é˜ˆå€¼
+	input wire[2:0] itr_req, // ä¸­æ–­è¯·æ±‚({å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­è¯·æ±‚, 
+	                         //     å†™è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­è¯·æ±‚, è¯»è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­è¯·æ±‚})
+	output wire en_wt_req_fns_itr, // æ˜¯å¦ä½¿èƒ½å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­
+	output wire itr, // ä¸­æ–­ä¿¡å·
 	
-	// ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı
+	// å·²å®Œæˆçš„å†™è¯·æ±‚ä¸ªæ•°
 	output wire[3:0] to_set_wt_req_fns_n,
 	output wire[31:0] wt_req_fns_n_set_v,
 	input wire[31:0] wt_req_fns_n_cur_v,
 	
-	// ·ÇÏßĞÔ¼¤»î²éÕÒ±í(Ğ´¶Ë¿Ú)
+	// éçº¿æ€§æ¿€æ´»æŸ¥æ‰¾è¡¨(å†™ç«¯å£)
 	output wire non_ln_act_lut_wen,
 	output wire[10:0] non_ln_act_lut_waddr,
 	output wire[15:0] non_ln_act_lut_din, // Q15
 	
-	// ÔËĞĞÊ±²ÎÊı
-	output wire[63:0] act_rate_c, // Relu¼¤»îÏµÊıc
-	output wire[31:0] rd_req_buf_baseaddr, // ¶ÁÇëÇó»º´æÇøÊ×µØÖ·
-	output wire[31:0] rd_req_n, // ¶ÁÇëÇó¸öÊı - 1
-	output wire[31:0] wt_req_buf_baseaddr, // Ğ´ÇëÇó»º´æÇøÊ×µØÖ·
-	output wire[31:0] wt_req_n, // Ğ´ÇëÇó¸öÊı - 1
-	output wire kernal_type, // ¾í»ıºËÀàĞÍ(1'b0 -> 1x1, 1'b1 -> 3x3)
-	output wire[15:0] feature_map_w, // ÊäÈëÌØÕ÷Í¼¿í¶È - 1
-	output wire[15:0] feature_map_h, // ÊäÈëÌØÕ÷Í¼¸ß¶È - 1
-	output wire[15:0] feature_map_chn_n, // ÊäÈëÌØÕ÷Í¼Í¨µÀÊı - 1
-	output wire[15:0] kernal_n, // ¾í»ıºË¸öÊı - 1
-	output wire[3:0] padding_en, // ÍâÍØÌî³äÊ¹ÄÜ(½öµ±¾í»ıºËÀàĞÍÎª3x3Ê±¿ÉÓÃ, {ÉÏ, ÏÂ, ×ó, ÓÒ})
-	output wire[15:0] o_ft_map_w, // Êä³öÌØÕ÷Í¼¿í¶È - 1
-	output wire[15:0] o_ft_map_h, // Êä³öÌØÕ÷Í¼¸ß¶È - 1
-	output wire[2:0] horizontal_step, // Ë®Æ½²½³¤ - 1
-	output wire[2:0] vertical_step, // ´¹Ö±²½³¤ - 1
-	output wire step_type, // ²½³¤ÀàĞÍ(1'b0 -> ´ÓµÚ1¸öROI¿ªÊ¼, 1'b1 -> ÉáÆúµÚ1¸öROI)
-	output wire[1:0] act_type // ¼¤»îÀàĞÍ(2'b00 -> Relu, 2'b01 -> ±£Áô, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
+	// è¿è¡Œæ—¶å‚æ•°
+	output wire[63:0] act_rate_c, // Reluæ¿€æ´»ç³»æ•°c
+	output wire[31:0] rd_req_buf_baseaddr, // è¯»è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€
+	output wire[31:0] rd_req_n, // è¯»è¯·æ±‚ä¸ªæ•° - 1
+	output wire[31:0] wt_req_buf_baseaddr, // å†™è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€
+	output wire[31:0] wt_req_n, // å†™è¯·æ±‚ä¸ªæ•° - 1
+	output wire kernal_type, // å·ç§¯æ ¸ç±»å‹(1'b0 -> 1x1, 1'b1 -> 3x3)
+	output wire[15:0] feature_map_w, // è¾“å…¥ç‰¹å¾å›¾å®½åº¦ - 1
+	output wire[15:0] feature_map_h, // è¾“å…¥ç‰¹å¾å›¾é«˜åº¦ - 1
+	output wire[15:0] feature_map_chn_n, // è¾“å…¥ç‰¹å¾å›¾é€šé“æ•° - 1
+	output wire[15:0] kernal_n, // å·ç§¯æ ¸ä¸ªæ•° - 1
+	output wire[3:0] padding_en, // å¤–æ‹“å¡«å……ä½¿èƒ½(ä»…å½“å·ç§¯æ ¸ç±»å‹ä¸º3x3æ—¶å¯ç”¨, {ä¸Š, ä¸‹, å·¦, å³})
+	output wire[15:0] o_ft_map_w, // è¾“å‡ºç‰¹å¾å›¾å®½åº¦ - 1
+	output wire[15:0] o_ft_map_h, // è¾“å‡ºç‰¹å¾å›¾é«˜åº¦ - 1
+	output wire[2:0] horizontal_step, // æ°´å¹³æ­¥é•¿ - 1
+	output wire[2:0] vertical_step, // å‚ç›´æ­¥é•¿ - 1
+	output wire step_type, // æ­¥é•¿ç±»å‹(1'b0 -> ä»ç¬¬1ä¸ªROIå¼€å§‹, 1'b1 -> èˆå¼ƒç¬¬1ä¸ªROI)
+	output wire[1:0] act_type // æ¿€æ´»ç±»å‹(2'b00 -> Relu, 2'b01 -> ä¿ç•™, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
 );
 	
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -154,29 +178,29 @@ module reg_if_for_generic_conv #(
     end
     endfunction
 	
-	/** ÄÚ²¿ÅäÖÃ **/
-	localparam integer REGS_N = 19; // ¼Ä´æÆ÷×ÜÊı
+	/** å†…éƒ¨é…ç½® **/
+	localparam integer REGS_N = 19; // å¯„å­˜å™¨æ€»æ•°
 	
-	/** ³£Á¿ **/
-	// ¼Ä´æÆ÷ÅäÖÃ×´Ì¬¶ÀÈÈÂë±àºÅ
-	localparam integer REG_CFG_STS_ADDR = 0; // ×´Ì¬:µØÖ·½×¶Î
-	localparam integer REG_CFG_STS_RW_REG = 1; // ×´Ì¬:¶Á/Ğ´¼Ä´æÆ÷
-	localparam integer REG_CFG_STS_RW_RESP = 2; // ×´Ì¬:¶Á/Ğ´ÏìÓ¦
+	/** å¸¸é‡ **/
+	// å¯„å­˜å™¨é…ç½®çŠ¶æ€ç‹¬çƒ­ç ç¼–å·
+	localparam integer REG_CFG_STS_ADDR = 0; // çŠ¶æ€:åœ°å€é˜¶æ®µ
+	localparam integer REG_CFG_STS_RW_REG = 1; // çŠ¶æ€:è¯»/å†™å¯„å­˜å™¨
+	localparam integer REG_CFG_STS_RW_RESP = 2; // çŠ¶æ€:è¯»/å†™å“åº”
 	
-	/** ¼Ä´æÆ÷ÅäÖÃ¿ØÖÆ **/
-	reg[2:0] reg_cfg_sts; // ¼Ä´æÆ÷ÅäÖÃ×´Ì¬
-	wire[1:0] rw_grant; // ¶ÁĞ´Ğí¿É({Ğ´Ğí¿É, ¶ÁĞí¿É})
-	reg[1:0] addr_ready; // µØÖ·Í¨µÀµÄreadyĞÅºÅ({aw_ready, ar_ready})
-	reg is_write; // ÊÇ·ñĞ´¼Ä´æÆ÷
-	reg[clogb2(REGS_N-1):0] ofs_addr; // ¶ÁĞ´¼Ä´æÆ÷µÄÆ«ÒÆµØÖ·
-	reg wready; // Ğ´Êı¾İÍ¨µÀµÄreadyĞÅºÅ
-	reg bvalid; // Ğ´ÏìÓ¦Í¨µÀµÄvalidĞÅºÅ
-	reg rvalid; // ¶ÁÊı¾İÍ¨µÀµÄvalidĞÅºÅ
-	wire regs_en; // ¼Ä´æÆ÷·ÃÎÊÊ¹ÄÜ
-	wire[3:0] regs_wen; // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
-	wire[clogb2(REGS_N-1):0] regs_addr; // ¼Ä´æÆ÷·ÃÎÊµØÖ·
-	wire[31:0] regs_din; // ¼Ä´æÆ÷Ğ´Êı¾İ
-	wire[31:0] regs_dout; // ¼Ä´æÆ÷¶ÁÊı¾İ
+	/** å¯„å­˜å™¨é…ç½®æ§åˆ¶ **/
+	reg[2:0] reg_cfg_sts; // å¯„å­˜å™¨é…ç½®çŠ¶æ€
+	wire[1:0] rw_grant; // è¯»å†™è®¸å¯({å†™è®¸å¯, è¯»è®¸å¯})
+	reg[1:0] addr_ready; // åœ°å€é€šé“çš„readyä¿¡å·({aw_ready, ar_ready})
+	reg is_write; // æ˜¯å¦å†™å¯„å­˜å™¨
+	reg[clogb2(REGS_N-1):0] ofs_addr; // è¯»å†™å¯„å­˜å™¨çš„åç§»åœ°å€
+	reg wready; // å†™æ•°æ®é€šé“çš„readyä¿¡å·
+	reg bvalid; // å†™å“åº”é€šé“çš„validä¿¡å·
+	reg rvalid; // è¯»æ•°æ®é€šé“çš„validä¿¡å·
+	wire regs_en; // å¯„å­˜å™¨è®¿é—®ä½¿èƒ½
+	wire[3:0] regs_wen; // å¯„å­˜å™¨å†™ä½¿èƒ½
+	wire[clogb2(REGS_N-1):0] regs_addr; // å¯„å­˜å™¨è®¿é—®åœ°å€
+	wire[31:0] regs_din; // å¯„å­˜å™¨å†™æ•°æ®
+	wire[31:0] regs_dout; // å¯„å­˜å™¨è¯»æ•°æ®
 	
 	assign {s_axi_lite_awready, s_axi_lite_arready} = addr_ready;
 	assign s_axi_lite_bresp = 2'b00;
@@ -186,14 +210,14 @@ module reg_if_for_generic_conv #(
 	assign s_axi_lite_rvalid = rvalid;
 	assign s_axi_lite_wready = wready;
 	
-	assign rw_grant = {s_axi_lite_awvalid, (~s_axi_lite_awvalid) & s_axi_lite_arvalid}; // Ğ´ÓÅÏÈ
+	assign rw_grant = {s_axi_lite_awvalid, (~s_axi_lite_awvalid) & s_axi_lite_arvalid}; // å†™ä¼˜å…ˆ
 	
 	assign regs_en = reg_cfg_sts[REG_CFG_STS_RW_REG] & ((~is_write) | s_axi_lite_wvalid);
 	assign regs_wen = {4{is_write}} & s_axi_lite_wstrb;
 	assign regs_addr = ofs_addr;
 	assign regs_din = s_axi_lite_wdata;
 	
-	// ¼Ä´æÆ÷ÅäÖÃ×´Ì¬
+	// å¯„å­˜å™¨é…ç½®çŠ¶æ€
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -204,7 +228,7 @@ module reg_if_for_generic_conv #(
 			reg_cfg_sts <= # simulation_delay {reg_cfg_sts[1:0], reg_cfg_sts[2]};
 	end
 	
-	// µØÖ·Í¨µÀµÄreadyĞÅºÅ
+	// åœ°å€é€šé“çš„readyä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -213,14 +237,14 @@ module reg_if_for_generic_conv #(
 			addr_ready <= # simulation_delay {2{reg_cfg_sts[REG_CFG_STS_ADDR]}} & rw_grant;
 	end
 	
-	// ÊÇ·ñĞ´¼Ä´æÆ÷
+	// æ˜¯å¦å†™å¯„å­˜å™¨
 	always @(posedge clk)
 	begin
 		if(reg_cfg_sts[REG_CFG_STS_ADDR] & (s_axi_lite_awvalid | s_axi_lite_arvalid))
 			is_write <= # simulation_delay s_axi_lite_awvalid;
 	end
 	
-	// ¶ÁĞ´¼Ä´æÆ÷µÄÆ«ÒÆµØÖ·
+	// è¯»å†™å¯„å­˜å™¨çš„åç§»åœ°å€
 	always @(posedge clk)
 	begin
 		if(reg_cfg_sts[REG_CFG_STS_ADDR] & (s_axi_lite_awvalid | s_axi_lite_arvalid))
@@ -228,7 +252,7 @@ module reg_if_for_generic_conv #(
 				s_axi_lite_awaddr[2+clogb2(REGS_N-1):2]:s_axi_lite_araddr[2+clogb2(REGS_N-1):2];
 	end
 	
-	// Ğ´Êı¾İÍ¨µÀµÄreadyĞÅºÅ
+	// å†™æ•°æ®é€šé“çš„readyä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -238,7 +262,7 @@ module reg_if_for_generic_conv #(
 				(~s_axi_lite_wvalid):(reg_cfg_sts[REG_CFG_STS_ADDR] & s_axi_lite_awvalid);
 	end
 	
-	// Ğ´ÏìÓ¦Í¨µÀµÄvalidĞÅºÅ
+	// å†™å“åº”é€šé“çš„validä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -248,7 +272,7 @@ module reg_if_for_generic_conv #(
 				(~s_axi_lite_bready):(s_axi_lite_wvalid & s_axi_lite_wready);
 	end
 	
-	// ¶ÁÊı¾İÍ¨µÀµÄvalidĞÅºÅ
+	// è¯»æ•°æ®é€šé“çš„validä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -258,57 +282,57 @@ module reg_if_for_generic_conv #(
 				(~s_axi_lite_rready):(reg_cfg_sts[REG_CFG_STS_RW_REG] & (~is_write));
 	end
 	
-	/** ¼Ä´æÆ÷Çø **/
-	// ÖĞ¶Ï¿ØÖÆ
-	wire global_itr_req; // È«¾ÖÖĞ¶ÏÇëÇó
-	// ¼Ä´æÆ÷Çø¶ÁÊı¾İ
+	/** å¯„å­˜å™¨åŒº **/
+	// ä¸­æ–­æ§åˆ¶
+	wire global_itr_req; // å…¨å±€ä¸­æ–­è¯·æ±‚
+	// å¯„å­˜å™¨åŒºè¯»æ•°æ®
 	wire[31:0] regs_region_rd_out_nxt;
 	reg[31:0] regs_region_rd_out;
 	// 0x00
-	reg rst_linear_pars_buf_reg; // ¸´Î»ÏßĞÔ²ÎÊı»º´æÇø
-	reg rst_cal_path_kernal_buf_reg; // ¸´Î»Êı¾İÍ¨Â·ÉÏµÄ¾í»ıºË²ÎÊı»º´æ
-	reg rd_req_dsc_dma_blk_start_reg; // Æô¶¯¶ÁÇëÇóÃèÊö×ÓDMA
-	reg wt_req_dsc_dma_blk_start_reg; // Æô¶¯Ğ´ÇëÇóÃèÊö×ÓDMA
-	reg rd_req_dsc_dma_blk_idle_reg; // ¶ÁÇëÇóÃèÊö×ÓDMA¿ÕÏĞ±êÖ¾
-	reg wt_req_dsc_dma_blk_idle_reg; // Ğ´ÇëÇóÃèÊö×ÓDMA¿ÕÏĞ±êÖ¾
+	reg rst_linear_pars_buf_reg; // å¤ä½çº¿æ€§å‚æ•°ç¼“å­˜åŒº
+	reg rst_cal_path_kernal_buf_reg; // å¤ä½æ•°æ®é€šè·¯ä¸Šçš„å·ç§¯æ ¸å‚æ•°ç¼“å­˜
+	reg rd_req_dsc_dma_blk_start_reg; // å¯åŠ¨è¯»è¯·æ±‚æè¿°å­DMA
+	reg wt_req_dsc_dma_blk_start_reg; // å¯åŠ¨å†™è¯·æ±‚æè¿°å­DMA
+	reg rd_req_dsc_dma_blk_idle_reg; // è¯»è¯·æ±‚æè¿°å­DMAç©ºé—²æ ‡å¿—
+	reg wt_req_dsc_dma_blk_idle_reg; // å†™è¯·æ±‚æè¿°å­DMAç©ºé—²æ ‡å¿—
 	// 0x04
-	reg global_itr_en_reg; // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-	reg[2:0] itr_en_vec_regs; // ×ÓÖĞ¶ÏÊ¹ÄÜÏòÁ¿
+	reg global_itr_en_reg; // å…¨å±€ä¸­æ–­ä½¿èƒ½
+	reg[2:0] itr_en_vec_regs; // å­ä¸­æ–­ä½¿èƒ½å‘é‡
 	// 0x08
-	reg global_itr_flag_reg; // È«¾ÖÖĞ¶Ï±êÖ¾
-	reg[2:0] itr_flag_vec_regs; // ×ÓÖĞ¶Ï±êÖ¾ÏòÁ¿
+	reg global_itr_flag_reg; // å…¨å±€ä¸­æ–­æ ‡å¿—
+	reg[2:0] itr_flag_vec_regs; // å­ä¸­æ–­æ ‡å¿—å‘é‡
 	// 0x0C
-	reg[31:0] wt_req_itr_th_regs; // Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏãĞÖµ
+	reg[31:0] wt_req_itr_th_regs; // å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­é˜ˆå€¼
 	// 0x10
-	reg en_conv_cal_reg; // Ê¹ÄÜ¾í»ı¼ÆËã
+	reg en_conv_cal_reg; // ä½¿èƒ½å·ç§¯è®¡ç®—
 	// 0x14
-	reg kernal_type_reg; // ¾í»ıºËÀàĞÍ
-	reg[3:0] padding_en_regs; // ÍâÍØÌî³äÊ¹ÄÜ
+	reg kernal_type_reg; // å·ç§¯æ ¸ç±»å‹
+	reg[3:0] padding_en_regs; // å¤–æ‹“å¡«å……ä½¿èƒ½
 	// 0x18
-	reg[31:0] rd_req_buf_baseaddr_regs; // ¶ÁÇëÇó»º´æÇøÊ×µØÖ·
+	reg[31:0] rd_req_buf_baseaddr_regs; // è¯»è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€
 	// 0x1C
-	reg[31:0] rd_req_n_regs; // ¶ÁÇëÇó¸öÊı - 1 
+	reg[31:0] rd_req_n_regs; // è¯»è¯·æ±‚ä¸ªæ•° - 1 
 	// 0x20
-	reg[31:0] wt_req_buf_baseaddr_regs; // Ğ´ÇëÇó»º´æÇøÊ×µØÖ·
+	reg[31:0] wt_req_buf_baseaddr_regs; // å†™è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€
 	// 0x24
-	reg[31:0] wt_req_n_regs; // Ğ´ÇëÇó¸öÊı - 1
+	reg[31:0] wt_req_n_regs; // å†™è¯·æ±‚ä¸ªæ•° - 1
 	// 0x28
-	reg[15:0] feature_map_w_regs; // ÊäÈëÌØÕ÷Í¼¿í¶È - 1
-	reg[15:0] feature_map_h_regs; // ÊäÈëÌØÕ÷Í¼¸ß¶È - 1
+	reg[15:0] feature_map_w_regs; // è¾“å…¥ç‰¹å¾å›¾å®½åº¦ - 1
+	reg[15:0] feature_map_h_regs; // è¾“å…¥ç‰¹å¾å›¾é«˜åº¦ - 1
 	// 0x2C
-	reg[15:0] feature_map_chn_n_regs; // ÊäÈëÌØÕ÷Í¼Í¨µÀÊı - 1
-	reg[15:0] kernal_n_regs; // ¾í»ıºË¸öÊı - 1
+	reg[15:0] feature_map_chn_n_regs; // è¾“å…¥ç‰¹å¾å›¾é€šé“æ•° - 1
+	reg[15:0] kernal_n_regs; // å·ç§¯æ ¸ä¸ªæ•° - 1
 	// 0x30, 0x34
-	reg[63:0] act_rate_c_regs; // Relu¼¤»îÏµÊıc
+	reg[63:0] act_rate_c_regs; // Reluæ¿€æ´»ç³»æ•°c
 	// 0x3C
-	reg[15:0] o_ft_map_w_regs; // Êä³öÌØÕ÷Í¼¿í¶È - 1
-	reg[15:0] o_ft_map_h_regs; // Êä³öÌØÕ÷Í¼¸ß¶È - 1
+	reg[15:0] o_ft_map_w_regs; // è¾“å‡ºç‰¹å¾å›¾å®½åº¦ - 1
+	reg[15:0] o_ft_map_h_regs; // è¾“å‡ºç‰¹å¾å›¾é«˜åº¦ - 1
 	// 0x40
-	reg[2:0] horizontal_step_regs; // Ë®Æ½²½³¤ - 1
-	reg[2:0] vertical_step_regs; // ´¹Ö±²½³¤ - 1
-	reg step_type_reg; // ²½³¤ÀàĞÍ
+	reg[2:0] horizontal_step_regs; // æ°´å¹³æ­¥é•¿ - 1
+	reg[2:0] vertical_step_regs; // å‚ç›´æ­¥é•¿ - 1
+	reg step_type_reg; // æ­¥é•¿ç±»å‹
 	// 0x44
-	reg[1:0] act_type_regs; // ¼¤»îÀàĞÍ
+	reg[1:0] act_type_regs; // æ¿€æ´»ç±»å‹
 	// 0x48
 	reg non_ln_act_lut_wen_reg;
 	reg[10:0] non_ln_act_lut_waddr_regs;
@@ -464,7 +488,7 @@ module reg_if_for_generic_conv #(
 			6'dx, act_type_regs
 		});
 	
-	// ¼Ä´æÆ÷Çø¶ÁÊı¾İ
+	// å¯„å­˜å™¨åŒºè¯»æ•°æ®
 	always @(posedge clk)
 	begin
 		if(regs_en & (~is_write))
@@ -523,7 +547,7 @@ module reg_if_for_generic_conv #(
 			global_itr_flag_reg <= 1'b0;
 		else if((regs_en & regs_wen[0] & (regs_addr == 2)) | (~global_itr_flag_reg))
 			global_itr_flag_reg <= # simulation_delay 
-				(~(regs_en & regs_wen[0] & (regs_addr == 2))) & // ÇåÁãÈ«¾ÖÖĞ¶Ï±êÖ¾
+				(~(regs_en & regs_wen[0] & (regs_addr == 2))) & // æ¸…é›¶å…¨å±€ä¸­æ–­æ ‡å¿—
 				((|(itr_req & itr_en_vec_regs)) & global_itr_en_reg);
 	end
 	
@@ -837,7 +861,7 @@ module reg_if_for_generic_conv #(
 			non_ln_act_lut_din_regs[15:8] <= # simulation_delay regs_din[31:24];
 	end
 	
-	// Sigmoid/Tanh²éÕÒ±íĞ´Ê¹ÄÜ
+	// Sigmoid/TanhæŸ¥æ‰¾è¡¨å†™ä½¿èƒ½
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -846,7 +870,7 @@ module reg_if_for_generic_conv #(
 			non_ln_act_lut_wen_reg <= # simulation_delay regs_en & (|regs_wen) & (regs_addr == 18);
 	end
 	
-	// ÖĞ¶Ï·¢ÉúÆ÷
+	// ä¸­æ–­å‘ç”Ÿå™¨
     itr_generator #(
         .pulse_w(10),
         .simulation_delay(simulation_delay)

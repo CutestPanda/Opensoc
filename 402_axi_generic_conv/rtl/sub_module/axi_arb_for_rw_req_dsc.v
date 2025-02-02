@@ -1,30 +1,54 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ¶Á/Ğ´ÇëÇóÃèÊö×ÓÊäÈëAXIÖ÷»ú¶ÁÍ¨µÀÖÙ²Ã
+æœ¬æ¨¡å—: è¯»/å†™è¯·æ±‚æè¿°å­è¾“å…¥AXIä¸»æœºè¯»é€šé“ä»²è£
 
-ÃèÊö:
-¶Ô¶Á/Ğ´ÇëÇóÃèÊö×ÓDMAµÄAXIÖ÷»ú¶ÁÍ¨µÀ½øĞĞÖÙ²Ã, ºÏ²¢³É1¸öAXIÖ÷»ú¶ÁÍ¨µÀ
+æè¿°:
+å¯¹è¯»/å†™è¯·æ±‚æè¿°å­DMAçš„AXIä¸»æœºè¯»é€šé“è¿›è¡Œä»²è£, åˆå¹¶æˆ1ä¸ªAXIä¸»æœºè¯»é€šé“
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXI MASTER/SLAVE(READ ONLY)
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/10
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/10
 ********************************************************************/
 
 
 module axi_arb_for_rw_req_dsc #(
-	parameter integer arb_msg_fifo_depth = 4, // ÖÙ²ÃĞÅÏ¢fifoÉî¶È
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer arb_msg_fifo_depth = 4, // ä»²è£ä¿¡æ¯fifoæ·±åº¦
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ÖÙ²ÃÊäÈë#0
+	// ä»²è£è¾“å…¥#0
 	// AR
     input wire[31:0] s_axi_rd_req_dsc_araddr,
     input wire[1:0] s_axi_rd_req_dsc_arburst, // ignored
@@ -39,7 +63,7 @@ module axi_arb_for_rw_req_dsc #(
     output wire s_axi_rd_req_dsc_rvalid,
     input wire s_axi_rd_req_dsc_rready,
 	
-	// ÖÙ²ÃÊäÈë#1
+	// ä»²è£è¾“å…¥#1
 	// AR
     input wire[31:0] s_axi_wt_req_dsc_araddr,
     input wire[1:0] s_axi_wt_req_dsc_arburst, // ignored
@@ -54,7 +78,7 @@ module axi_arb_for_rw_req_dsc #(
     output wire s_axi_wt_req_dsc_rvalid,
     input wire s_axi_wt_req_dsc_rready,
 	
-	// ÖÙ²ÃÊä³ö
+	// ä»²è£è¾“å‡º
 	// AR
     output wire[31:0] m_axi_rw_req_dsc_araddr,
     output wire[1:0] m_axi_rw_req_dsc_arburst, // const -> 2'b01(INCR)
@@ -70,14 +94,14 @@ module axi_arb_for_rw_req_dsc #(
     output wire m_axi_rw_req_dsc_rready
 );
     
-	/** ÖÙ²ÃĞÅÏ¢fifo **/
-	// fifoĞ´¶Ë¿Ú
+	/** ä»²è£ä¿¡æ¯fifo **/
+	// fifoå†™ç«¯å£
 	wire arb_msg_fifo_wen;
-	wire[1:0] arb_msg_fifo_din; // {Ñ¡ÔñÍ¨µÀ#1, Ñ¡ÔñÍ¨µÀ#0}
+	wire[1:0] arb_msg_fifo_din; // {é€‰æ‹©é€šé“#1, é€‰æ‹©é€šé“#0}
 	wire arb_msg_fifo_full_n;
-	// fifo¶Á¶Ë¿Ú
+	// fifoè¯»ç«¯å£
 	wire arb_msg_fifo_ren;
-	wire[1:0] arb_msg_fifo_dout; // {Ñ¡ÔñÍ¨µÀ#1, Ñ¡ÔñÍ¨µÀ#0}
+	wire[1:0] arb_msg_fifo_dout; // {é€‰æ‹©é€šé“#1, é€‰æ‹©é€šé“#0}
 	wire arb_msg_fifo_empty_n;
 	
 	fifo_based_on_regs #(
@@ -100,13 +124,13 @@ module axi_arb_for_rw_req_dsc #(
 		.fifo_empty_n(arb_msg_fifo_empty_n)
 	);
 	
-	/** ¶ÁµØÖ·Í¨µÀÖÙ²Ã **/
-	wire[1:0] rd_access_req; // ¶ÁÇëÇó({Í¨µÀ#1, Í¨µÀ#0})
-	wire[1:0] rd_access_grant; // ¶ÁĞí¿É({Í¨µÀ#1, Í¨µÀ#0})
-	reg ar_valid; // ¶ÁµØÖ·Í¨µÀµÄvalidĞÅºÅ
-	reg[1:0] ar_ready; // ¶ÁµØÖ·Í¨µÀµÄreadyĞÅºÅ({Í¨µÀ#1, Í¨µÀ#0})
-	reg[31:0] araddr_latched; // Ëø´æµÄ¶ÁµØÖ·
-	reg[7:0] arlen_latched; // Ëø´æµÄ(¶ÁÍ»·¢³¤¶È - 1)
+	/** è¯»åœ°å€é€šé“ä»²è£ **/
+	wire[1:0] rd_access_req; // è¯»è¯·æ±‚({é€šé“#1, é€šé“#0})
+	wire[1:0] rd_access_grant; // è¯»è®¸å¯({é€šé“#1, é€šé“#0})
+	reg ar_valid; // è¯»åœ°å€é€šé“çš„validä¿¡å·
+	reg[1:0] ar_ready; // è¯»åœ°å€é€šé“çš„readyä¿¡å·({é€šé“#1, é€šé“#0})
+	reg[31:0] araddr_latched; // é”å­˜çš„è¯»åœ°å€
+	reg[7:0] arlen_latched; // é”å­˜çš„(è¯»çªå‘é•¿åº¦ - 1)
 	
 	assign {s_axi_wt_req_dsc_arready, s_axi_rd_req_dsc_arready} = ar_ready;
 	
@@ -121,7 +145,7 @@ module axi_arb_for_rw_req_dsc #(
 	
 	assign rd_access_req = {2{(~ar_valid) & arb_msg_fifo_full_n}} & {s_axi_wt_req_dsc_arvalid, s_axi_rd_req_dsc_arvalid};
 	
-	// ¶ÁµØÖ·Í¨µÀµÄvalidĞÅºÅ
+	// è¯»åœ°å€é€šé“çš„validä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -131,7 +155,7 @@ module axi_arb_for_rw_req_dsc #(
 				(~m_axi_rw_req_dsc_arready):(arb_msg_fifo_full_n & (s_axi_wt_req_dsc_arvalid | s_axi_rd_req_dsc_arvalid));
 	end
 	
-	// ¶ÁµØÖ·Í¨µÀµÄreadyĞÅºÅ
+	// è¯»åœ°å€é€šé“çš„readyä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -140,21 +164,21 @@ module axi_arb_for_rw_req_dsc #(
 			ar_ready <= # simulation_delay rd_access_grant;
 	end
 	
-	// Ëø´æµÄ¶ÁµØÖ·
+	// é”å­˜çš„è¯»åœ°å€
 	always @(posedge clk)
 	begin
 		if((~ar_valid) & arb_msg_fifo_full_n & (s_axi_wt_req_dsc_arvalid | s_axi_rd_req_dsc_arvalid))
 			araddr_latched <= # simulation_delay rd_access_grant[0] ? s_axi_rd_req_dsc_araddr:s_axi_wt_req_dsc_araddr;
 	end
 	
-	// Ëø´æµÄ(¶ÁÍ»·¢³¤¶È - 1)
+	// é”å­˜çš„(è¯»çªå‘é•¿åº¦ - 1)
 	always @(posedge clk)
 	begin
 		if((~ar_valid) & arb_msg_fifo_full_n & (s_axi_wt_req_dsc_arvalid | s_axi_rd_req_dsc_arvalid))
 			arlen_latched <= # simulation_delay rd_access_grant[0] ? s_axi_rd_req_dsc_arlen:s_axi_wt_req_dsc_arlen;
 	end
 	
-	// Round-RobinÖÙ²ÃÆ÷
+	// Round-Robinä»²è£å™¨
 	round_robin_arbitrator #(
 		.chn_n(2),
 		.simulation_delay(simulation_delay)
@@ -168,25 +192,25 @@ module axi_arb_for_rw_req_dsc #(
 		.arb_valid()
 	);
 	
-	/** ¶ÁÊı¾İÑ¡Ôñ **/
+	/** è¯»æ•°æ®é€‰æ‹© **/
 	assign s_axi_rd_req_dsc_rdata = m_axi_rw_req_dsc_rdata;
 	assign s_axi_rd_req_dsc_rresp = m_axi_rw_req_dsc_rresp;
 	assign s_axi_rd_req_dsc_rlast = m_axi_rw_req_dsc_rlast;
-	// ÎÕÊÖÌõ¼ş: arb_msg_fifo_empty_n & arb_msg_fifo_dout[0] & s_axi_rd_req_dsc_rready & m_axi_rw_req_dsc_rvalid
+	// æ¡æ‰‹æ¡ä»¶: arb_msg_fifo_empty_n & arb_msg_fifo_dout[0] & s_axi_rd_req_dsc_rready & m_axi_rw_req_dsc_rvalid
 	assign s_axi_rd_req_dsc_rvalid = arb_msg_fifo_empty_n & arb_msg_fifo_dout[0] & m_axi_rw_req_dsc_rvalid;
 	
 	assign s_axi_wt_req_dsc_rdata = m_axi_rw_req_dsc_rdata;
 	assign s_axi_wt_req_dsc_rresp = m_axi_rw_req_dsc_rresp;
 	assign s_axi_wt_req_dsc_rlast = m_axi_rw_req_dsc_rlast;
-	// ÎÕÊÖÌõ¼ş: arb_msg_fifo_empty_n & (~arb_msg_fifo_dout[0]) & s_axi_wt_req_dsc_rready & m_axi_rw_req_dsc_rvalid
+	// æ¡æ‰‹æ¡ä»¶: arb_msg_fifo_empty_n & (~arb_msg_fifo_dout[0]) & s_axi_wt_req_dsc_rready & m_axi_rw_req_dsc_rvalid
 	assign s_axi_wt_req_dsc_rvalid = arb_msg_fifo_empty_n & (~arb_msg_fifo_dout[0]) & m_axi_rw_req_dsc_rvalid;
 	
-	// ÎÕÊÖÌõ¼ş: arb_msg_fifo_empty_n & (arb_msg_fifo_dout[0] ? s_axi_rd_req_dsc_rready:s_axi_wt_req_dsc_rready) & 
+	// æ¡æ‰‹æ¡ä»¶: arb_msg_fifo_empty_n & (arb_msg_fifo_dout[0] ? s_axi_rd_req_dsc_rready:s_axi_wt_req_dsc_rready) & 
 	//     m_axi_rw_req_dsc_rvalid
 	assign m_axi_rw_req_dsc_rready = arb_msg_fifo_empty_n & 
 		(arb_msg_fifo_dout[0] ? s_axi_rd_req_dsc_rready:s_axi_wt_req_dsc_rready);
 	
-	// ÎÕÊÖÌõ¼ş: arb_msg_fifo_empty_n & (arb_msg_fifo_dout[0] ? s_axi_rd_req_dsc_rready:s_axi_wt_req_dsc_rready) & 
+	// æ¡æ‰‹æ¡ä»¶: arb_msg_fifo_empty_n & (arb_msg_fifo_dout[0] ? s_axi_rd_req_dsc_rready:s_axi_wt_req_dsc_rready) & 
 	//     m_axi_rw_req_dsc_rvalid & m_axi_rw_req_dsc_rlast
 	assign arb_msg_fifo_ren = (arb_msg_fifo_dout[0] ? s_axi_rd_req_dsc_rready:s_axi_wt_req_dsc_rready) & 
 		m_axi_rw_req_dsc_rvalid & m_axi_rw_req_dsc_rlast;

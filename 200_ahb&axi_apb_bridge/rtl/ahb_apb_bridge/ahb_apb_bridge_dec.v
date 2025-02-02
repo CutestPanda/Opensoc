@@ -1,62 +1,86 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AHBµ½APBÇÅµÄµØÖ·ÒëÂëÆ÷
+æœ¬æ¨¡å—: AHBåˆ°APBæ¡¥çš„åœ°å€è¯‘ç å™¨
 
-ÃèÊö: 
-Ö§³Ö¶à´ï16¸öAPB´Ó»úµÄµØÖ·ÒëÂëÆ÷
+æè¿°: 
+æ”¯æŒå¤šè¾¾16ä¸ªAPBä»æœºçš„åœ°å€è¯‘ç å™¨
 
-×¢Òâ£º
-Ã¿¸ö´Ó»úµÄµØÖ·Çø¼ä³¤¶È±ØĞë >= 4096(4KB)
+æ³¨æ„ï¼š
+æ¯ä¸ªä»æœºçš„åœ°å€åŒºé—´é•¿åº¦å¿…é¡» >= 4096(4KB)
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/20
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/20
 ********************************************************************/
 
 
 module ahb_apb_bridge_dec #(
-    parameter integer apb_slave_n = 4, // APB´Ó»ú¸öÊı(1~16)
-    parameter integer apb_s0_baseaddr = 0, // 0ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s0_range = 4096, // 0ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s1_baseaddr = 4096, // 1ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s1_range = 4096, // 1ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s2_baseaddr = 8192, // 2ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s2_range = 4096, // 2ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s3_baseaddr = 12288, // 3ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s3_range = 4096, // 3ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s4_baseaddr = 16384, // 4ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s4_range = 4096, // 4ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s5_baseaddr = 20480, // 5ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s5_range = 4096, // 5ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s6_baseaddr = 24576, // 6ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s6_range = 4096, // 6ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s7_baseaddr = 28672, // 7ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s7_range = 4096, // 7ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s8_baseaddr = 32768, // 8ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s8_range = 4096, // 8ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s9_baseaddr = 36864, // 9ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s9_range = 4096, // 9ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s10_baseaddr = 40960, // 10ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s10_range = 4096, // 10ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s11_baseaddr = 45056, // 11ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s11_range = 4096, // 11ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s12_baseaddr = 49152, // 12ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s12_range = 4096, // 12ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s13_baseaddr = 53248, // 13ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s13_range = 4096, // 13ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s14_baseaddr = 57344, // 14ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s14_range = 4096, // 14ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s15_baseaddr = 61440, // 15ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s15_range = 4096 // 15ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
+    parameter integer apb_slave_n = 4, // APBä»æœºä¸ªæ•°(1~16)
+    parameter integer apb_s0_baseaddr = 0, // 0å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s0_range = 4096, // 0å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s1_baseaddr = 4096, // 1å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s1_range = 4096, // 1å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s2_baseaddr = 8192, // 2å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s2_range = 4096, // 2å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s3_baseaddr = 12288, // 3å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s3_range = 4096, // 3å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s4_baseaddr = 16384, // 4å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s4_range = 4096, // 4å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s5_baseaddr = 20480, // 5å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s5_range = 4096, // 5å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s6_baseaddr = 24576, // 6å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s6_range = 4096, // 6å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s7_baseaddr = 28672, // 7å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s7_range = 4096, // 7å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s8_baseaddr = 32768, // 8å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s8_range = 4096, // 8å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s9_baseaddr = 36864, // 9å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s9_range = 4096, // 9å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s10_baseaddr = 40960, // 10å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s10_range = 4096, // 10å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s11_baseaddr = 45056, // 11å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s11_range = 4096, // 11å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s12_baseaddr = 49152, // 12å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s12_range = 4096, // 12å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s13_baseaddr = 53248, // 13å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s13_range = 4096, // 13å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s14_baseaddr = 57344, // 14å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s14_range = 4096, // 14å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s15_baseaddr = 61440, // 15å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s15_range = 4096 // 15å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
 )(
     input wire[31:0] addr,
     output wire[15:0] m_apb_psel,
     output wire[3:0] apb_muxsel
 );
     
-    // ¶ÀÒ»ÂëÒëÂë
+    // ç‹¬ä¸€ç è¯‘ç 
     assign m_apb_psel[0] = (addr >= apb_s0_baseaddr) & (addr < (apb_s0_baseaddr + apb_s0_range));
     assign m_apb_psel[1] = (apb_slave_n >= 2) & (addr >= apb_s1_baseaddr) & (addr < (apb_s1_baseaddr + apb_s1_range));
     assign m_apb_psel[2] = (apb_slave_n >= 3) & (addr >= apb_s2_baseaddr) & (addr < (apb_s2_baseaddr + apb_s2_range));
@@ -74,7 +98,7 @@ module ahb_apb_bridge_dec #(
     assign m_apb_psel[14] = (apb_slave_n >= 15) & (addr >= apb_s14_baseaddr) & (addr < (apb_s14_baseaddr + apb_s14_range));
     assign m_apb_psel[15] = (apb_slave_n >= 16) & (addr >= apb_s15_baseaddr) & (addr < (apb_s15_baseaddr + apb_s15_range));
     
-    // ¶ş½øÖÆÂëÒëÂë
+    // äºŒè¿›åˆ¶ç è¯‘ç 
     generate
         if(apb_slave_n == 1)
             assign apb_muxsel = 4'd0;

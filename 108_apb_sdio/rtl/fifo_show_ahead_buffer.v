@@ -1,50 +1,74 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: fifo FWFT»º³åÇø
+æœ¬æ¨¡å—: fifo FWFTç¼“å†²åŒº
 
-ÃèÊö: 
-ÓÃÓÚ½«¶ÁÑÓ³ÙÎª1clkµÄfifo×ª»»ÎªFWFTµÄfifo
+æè¿°: 
+ç”¨äºŽå°†è¯»å»¶è¿Ÿä¸º1clkçš„fifoè½¬æ¢ä¸ºFWFTçš„fifo
 
-×¢Òâ£º
-ÎÞ
+æ³¨æ„ï¼š
+æ— 
 
-Ð­Òé:
+åè®®:
 FIFO READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/30
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/30
 ********************************************************************/
 
 
 module fifo_show_ahead_buffer #(
-    parameter integer fifo_data_width = 32, // fifoÎ»¿í
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer fifo_data_width = 32, // fifoä½å®½
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ±ê×¼fifoµÄ¶Á¶Ë¿Ú
+    // æ ‡å‡†fifoçš„è¯»ç«¯å£
     output wire std_fifo_ren,
     input wire[fifo_data_width-1:0] std_fifo_dout,
     input wire std_fifo_empty,
     
-    // FWFT fifoµÄ¶Á¶Ë¿Ú
+    // FWFT fifoçš„è¯»ç«¯å£
     input wire fwft_fifo_ren,
     output wire[fifo_data_width-1:0] fwft_fifo_dout,
     output wire fwft_fifo_empty,
     output wire fwft_fifo_empty_n
 );
     
-    /** ¼Ä´æÆ÷buffer **/
-    reg std_fifo_rvld; // ±ê×¼fifoÓÐÐ§¶Á(Ö¸Ê¾)
-    reg[fifo_data_width-1:0] regs_buffer[1:0]; // ¼Ä´æÆ÷buffer
-    reg[2:0] buffer_data_cnt; // buffer´æ´¢¼ÆÊý(3'b001 -> 0, 3'b010 -> 1, 3'b100 -> 2)
-    wire[2:0] buffer_data_cnt_sub1; // buffer´æ´¢¼ÆÊý - 1(3'b001 -> 0, 3'b010 -> 1, 3'b100 -> 2)
+    /** å¯„å­˜å™¨buffer **/
+    reg std_fifo_rvld; // æ ‡å‡†fifoæœ‰æ•ˆè¯»(æŒ‡ç¤º)
+    reg[fifo_data_width-1:0] regs_buffer[1:0]; // å¯„å­˜å™¨buffer
+    reg[2:0] buffer_data_cnt; // bufferå­˜å‚¨è®¡æ•°(3'b001 -> 0, 3'b010 -> 1, 3'b100 -> 2)
+    wire[2:0] buffer_data_cnt_sub1; // bufferå­˜å‚¨è®¡æ•° - 1(3'b001 -> 0, 3'b010 -> 1, 3'b100 -> 2)
     
     assign buffer_data_cnt_sub1 = {buffer_data_cnt[0], buffer_data_cnt[2:1]};
     
-    // ±ê×¼fifoÓÐÐ§¶Á(Ö¸Ê¾)
+    // æ ‡å‡†fifoæœ‰æ•ˆè¯»(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -53,7 +77,7 @@ module fifo_show_ahead_buffer #(
             # simulation_delay std_fifo_rvld <= std_fifo_ren & (~std_fifo_empty);
     end
     
-    // ¼Ä´æÆ÷buffer
+    // å¯„å­˜å™¨buffer
     always @(posedge clk)
     begin
         if(std_fifo_rvld & ((fwft_fifo_ren & fwft_fifo_empty_n) ? buffer_data_cnt_sub1[0]:buffer_data_cnt[0]))
@@ -68,7 +92,7 @@ module fifo_show_ahead_buffer #(
             # simulation_delay regs_buffer[1] <= std_fifo_dout;
     end
     
-    // buffer´æ´¢¼ÆÊý¶ÀÈÈÂë
+    // bufferå­˜å‚¨è®¡æ•°ç‹¬çƒ­ç 
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -77,10 +101,10 @@ module fifo_show_ahead_buffer #(
             # simulation_delay buffer_data_cnt <= std_fifo_rvld ? {buffer_data_cnt[1:0], buffer_data_cnt[2]}:{buffer_data_cnt[0], buffer_data_cnt[2:1]};
     end
     
-    /** ±ê×¼fifoµÄ¶Á¶Ë¿Ú **/
-    assign std_fifo_ren = buffer_data_cnt[0] | fwft_fifo_ren; // buffer´æ´¢¼ÆÊý==0»òÕßFWFT-fifo¶ÁÊ¹ÄÜÊ±±ê×¼fifo¶ÁÊ¹ÄÜÓÐÐ§
+    /** æ ‡å‡†fifoçš„è¯»ç«¯å£ **/
+    assign std_fifo_ren = buffer_data_cnt[0] | fwft_fifo_ren; // bufferå­˜å‚¨è®¡æ•°==0æˆ–è€…FWFT-fifoè¯»ä½¿èƒ½æ—¶æ ‡å‡†fifoè¯»ä½¿èƒ½æœ‰æ•ˆ
     
-    /** FWFT fifoµÄ¶Á¶Ë¿Ú **/
+    /** FWFT fifoçš„è¯»ç«¯å£ **/
     reg fwft_fifo_empty_n_reg;
     
     assign fwft_fifo_dout = regs_buffer[0];

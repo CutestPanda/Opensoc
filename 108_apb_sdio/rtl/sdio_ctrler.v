@@ -1,100 +1,124 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: SDIO¿ØÖÆÆ÷
+æœ¬æ¨¡å—: SDIOæ§åˆ¶å™¨
 
-ÃèÊö:
-1.Ö§³ÖÒ»Ïß/ËÄÏßÄ£Ê½
-2.Ö§³ÖÃüÁî->
-(1)¿ØÖÆ/×´Ì¬ÃüÁî
-ÃüÁîºÅ  ÏìÓ¦ÀàĞÍ                      º¬Òå
- CMD0     ÎŞ                         ¸´Î»
- CMD5     R4                     IO½Ó¿ÚµçÑ¹ÉèÖÃ
- CMD6     R1                     ²éÑ¯/ÇĞ»»¹¦ÄÜ
- CMD8     R7             ·¢ËÍSD¿¨½Ó¿Ú»·¾³(Ìá¹©µçÑ¹µÈ)
- CMD11    R1                        µçÑ¹ÇĞ»»
- CMD55    R1             Ö¸Ê¾ÏÂÒ»ÌõÃüÁîÊÇÌØ¶¨µÄÓ¦ÓÃÃüÁî
- ACMD41   R3     ·¢ËÍÖ÷»úµçÈİ¹©¸øĞÅÏ¢(HCS)²¢»ñÈ¡²Ù×÷»·¾³¼Ä´æÆ÷(OCR)
- CMD2     R2                  »ñÈ¡¿¨±êÊ¶ºÅ(CID)
- CMD3     R6                 »ñÈ¡¿¨Ïà¶ÔµØÖ·(RCA)
- CMD7     R1b                  Ñ¡ÖĞ»òÈ¡ÏûÑ¡ÖĞ¿¨
- CMD16    R1                       ÉèÖÃ¿é´óĞ¡
- ACMD6    R1                      ÉèÖÃ×ÜÏßÎ»¿í
-(2)¶ÁĞ´ÃüÁî
-ÃüÁîºÅ  ÏìÓ¦ÀàĞÍ           º¬Òå
- CMD17    R1             µ¥¿é¶Á
- CMD18    R1             ¶à¿é¶Á
- CMD24    R1             µ¥¿éĞ´
- CMD25    R1             ¶à¿éĞ´
- CMD12    R1b         Í£Ö¹µ±Ç°´«Êä
+æè¿°:
+1.æ”¯æŒä¸€çº¿/å››çº¿æ¨¡å¼
+2.æ”¯æŒå‘½ä»¤->
+(1)æ§åˆ¶/çŠ¶æ€å‘½ä»¤
+å‘½ä»¤å·  å“åº”ç±»å‹                      å«ä¹‰
+ CMD0     æ—                          å¤ä½
+ CMD5     R4                     IOæ¥å£ç”µå‹è®¾ç½®
+ CMD6     R1                     æŸ¥è¯¢/åˆ‡æ¢åŠŸèƒ½
+ CMD8     R7             å‘é€SDå¡æ¥å£ç¯å¢ƒ(æä¾›ç”µå‹ç­‰)
+ CMD11    R1                        ç”µå‹åˆ‡æ¢
+ CMD55    R1             æŒ‡ç¤ºä¸‹ä¸€æ¡å‘½ä»¤æ˜¯ç‰¹å®šçš„åº”ç”¨å‘½ä»¤
+ ACMD41   R3     å‘é€ä¸»æœºç”µå®¹ä¾›ç»™ä¿¡æ¯(HCS)å¹¶è·å–æ“ä½œç¯å¢ƒå¯„å­˜å™¨(OCR)
+ CMD2     R2                  è·å–å¡æ ‡è¯†å·(CID)
+ CMD3     R6                 è·å–å¡ç›¸å¯¹åœ°å€(RCA)
+ CMD7     R1b                  é€‰ä¸­æˆ–å–æ¶ˆé€‰ä¸­å¡
+ CMD16    R1                       è®¾ç½®å—å¤§å°
+ ACMD6    R1                      è®¾ç½®æ€»çº¿ä½å®½
+(2)è¯»å†™å‘½ä»¤
+å‘½ä»¤å·  å“åº”ç±»å‹           å«ä¹‰
+ CMD17    R1             å•å—è¯»
+ CMD18    R1             å¤šå—è¯»
+ CMD24    R1             å•å—å†™
+ CMD25    R1             å¤šå—å†™
+ CMD12    R1b         åœæ­¢å½“å‰ä¼ è¾“
 
-×¢Òâ£º
-SD¿¨¿é´óĞ¡Îª512×Ö½Ú
-R2ÏìÓ¦ÓĞ136bit, ÆäËûÀàĞÍµÄÏìÓ¦ÓĞ48bit
-CMD6ºóÒ²»á²úÉú¶ÁÊı¾İÖĞ¶Ï
+æ³¨æ„ï¼š
+SDå¡å—å¤§å°ä¸º512å­—èŠ‚
+R2å“åº”æœ‰136bit, å…¶ä»–ç±»å‹çš„å“åº”æœ‰48bit
+CMD6åä¹Ÿä¼šäº§ç”Ÿè¯»æ•°æ®ä¸­æ–­
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 SDIO MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/07/30
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/07/30
 ********************************************************************/
 
 
 module sdio_ctrler #(
-    parameter integer resp_timeout = 64, // ÏìÓ¦³¬Ê±ÖÜÆÚÊı
-    parameter integer resp_with_busy_timeout = 64, // ÏìÓ¦ºóbusy³¬Ê±ÖÜÆÚÊı
-    parameter integer read_timeout = -1, // ¶Á³¬Ê±ÖÜÆÚÊı(-1±íÊ¾²»Éè³¬Ê±)
-    parameter en_resp_rd_crc = "false", // Ê¹ÄÜÏìÓ¦ºÍ¶ÁÊı¾İCRC
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer resp_timeout = 64, // å“åº”è¶…æ—¶å‘¨æœŸæ•°
+    parameter integer resp_with_busy_timeout = 64, // å“åº”åbusyè¶…æ—¶å‘¨æœŸæ•°
+    parameter integer read_timeout = -1, // è¯»è¶…æ—¶å‘¨æœŸæ•°(-1è¡¨ç¤ºä¸è®¾è¶…æ—¶)
+    parameter en_resp_rd_crc = "false", // ä½¿èƒ½å“åº”å’Œè¯»æ•°æ®CRC
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // ÔËĞĞÊ±²ÎÊı
-    input wire en_sdio_clk, // ÆôÓÃsdioÊ±ÖÓ(¸´Î»Ê±±ØĞëÎª0)
-    input wire[9:0] div_rate, // ·ÖÆµÊı - 1
-    input wire en_wide_sdio, // ÆôÓÃËÄÏßÄ£Ê½
+    // è¿è¡Œæ—¶å‚æ•°
+    input wire en_sdio_clk, // å¯ç”¨sdioæ—¶é’Ÿ(å¤ä½æ—¶å¿…é¡»ä¸º0)
+    input wire[9:0] div_rate, // åˆ†é¢‘æ•° - 1
+    input wire en_wide_sdio, // å¯ç”¨å››çº¿æ¨¡å¼
     
-    // ÃüÁîAXIS
-    input wire[39:0] s_axis_cmd_data, // {±£Áô(1bit), ÊÇ·ñºöÂÔ¶ÁÊı¾İ(1bit), ÃüÁîºÅ(6bit), ²ÎÊı(32bit)}
-    input wire[15:0] s_axis_cmd_user, // ±¾´Î¶ÁĞ´µÄ¿é¸öÊı-1
+    // å‘½ä»¤AXIS
+    input wire[39:0] s_axis_cmd_data, // {ä¿ç•™(1bit), æ˜¯å¦å¿½ç•¥è¯»æ•°æ®(1bit), å‘½ä»¤å·(6bit), å‚æ•°(32bit)}
+    input wire[15:0] s_axis_cmd_user, // æœ¬æ¬¡è¯»å†™çš„å—ä¸ªæ•°-1
     input wire s_axis_cmd_valid,
     output wire s_axis_cmd_ready,
     
-    // ÏìÓ¦AXIS
-    output wire[119:0] m_axis_resp_data, // 48bitÏìÓ¦ -> {ÃüÁîºÅ(6bit), ²ÎÊı(32bit)}, 136bitÏìÓ¦ -> {²ÎÊı(120bit)}
-    output wire[2:0] m_axis_resp_user, // {½ÓÊÕ³¬Ê±(1bit), CRC´íÎó(1bit), ÊÇ·ñ³¤ÏìÓ¦(1bit)}
+    // å“åº”AXIS
+    output wire[119:0] m_axis_resp_data, // 48bitå“åº” -> {å‘½ä»¤å·(6bit), å‚æ•°(32bit)}, 136bitå“åº” -> {å‚æ•°(120bit)}
+    output wire[2:0] m_axis_resp_user, // {æ¥æ”¶è¶…æ—¶(1bit), CRCé”™è¯¯(1bit), æ˜¯å¦é•¿å“åº”(1bit)}
     output wire m_axis_resp_valid,
     input wire m_axis_resp_ready,
     
-    // Ğ´Êı¾İAXIS
+    // å†™æ•°æ®AXIS
     input wire[31:0] s_axis_wt_data,
     input wire s_axis_wt_valid,
     output wire s_axis_wt_ready,
     
-    // ¶ÁÊı¾İAXIS
+    // è¯»æ•°æ®AXIS
     output wire[31:0] m_axis_rd_data,
-    output wire m_axis_rd_last, // µ±Ç°¿éµÄ×îºó1×éÊı¾İ
+    output wire m_axis_rd_last, // å½“å‰å—çš„æœ€å1ç»„æ•°æ®
     output wire m_axis_rd_valid,
     input wire m_axis_rd_ready,
     
-    // ¶ÁÊı¾İ·µ»Ø½á¹ûAXIS
-    output wire[7:0] m_axis_rd_sts_data, // {±£Áô(3bit), ¶Á³¬Ê±(1bit), Ğ£Ñé½á¹û(4bit)}
+    // è¯»æ•°æ®è¿”å›ç»“æœAXIS
+    output wire[7:0] m_axis_rd_sts_data, // {ä¿ç•™(3bit), è¯»è¶…æ—¶(1bit), æ ¡éªŒç»“æœ(4bit)}
     output wire m_axis_rd_sts_valid,
     
-    // Ğ´Êı¾İ×´Ì¬·µ»ØAXIS
-    output wire[7:0] m_axis_wt_sts_data, // {±£Áô(5bit), ×´Ì¬ĞÅÏ¢(3bit)}
+    // å†™æ•°æ®çŠ¶æ€è¿”å›AXIS
+    output wire[7:0] m_axis_wt_sts_data, // {ä¿ç•™(5bit), çŠ¶æ€ä¿¡æ¯(3bit)}
     output wire m_axis_wt_sts_valid,
     
-    // ¿ØÖÆÆ÷×´Ì¬
+    // æ§åˆ¶å™¨çŠ¶æ€
     output wire sdio_ctrler_idle,
     output wire sdio_ctrler_start,
     output wire sdio_ctrler_done,
-    output wire[1:0] sdio_ctrler_rw_type_done, // 2'b00->·Ç¶ÁĞ´ 2'b01->¶Á 2'b10->Ğ´
+    output wire[1:0] sdio_ctrler_rw_type_done, // 2'b00->éè¯»å†™ 2'b01->è¯» 2'b10->å†™
     
-    // sdio½Ó¿Ú(ÈıÌ¬×ÜÏß·½ÏòÑ¡Ôñ -> 0±íÊ¾Êä³ö, 1±íÊ¾ÊäÈë)
+    // sdioæ¥å£(ä¸‰æ€æ€»çº¿æ–¹å‘é€‰æ‹© -> 0è¡¨ç¤ºè¾“å‡º, 1è¡¨ç¤ºè¾“å…¥)
     // clk
     output wire sdio_clk,
     // cmd
@@ -119,7 +143,7 @@ module sdio_ctrler #(
     input wire sdio_d3_i
 );
 
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -129,70 +153,70 @@ module sdio_ctrler #(
     end
     endfunction
     
-    /** ³£Á¿ **/
-    // Ö÷¿Ø×´Ì¬»ú×´Ì¬³£Á¿
-    localparam IDLE = 3'b000; // ¿ÕÏĞ
-    localparam SEND_CMD = 3'b001; // ·¢ËÍÃüÁî
-    localparam REV_RESP_RD = 3'b010; // ½ÓÊÕÏìÓ¦ºÍ¶ÁÊı¾İ
-    localparam WT_DATA = 3'b011; // Ğ´Êı¾İ
-    localparam TRANS_RESP = 3'b100; // ´«ÊäÏìÓ¦
+    /** å¸¸é‡ **/
+    // ä¸»æ§çŠ¶æ€æœºçŠ¶æ€å¸¸é‡
+    localparam IDLE = 3'b000; // ç©ºé—²
+    localparam SEND_CMD = 3'b001; // å‘é€å‘½ä»¤
+    localparam REV_RESP_RD = 3'b010; // æ¥æ”¶å“åº”å’Œè¯»æ•°æ®
+    localparam WT_DATA = 3'b011; // å†™æ•°æ®
+    localparam TRANS_RESP = 3'b100; // ä¼ è¾“å“åº”
     
-    // ÃüÁîµÄÏìÓ¦ÀàĞÍ
-    localparam RESP_TYPE_NO_RESP = 2'b00; // ÎŞÏìÓ¦
-    localparam RESP_TYPE_COMMON_RESP = 2'b01; // ÆÕÍ¨ÏìÓ¦(³£¹æµÄ48bitÏìÓ¦)
-    localparam RESP_TYPE_LONG_RESP = 2'b10; // ³¤ÏìÓ¦(136bitÏìÓ¦, ÈçR2)
-    localparam RESP_TYPE_RESP_WITH_BUSY = 2'b11; // ´øbusyµÄÏìÓ¦(ÈçR1b)
-    // ÃüÁîµÄ¶ÁĞ´ÀàĞÍ
-    localparam RW_TYPE_NON = 2'b00; // ·Ç¶ÁĞ´
-    localparam RW_TYPE_READ = 2'b01; // ¶Á
-    localparam RW_TYPE_WRITE = 2'b10; // Ğ´
+    // å‘½ä»¤çš„å“åº”ç±»å‹
+    localparam RESP_TYPE_NO_RESP = 2'b00; // æ— å“åº”
+    localparam RESP_TYPE_COMMON_RESP = 2'b01; // æ™®é€šå“åº”(å¸¸è§„çš„48bitå“åº”)
+    localparam RESP_TYPE_LONG_RESP = 2'b10; // é•¿å“åº”(136bitå“åº”, å¦‚R2)
+    localparam RESP_TYPE_RESP_WITH_BUSY = 2'b11; // å¸¦busyçš„å“åº”(å¦‚R1b)
+    // å‘½ä»¤çš„è¯»å†™ç±»å‹
+    localparam RW_TYPE_NON = 2'b00; // éè¯»å†™
+    localparam RW_TYPE_READ = 2'b01; // è¯»
+    localparam RW_TYPE_WRITE = 2'b10; // å†™
     
-    // ÃüÁîÎ»Óò
-    localparam CMD_DATA_REGION = 1'b0; // ÃüÁîÎ»ÏÖ´¦ÓÚÊı¾İÓò
-    localparam CMD_CRC_END_REGION = 1'b1; // ÃüÁîÎ»ÏÖ´¦ÓÚĞ£ÑéÓë½áÊøÓò
+    // å‘½ä»¤ä½åŸŸ
+    localparam CMD_DATA_REGION = 1'b0; // å‘½ä»¤ä½ç°å¤„äºæ•°æ®åŸŸ
+    localparam CMD_CRC_END_REGION = 1'b1; // å‘½ä»¤ä½ç°å¤„äºæ ¡éªŒä¸ç»“æŸåŸŸ
     
-    // ÏìÓ¦Î»Óò
-    localparam RESP_BIT_REGION_NOT_CARE = 2'b00; // ÏìÓ¦Î»ÏÖ´¦ÓÚ²»¹ØĞÄÓò
-    localparam RESP_BIT_REGION_DATA = 2'b01; // ÏìÓ¦Î»ÏÖ´¦ÓÚÊı¾İÓò
-    localparam RESP_BIT_REGION_CRC = 2'b10; // ÏìÓ¦Î»ÏÖ´¦ÓÚCRCÓò
-    localparam RESP_BIT_REGION_END = 2'b11; // ÏìÓ¦Î»ÏÖ´¦ÓÚ½áÊøÓò
-    // ÏìÓ¦ºóbusy¼à²â×´Ì¬³£Á¿
-    localparam RESP_BUSY_DETECT_IDLE = 2'b00; // ¼à²â´ı¿ªÊ¼
-    localparam RESP_WAIT_BUSY = 2'b01; // ¼à²âbusyĞÅºÅ
-    localparam RESP_WAIT_IDLE = 2'b10; // µÈ´ı´Ó»úidle
-    localparam RESP_BUSY_DETECT_FINISH = 2'b11; // ¼à²âÍê³É
+    // å“åº”ä½åŸŸ
+    localparam RESP_BIT_REGION_NOT_CARE = 2'b00; // å“åº”ä½ç°å¤„äºä¸å…³å¿ƒåŸŸ
+    localparam RESP_BIT_REGION_DATA = 2'b01; // å“åº”ä½ç°å¤„äºæ•°æ®åŸŸ
+    localparam RESP_BIT_REGION_CRC = 2'b10; // å“åº”ä½ç°å¤„äºCRCåŸŸ
+    localparam RESP_BIT_REGION_END = 2'b11; // å“åº”ä½ç°å¤„äºç»“æŸåŸŸ
+    // å“åº”åbusyç›‘æµ‹çŠ¶æ€å¸¸é‡
+    localparam RESP_BUSY_DETECT_IDLE = 2'b00; // ç›‘æµ‹å¾…å¼€å§‹
+    localparam RESP_WAIT_BUSY = 2'b01; // ç›‘æµ‹busyä¿¡å·
+    localparam RESP_WAIT_IDLE = 2'b10; // ç­‰å¾…ä»æœºidle
+    localparam RESP_BUSY_DETECT_FINISH = 2'b11; // ç›‘æµ‹å®Œæˆ
     
-    // ¶ÁÊı¾İËù´¦Óò
-    localparam RD_REGION_DATA = 2'b00; // ¶ÁÊı¾İÏÖ´¦ÓÚÊı¾İÓò
-    localparam RD_REGION_CRC = 2'b01; // ¶ÁÊı¾İÏÖ´¦ÓÚĞ£ÑéÓò
-    localparam RD_REGION_END = 2'b10; // ¶ÁÊı¾İÏÖ´¦ÓÚ½áÊøÓò
-    localparam RD_REGION_FINISH = 2'b11; // ¶ÁÊı¾İÍê³É
+    // è¯»æ•°æ®æ‰€å¤„åŸŸ
+    localparam RD_REGION_DATA = 2'b00; // è¯»æ•°æ®ç°å¤„äºæ•°æ®åŸŸ
+    localparam RD_REGION_CRC = 2'b01; // è¯»æ•°æ®ç°å¤„äºæ ¡éªŒåŸŸ
+    localparam RD_REGION_END = 2'b10; // è¯»æ•°æ®ç°å¤„äºç»“æŸåŸŸ
+    localparam RD_REGION_FINISH = 2'b11; // è¯»æ•°æ®å®Œæˆ
     
-    // Ğ´Êı¾İ½×¶Î
-    localparam WT_STAGE_WAIT = 3'b000; // Ğ´µÈ´ı
-    localparam WT_STAGE_PULL_UP = 3'b001; // Ö÷»úÇ¿Çı¶¯µ½¸ßµçÆ½
-    localparam WT_STAGE_START = 3'b010; // ÆğÊ¼Î»
-    localparam WT_STAGE_TRANS = 3'b011; // ÕıÔÚĞ´
-    localparam WT_STAGE_CRC_END = 3'b100; // Ğ£ÑéºÍ½áÊøÎ»
-    localparam WT_STAGE_STS = 3'b101; // ½ÓÊÕ×´Ì¬ĞÅÏ¢
-    localparam WT_STAGE_WAIT_IDLE = 3'b110; // µÈ´ı´Ó»úidle
-    localparam WT_STAGE_FINISHED = 3'b111; // Íê³É
-    // Ğ´Êı¾İ½ÓÊÕ×´Ì¬·µ»ØµÄ½×¶Î
-    localparam WT_STS_WAIT_START = 3'b000; // µÈ´ıÆğÊ¼Î»
-    localparam WT_STS_B2 = 3'b001; // ½ÓÊÕµÚ2¸ö×´Ì¬Î»
-    localparam WT_STS_B1 = 3'b010; // ½ÓÊÕµÚ1¸ö×´Ì¬Î»
-    localparam WT_STS_B0 = 3'b011; // ½ÓÊÕµÚ0¸ö×´Ì¬Î»
-    localparam WT_STS_END = 3'b100; // ½ÓÊÕ½áÊøÎ»
+    // å†™æ•°æ®é˜¶æ®µ
+    localparam WT_STAGE_WAIT = 3'b000; // å†™ç­‰å¾…
+    localparam WT_STAGE_PULL_UP = 3'b001; // ä¸»æœºå¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³
+    localparam WT_STAGE_START = 3'b010; // èµ·å§‹ä½
+    localparam WT_STAGE_TRANS = 3'b011; // æ­£åœ¨å†™
+    localparam WT_STAGE_CRC_END = 3'b100; // æ ¡éªŒå’Œç»“æŸä½
+    localparam WT_STAGE_STS = 3'b101; // æ¥æ”¶çŠ¶æ€ä¿¡æ¯
+    localparam WT_STAGE_WAIT_IDLE = 3'b110; // ç­‰å¾…ä»æœºidle
+    localparam WT_STAGE_FINISHED = 3'b111; // å®Œæˆ
+    // å†™æ•°æ®æ¥æ”¶çŠ¶æ€è¿”å›çš„é˜¶æ®µ
+    localparam WT_STS_WAIT_START = 3'b000; // ç­‰å¾…èµ·å§‹ä½
+    localparam WT_STS_B2 = 3'b001; // æ¥æ”¶ç¬¬2ä¸ªçŠ¶æ€ä½
+    localparam WT_STS_B1 = 3'b010; // æ¥æ”¶ç¬¬1ä¸ªçŠ¶æ€ä½
+    localparam WT_STS_B0 = 3'b011; // æ¥æ”¶ç¬¬0ä¸ªçŠ¶æ€ä½
+    localparam WT_STS_END = 3'b100; // æ¥æ”¶ç»“æŸä½
     
-    /** ÄÚ²¿ÅäÖÃ **/
-    localparam integer cmd_pre_p_num = 1; // Ã¿¸öÃüÁîÇ°PÎ»(Ç¿Çı¶¯µ½¸ßµçÆ½)¸öÊı
-    localparam integer cmd_itv = 8; // Á½ÌõÃüÁîÖ®¼ä¼ä¸ôµÄ×îĞ¡sdioÊ±ÖÓÖÜÆÚÊı
-    localparam integer data_wt_wait_p = 2; // Ğ´µÈ´ıµÄsdioÊ±ÖÓÖÜÆÚÊı(±ØĞë>=2)
+    /** å†…éƒ¨é…ç½® **/
+    localparam integer cmd_pre_p_num = 1; // æ¯ä¸ªå‘½ä»¤å‰Pä½(å¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³)ä¸ªæ•°
+    localparam integer cmd_itv = 8; // ä¸¤æ¡å‘½ä»¤ä¹‹é—´é—´éš”çš„æœ€å°sdioæ—¶é’Ÿå‘¨æœŸæ•°
+    localparam integer data_wt_wait_p = 2; // å†™ç­‰å¾…çš„sdioæ—¶é’Ÿå‘¨æœŸæ•°(å¿…é¡»>=2)
     
-    /** sdioÊ±ÖÓ·¢ÉúÆ÷ **/
-    wire div_cnt_en; // ·ÖÆµ¼ÆÊıÆ÷(Ê¹ÄÜ)
-	wire sdio_in_sample; // SDIOÊäÈë²ÉÑùÖ¸Ê¾
-	wire sdio_out_upd; // SDIOÊä³ö¸üĞÂÖ¸Ê¾
+    /** sdioæ—¶é’Ÿå‘ç”Ÿå™¨ **/
+    wire div_cnt_en; // åˆ†é¢‘è®¡æ•°å™¨(ä½¿èƒ½)
+	wire sdio_in_sample; // SDIOè¾“å…¥é‡‡æ ·æŒ‡ç¤º
+	wire sdio_out_upd; // SDIOè¾“å‡ºæ›´æ–°æŒ‡ç¤º
     
     sdio_sck_generator #(
         .div_cnt_width(10),
@@ -212,35 +236,35 @@ module sdio_ctrler #(
         .sdio_clk(sdio_clk)
     );
     
-    /** Ö÷¿Ø×´Ì¬»ú **/
-    // ¿ØÖÆÆ÷
-    reg[2:0] ctrler_status; // ¿ØÖÆÆ÷×´Ì¬
-    wire cmd_done; // ÃüÁîÍê³É(Âö³å)
-    // È¡ÃüÁî
-    reg cmd_send_started; // ¿ªÊ¼·¢ÃüÁî(±êÖ¾)
-    // ÃüÁî·¢ËÍ
-    reg[1:0] cmd_resp_type; // ÃüÁîµÄÏìÓ¦ÀàĞÍ
-    reg[1:0] cmd_rw_type; // ÃüÁîµÄ¶ÁĞ´ÀàĞÍ
-    reg cmd_bit_finished; // ÃüÁî·¢ËÍÍê³É(±êÖ¾)
-    // ÏìÓ¦½ÓÊÕºÍ¶ÁÊı¾İ
-    reg resp_received; // ÏìÓ¦½ÓÊÕÍê³É(±êÖ¾)
-    reg rd_finished; // ¶ÁÍê³É(±êÖ¾)
-    reg resp_busy_detect_finished; // Íê³ÉÏìÓ¦ºóbusy¼à²â(±êÖ¾)
-    reg resp_timeout_flag; // ÏìÓ¦³¬Ê±(±êÖ¾)
-    reg rd_timeout_flag; // ¶Á³¬Ê±(±êÖ¾)
-    // Ğ´Êı¾İ
-    reg wt_finished; // Ğ´Íê³É(±êÖ¾)
-    reg wt_axis_not_valid_but_ready_d; // ÑÓ³Ù1clkµÄĞ´Êı¾İAXISÎÕÊÖÊ§°Ü
+    /** ä¸»æ§çŠ¶æ€æœº **/
+    // æ§åˆ¶å™¨
+    reg[2:0] ctrler_status; // æ§åˆ¶å™¨çŠ¶æ€
+    wire cmd_done; // å‘½ä»¤å®Œæˆ(è„‰å†²)
+    // å–å‘½ä»¤
+    reg cmd_send_started; // å¼€å§‹å‘å‘½ä»¤(æ ‡å¿—)
+    // å‘½ä»¤å‘é€
+    reg[1:0] cmd_resp_type; // å‘½ä»¤çš„å“åº”ç±»å‹
+    reg[1:0] cmd_rw_type; // å‘½ä»¤çš„è¯»å†™ç±»å‹
+    reg cmd_bit_finished; // å‘½ä»¤å‘é€å®Œæˆ(æ ‡å¿—)
+    // å“åº”æ¥æ”¶å’Œè¯»æ•°æ®
+    reg resp_received; // å“åº”æ¥æ”¶å®Œæˆ(æ ‡å¿—)
+    reg rd_finished; // è¯»å®Œæˆ(æ ‡å¿—)
+    reg resp_busy_detect_finished; // å®Œæˆå“åº”åbusyç›‘æµ‹(æ ‡å¿—)
+    reg resp_timeout_flag; // å“åº”è¶…æ—¶(æ ‡å¿—)
+    reg rd_timeout_flag; // è¯»è¶…æ—¶(æ ‡å¿—)
+    // å†™æ•°æ®
+    reg wt_finished; // å†™å®Œæˆ(æ ‡å¿—)
+    reg wt_axis_not_valid_but_ready_d; // å»¶è¿Ÿ1clkçš„å†™æ•°æ®AXISæ¡æ‰‹å¤±è´¥
     
-    // ÃüÁîÍê³É(Âö³å)
+    // å‘½ä»¤å®Œæˆ(è„‰å†²)
     assign cmd_done = (m_axis_resp_valid & m_axis_resp_ready) | ((ctrler_status == SEND_CMD) & (cmd_resp_type == RESP_TYPE_NO_RESP) & cmd_bit_finished);
     
-    // ¿ØÖÆÆ÷Éú³ÉµÄsdioÊ±ÖÓÊ¹ÄÜ
-    // sdioÊ±ÖÓÖ»ÄÜ´¦ÓÚ¸ßµçÆ½Ê±¹Ø±Õ
-    assign div_cnt_en = ({m_axis_rd_valid, m_axis_rd_ready} != 2'b10) &  // ¶ÁÊı¾İAXISµÈ´ı
-        (~wt_axis_not_valid_but_ready_d); // Ğ´Êı¾İAXISµÈ´ı
+    // æ§åˆ¶å™¨ç”Ÿæˆçš„sdioæ—¶é’Ÿä½¿èƒ½
+    // sdioæ—¶é’Ÿåªèƒ½å¤„äºé«˜ç”µå¹³æ—¶å…³é—­
+    assign div_cnt_en = ({m_axis_rd_valid, m_axis_rd_ready} != 2'b10) &  // è¯»æ•°æ®AXISç­‰å¾…
+        (~wt_axis_not_valid_but_ready_d); // å†™æ•°æ®AXISç­‰å¾…
     
-    // ¿ØÖÆÆ÷×´Ì¬
+    // æ§åˆ¶å™¨çŠ¶æ€
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -250,26 +274,26 @@ module sdio_ctrler #(
             # simulation_delay;
             
             case(ctrler_status)
-                IDLE: // ×´Ì¬:¿ÕÏĞ
+                IDLE: // çŠ¶æ€:ç©ºé—²
                     if(cmd_send_started)
                         ctrler_status <= SEND_CMD;
-                SEND_CMD: // ×´Ì¬:·¢ËÍÃüÁî
+                SEND_CMD: // çŠ¶æ€:å‘é€å‘½ä»¤
                     if(cmd_bit_finished)
                         ctrler_status <= (cmd_resp_type == RESP_TYPE_NO_RESP) ? IDLE:REV_RESP_RD;
-                REV_RESP_RD: // ×´Ì¬:½ÓÊÕÏìÓ¦ºÍ¶ÁÊı¾İ
+                REV_RESP_RD: // çŠ¶æ€:æ¥æ”¶å“åº”å’Œè¯»æ•°æ®
                 begin
                     case(cmd_rw_type)
-                        RW_TYPE_NON: // ÃüÁî¶ÁĞ´ÀàĞÍ:·Ç¶ÁĞ´
+                        RW_TYPE_NON: // å‘½ä»¤è¯»å†™ç±»å‹:éè¯»å†™
                             if((cmd_resp_type == RESP_TYPE_RESP_WITH_BUSY) ?
-                                (resp_timeout_flag | resp_busy_detect_finished): // ´øbusyµÄÏìÓ¦, ÈçR1b
-                                (resp_timeout_flag | resp_received)) // ²»´øbusyµÄÏìÓ¦
+                                (resp_timeout_flag | resp_busy_detect_finished): // å¸¦busyçš„å“åº”, å¦‚R1b
+                                (resp_timeout_flag | resp_received)) // ä¸å¸¦busyçš„å“åº”
                                 ctrler_status <= TRANS_RESP;
-                        RW_TYPE_READ: // ÃüÁî¶ÁĞ´ÀàĞÍ:¶Á
+                        RW_TYPE_READ: // å‘½ä»¤è¯»å†™ç±»å‹:è¯»
                             if((read_timeout == -1) ? 
                                 (resp_timeout_flag | (resp_received & rd_finished)):
                                 (resp_timeout_flag | rd_timeout_flag | (resp_received & rd_finished)))
                                 ctrler_status <= TRANS_RESP;
-                        RW_TYPE_WRITE: // ÃüÁî¶ÁĞ´ÀàĞÍ:Ğ´
+                        RW_TYPE_WRITE: // å‘½ä»¤è¯»å†™ç±»å‹:å†™
                             if(resp_timeout_flag)
                                 ctrler_status <= TRANS_RESP;
                             else if(resp_received)
@@ -278,10 +302,10 @@ module sdio_ctrler #(
                             ctrler_status <= REV_RESP_RD; // hold
                     endcase
                 end
-                WT_DATA: // ×´Ì¬:Ğ´Êı¾İ
+                WT_DATA: // çŠ¶æ€:å†™æ•°æ®
                     if(wt_finished)
                         ctrler_status <= TRANS_RESP;
-                TRANS_RESP: // ×´Ì¬:´«ÊäÏìÓ¦
+                TRANS_RESP: // çŠ¶æ€:ä¼ è¾“å“åº”
                     if(m_axis_resp_valid & m_axis_resp_ready)
                          ctrler_status <= IDLE;
                 default:
@@ -290,43 +314,43 @@ module sdio_ctrler #(
         end
     end
     
-    // ÑÓ³Ù1clkµÄÑÓ³Ù1clkµÄĞ´Êı¾İAXISÎÕÊÖÊ§°Ü
+    // å»¶è¿Ÿ1clkçš„å»¶è¿Ÿ1clkçš„å†™æ•°æ®AXISæ¡æ‰‹å¤±è´¥
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             wt_axis_not_valid_but_ready_d <= 1'b0;
-        else // ÑÓ³Ù
+        else // å»¶è¿Ÿ
             # simulation_delay wt_axis_not_valid_but_ready_d <= {s_axis_wt_valid, s_axis_wt_ready} == 2'b01;
     end
     
-    /** ¿ØÖÆÆ÷×´Ì¬ **/
-    reg cmd_done_d; // ÑÓ³Ù1clkµÄÃüÁîÍê³É(Âö³å)
-    reg[1:0] cmd_rw_type_done_regs; // ËùÍê³ÉÃüÁîµÄ¶ÁĞ´ÀàĞÍ
-    reg sdio_ctrler_idle_reg; // ¿ØÖÆÆ÷¿ÕÏĞĞÅºÅ
-    reg sdio_ctrler_start_reg; // ¿ØÖÆÆ÷¿ªÊ¼ĞÅºÅ
+    /** æ§åˆ¶å™¨çŠ¶æ€ **/
+    reg cmd_done_d; // å»¶è¿Ÿ1clkçš„å‘½ä»¤å®Œæˆ(è„‰å†²)
+    reg[1:0] cmd_rw_type_done_regs; // æ‰€å®Œæˆå‘½ä»¤çš„è¯»å†™ç±»å‹
+    reg sdio_ctrler_idle_reg; // æ§åˆ¶å™¨ç©ºé—²ä¿¡å·
+    reg sdio_ctrler_start_reg; // æ§åˆ¶å™¨å¼€å§‹ä¿¡å·
     
     assign sdio_ctrler_idle = sdio_ctrler_idle_reg;
     assign sdio_ctrler_start = sdio_ctrler_start_reg;
     assign sdio_ctrler_done = cmd_done_d;
     assign sdio_ctrler_rw_type_done = cmd_rw_type_done_regs;
     
-    // ÑÓ³Ù1clkµÄÃüÁîÍê³É(Âö³å)
+    // å»¶è¿Ÿ1clkçš„å‘½ä»¤å®Œæˆ(è„‰å†²)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             cmd_done_d <= 1'b0;
-        else // ÑÓ³Ù
+        else // å»¶è¿Ÿ
             # simulation_delay cmd_done_d <= cmd_done;
     end
     
-    // ËùÍê³ÉÃüÁîµÄ¶ÁĞ´ÀàĞÍ
+    // æ‰€å®Œæˆå‘½ä»¤çš„è¯»å†™ç±»å‹
     always @(posedge clk)
     begin
-        if(cmd_done) // Ëø´æ
+        if(cmd_done) // é”å­˜
             # simulation_delay cmd_rw_type_done_regs <= cmd_rw_type;
     end
     
-    // ¿ØÖÆÆ÷¿ÕÏĞĞÅºÅ
+    // æ§åˆ¶å™¨ç©ºé—²ä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -334,7 +358,7 @@ module sdio_ctrler #(
         else
             # simulation_delay sdio_ctrler_idle_reg <= sdio_ctrler_idle_reg ? (~sdio_ctrler_start_reg):cmd_done_d;
     end
-    // ¿ØÖÆÆ÷¿ªÊ¼ĞÅºÅ
+    // æ§åˆ¶å™¨å¼€å§‹ä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -343,40 +367,40 @@ module sdio_ctrler #(
             # simulation_delay sdio_ctrler_start_reg <= (ctrler_status == IDLE) & cmd_send_started;
     end
     
-    /** ·¢ËÍÃüÁî¿ØÖÆ **/
+    /** å‘é€å‘½ä»¤æ§åˆ¶ **/
     /*
-    ÃüÁîÎ» 47+cmd_pre_p_num:48 47 46 45:40   39:8   7:1  0
-    ÄÚÈİ             P         S  T  ÃüÁîºÅ   ²ÎÊı  CRC7 E
+    å‘½ä»¤ä½ 47+cmd_pre_p_num:48 47 46 45:40   39:8   7:1  0
+    å†…å®¹             P         S  T  å‘½ä»¤å·   å‚æ•°  CRC7 E
     
-    P:Ç¿Çı¶¯µ½¸ßµçÆ½
-    S:ÆğÊ¼Î»
-    T:·½ÏòÎ»
-    E:½áÊøÎ»
+    P:å¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³
+    S:èµ·å§‹ä½
+    T:æ–¹å‘ä½
+    E:ç»“æŸä½
     */
-    // ÃüÁîAXIS
-    wire s_axis_cmd_data_ignore_rd; // ÃüÁîAXISÖĞdataµÄÊÇ·ñºöÂÔ¶ÁÊı¾İ
-    wire[5:0] s_axis_cmd_data_cmd; // ÃüÁîAXISÖĞdataµÄÃüÁîºÅ
-    wire[31:0] s_axis_cmd_data_param; // ÃüÁîAXISÖĞdataµÄ²ÎÊı
-    wire[15:0] s_axis_cmd_user_rw_patch_n; // ÃüÁîAXISÖĞuserµÄ¶ÁĞ´¿é¸öÊı-1
-    reg s_axis_cmd_ready_reg; // ÃüÁîAXISµÄreadyĞÅºÅ
-    // ÃüÁîĞÅÏ¢
-    reg ignore_rd; // ÊÇ·ñºöÂÔ¶ÁÊı¾İ(±êÖ¾)
-    reg is_previous_cmd_id55; // ÉÏÒ»¸öÃüÁîÊÇCMD55
-    reg cmd_with_long_resp; // ÃüÁîÊÇ·ñ´ø³¤ÏìÓ¦(±êÖ¾)
-    reg cmd_with_r3_resp; // ÃüÁî´øR3ÏìÓ¦(±êÖ¾)
-    reg[15:0] rw_patch_n; // ¶ÁĞ´¿é¸öÊı-1
-    // È¡ÃüÁî¿ØÖÆ
-    reg cmd_itv_satisfied; // ÃüÁî·¢ËÍ¼ä¸ôÂú×ãÒªÇó(±êÖ¾)
-    reg cmd_fetched; // ÒÑÈ¡ÃüÁî(±êÖ¾)
-    // ÃüÁîÁ÷³Ì¿ØÖÆ
-    wire cmd_to_send_en_shift; // µ±Ç°´ı·¢ËÍµÄÃüÁî(ÒÆÎ»Ê¹ÄÜ)
-    reg sdio_cmd_o_reg; // sdioÃüÁîÏßÊä³ö
-    reg[(39+cmd_pre_p_num):0] cmd_data; // ÃüÁîÊı¾İÓò(ÒÆÎ»¼Ä´æÆ÷)
-    reg[7:0] cmd_crc7_end; // ÃüÁîĞ£ÑéÓë½áÊøÓò(ÒÆÎ»¼Ä´æÆ÷)
-    wire cmd_bit_sending; // µ±Ç°·¢ËÍµÄÃüÁîÎ»
-    reg[5:0] sending_cmd_bit_i; // µ±Ç°·¢ËÍÃüÁîµÄÎ»±àºÅ(¼ÆÊıÆ÷)
-    reg cmd_actual_sending; // Ö÷»ú¿ªÊ¼ÕıÊ½·¢ËÍÃüÁî(¼´ÌŞ³ıÁËÒ»¿ªÊ¼µÄPÎ»)(±êÖ¾)
-    reg cmd_bit_region; // ÃüÁîÎ»Óò(±êÖ¾)
+    // å‘½ä»¤AXIS
+    wire s_axis_cmd_data_ignore_rd; // å‘½ä»¤AXISä¸­dataçš„æ˜¯å¦å¿½ç•¥è¯»æ•°æ®
+    wire[5:0] s_axis_cmd_data_cmd; // å‘½ä»¤AXISä¸­dataçš„å‘½ä»¤å·
+    wire[31:0] s_axis_cmd_data_param; // å‘½ä»¤AXISä¸­dataçš„å‚æ•°
+    wire[15:0] s_axis_cmd_user_rw_patch_n; // å‘½ä»¤AXISä¸­userçš„è¯»å†™å—ä¸ªæ•°-1
+    reg s_axis_cmd_ready_reg; // å‘½ä»¤AXISçš„readyä¿¡å·
+    // å‘½ä»¤ä¿¡æ¯
+    reg ignore_rd; // æ˜¯å¦å¿½ç•¥è¯»æ•°æ®(æ ‡å¿—)
+    reg is_previous_cmd_id55; // ä¸Šä¸€ä¸ªå‘½ä»¤æ˜¯CMD55
+    reg cmd_with_long_resp; // å‘½ä»¤æ˜¯å¦å¸¦é•¿å“åº”(æ ‡å¿—)
+    reg cmd_with_r3_resp; // å‘½ä»¤å¸¦R3å“åº”(æ ‡å¿—)
+    reg[15:0] rw_patch_n; // è¯»å†™å—ä¸ªæ•°-1
+    // å–å‘½ä»¤æ§åˆ¶
+    reg cmd_itv_satisfied; // å‘½ä»¤å‘é€é—´éš”æ»¡è¶³è¦æ±‚(æ ‡å¿—)
+    reg cmd_fetched; // å·²å–å‘½ä»¤(æ ‡å¿—)
+    // å‘½ä»¤æµç¨‹æ§åˆ¶
+    wire cmd_to_send_en_shift; // å½“å‰å¾…å‘é€çš„å‘½ä»¤(ç§»ä½ä½¿èƒ½)
+    reg sdio_cmd_o_reg; // sdioå‘½ä»¤çº¿è¾“å‡º
+    reg[(39+cmd_pre_p_num):0] cmd_data; // å‘½ä»¤æ•°æ®åŸŸ(ç§»ä½å¯„å­˜å™¨)
+    reg[7:0] cmd_crc7_end; // å‘½ä»¤æ ¡éªŒä¸ç»“æŸåŸŸ(ç§»ä½å¯„å­˜å™¨)
+    wire cmd_bit_sending; // å½“å‰å‘é€çš„å‘½ä»¤ä½
+    reg[5:0] sending_cmd_bit_i; // å½“å‰å‘é€å‘½ä»¤çš„ä½ç¼–å·(è®¡æ•°å™¨)
+    reg cmd_actual_sending; // ä¸»æœºå¼€å§‹æ­£å¼å‘é€å‘½ä»¤(å³å‰”é™¤äº†ä¸€å¼€å§‹çš„Pä½)(æ ‡å¿—)
+    reg cmd_bit_region; // å‘½ä»¤ä½åŸŸ(æ ‡å¿—)
     
     assign s_axis_cmd_ready = s_axis_cmd_ready_reg;
     assign sdio_cmd_o = sdio_cmd_o_reg;
@@ -386,7 +410,7 @@ module sdio_ctrler #(
     assign cmd_to_send_en_shift = sdio_out_upd;
     assign cmd_bit_sending = (cmd_bit_region == CMD_DATA_REGION) ? cmd_data[39+cmd_pre_p_num]:cmd_crc7_end[7];
     
-    // ÃüÁîAXISµÄreadyĞÅºÅ
+    // å‘½ä»¤AXISçš„readyä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -396,32 +420,32 @@ module sdio_ctrler #(
                 ((ctrler_status == IDLE) & cmd_itv_satisfied & (~cmd_fetched));
     end
     
-    // ÊÇ·ñºöÂÔ¶ÁÊı¾İ(±êÖ¾)
+    // æ˜¯å¦å¿½ç•¥è¯»æ•°æ®(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(s_axis_cmd_valid & s_axis_cmd_ready) // Ëø´æ
+        if(s_axis_cmd_valid & s_axis_cmd_ready) // é”å­˜
             # simulation_delay ignore_rd <= s_axis_cmd_data_ignore_rd;
     end
-    // ÉÏÒ»¸öÃüÁîÊÇCMD55
+    // ä¸Šä¸€ä¸ªå‘½ä»¤æ˜¯CMD55
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             is_previous_cmd_id55 <= 1'b0;
-        else if(s_axis_cmd_valid & s_axis_cmd_ready) // ÅĞ¶¨²¢Ëø´æ
+        else if(s_axis_cmd_valid & s_axis_cmd_ready) // åˆ¤å®šå¹¶é”å­˜
             # simulation_delay is_previous_cmd_id55 <= s_axis_cmd_data_cmd == 6'd55;
     end
     
-    // ÃüÁîÒëÂë
-    // ÃüÁîÊÇ·ñ´ø³¤ÏìÓ¦(±êÖ¾)
+    // å‘½ä»¤è¯‘ç 
+    // å‘½ä»¤æ˜¯å¦å¸¦é•¿å“åº”(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(s_axis_cmd_valid & s_axis_cmd_ready) // ÔËËã²¢Ëø´æ
+        if(s_axis_cmd_valid & s_axis_cmd_ready) // è¿ç®—å¹¶é”å­˜
             # simulation_delay cmd_with_long_resp <= s_axis_cmd_data_cmd == 6'd2;
     end
-    // ÃüÁîµÄÏìÓ¦ÀàĞÍ
+    // å‘½ä»¤çš„å“åº”ç±»å‹
     always @(posedge clk)
     begin
-        if(s_axis_cmd_valid & s_axis_cmd_ready) // ÔËËã²¢Ëø´æ
+        if(s_axis_cmd_valid & s_axis_cmd_ready) // è¿ç®—å¹¶é”å­˜
         begin
             # simulation_delay;
             
@@ -433,10 +457,10 @@ module sdio_ctrler #(
             endcase
         end
     end
-    // ÃüÁîµÄ¶ÁĞ´ÀàĞÍ
+    // å‘½ä»¤çš„è¯»å†™ç±»å‹
     always @(posedge clk)
     begin
-        if(s_axis_cmd_valid & s_axis_cmd_ready) // ÔËËã²¢Ëø´æ
+        if(s_axis_cmd_valid & s_axis_cmd_ready) // è¿ç®—å¹¶é”å­˜
         begin
             if(is_previous_cmd_id55)
                 # simulation_delay cmd_rw_type <= RW_TYPE_NON;
@@ -452,58 +476,58 @@ module sdio_ctrler #(
             end
         end
     end
-    // ÃüÁî´øR3ÏìÓ¦(±êÖ¾)
+    // å‘½ä»¤å¸¦R3å“åº”(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(s_axis_cmd_valid & s_axis_cmd_ready) // ÔËËã²¢Ëø´æ
+        if(s_axis_cmd_valid & s_axis_cmd_ready) // è¿ç®—å¹¶é”å­˜
             # simulation_delay cmd_with_r3_resp <= s_axis_cmd_data_cmd == 6'd41;
     end
-    // ¶ÁĞ´¿é¸öÊı-1
+    // è¯»å†™å—ä¸ªæ•°-1
     always @(posedge clk)
     begin
-        if(s_axis_cmd_valid & s_axis_cmd_ready) // ÔËËã²¢Ëø´æ
+        if(s_axis_cmd_valid & s_axis_cmd_ready) // è¿ç®—å¹¶é”å­˜
             # simulation_delay rw_patch_n <= ((s_axis_cmd_data_cmd == 6'd18) | (s_axis_cmd_data_cmd == 6'd25)) ? s_axis_cmd_user_rw_patch_n:16'd0;
     end
     
-    // sdioÃüÁîÏßÊä³ö
+    // sdioå‘½ä»¤çº¿è¾“å‡º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             sdio_cmd_o_reg <= 1'b1;
-        else if(cmd_to_send_en_shift) // ¸üĞÂ
+        else if(cmd_to_send_en_shift) // æ›´æ–°
             # simulation_delay sdio_cmd_o_reg <= ((ctrler_status == SEND_CMD) & (sending_cmd_bit_i != (48 + cmd_pre_p_num))) ? cmd_bit_sending:1'b1;
     end
     
-    // ÃüÁî·¢ËÍÍê³É(±êÖ¾)
+    // å‘½ä»¤å‘é€å®Œæˆ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay cmd_bit_finished <= 1'b0;
-        else if(cmd_to_send_en_shift) // ¸üĞÂ
+        else if(cmd_to_send_en_shift) // æ›´æ–°
             # simulation_delay cmd_bit_finished <= (ctrler_status == SEND_CMD) & (sending_cmd_bit_i == (48 + cmd_pre_p_num));
     end
     
-    // ÃüÁîÊı¾İÓò
+    // å‘½ä»¤æ•°æ®åŸŸ
     always @(posedge clk)
     begin
-        if(s_axis_cmd_valid & s_axis_cmd_ready) // ÔØÈë
+        if(s_axis_cmd_valid & s_axis_cmd_ready) // è½½å…¥
             # simulation_delay cmd_data <= {
-                {cmd_pre_p_num{1'b1}}, // P:Ç¿Çı¶¯µ½¸ßµçÆ½
-                1'b0, // S:ÆğÊ¼Î»
-                1'b1, // T:·½ÏòÎ»
-                s_axis_cmd_data_cmd, // ÃüÁîºÅ
-                s_axis_cmd_data_param // ²ÎÊı
+                {cmd_pre_p_num{1'b1}}, // P:å¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³
+                1'b0, // S:èµ·å§‹ä½
+                1'b1, // T:æ–¹å‘ä½
+                s_axis_cmd_data_cmd, // å‘½ä»¤å·
+                s_axis_cmd_data_param // å‚æ•°
             };
-        else if((ctrler_status == SEND_CMD) & cmd_to_send_en_shift) // ×óÒÆ
+        else if((ctrler_status == SEND_CMD) & cmd_to_send_en_shift) // å·¦ç§»
             # simulation_delay cmd_data <= {cmd_data[(39+cmd_pre_p_num-1):0], 1'bx};
     end
     
-    // ÃüÁîĞ£ÑéÓë½áÊøÓò
+    // å‘½ä»¤æ ¡éªŒä¸ç»“æŸåŸŸ
     /*
-    º¯Êı: CRC7Ã¿ÊäÈëÒ»¸öbitÊ±µÄ¸üĞÂÂß¼­
-    ²ÎÊı: crc: ¾ÉµÄCRC7
-          inbit: ÊäÈëµÄbit
-    ·µ»ØÖµ: ¸üĞÂºóµÄ CRC7
+    å‡½æ•°: CRC7æ¯è¾“å…¥ä¸€ä¸ªbitæ—¶çš„æ›´æ–°é€»è¾‘
+    å‚æ•°: crc: æ—§çš„CRC7
+          inbit: è¾“å…¥çš„bit
+    è¿”å›å€¼: æ›´æ–°åçš„ CRC7
     function automatic logic[6:0] CalcCrc7(input[6:0] crc, input inbit);
         logic xorb = crc[6] ^ inbit;
         return (crc << 1) ^ {3'd0, xorb, 2'd0, xorb};
@@ -511,78 +535,78 @@ module sdio_ctrler #(
     */
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay cmd_crc7_end <= 8'b0000_0001;
         else if(cmd_to_send_en_shift & cmd_actual_sending)
         begin
-            if(cmd_bit_region == CMD_DATA_REGION) // µ±Ç°·¢ËÍµÄÃüÁîÎ»´¦ÓÚÊı¾İÓò, ½øĞĞCRC¼ÆËã
+            if(cmd_bit_region == CMD_DATA_REGION) // å½“å‰å‘é€çš„å‘½ä»¤ä½å¤„äºæ•°æ®åŸŸ, è¿›è¡ŒCRCè®¡ç®—
                 # simulation_delay cmd_crc7_end <= {
                     {cmd_crc7_end[6:1], 1'b0} ^ {3'b000, cmd_crc7_end[7] ^ cmd_bit_sending, 2'b00, cmd_crc7_end[7] ^ cmd_bit_sending}, // CRC7
-                    1'b1 // E:½áÊøÎ»
+                    1'b1 // E:ç»“æŸä½
                 };
-            else // µ±Ç°·¢ËÍµÄÃüÁîÎ»´¦ÓÚĞ£ÑéÓë½áÊøÓò, ½øĞĞ×óÒÆ
+            else // å½“å‰å‘é€çš„å‘½ä»¤ä½å¤„äºæ ¡éªŒä¸ç»“æŸåŸŸ, è¿›è¡Œå·¦ç§»
                 # simulation_delay cmd_crc7_end <= {cmd_crc7_end[6:0], 1'bx};
         end
     end
     
-    // Ö÷»ú¿ªÊ¼ÕıÊ½·¢ËÍÃüÁî(¼´ÌŞ³ıÁËÒ»¿ªÊ¼µÄPÎ»)(±êÖ¾)
+    // ä¸»æœºå¼€å§‹æ­£å¼å‘é€å‘½ä»¤(å³å‰”é™¤äº†ä¸€å¼€å§‹çš„Pä½)(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay cmd_actual_sending <= 1'b0;
-        else if((~cmd_actual_sending) & cmd_to_send_en_shift) // Õ³ÖÍÖÃÎ»
+        else if((~cmd_actual_sending) & cmd_to_send_en_shift) // ç²˜æ»ç½®ä½
             # simulation_delay cmd_actual_sending <= sending_cmd_bit_i == (cmd_pre_p_num - 1);
     end
     
-    // µ±Ç°·¢ËÍÃüÁîµÄÎ»±àºÅ(¼ÆÊıÆ÷)
+    // å½“å‰å‘é€å‘½ä»¤çš„ä½ç¼–å·(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay sending_cmd_bit_i <= 6'd0;
-        else if(cmd_to_send_en_shift) // ×ÔÔö
+        else if(cmd_to_send_en_shift) // è‡ªå¢
             # simulation_delay sending_cmd_bit_i <= sending_cmd_bit_i + 6'd1;
     end
     
-    // ÃüÁîÎ»ÓòÑ¡Ôñ
+    // å‘½ä»¤ä½åŸŸé€‰æ‹©
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay cmd_bit_region <= CMD_DATA_REGION;
-        else if((cmd_bit_region != CMD_CRC_END_REGION) & cmd_to_send_en_shift) // Õ³ÖÍ¸üĞÂ
+        else if((cmd_bit_region != CMD_CRC_END_REGION) & cmd_to_send_en_shift) // ç²˜æ»æ›´æ–°
             # simulation_delay cmd_bit_region <= (sending_cmd_bit_i == (39 + cmd_pre_p_num)) ? CMD_CRC_END_REGION:
                 CMD_DATA_REGION; // hold
     end
     
     /**
-	ÃüÁî·¢ËÍ¼ä¸ô¿ØÖÆ
+	å‘½ä»¤å‘é€é—´éš”æ§åˆ¶
 	
-	±£Ö¤Á½ÌõÃüÁîÖ®¼ä¼ä¸ô >= cmd_itv
+	ä¿è¯ä¸¤æ¡å‘½ä»¤ä¹‹é—´é—´éš” >= cmd_itv
 	**/
-	wire sdio_clk_posedge_arrived; // SDIOÊ±ÖÓÉÏÉıÑØµ½´ï(Âö³å)
-    reg[clogb2(cmd_itv-1):0] cmd_itv_cnt; // ÃüÁî·¢ËÍ¼ä¸ô¿ØÖÆ(¼ÆÊıÆ÷)
+	wire sdio_clk_posedge_arrived; // SDIOæ—¶é’Ÿä¸Šå‡æ²¿åˆ°è¾¾(è„‰å†²)
+    reg[clogb2(cmd_itv-1):0] cmd_itv_cnt; // å‘½ä»¤å‘é€é—´éš”æ§åˆ¶(è®¡æ•°å™¨)
 	
 	assign sdio_clk_posedge_arrived = sdio_in_sample;
     
-    // ÃüÁî·¢ËÍ¼ä¸ôÂú×ãÒªÇó(±êÖ¾)
+    // å‘½ä»¤å‘é€é—´éš”æ»¡è¶³è¦æ±‚(æ ‡å¿—)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             cmd_itv_satisfied <= 1'b1;
-        else if(cmd_done) // ÇåÁã
+        else if(cmd_done) // æ¸…é›¶
             # simulation_delay cmd_itv_satisfied <= 1'b0;
-        else if((~cmd_itv_satisfied) & sdio_clk_posedge_arrived) // Õ³ÖÍÖÃÎ», ²¶»ñcmd_itv¸ösdioÊ±ÖÓÉÏÉıÑØ
+        else if((~cmd_itv_satisfied) & sdio_clk_posedge_arrived) // ç²˜æ»ç½®ä½, æ•è·cmd_itvä¸ªsdioæ—¶é’Ÿä¸Šå‡æ²¿
             # simulation_delay cmd_itv_satisfied <= cmd_itv_cnt == (cmd_itv - 1);
     end
-    // ÃüÁî·¢ËÍ¼ä¸ô¿ØÖÆ(¼ÆÊıÆ÷)
+    // å‘½ä»¤å‘é€é—´éš”æ§åˆ¶(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(cmd_done) // ÇåÁã
+        if(cmd_done) // æ¸…é›¶
             # simulation_delay cmd_itv_cnt <= 0;
-        else if(sdio_clk_posedge_arrived) // ×ÔÔö
+        else if(sdio_clk_posedge_arrived) // è‡ªå¢
             # simulation_delay cmd_itv_cnt <= cmd_itv_cnt + 1;
     end
     
-    // ÒÑÈ¡ÃüÁî(±êÖ¾)
+    // å·²å–å‘½ä»¤(æ ‡å¿—)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -596,31 +620,31 @@ module sdio_ctrler #(
                 if(~cmd_fetched)
                     cmd_fetched <= s_axis_cmd_valid & s_axis_cmd_ready;
             end
-            else // Ç¿ÖÆÇåÁã
+            else // å¼ºåˆ¶æ¸…é›¶
                 cmd_fetched <= 1'b0;
         end
     end
     
-    // ¿ªÊ¼·¢ÃüÁî(±êÖ¾)
+    // å¼€å§‹å‘å‘½ä»¤(æ ‡å¿—)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             cmd_send_started <= 1'b0;
-        else if(cmd_to_send_en_shift) // ¸üĞÂ
+        else if(cmd_to_send_en_shift) // æ›´æ–°
             # simulation_delay cmd_send_started <= (ctrler_status == IDLE) ? cmd_fetched:1'b0;
     end
     
-    /** ½ÓÊÕÏìÓ¦¿ØÖÆ **/
-    reg m_axis_resp_valid_reg; // ÏìÓ¦AXISµÄvalidĞÅºÅ
-    wire resp_rd_sample; // ²ÉÑùÏìÓ¦ºÍ¶ÁÊı¾İ(Âö³å)
-    reg start_rev_resp; // ¿ªÊ¼½ÓÊÕÏìÓ¦(±êÖ¾)
-    reg[7:0] receiving_resp_bit_i; // µ±Ç°½ÓÊÕÏìÓ¦µÄÎ»±àºÅ(¼ÆÊıÆ÷)
-    reg[1:0] resp_bit_region; // µ±Ç°½ÓÊÕÏìÓ¦Ëù´¦µÄÎ»Óò(±êÖ¾)
-    reg[119:0] resp_receiving; // ÕıÔÚ½ÓÊÕµÄÏìÓ¦Êı¾İ(ÒÆÎ»¼Ä´æÆ÷)
-    reg resp_en_cal_crc7; // ÏìÓ¦CRC7¼ÆËãÊ¹ÄÜ(±êÖ¾)
-    reg[6:0] crc7_receiving; // ÕıÔÚ½ÓÊÕµÄÏìÓ¦CRC7(ÒÆÎ»¼Ä´æÆ÷)
-    reg[6:0] crc7_cal; // ËãµÃµÄÏìÓ¦CRC7
-    reg crc7_err; // CRC7Ğ£Ñé´íÎó(±êÖ¾)
+    /** æ¥æ”¶å“åº”æ§åˆ¶ **/
+    reg m_axis_resp_valid_reg; // å“åº”AXISçš„validä¿¡å·
+    wire resp_rd_sample; // é‡‡æ ·å“åº”å’Œè¯»æ•°æ®(è„‰å†²)
+    reg start_rev_resp; // å¼€å§‹æ¥æ”¶å“åº”(æ ‡å¿—)
+    reg[7:0] receiving_resp_bit_i; // å½“å‰æ¥æ”¶å“åº”çš„ä½ç¼–å·(è®¡æ•°å™¨)
+    reg[1:0] resp_bit_region; // å½“å‰æ¥æ”¶å“åº”æ‰€å¤„çš„ä½åŸŸ(æ ‡å¿—)
+    reg[119:0] resp_receiving; // æ­£åœ¨æ¥æ”¶çš„å“åº”æ•°æ®(ç§»ä½å¯„å­˜å™¨)
+    reg resp_en_cal_crc7; // å“åº”CRC7è®¡ç®—ä½¿èƒ½(æ ‡å¿—)
+    reg[6:0] crc7_receiving; // æ­£åœ¨æ¥æ”¶çš„å“åº”CRC7(ç§»ä½å¯„å­˜å™¨)
+    reg[6:0] crc7_cal; // ç®—å¾—çš„å“åº”CRC7
+    reg crc7_err; // CRC7æ ¡éªŒé”™è¯¯(æ ‡å¿—)
     
     assign m_axis_resp_data = resp_receiving;
     assign m_axis_resp_user = {resp_timeout_flag, (en_resp_rd_crc == "true") ? crc7_err:1'b0, cmd_with_long_resp};
@@ -628,7 +652,7 @@ module sdio_ctrler #(
     
     assign resp_rd_sample = sdio_in_sample;
     
-    // ÏìÓ¦AXISµÄvalidĞÅºÅ
+    // å“åº”AXISçš„validä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -637,45 +661,45 @@ module sdio_ctrler #(
             # simulation_delay m_axis_resp_valid_reg <= m_axis_resp_valid_reg ? (~m_axis_resp_ready):(ctrler_status == TRANS_RESP);
     end
     
-    // ¿ªÊ¼½ÓÊÕÏìÓ¦(±êÖ¾)
+    // å¼€å§‹æ¥æ”¶å“åº”(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay start_rev_resp <= 1'b0;
-        else if((ctrler_status == REV_RESP_RD) & resp_rd_sample & (~sdio_cmd_i)) // ÖÃÎ»
+        else if((ctrler_status == REV_RESP_RD) & resp_rd_sample & (~sdio_cmd_i)) // ç½®ä½
             # simulation_delay start_rev_resp <= 1'b1;
     end
     
-    // µ±Ç°½ÓÊÕÏìÓ¦µÄÎ»±àºÅ(¼ÆÊıÆ÷)
-    // Î»±àºÅ´Ó·½ÏòÎ»¿ªÊ¼
+    // å½“å‰æ¥æ”¶å“åº”çš„ä½ç¼–å·(è®¡æ•°å™¨)
+    // ä½ç¼–å·ä»æ–¹å‘ä½å¼€å§‹
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay receiving_resp_bit_i <= 8'd0;
-        else if(start_rev_resp & resp_rd_sample) // ×ÔÔö
+        else if(start_rev_resp & resp_rd_sample) // è‡ªå¢
             # simulation_delay receiving_resp_bit_i <= receiving_resp_bit_i + 8'd1;
     end
     
-    // µ±Ç°½ÓÊÕÏìÓ¦Ëù´¦µÄÎ»Óò(±êÖ¾)
+    // å½“å‰æ¥æ”¶å“åº”æ‰€å¤„çš„ä½åŸŸ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay resp_bit_region <= RESP_BIT_REGION_NOT_CARE;
-        else if(start_rev_resp & resp_rd_sample) // ¸üĞÂ
+        else if(start_rev_resp & resp_rd_sample) // æ›´æ–°
         begin
             # simulation_delay;
             
             case(resp_bit_region)
-                RESP_BIT_REGION_NOT_CARE: // Î»Óò:²»¹ØĞÄÓò
+                RESP_BIT_REGION_NOT_CARE: // ä½åŸŸ:ä¸å…³å¿ƒåŸŸ
                     if((cmd_resp_type == RESP_TYPE_LONG_RESP) ? (receiving_resp_bit_i == 8'd6):(receiving_resp_bit_i == 8'd0))
                         resp_bit_region <= RESP_BIT_REGION_DATA;
-                RESP_BIT_REGION_DATA: // Î»Óò:Êı¾İÓò
+                RESP_BIT_REGION_DATA: // ä½åŸŸ:æ•°æ®åŸŸ
                     if((cmd_resp_type == RESP_TYPE_LONG_RESP) ? (receiving_resp_bit_i == 8'd126):(receiving_resp_bit_i == 8'd38))
                         resp_bit_region <= RESP_BIT_REGION_CRC;
-                RESP_BIT_REGION_CRC: // Î»Óò:CRCÓò
+                RESP_BIT_REGION_CRC: // ä½åŸŸ:CRCåŸŸ
                     if((cmd_resp_type == RESP_TYPE_LONG_RESP) ? (receiving_resp_bit_i == 8'd133):(receiving_resp_bit_i == 8'd45))
                         resp_bit_region <= RESP_BIT_REGION_END;
-                RESP_BIT_REGION_END: // Î»Óò:½áÊøÓò
+                RESP_BIT_REGION_END: // ä½åŸŸ:ç»“æŸåŸŸ
                     resp_bit_region <= RESP_BIT_REGION_END; // hold
                 default:
                     resp_bit_region <= RESP_BIT_REGION_NOT_CARE;
@@ -683,14 +707,14 @@ module sdio_ctrler #(
         end
     end
     
-    // ÏìÓ¦CRC7¼ÆËãÊ¹ÄÜ(±êÖ¾)
+    // å“åº”CRC7è®¡ç®—ä½¿èƒ½(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay resp_en_cal_crc7 <= 1'b0;
-        else if(resp_rd_sample) // ¸üĞÂ
+        else if(resp_rd_sample) // æ›´æ–°
         begin
-            if(~start_rev_resp) // ³õÊ¼»¯
+            if(~start_rev_resp) // åˆå§‹åŒ–
                 # simulation_delay resp_en_cal_crc7 <= (cmd_resp_type == RESP_TYPE_LONG_RESP) ? 1'b0:((ctrler_status == REV_RESP_RD) & (~sdio_cmd_i));
             else
             begin
@@ -704,26 +728,26 @@ module sdio_ctrler #(
         end
     end
     
-    // ÒÆÈëÏìÓ¦Êı¾İºÍCRC7
-    // ÕıÔÚ½ÓÊÕµÄÏìÓ¦Êı¾İ(ÒÆÎ»¼Ä´æÆ÷)
+    // ç§»å…¥å“åº”æ•°æ®å’ŒCRC7
+    // æ­£åœ¨æ¥æ”¶çš„å“åº”æ•°æ®(ç§»ä½å¯„å­˜å™¨)
     always @(posedge clk)
     begin
-        if(start_rev_resp & resp_rd_sample & (resp_bit_region == RESP_BIT_REGION_DATA)) // Ïò×óÒÆÈë
+        if(start_rev_resp & resp_rd_sample & (resp_bit_region == RESP_BIT_REGION_DATA)) // å‘å·¦ç§»å…¥
             # simulation_delay resp_receiving <= {resp_receiving[118:0], sdio_cmd_i};
     end
-    // ÕıÔÚ½ÓÊÕµÄÏìÓ¦CRC7(ÒÆÎ»¼Ä´æÆ÷)
+    // æ­£åœ¨æ¥æ”¶çš„å“åº”CRC7(ç§»ä½å¯„å­˜å™¨)
     always @(posedge clk)
     begin
-        if(start_rev_resp & resp_rd_sample & (resp_bit_region == RESP_BIT_REGION_CRC)) // Ïò×óÒÆÈë
+        if(start_rev_resp & resp_rd_sample & (resp_bit_region == RESP_BIT_REGION_CRC)) // å‘å·¦ç§»å…¥
             # simulation_delay crc7_receiving <= {crc7_receiving[5:0], sdio_cmd_i};
     end
     
-    // ËãµÃµÄÏìÓ¦CRC7
+    // ç®—å¾—çš„å“åº”CRC7
     /*
-    º¯Êı: CRC7Ã¿ÊäÈëÒ»¸öbitÊ±µÄ¸üĞÂÂß¼­
-    ²ÎÊı: crc: ¾ÉµÄCRC7
-          inbit: ÊäÈëµÄbit
-    ·µ»ØÖµ: ¸üĞÂºóµÄ CRC7
+    å‡½æ•°: CRC7æ¯è¾“å…¥ä¸€ä¸ªbitæ—¶çš„æ›´æ–°é€»è¾‘
+    å‚æ•°: crc: æ—§çš„CRC7
+          inbit: è¾“å…¥çš„bit
+    è¿”å›å€¼: æ›´æ–°åçš„ CRC7
     function automatic logic[6:0] CalcCrc7(input[6:0] crc, input inbit);
         logic xorb = crc[6] ^ inbit;
 		
@@ -732,96 +756,96 @@ module sdio_ctrler #(
     */
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ³õÊ¼»¯
-            // ÆğÊ¼Î» -> 7'd0 ^ {3'b000, 1'b0 ^ 1'b0, 2'b00, 1'b0 ^ 1'b0} = 7'd0
+        if(ctrler_status == IDLE) // åˆå§‹åŒ–
+            // èµ·å§‹ä½ -> 7'd0 ^ {3'b000, 1'b0 ^ 1'b0, 2'b00, 1'b0 ^ 1'b0} = 7'd0
             # simulation_delay crc7_cal <= 7'd0;
-        else if(start_rev_resp & resp_rd_sample & resp_en_cal_crc7) // ¸üĞÂCRC7
+        else if(start_rev_resp & resp_rd_sample & resp_en_cal_crc7) // æ›´æ–°CRC7
             # simulation_delay crc7_cal <= {crc7_cal[5:0], 1'b0} ^ {3'b000, crc7_cal[6] ^ sdio_cmd_i, 2'b00, crc7_cal[6] ^ sdio_cmd_i};
     end
     
-    // CRC7Ğ£Ñé´íÎó(±êÖ¾)
+    // CRC7æ ¡éªŒé”™è¯¯(æ ‡å¿—)
     always @(posedge clk)
     begin
         if(start_rev_resp & resp_rd_sample & (resp_bit_region == RESP_BIT_REGION_CRC) & 
-            ((cmd_resp_type == RESP_TYPE_LONG_RESP) ? (receiving_resp_bit_i == 8'd133):(receiving_resp_bit_i == 8'd45))) // ¼ÆËã²¢Ëø´æ
+            ((cmd_resp_type == RESP_TYPE_LONG_RESP) ? (receiving_resp_bit_i == 8'd133):(receiving_resp_bit_i == 8'd45))) // è®¡ç®—å¹¶é”å­˜
             # simulation_delay crc7_err <= {crc7_receiving[5:0], sdio_cmd_i} != (cmd_with_r3_resp ? 7'b111_1111:crc7_cal);
     end
     
-    // ÏìÓ¦½ÓÊÕÍê³É(±êÖ¾)
+    // å“åº”æ¥æ”¶å®Œæˆ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay resp_received <= 1'b0;
-        else if(start_rev_resp & resp_rd_sample) // ÖÃÎ»
+        else if(start_rev_resp & resp_rd_sample) // ç½®ä½
             # simulation_delay resp_received <= resp_bit_region == RESP_BIT_REGION_END;
     end
     
-    /** ÏìÓ¦³¬Ê±¿ØÖÆ **/
-    // µ±ÏìÓ¦Ê±¼ä >= resp_timeoutÊ±·¢Éú³¬Ê±
-    reg[clogb2(resp_timeout-1):0] resp_timeout_cnt; // ÏìÓ¦³¬Ê±(¼ÆÊıÆ÷)
+    /** å“åº”è¶…æ—¶æ§åˆ¶ **/
+    // å½“å“åº”æ—¶é—´ >= resp_timeoutæ—¶å‘ç”Ÿè¶…æ—¶
+    reg[clogb2(resp_timeout-1):0] resp_timeout_cnt; // å“åº”è¶…æ—¶(è®¡æ•°å™¨)
     
-    // ÏìÓ¦³¬Ê±(±êÖ¾)
+    // å“åº”è¶…æ—¶(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay resp_timeout_flag <= 1'b0;
-        else if((~resp_timeout_flag) & (~start_rev_resp) & (ctrler_status == REV_RESP_RD) & resp_rd_sample & sdio_cmd_i) // Õ³ÖÍÖÃÎ»
+        else if((~resp_timeout_flag) & (~start_rev_resp) & (ctrler_status == REV_RESP_RD) & resp_rd_sample & sdio_cmd_i) // ç²˜æ»ç½®ä½
             # simulation_delay resp_timeout_flag <= resp_timeout_cnt == (resp_timeout - 1);
     end
-    // ÏìÓ¦³¬Ê±(¼ÆÊıÆ÷)
+    // å“åº”è¶…æ—¶(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay resp_timeout_cnt <= 0;
-        else if((~start_rev_resp) & (ctrler_status == REV_RESP_RD) & resp_rd_sample & sdio_cmd_i) // ×ÔÔö
+        else if((~start_rev_resp) & (ctrler_status == REV_RESP_RD) & resp_rd_sample & sdio_cmd_i) // è‡ªå¢
             # simulation_delay resp_timeout_cnt <= resp_timeout_cnt + 1;
     end
     
-    /** ÏìÓ¦ºóbusy¼à²â **/
-    // ×î¶à½øĞĞresp_with_busy_timeout¸öÖÜÆÚµÄbusy¼à²â
-    reg[clogb2(resp_with_busy_timeout-1):0] resp_busy_timeout_cnt; // ÏìÓ¦ºóbusy¼à²â³¬Ê±(¼ÆÊıÆ÷)
-    reg resp_busy_timeout_last; // ÏìÓ¦ºóbusy¼à²â´¦ÓÚ×îºó1¸öÖÜÆÚ(±êÖ¾)
-    reg[1:0] resp_busy_detect_status; // ÏìÓ¦ºóbusy¼à²â×´Ì¬
+    /** å“åº”åbusyç›‘æµ‹ **/
+    // æœ€å¤šè¿›è¡Œresp_with_busy_timeoutä¸ªå‘¨æœŸçš„busyç›‘æµ‹
+    reg[clogb2(resp_with_busy_timeout-1):0] resp_busy_timeout_cnt; // å“åº”åbusyç›‘æµ‹è¶…æ—¶(è®¡æ•°å™¨)
+    reg resp_busy_timeout_last; // å“åº”åbusyç›‘æµ‹å¤„äºæœ€å1ä¸ªå‘¨æœŸ(æ ‡å¿—)
+    reg[1:0] resp_busy_detect_status; // å“åº”åbusyç›‘æµ‹çŠ¶æ€
     
-    // ÏìÓ¦ºóbusy¼à²â³¬Ê±(¼ÆÊıÆ÷)
+    // å“åº”åbusyç›‘æµ‹è¶…æ—¶(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay resp_busy_timeout_cnt <= 0;
-        else if((resp_busy_detect_status == RESP_WAIT_BUSY) & resp_rd_sample) // ×ÔÔö
+        else if((resp_busy_detect_status == RESP_WAIT_BUSY) & resp_rd_sample) // è‡ªå¢
             # simulation_delay resp_busy_timeout_cnt <= resp_busy_timeout_cnt + 1;
     end
-    // ÏìÓ¦ºóbusy¼à²â´¦ÓÚ×îºó1¸öÖÜÆÚ(±êÖ¾)
+    // å“åº”åbusyç›‘æµ‹å¤„äºæœ€å1ä¸ªå‘¨æœŸ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay resp_busy_timeout_last <= 1'b0;
-        else if((resp_busy_detect_status == RESP_WAIT_BUSY) & resp_rd_sample) // ¸üĞÂ
+        else if((resp_busy_detect_status == RESP_WAIT_BUSY) & resp_rd_sample) // æ›´æ–°
             # simulation_delay resp_busy_timeout_last <= resp_busy_timeout_cnt == (resp_with_busy_timeout - 2);
     end
     
-    // ÏìÓ¦ºóbusy¼à²â×´Ì¬
+    // å“åº”åbusyç›‘æµ‹çŠ¶æ€
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay resp_busy_detect_status <= RESP_BUSY_DETECT_IDLE;
         else if(start_rev_resp & resp_rd_sample)
         begin
             # simulation_delay;
             
             case(resp_busy_detect_status)
-                RESP_BUSY_DETECT_IDLE: // ×´Ì¬:¼à²â´ı¿ªÊ¼
+                RESP_BUSY_DETECT_IDLE: // çŠ¶æ€:ç›‘æµ‹å¾…å¼€å§‹
                     if(resp_received & (cmd_resp_type == RESP_TYPE_RESP_WITH_BUSY))
                         resp_busy_detect_status <= RESP_WAIT_BUSY;
-                RESP_WAIT_BUSY: // ×´Ì¬:¼à²âbusyĞÅºÅ
-                    if(~sdio_d0_i) // ¼ì²âµ½busy
+                RESP_WAIT_BUSY: // çŠ¶æ€:ç›‘æµ‹busyä¿¡å·
+                    if(~sdio_d0_i) // æ£€æµ‹åˆ°busy
                         resp_busy_detect_status <= RESP_WAIT_IDLE;
-                    else if(resp_busy_timeout_last) // busy¼à²â³¬Ê±
+                    else if(resp_busy_timeout_last) // busyç›‘æµ‹è¶…æ—¶
                         resp_busy_detect_status <= RESP_BUSY_DETECT_FINISH;
-                RESP_WAIT_IDLE: // ×´Ì¬:µÈ´ı´Ó»úidle
+                RESP_WAIT_IDLE: // çŠ¶æ€:ç­‰å¾…ä»æœºidle
                     if(sdio_d0_i)
                         resp_busy_detect_status <= RESP_BUSY_DETECT_FINISH;
-                RESP_BUSY_DETECT_FINISH: // ×´Ì¬:¼à²âÍê³É
+                RESP_BUSY_DETECT_FINISH: // çŠ¶æ€:ç›‘æµ‹å®Œæˆ
                     resp_busy_detect_status <= RESP_BUSY_DETECT_FINISH; // hold
                 default:
                     resp_busy_detect_status <= RESP_BUSY_DETECT_IDLE;
@@ -829,54 +853,54 @@ module sdio_ctrler #(
         end
     end
     
-    // Íê³ÉÏìÓ¦ºóbusy¼à²â(±êÖ¾)
+    // å®Œæˆå“åº”åbusyç›‘æµ‹(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay resp_busy_detect_finished <= 1'b0;
-        else if((~resp_busy_detect_finished) & (start_rev_resp & resp_rd_sample) & sdio_d0_i) // Õ³ÖÍÖÃÎ»
+        else if((~resp_busy_detect_finished) & (start_rev_resp & resp_rd_sample) & sdio_d0_i) // ç²˜æ»ç½®ä½
             # simulation_delay resp_busy_detect_finished <= ((resp_busy_detect_status == RESP_WAIT_BUSY) & resp_busy_timeout_last) |
                 (resp_busy_detect_status == RESP_WAIT_IDLE);
     end
     
-    /** ¶ÁÊı¾İ¿ØÖÆ **/
+    /** è¯»æ•°æ®æ§åˆ¶ **/
     /*
-    ÊµÏÖÁËµ¥¿é/¶à¿é¶Á
-    Ã¿¿é¹Ì¶¨Îª512Byte(128*4Byte)
+    å®ç°äº†å•å—/å¤šå—è¯»
+    æ¯å—å›ºå®šä¸º512Byte(128*4Byte)
     */
-    reg[31:0] m_axis_rd_data_regs; // ¶ÁÊı¾İAXISµÄdataĞÅºÅ
-    reg m_axis_rd_valid_reg; // ¶ÁÊı¾İAXISµÄvalidĞÅºÅ
-    reg m_axis_rd_last_reg; // ¶ÁÊı¾İAXISµÄlastĞÅºÅ
-    reg start_rd_data; // ¿ªÊ¼¶ÁÊı¾İ(±êÖ¾)
-    reg[31:0] rd_data_packet; // ¶ÁÈ¡µÄÒ»×éÊı¾İ -> {byte1, byte2, byte3, byte4}
-    reg[4:0] rd_data_cnt_in_packet; // ¶ÁÈ¡Ò»×éÊı¾İµÄ½ø¶È(¼ÆÊıÆ÷)
-    reg rd_data_last_in_packet; // µ±Ç°¶ÁÈ¡±¾×éÊı¾İµÄ×îºó1´Î(±êÖ¾)
-    reg[6:0] rd_data_packet_n; // ÒÑ¶ÁÈ¡µÄÊı¾İ×éÊı-1(¼ÆÊıÆ÷)
-    reg rd_data_last; // ¶ÁÈ¡×îºó1´Î(±êÖ¾)
-    reg[1:0] rd_data_region; // ¶ÁÊı¾İËù´¦Óò
-    reg[15:0] rd_patch_cnt; // ÒÑ¶Á¿é¸öÊı(¼ÆÊıÆ÷)
-    reg[15:0] rd_crc16_cal[3:0]; // ¼ÆËãµÄCRC16
-    reg[15:0] rd_crc16_rev[3:0]; // ½ÓÊÕµÄCRC16
-    reg[3:0] rd_crc16_rev_cnt; // ½ÓÊÕCRC16½ø¶È(¼ÆÊıÆ÷)
-    reg rd_crc16_rev_last; // ½ÓÊÕ×îºó1¸öCRC16Î»(±êÖ¾)
-    reg[4:0] m_axis_rd_sts_data_regs; // ¶ÁÊı¾İ·µ»Ø½á¹ûAXISµÄdata
-    reg m_axis_rd_sts_valid_reg; // ¶ÁÊı¾İ·µ»Ø½á¹ûAXISµÄvalid
+    reg[31:0] m_axis_rd_data_regs; // è¯»æ•°æ®AXISçš„dataä¿¡å·
+    reg m_axis_rd_valid_reg; // è¯»æ•°æ®AXISçš„validä¿¡å·
+    reg m_axis_rd_last_reg; // è¯»æ•°æ®AXISçš„lastä¿¡å·
+    reg start_rd_data; // å¼€å§‹è¯»æ•°æ®(æ ‡å¿—)
+    reg[31:0] rd_data_packet; // è¯»å–çš„ä¸€ç»„æ•°æ® -> {byte1, byte2, byte3, byte4}
+    reg[4:0] rd_data_cnt_in_packet; // è¯»å–ä¸€ç»„æ•°æ®çš„è¿›åº¦(è®¡æ•°å™¨)
+    reg rd_data_last_in_packet; // å½“å‰è¯»å–æœ¬ç»„æ•°æ®çš„æœ€å1æ¬¡(æ ‡å¿—)
+    reg[6:0] rd_data_packet_n; // å·²è¯»å–çš„æ•°æ®ç»„æ•°-1(è®¡æ•°å™¨)
+    reg rd_data_last; // è¯»å–æœ€å1æ¬¡(æ ‡å¿—)
+    reg[1:0] rd_data_region; // è¯»æ•°æ®æ‰€å¤„åŸŸ
+    reg[15:0] rd_patch_cnt; // å·²è¯»å—ä¸ªæ•°(è®¡æ•°å™¨)
+    reg[15:0] rd_crc16_cal[3:0]; // è®¡ç®—çš„CRC16
+    reg[15:0] rd_crc16_rev[3:0]; // æ¥æ”¶çš„CRC16
+    reg[3:0] rd_crc16_rev_cnt; // æ¥æ”¶CRC16è¿›åº¦(è®¡æ•°å™¨)
+    reg rd_crc16_rev_last; // æ¥æ”¶æœ€å1ä¸ªCRC16ä½(æ ‡å¿—)
+    reg[4:0] m_axis_rd_sts_data_regs; // è¯»æ•°æ®è¿”å›ç»“æœAXISçš„data
+    reg m_axis_rd_sts_valid_reg; // è¯»æ•°æ®è¿”å›ç»“æœAXISçš„valid
     
-    assign m_axis_rd_data = {m_axis_rd_data_regs[7:0], m_axis_rd_data_regs[15:8], m_axis_rd_data_regs[23:16], m_axis_rd_data_regs[31:24]}; // °´Ğ¡¶Ë×Ö½ÚĞòÖØĞÂÅÅÁĞ
+    assign m_axis_rd_data = {m_axis_rd_data_regs[7:0], m_axis_rd_data_regs[15:8], m_axis_rd_data_regs[23:16], m_axis_rd_data_regs[31:24]}; // æŒ‰å°ç«¯å­—èŠ‚åºé‡æ–°æ’åˆ—
     assign m_axis_rd_valid = m_axis_rd_valid_reg;
     assign m_axis_rd_last = m_axis_rd_last_reg;
     
     assign m_axis_rd_sts_data = {3'd0, (read_timeout != -1) ? m_axis_rd_sts_data_regs[4]:1'b0, (en_resp_rd_crc == "true") ? m_axis_rd_sts_data_regs[3:0]:4'b0000};
     assign m_axis_rd_sts_valid = m_axis_rd_sts_valid_reg;
     
-    // ¶ÁÊı¾İAXISµÄdataĞÅºÅ
+    // è¯»æ•°æ®AXISçš„dataä¿¡å·
     always @(posedge clk)
     begin
-        if(start_rd_data & resp_rd_sample & rd_data_last_in_packet) // Ëø´æ
+        if(start_rd_data & resp_rd_sample & rd_data_last_in_packet) // é”å­˜
             # simulation_delay m_axis_rd_data_regs <= en_wide_sdio ? {rd_data_packet[27:0], sdio_d3_i, sdio_d2_i, sdio_d1_i, sdio_d0_i}:
                 {rd_data_packet[30:0], sdio_d0_i};
     end
-    // ¶ÁÊı¾İAXISµÄvalidĞÅºÅ
+    // è¯»æ•°æ®AXISçš„validä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -885,7 +909,7 @@ module sdio_ctrler #(
             # simulation_delay m_axis_rd_valid_reg <= m_axis_rd_valid_reg ? (~m_axis_rd_ready):
                 (start_rd_data & resp_rd_sample & rd_data_last_in_packet & (~ignore_rd));
     end
-    // ¶ÁÊı¾İAXISµÄlastĞÅºÅ
+    // è¯»æ•°æ®AXISçš„lastä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -894,81 +918,81 @@ module sdio_ctrler #(
             # simulation_delay m_axis_rd_last_reg <= (rd_data_packet_n == 7'd127) & rd_data_last_in_packet;
     end
     
-    // ¿ªÊ¼¶ÁÊı¾İ(±êÖ¾)
+    // å¼€å§‹è¯»æ•°æ®(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if((ctrler_status != REV_RESP_RD) | (cmd_rw_type != RW_TYPE_READ)) // ÇåÁã
+        if((ctrler_status != REV_RESP_RD) | (cmd_rw_type != RW_TYPE_READ)) // æ¸…é›¶
             # simulation_delay start_rd_data <= 1'b0;
-        else if(resp_rd_sample) // ¸üĞÂ
+        else if(resp_rd_sample) // æ›´æ–°
             # simulation_delay start_rd_data <= start_rd_data ?
                 (~((rd_data_region == RD_REGION_END) & (rd_patch_cnt != rw_patch_n))):
                 (~sdio_d0_i);
     end
     
-    // ¶ÁÈ¡µÄÒ»×éÊı¾İ -> {byte1, byte2, byte3, byte4}
+    // è¯»å–çš„ä¸€ç»„æ•°æ® -> {byte1, byte2, byte3, byte4}
     always @(posedge clk)
     begin
-        if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_DATA)) // Ïò×óÒÆÈë
+        if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_DATA)) // å‘å·¦ç§»å…¥
             # simulation_delay rd_data_packet <= en_wide_sdio ? {rd_data_packet[27:0], sdio_d3_i, sdio_d2_i, sdio_d1_i, sdio_d0_i}:
                 {rd_data_packet[30:0], sdio_d0_i};
     end
     
-    // ¶Á½ø¶È(¼ÆÊıÆ÷ºÍ±êÖ¾)
-    // ¶ÁÈ¡Ò»×éÊı¾İµÄ½ø¶È(¼ÆÊıÆ÷)
+    // è¯»è¿›åº¦(è®¡æ•°å™¨å’Œæ ‡å¿—)
+    // è¯»å–ä¸€ç»„æ•°æ®çš„è¿›åº¦(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // ¸´Î»
+        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // å¤ä½
             # simulation_delay rd_data_cnt_in_packet <= 5'd0;
-        else if(start_rd_data & resp_rd_sample) // ×ÔÔö
+        else if(start_rd_data & resp_rd_sample) // è‡ªå¢
             # simulation_delay rd_data_cnt_in_packet <= rd_data_last_in_packet ? 5'd0:(rd_data_cnt_in_packet + 5'd1);
     end
-    // µ±Ç°¶ÁÈ¡±¾×éÊı¾İµÄ×îºó1´Î
+    // å½“å‰è¯»å–æœ¬ç»„æ•°æ®çš„æœ€å1æ¬¡
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay rd_data_last_in_packet <= 1'b0;
-        else if(start_rd_data & resp_rd_sample) // ¸üĞÂ
+        else if(start_rd_data & resp_rd_sample) // æ›´æ–°
             # simulation_delay rd_data_last_in_packet <= (rd_data_region == RD_REGION_DATA) &
                 (en_wide_sdio ? (rd_data_cnt_in_packet == 5'd6):(rd_data_cnt_in_packet == 5'd30));
     end
-    // ÒÑ¶ÁÈ¡µÄÊı¾İ×éÊı-1(¼ÆÊıÆ÷)
+    // å·²è¯»å–çš„æ•°æ®ç»„æ•°-1(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // ¸´Î»
+        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // å¤ä½
             # simulation_delay rd_data_packet_n <= 7'd0;
-        else if(start_rd_data & resp_rd_sample & rd_data_last_in_packet) // ×ÔÔö
+        else if(start_rd_data & resp_rd_sample & rd_data_last_in_packet) // è‡ªå¢
             # simulation_delay rd_data_packet_n <= rd_data_packet_n + 7'd1;
     end
-    // ¶ÁÈ¡×îºó1´Î(±êÖ¾)
+    // è¯»å–æœ€å1æ¬¡(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay rd_data_last <= 1'b0;
-        else if(start_rd_data & resp_rd_sample) // ¸üĞÂ
+        else if(start_rd_data & resp_rd_sample) // æ›´æ–°
             # simulation_delay rd_data_last <= (rd_data_region == RD_REGION_DATA) &
                 (en_wide_sdio ? (rd_data_cnt_in_packet == 5'd6):(rd_data_cnt_in_packet == 5'd30)) &
                 (rd_data_packet_n == 7'd127);
     end
     
-    // ¶ÁÊı¾İËù´¦Óò
+    // è¯»æ•°æ®æ‰€å¤„åŸŸ
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay rd_data_region <= RD_REGION_DATA;
         else if(start_rd_data & resp_rd_sample)
         begin
             # simulation_delay;
             
             case(rd_data_region)
-                RD_REGION_DATA: // Î»Óò:¶ÁÊı¾İÏÖ´¦ÓÚÊı¾İÓò
+                RD_REGION_DATA: // ä½åŸŸ:è¯»æ•°æ®ç°å¤„äºæ•°æ®åŸŸ
                     if(rd_data_last)
                         rd_data_region <= RD_REGION_CRC;
-                RD_REGION_CRC: // Î»Óò:¶ÁÊı¾İÏÖ´¦ÓÚĞ£ÑéÓò
+                RD_REGION_CRC: // ä½åŸŸ:è¯»æ•°æ®ç°å¤„äºæ ¡éªŒåŸŸ
                     if(rd_crc16_rev_last)
                         rd_data_region <= RD_REGION_END;
-                RD_REGION_END: // Î»Óò:¶ÁÊı¾İÏÖ´¦ÓÚ½áÊøÓò
+                RD_REGION_END: // ä½åŸŸ:è¯»æ•°æ®ç°å¤„äºç»“æŸåŸŸ
                     rd_data_region <= (rd_patch_cnt == rw_patch_n) ? RD_REGION_FINISH:RD_REGION_DATA;
-                RD_REGION_FINISH: // Î»Óò:¶ÁÊı¾İÍê³É
+                RD_REGION_FINISH: // ä½åŸŸ:è¯»æ•°æ®å®Œæˆ
                     rd_data_region <= RD_REGION_FINISH; // hold
                 default:
                     rd_data_region <= RD_REGION_DATA;
@@ -976,30 +1000,30 @@ module sdio_ctrler #(
         end
     end
     
-    // ÒÑ¶Á¿é¸öÊı(¼ÆÊıÆ÷)
+    // å·²è¯»å—ä¸ªæ•°(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay rd_patch_cnt <= 16'd0;
-        else if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_END)) // ×ÔÔö
+        else if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_END)) // è‡ªå¢
             # simulation_delay rd_patch_cnt <= rd_patch_cnt + 16'd1;
     end
     
-    // ¶ÁÍê³É(±êÖ¾)
+    // è¯»å®Œæˆ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay rd_finished <= 1'b0;
-        else if(~rd_finished) // Õ³ÖÍÖÃÎ»
+        else if(~rd_finished) // ç²˜æ»ç½®ä½
             # simulation_delay rd_finished <= rd_data_region == RD_REGION_FINISH;
     end
     
-    // ¼ÆËãµÄCRC16
+    // è®¡ç®—çš„CRC16
     /*
-    º¯Êı: CRC16Ã¿ÊäÈëÒ»¸öbitÊ±µÄ¸üĞÂÂß¼­
-    ²ÎÊı: crc: ¾ÉµÄCRC16
-         inbit: ÊäÈëµÄbit
-    ·µ»ØÖµ: ¸üĞÂºóµÄCRC16
+    å‡½æ•°: CRC16æ¯è¾“å…¥ä¸€ä¸ªbitæ—¶çš„æ›´æ–°é€»è¾‘
+    å‚æ•°: crc: æ—§çš„CRC16
+         inbit: è¾“å…¥çš„bit
+    è¿”å›å€¼: æ›´æ–°åçš„CRC16
     function automatic logic[15:0] CalcCrc16(input[15:0] crc, input inbit);
         logic xorb = crc[15] ^ inbit;
         return (crc << 1) ^ {3'd0, xorb, 6'd0, xorb, 4'd0, xorb};
@@ -1007,7 +1031,7 @@ module sdio_ctrler #(
     */
     always @(posedge clk)
     begin
-        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // ¸´Î»
+        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // å¤ä½
         begin
             # simulation_delay;
             
@@ -1016,7 +1040,7 @@ module sdio_ctrler #(
             rd_crc16_cal[2] <= 16'd0;
             rd_crc16_cal[3] <= 16'd0;
         end
-        else if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_DATA)) // ¸üĞÂCRC16
+        else if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_DATA)) // æ›´æ–°CRC16
         begin
             # simulation_delay;
             
@@ -1031,10 +1055,10 @@ module sdio_ctrler #(
         end
     end
     
-    // ½ÓÊÕµÄCRC16
+    // æ¥æ”¶çš„CRC16
     always @(posedge clk)
     begin
-        if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_CRC)) // Ïò×óÒÆÈë
+        if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_CRC)) // å‘å·¦ç§»å…¥
         begin
             # simulation_delay;
             
@@ -1045,39 +1069,39 @@ module sdio_ctrler #(
         end
     end
     
-    // ½ÓÊÕCRC16½ø¶È(¼ÆÊıÆ÷ºÍ±êÖ¾)
-    // ½ÓÊÕCRC16½ø¶È(¼ÆÊıÆ÷)
+    // æ¥æ”¶CRC16è¿›åº¦(è®¡æ•°å™¨å’Œæ ‡å¿—)
+    // æ¥æ”¶CRC16è¿›åº¦(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(rd_data_region == RD_REGION_DATA) // ¸´Î»
+        if(rd_data_region == RD_REGION_DATA) // å¤ä½
             # simulation_delay rd_crc16_rev_cnt <= 4'd0;
-        else if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_CRC)) // ×ÔÔö
+        else if(start_rd_data & resp_rd_sample & (rd_data_region == RD_REGION_CRC)) // è‡ªå¢
             # simulation_delay rd_crc16_rev_cnt <= rd_crc16_rev_cnt + 4'd1;
     end
-    // ½ÓÊÕ×îºó1¸öCRC16Î»(±êÖ¾)
+    // æ¥æ”¶æœ€å1ä¸ªCRC16ä½(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(rd_data_region == RD_REGION_DATA) // ¸´Î»
+        if(rd_data_region == RD_REGION_DATA) // å¤ä½
             # simulation_delay rd_crc16_rev_last <= 1'b0;
-        else if(start_rd_data & resp_rd_sample) // ¸üĞÂ
+        else if(start_rd_data & resp_rd_sample) // æ›´æ–°
             # simulation_delay rd_crc16_rev_last <= (rd_data_region == RD_REGION_CRC) & (rd_crc16_rev_cnt == 4'd14);
     end
     
-    // ¶ÁÊı¾İ·µ»Ø½á¹ûAXIS
+    // è¯»æ•°æ®è¿”å›ç»“æœAXIS
     // data
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay m_axis_rd_sts_data_regs <= 5'b0_0000;
         else if(((rd_data_region == RD_REGION_CRC) & (resp_rd_sample & rd_crc16_rev_last)) |
             ((read_timeout != -1) & rd_timeout_flag))
         begin
             # simulation_delay;
             
-            // ¶Á³¬Ê±
+            // è¯»è¶…æ—¶
             m_axis_rd_sts_data_regs[4] <= m_axis_rd_sts_data_regs[4] |
                 ((read_timeout != -1) & rd_timeout_flag);
-            // Ğ£Ñé½á¹û
+            // æ ¡éªŒç»“æœ
             m_axis_rd_sts_data_regs[3:0] <= m_axis_rd_sts_data_regs[3:0] |
                 (((read_timeout != -1) & rd_timeout_flag) ? 4'b0000:
                 {
@@ -1093,70 +1117,70 @@ module sdio_ctrler #(
     begin
         if(~resetn)
             m_axis_rd_sts_valid_reg <= 1'b0;
-        else // ²úÉúÂö³å
+        else // äº§ç”Ÿè„‰å†²
             # simulation_delay m_axis_rd_sts_valid_reg <= ((rd_data_region == RD_REGION_CRC) & (resp_rd_sample & rd_crc16_rev_last)) |
                 ((read_timeout != -1) & rd_timeout_flag);
     end
     
-    /** ¶ÁÊı¾İ³¬Ê±¿ØÖÆ **/
-    reg[clogb2(read_timeout-1):0] rd_timeout_cnt; // ¶Á³¬Ê±¼ÆÊıÆ÷
+    /** è¯»æ•°æ®è¶…æ—¶æ§åˆ¶ **/
+    reg[clogb2(read_timeout-1):0] rd_timeout_cnt; // è¯»è¶…æ—¶è®¡æ•°å™¨
     
-    // ¶Á³¬Ê±(±êÖ¾)
+    // è¯»è¶…æ—¶(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // ¸´Î»
+        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // å¤ä½
             # simulation_delay rd_timeout_flag <= 1'b0;
-        else if((ctrler_status == REV_RESP_RD) & (~rd_timeout_flag)) // Õ³ÖÍÖÃÎ»
+        else if((ctrler_status == REV_RESP_RD) & (~rd_timeout_flag)) // ç²˜æ»ç½®ä½
             # simulation_delay rd_timeout_flag <= (cmd_rw_type == RW_TYPE_READ) & resp_rd_sample & (~start_rd_data) & sdio_d0_i & (rd_timeout_cnt == (read_timeout - 1));
     end
-    // ¶Á³¬Ê±¼ÆÊıÆ÷
+    // è¯»è¶…æ—¶è®¡æ•°å™¨
     always @(posedge clk)
     begin
-        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // ¸´Î»
+        if((ctrler_status == IDLE) | (rd_data_region == RD_REGION_END)) // å¤ä½
             # simulation_delay rd_timeout_cnt <= 0;
-        else if((ctrler_status == REV_RESP_RD) & (cmd_rw_type == RW_TYPE_READ) & resp_rd_sample & (~start_rd_data) & sdio_d0_i) // ×ÔÔö
+        else if((ctrler_status == REV_RESP_RD) & (cmd_rw_type == RW_TYPE_READ) & resp_rd_sample & (~start_rd_data) & sdio_d0_i) // è‡ªå¢
             # simulation_delay rd_timeout_cnt <= rd_timeout_cnt + 1;
     end
     
-    /** Ğ´Êı¾İ¿ØÖÆ **/
+    /** å†™æ•°æ®æ§åˆ¶ **/
     /*
-    ÊµÏÖÁËµ¥¿é/¶à¿éĞ´
-    Ã¿¿é¹Ì¶¨Îª512Byte(128*4Byte)
+    å®ç°äº†å•å—/å¤šå—å†™
+    æ¯å—å›ºå®šä¸º512Byte(128*4Byte)
     */
-    // sdioÊı¾İÏß
-    reg[3:0] sdio_d_o_regs; // sdioÊı¾İÊä³ö
-    wire sdio_dout_upd; // sdioÊı¾İÊä³ö¸üĞÂÊ¹ÄÜ(Âö³å)
-    wire sdio_sts_sample; // sdioĞ´Êı¾İ·µ»Ø×´Ì¬²ÉÑùÊ¹ÄÜ(Âö³å)
-    // Ğ´Êı¾İAXIS
-	wire to_get_wt_data; // »ñÈ¡Ğ´Êı¾İ(±êÖ¾)
-    reg s_axis_wt_ready_reg; // Ğ´Êı¾İAXISµÄreadyĞÅºÅ
-    // Ğ´Êı¾İ×´Ì¬·µ»ØAXIS
-    reg m_axis_wt_sts_valid_reg; // Ğ´Êı¾İ×´Ì¬·µ»ØAXISµÄvalidĞÅºÅ
-    // Ğ´Êı¾İ½×¶Î
-    reg[2:0] wt_stage; // µ±Ç°Ëù´¦µÄĞ´½×¶Î
-    reg[7:0] wt_patch_cnt; // ÒÑ¶Á¿é¸öÊı(¼ÆÊıÆ÷)
-    // Ğ´µÈ´ı
-    reg[clogb2(data_wt_wait_p-1):0] wt_wait_cnt; // Ğ´µÈ´ı¼ÆÊıÆ÷
-    reg wt_wait_finished; // Ğ´µÈ´ıÍê³É(±êÖ¾)
-    // Ö÷»úÇ¿Çı¶¯µ½¸ßµçÆ½, ÆğÊ¼Î»
-    reg wt_data_buf_initialized; // Ğ´Êı¾İ»º³åÇø³õÊ¼»¯Íê³É±êÖ¾
-    // ÕıÔÚĞ´
-    reg[31:0] wt_data_buf; // Ğ´Êı¾İ»º³åÇø(ÒÆÎ»¼Ä´æÆ÷)
-    reg[4:0] wt_data_cnt_in_packet; // Ğ´Ò»×éÊı¾İµÄ½ø¶È(¼ÆÊıÆ÷)
-    reg wt_data_last_in_packet; // µ±Ç°Ğ´±¾×éÊı¾İµÄ×îºó1´Î(±êÖ¾)
-    reg[6:0] wt_data_packet_n; // ÒÑĞ´µÄÊı¾İ×éÊı-1(¼ÆÊıÆ÷)
-	reg wt_data_packet_last; // ×îºó1×éĞ´Êı¾İ(±êÖ¾)
-    reg wt_data_last; // Ğ´×îºó1´ÎÊı¾İ(±êÖ¾)
-    // Ğ£ÑéºÍ½áÊøÎ»
-    reg[16:0] wt_crc16_end[3:0]; // Ğ´Êı¾İµÄcrc16ºÍ½áÊøÎ»
-    reg[4:0] wt_crc16_end_cnt; // Ğ´crc16ºÍ½áÊøÎ»µÄ½ø¶È(¼ÆÊıÆ÷)
-    reg wt_crc16_end_finished; // Ğ´crc16ºÍ½áÊøÎ»Íê³É(±êÖ¾)
-    // ½ÓÊÕ×´Ì¬ĞÅÏ¢
-    reg[2:0] wt_sts_stage; // Ğ´Êı¾İ½ÓÊÕ×´Ì¬·µ»ØµÄ½×¶Î
-    reg[2:0] wt_sts; // Ğ´Êı¾İ×´Ì¬·µ»Ø
-    reg wt_sts_received; // Ğ´Êı¾İ×´Ì¬·µ»Ø½ÓÊÕÍê³É(±êÖ¾)
-    // µÈ´ı´Ó»úidle
-    reg wt_slave_idle; // ´Ó»ú¿ÕÏĞ(±êÖ¾)
+    // sdioæ•°æ®çº¿
+    reg[3:0] sdio_d_o_regs; // sdioæ•°æ®è¾“å‡º
+    wire sdio_dout_upd; // sdioæ•°æ®è¾“å‡ºæ›´æ–°ä½¿èƒ½(è„‰å†²)
+    wire sdio_sts_sample; // sdioå†™æ•°æ®è¿”å›çŠ¶æ€é‡‡æ ·ä½¿èƒ½(è„‰å†²)
+    // å†™æ•°æ®AXIS
+	wire to_get_wt_data; // è·å–å†™æ•°æ®(æ ‡å¿—)
+    reg s_axis_wt_ready_reg; // å†™æ•°æ®AXISçš„readyä¿¡å·
+    // å†™æ•°æ®çŠ¶æ€è¿”å›AXIS
+    reg m_axis_wt_sts_valid_reg; // å†™æ•°æ®çŠ¶æ€è¿”å›AXISçš„validä¿¡å·
+    // å†™æ•°æ®é˜¶æ®µ
+    reg[2:0] wt_stage; // å½“å‰æ‰€å¤„çš„å†™é˜¶æ®µ
+    reg[7:0] wt_patch_cnt; // å·²è¯»å—ä¸ªæ•°(è®¡æ•°å™¨)
+    // å†™ç­‰å¾…
+    reg[clogb2(data_wt_wait_p-1):0] wt_wait_cnt; // å†™ç­‰å¾…è®¡æ•°å™¨
+    reg wt_wait_finished; // å†™ç­‰å¾…å®Œæˆ(æ ‡å¿—)
+    // ä¸»æœºå¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³, èµ·å§‹ä½
+    reg wt_data_buf_initialized; // å†™æ•°æ®ç¼“å†²åŒºåˆå§‹åŒ–å®Œæˆæ ‡å¿—
+    // æ­£åœ¨å†™
+    reg[31:0] wt_data_buf; // å†™æ•°æ®ç¼“å†²åŒº(ç§»ä½å¯„å­˜å™¨)
+    reg[4:0] wt_data_cnt_in_packet; // å†™ä¸€ç»„æ•°æ®çš„è¿›åº¦(è®¡æ•°å™¨)
+    reg wt_data_last_in_packet; // å½“å‰å†™æœ¬ç»„æ•°æ®çš„æœ€å1æ¬¡(æ ‡å¿—)
+    reg[6:0] wt_data_packet_n; // å·²å†™çš„æ•°æ®ç»„æ•°-1(è®¡æ•°å™¨)
+	reg wt_data_packet_last; // æœ€å1ç»„å†™æ•°æ®(æ ‡å¿—)
+    reg wt_data_last; // å†™æœ€å1æ¬¡æ•°æ®(æ ‡å¿—)
+    // æ ¡éªŒå’Œç»“æŸä½
+    reg[16:0] wt_crc16_end[3:0]; // å†™æ•°æ®çš„crc16å’Œç»“æŸä½
+    reg[4:0] wt_crc16_end_cnt; // å†™crc16å’Œç»“æŸä½çš„è¿›åº¦(è®¡æ•°å™¨)
+    reg wt_crc16_end_finished; // å†™crc16å’Œç»“æŸä½å®Œæˆ(æ ‡å¿—)
+    // æ¥æ”¶çŠ¶æ€ä¿¡æ¯
+    reg[2:0] wt_sts_stage; // å†™æ•°æ®æ¥æ”¶çŠ¶æ€è¿”å›çš„é˜¶æ®µ
+    reg[2:0] wt_sts; // å†™æ•°æ®çŠ¶æ€è¿”å›
+    reg wt_sts_received; // å†™æ•°æ®çŠ¶æ€è¿”å›æ¥æ”¶å®Œæˆ(æ ‡å¿—)
+    // ç­‰å¾…ä»æœºidle
+    reg wt_slave_idle; // ä»æœºç©ºé—²(æ ‡å¿—)
     
     assign s_axis_wt_ready = s_axis_wt_ready_reg;
     assign m_axis_wt_sts_data = {5'd0, wt_sts};
@@ -1170,28 +1194,28 @@ module sdio_ctrler #(
     assign sdio_dout_upd = sdio_out_upd;
     assign sdio_sts_sample = sdio_in_sample;
     
-    // sdioÊı¾İÊä³ö
+    // sdioæ•°æ®è¾“å‡º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             sdio_d_o_regs <= 4'b1111;
-        else if(sdio_dout_upd) // ¸üĞÂ
+        else if(sdio_dout_upd) // æ›´æ–°
         begin
             # simulation_delay;
             
             case(wt_stage)
-                WT_STAGE_WAIT, WT_STAGE_PULL_UP: // ½×¶Î:Ğ´µÈ´ı, Ö÷»úÇ¿Çı¶¯µ½¸ßµçÆ½
+                WT_STAGE_WAIT, WT_STAGE_PULL_UP: // é˜¶æ®µ:å†™ç­‰å¾…, ä¸»æœºå¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³
 					sdio_d_o_regs <= 4'b1111;
-				WT_STAGE_START: // ½×¶Î:ÆğÊ¼Î»
+				WT_STAGE_START: // é˜¶æ®µ:èµ·å§‹ä½
                     sdio_d_o_regs <= {en_wide_sdio ? 3'b000:3'b111, 1'b0};
-				WT_STAGE_TRANS: // ½×¶Î:ÕıÔÚĞ´
+				WT_STAGE_TRANS: // é˜¶æ®µ:æ­£åœ¨å†™
                     sdio_d_o_regs <= en_wide_sdio ? wt_data_buf[31:28]:{3'b111, wt_data_buf[31]};
-				WT_STAGE_CRC_END: // ½×¶Î:Ğ£ÑéºÍ½áÊøÎ»
+				WT_STAGE_CRC_END: // é˜¶æ®µ:æ ¡éªŒå’Œç»“æŸä½
                     sdio_d_o_regs <= wt_crc16_end_finished ?
                         4'b1111:(en_wide_sdio ? {wt_crc16_end[3][16], wt_crc16_end[2][16], 
 							wt_crc16_end[1][16], wt_crc16_end[0][16]}:
 							{3'b111, wt_crc16_end[0][16]});
-				WT_STAGE_STS, WT_STAGE_WAIT_IDLE, WT_STAGE_FINISHED: // ½×¶Î:½ÓÊÕ×´Ì¬ĞÅÏ¢, µÈ´ı´Ó»úidle, Íê³É
+				WT_STAGE_STS, WT_STAGE_WAIT_IDLE, WT_STAGE_FINISHED: // é˜¶æ®µ:æ¥æ”¶çŠ¶æ€ä¿¡æ¯, ç­‰å¾…ä»æœºidle, å®Œæˆ
                     sdio_d_o_regs <= 4'b1111;
                 default:
                     sdio_d_o_regs <= 4'b1111;
@@ -1199,7 +1223,7 @@ module sdio_ctrler #(
         end
     end
     
-    // Ğ´Êı¾İAXISµÄreadyĞÅºÅ
+    // å†™æ•°æ®AXISçš„readyä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -1209,14 +1233,14 @@ module sdio_ctrler #(
             # simulation_delay;
             
             case(wt_stage)
-                WT_STAGE_WAIT: // ½×¶Î:Ğ´µÈ´ı
+                WT_STAGE_WAIT: // é˜¶æ®µ:å†™ç­‰å¾…
                     s_axis_wt_ready_reg <= sdio_dout_upd & wt_wait_finished;
-                WT_STAGE_PULL_UP, WT_STAGE_START: // ½×¶Î:Ö÷»úÇ¿Çı¶¯µ½¸ßµçÆ½, ÆğÊ¼Î»
+                WT_STAGE_PULL_UP, WT_STAGE_START: // é˜¶æ®µ:ä¸»æœºå¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³, èµ·å§‹ä½
                     s_axis_wt_ready_reg <= (~wt_data_buf_initialized) & (~s_axis_wt_valid);
-                WT_STAGE_TRANS: // ½×¶Î:ÕıÔÚĞ´
+                WT_STAGE_TRANS: // é˜¶æ®µ:æ­£åœ¨å†™
                     s_axis_wt_ready_reg <= s_axis_wt_ready_reg ? (~s_axis_wt_valid):
 						(sdio_dout_upd & to_get_wt_data & (~wt_data_packet_last));
-                WT_STAGE_CRC_END, WT_STAGE_STS, WT_STAGE_WAIT_IDLE, WT_STAGE_FINISHED: // ½×¶Î:Ğ£ÑéºÍ½áÊøÎ», ½ÓÊÕ×´Ì¬ĞÅÏ¢, µÈ´ı´Ó»úidle, Íê³É
+                WT_STAGE_CRC_END, WT_STAGE_STS, WT_STAGE_WAIT_IDLE, WT_STAGE_FINISHED: // é˜¶æ®µ:æ ¡éªŒå’Œç»“æŸä½, æ¥æ”¶çŠ¶æ€ä¿¡æ¯, ç­‰å¾…ä»æœºidle, å®Œæˆ
                     s_axis_wt_ready_reg <= 1'b0;
                 default:
                     s_axis_wt_ready_reg <= 1'b0;
@@ -1224,38 +1248,38 @@ module sdio_ctrler #(
         end
     end
     
-    // Ğ´Êı¾İ½×¶Î
+    // å†™æ•°æ®é˜¶æ®µ
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay wt_stage <= WT_STAGE_WAIT;
         else
         begin
             # simulation_delay;
             
             case(wt_stage)
-                WT_STAGE_WAIT: // ½×¶Î:Ğ´µÈ´ı
+                WT_STAGE_WAIT: // é˜¶æ®µ:å†™ç­‰å¾…
                     if(sdio_dout_upd & wt_wait_finished)
                         wt_stage <= WT_STAGE_PULL_UP;
-                WT_STAGE_PULL_UP: // ½×¶Î:Ö÷»úÇ¿Çı¶¯µ½¸ßµçÆ½
+                WT_STAGE_PULL_UP: // é˜¶æ®µ:ä¸»æœºå¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³
                     if(sdio_dout_upd)
                         wt_stage <= WT_STAGE_START;
-                WT_STAGE_START: // ½×¶Î:ÆğÊ¼Î»
+                WT_STAGE_START: // é˜¶æ®µ:èµ·å§‹ä½
                     if(sdio_dout_upd & wt_data_buf_initialized)
                         wt_stage <= WT_STAGE_TRANS;
-                WT_STAGE_TRANS: // ½×¶Î:ÕıÔÚĞ´
+                WT_STAGE_TRANS: // é˜¶æ®µ:æ­£åœ¨å†™
                     if(sdio_dout_upd & wt_data_last)
                         wt_stage <= WT_STAGE_CRC_END;
-                WT_STAGE_CRC_END: // ½×¶Î:Ğ£ÑéºÍ½áÊøÎ»
+                WT_STAGE_CRC_END: // é˜¶æ®µ:æ ¡éªŒå’Œç»“æŸä½
                     if(sdio_dout_upd & wt_crc16_end_finished)
                         wt_stage <= WT_STAGE_STS;
-                WT_STAGE_STS: // ½×¶Î:½ÓÊÕ×´Ì¬ĞÅÏ¢
+                WT_STAGE_STS: // é˜¶æ®µ:æ¥æ”¶çŠ¶æ€ä¿¡æ¯
                     if(wt_sts_received)
                         wt_stage <= WT_STAGE_WAIT_IDLE;
-                WT_STAGE_WAIT_IDLE: // ½×¶Î:µÈ´ı´Ó»úidle
+                WT_STAGE_WAIT_IDLE: // é˜¶æ®µ:ç­‰å¾…ä»æœºidle
                     if(wt_slave_idle)
                         wt_stage <= (wt_patch_cnt == rw_patch_n) ? WT_STAGE_FINISHED:WT_STAGE_WAIT;
-                WT_STAGE_FINISHED: // ½×¶Î:Íê³É
+                WT_STAGE_FINISHED: // é˜¶æ®µ:å®Œæˆ
                     wt_stage <= WT_STAGE_FINISHED; // hold
                 default:
                     wt_stage <= WT_STAGE_WAIT;
@@ -1263,120 +1287,120 @@ module sdio_ctrler #(
         end
     end
     
-    // ÒÑ¶Á¿é¸öÊı(¼ÆÊıÆ÷)
+    // å·²è¯»å—ä¸ªæ•°(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ¸´Î»
+        if(ctrler_status == IDLE) // å¤ä½
             # simulation_delay wt_patch_cnt <= 8'd0;
-        else if((wt_stage == WT_STAGE_WAIT_IDLE) & wt_slave_idle) // ×ÔÔö
+        else if((wt_stage == WT_STAGE_WAIT_IDLE) & wt_slave_idle) // è‡ªå¢
             # simulation_delay wt_patch_cnt <= wt_patch_cnt + 8'd1;
     end
     
-    // Ğ´Íê³É(±êÖ¾)
+    // å†™å®Œæˆ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(ctrler_status == IDLE) // ÇåÁã
+        if(ctrler_status == IDLE) // æ¸…é›¶
             # simulation_delay wt_finished <= 1'b0;
-        else if((wt_stage == WT_STAGE_WAIT_IDLE) & wt_slave_idle) // ¸üĞÂ
+        else if((wt_stage == WT_STAGE_WAIT_IDLE) & wt_slave_idle) // æ›´æ–°
             # simulation_delay wt_finished <= wt_patch_cnt == rw_patch_n;
     end
     
-    // ½×¶Î:Ğ´µÈ´ı
-    // Ğ´µÈ´ı¼ÆÊıÆ÷
+    // é˜¶æ®µ:å†™ç­‰å¾…
+    // å†™ç­‰å¾…è®¡æ•°å™¨
     always @(posedge clk)
     begin
-        if((ctrler_status == IDLE) | (wt_stage == WT_STAGE_WAIT_IDLE)) // ¸´Î»
+        if((ctrler_status == IDLE) | (wt_stage == WT_STAGE_WAIT_IDLE)) // å¤ä½
             # simulation_delay wt_wait_cnt <= 0;
-        else if((ctrler_status == WT_DATA) & (wt_stage == WT_STAGE_WAIT) & sdio_dout_upd) // ×ÔÔö
+        else if((ctrler_status == WT_DATA) & (wt_stage == WT_STAGE_WAIT) & sdio_dout_upd) // è‡ªå¢
             # simulation_delay wt_wait_cnt <= wt_wait_cnt + 1;
     end
-    // Ğ´µÈ´ıÍê³É(±êÖ¾)
+    // å†™ç­‰å¾…å®Œæˆ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if((ctrler_status == IDLE) | (wt_stage == WT_STAGE_WAIT_IDLE)) // ÇåÁã
+        if((ctrler_status == IDLE) | (wt_stage == WT_STAGE_WAIT_IDLE)) // æ¸…é›¶
             # simulation_delay wt_wait_finished <= 1'b0;
-        else if((ctrler_status == WT_DATA) & (wt_stage == WT_STAGE_WAIT) & sdio_dout_upd) // ¸üĞÂ
+        else if((ctrler_status == WT_DATA) & (wt_stage == WT_STAGE_WAIT) & sdio_dout_upd) // æ›´æ–°
             # simulation_delay wt_wait_finished <= wt_wait_cnt == (data_wt_wait_p - 1);
     end
     
-    // ½×¶Î:Ö÷»úÇ¿Çı¶¯µ½¸ßµçÆ½, ÆğÊ¼Î»
-    // Ğ´Êı¾İ»º³åÇø³õÊ¼»¯Íê³É±êÖ¾
+    // é˜¶æ®µ:ä¸»æœºå¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³, èµ·å§‹ä½
+    // å†™æ•°æ®ç¼“å†²åŒºåˆå§‹åŒ–å®Œæˆæ ‡å¿—
     always @(posedge clk)
     begin
-        if((wt_stage != WT_STAGE_PULL_UP) & (wt_stage != WT_STAGE_START)) // ÇåÁã
+        if((wt_stage != WT_STAGE_PULL_UP) & (wt_stage != WT_STAGE_START)) // æ¸…é›¶
             # simulation_delay wt_data_buf_initialized <= 1'b0;
-        else if(~wt_data_buf_initialized) // Õ³ÖÍ¸üĞÂ
+        else if(~wt_data_buf_initialized) // ç²˜æ»æ›´æ–°
             # simulation_delay wt_data_buf_initialized <= s_axis_wt_valid & s_axis_wt_ready;
     end
     
-    // ½×¶Î:ÕıÔÚĞ´
-    // Ğ´Êı¾İ»º³åÇø(ÒÆÎ»¼Ä´æÆ÷)
+    // é˜¶æ®µ:æ­£åœ¨å†™
+    // å†™æ•°æ®ç¼“å†²åŒº(ç§»ä½å¯„å­˜å™¨)
     always @(posedge clk)
     begin
-        if(s_axis_wt_valid & s_axis_wt_ready) // ÔØÈë
-            # simulation_delay wt_data_buf <= {s_axis_wt_data[7:0], s_axis_wt_data[15:8], s_axis_wt_data[23:16], s_axis_wt_data[31:24]}; // ×Ö½ÚÖØÅÅĞò
-        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // ×óÒÆ
+        if(s_axis_wt_valid & s_axis_wt_ready) // è½½å…¥
+            # simulation_delay wt_data_buf <= {s_axis_wt_data[7:0], s_axis_wt_data[15:8], s_axis_wt_data[23:16], s_axis_wt_data[31:24]}; // å­—èŠ‚é‡æ’åº
+        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // å·¦ç§»
             # simulation_delay wt_data_buf <= en_wide_sdio ? {wt_data_buf[27:0], 4'dx}:{wt_data_buf[30:0], 1'bx};
     end
     
-    // Ğ´½ø¶È(¼ÆÊıÆ÷ºÍ±êÖ¾)
-    // Ğ´Ò»×éÊı¾İµÄ½ø¶È(¼ÆÊıÆ÷)
+    // å†™è¿›åº¦(è®¡æ•°å™¨å’Œæ ‡å¿—)
+    // å†™ä¸€ç»„æ•°æ®çš„è¿›åº¦(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ¸´Î»
+        if(wt_stage == WT_STAGE_WAIT) // å¤ä½
             # simulation_delay wt_data_cnt_in_packet <= 5'd0;
-        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // ×ÔÔö
+        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // è‡ªå¢
             # simulation_delay wt_data_cnt_in_packet <= wt_data_last_in_packet ? 5'd0:(wt_data_cnt_in_packet + 5'd1);
     end
-    // µ±Ç°Ğ´±¾×éÊı¾İµÄ×îºó1´Î(±êÖ¾)
+    // å½“å‰å†™æœ¬ç»„æ•°æ®çš„æœ€å1æ¬¡(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ÇåÁã
+        if(wt_stage == WT_STAGE_WAIT) // æ¸…é›¶
             # simulation_delay wt_data_last_in_packet <= 1'b0;
-        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // ¸üĞÂ
+        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // æ›´æ–°
             # simulation_delay wt_data_last_in_packet <= en_wide_sdio ? (wt_data_cnt_in_packet == 5'd6):(wt_data_cnt_in_packet == 5'd30);
     end
-    // ÒÑĞ´µÄÊı¾İ×éÊı-1(¼ÆÊıÆ÷)
+    // å·²å†™çš„æ•°æ®ç»„æ•°-1(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ¸´Î»
+        if(wt_stage == WT_STAGE_WAIT) // å¤ä½
             # simulation_delay wt_data_packet_n <= 7'd0;
-        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd & wt_data_last_in_packet) // ×ÔÔö
+        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd & wt_data_last_in_packet) // è‡ªå¢
             # simulation_delay wt_data_packet_n <= wt_data_packet_n + 7'd1;
     end
-	// ×îºó1×éĞ´Êı¾İ(±êÖ¾)
+	// æœ€å1ç»„å†™æ•°æ®(æ ‡å¿—)
 	always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ¸´Î»
+        if(wt_stage == WT_STAGE_WAIT) // å¤ä½
             # simulation_delay wt_data_packet_last <= 7'd0;
-        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd & wt_data_last_in_packet) // ×ÔÔö
+        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd & wt_data_last_in_packet) // è‡ªå¢
             # simulation_delay wt_data_packet_last <= wt_data_packet_n == 7'd126;
     end
-    // Ğ´×îºó1´ÎÊı¾İ(±êÖ¾)
+    // å†™æœ€å1æ¬¡æ•°æ®(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ÇåÁã
+        if(wt_stage == WT_STAGE_WAIT) // æ¸…é›¶
             # simulation_delay wt_data_last <= 1'b0;
-        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // ¸üĞÂ
+        else if((wt_stage == WT_STAGE_TRANS) & sdio_dout_upd) // æ›´æ–°
             # simulation_delay wt_data_last <= (wt_data_packet_n == 7'd127) &
                 (en_wide_sdio ? (wt_data_cnt_in_packet == 5'd6):(wt_data_cnt_in_packet == 5'd30));
     end
     
-    // ½×¶Î:Ğ£ÑéºÍ½áÊøÎ»
+    // é˜¶æ®µ:æ ¡éªŒå’Œç»“æŸä½
     /*
-    º¯Êı: CRC16Ã¿ÊäÈëÒ»¸öbitÊ±µÄ¸üĞÂÂß¼­
-    ²ÎÊı: crc: ¾ÉµÄCRC16
-         inbit: ÊäÈëµÄbit
-    ·µ»ØÖµ: ¸üĞÂºóµÄCRC16
+    å‡½æ•°: CRC16æ¯è¾“å…¥ä¸€ä¸ªbitæ—¶çš„æ›´æ–°é€»è¾‘
+    å‚æ•°: crc: æ—§çš„CRC16
+         inbit: è¾“å…¥çš„bit
+    è¿”å›å€¼: æ›´æ–°åçš„CRC16
     function automatic logic[15:0] CalcCrc16(input[15:0] crc, input inbit);
         logic xorb = crc[15] ^ inbit;
         return (crc << 1) ^ {3'd0, xorb, 6'd0, xorb, 4'd0, xorb};
     endfunction
     */
-    // Ğ´Êı¾İµÄcrc16ºÍ½áÊøÎ»
+    // å†™æ•°æ®çš„crc16å’Œç»“æŸä½
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ¸´Î»
+        if(wt_stage == WT_STAGE_WAIT) // å¤ä½
         begin
             # simulation_delay;
             
@@ -1389,31 +1413,31 @@ module sdio_ctrler #(
         begin
             # simulation_delay;
             
-            if(wt_stage == WT_STAGE_TRANS) // ´¦ÓÚÕıÔÚĞ´½×¶Î, ¸üĞÂCRC16
+            if(wt_stage == WT_STAGE_TRANS) // å¤„äºæ­£åœ¨å†™é˜¶æ®µ, æ›´æ–°CRC16
             begin
                 wt_crc16_end[0] <= {
                     {wt_crc16_end[0][15:1], 1'b0} ^ {3'd0, wt_crc16_end[0][16] ^ (en_wide_sdio ? wt_data_buf[28]:wt_data_buf[31]), 
                         6'd0, wt_crc16_end[0][16] ^ (en_wide_sdio ? wt_data_buf[28]:wt_data_buf[31]),
                         4'd0, wt_crc16_end[0][16] ^ (en_wide_sdio ? wt_data_buf[28]:wt_data_buf[31])}, // CRC16
-                    1'b1 // E:½áÊøÎ»
+                    1'b1 // E:ç»“æŸä½
                 };
                 wt_crc16_end[1] <= {
                     {wt_crc16_end[1][15:1], 1'b0} ^ {3'd0, wt_crc16_end[1][16] ^ wt_data_buf[29], 
                         6'd0, wt_crc16_end[1][16] ^ wt_data_buf[29], 4'd0, wt_crc16_end[1][16] ^ wt_data_buf[29]}, // CRC16
-                    1'b1 // E:½áÊøÎ»
+                    1'b1 // E:ç»“æŸä½
                 };
                 wt_crc16_end[2] <= {
                     {wt_crc16_end[2][15:1], 1'b0} ^ {3'd0, wt_crc16_end[2][16] ^ wt_data_buf[30], 
                         6'd0, wt_crc16_end[2][16] ^ wt_data_buf[30], 4'd0, wt_crc16_end[2][16] ^ wt_data_buf[30]}, // CRC16
-                    1'b1 // E:½áÊøÎ»
+                    1'b1 // E:ç»“æŸä½
                 };
                 wt_crc16_end[3] <= {
                     {wt_crc16_end[3][15:1], 1'b0} ^ {3'd0, wt_crc16_end[3][16] ^ wt_data_buf[31], 
                         6'd0, wt_crc16_end[3][16] ^ wt_data_buf[31], 4'd0, wt_crc16_end[3][16] ^ wt_data_buf[31]}, // CRC16
-                    1'b1 // E:½áÊøÎ»
+                    1'b1 // E:ç»“æŸä½
                 };
             end
-            else if(wt_stage == WT_STAGE_CRC_END) // ´¦ÓÚĞ£ÑéºÍ½áÊøÎ»½×¶Î, ½øĞĞ×óÒÆ
+            else if(wt_stage == WT_STAGE_CRC_END) // å¤„äºæ ¡éªŒå’Œç»“æŸä½é˜¶æ®µ, è¿›è¡Œå·¦ç§»
             begin
                 wt_crc16_end[0] <= {wt_crc16_end[0][15:0], 1'bx};
                 wt_crc16_end[1] <= {wt_crc16_end[1][15:0], 1'bx};
@@ -1423,45 +1447,45 @@ module sdio_ctrler #(
         end
     end
     
-    // Ğ´crc16ºÍ½áÊøÎ»µÄ½ø¶È(¼ÆÊıÆ÷ºÍ±êÖ¾)
-    // Ğ´crc16ºÍ½áÊøÎ»µÄ½ø¶È(¼ÆÊıÆ÷)
+    // å†™crc16å’Œç»“æŸä½çš„è¿›åº¦(è®¡æ•°å™¨å’Œæ ‡å¿—)
+    // å†™crc16å’Œç»“æŸä½çš„è¿›åº¦(è®¡æ•°å™¨)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ¸´Î»
+        if(wt_stage == WT_STAGE_WAIT) // å¤ä½
             # simulation_delay wt_crc16_end_cnt <= 5'd0;
-        else if((wt_stage == WT_STAGE_CRC_END) & sdio_dout_upd) // ×ÔÔö
+        else if((wt_stage == WT_STAGE_CRC_END) & sdio_dout_upd) // è‡ªå¢
             # simulation_delay wt_crc16_end_cnt <= wt_crc16_end_cnt + 5'd1;
     end
-    // Ğ´crc16ºÍ½áÊøÎ»Íê³É(±êÖ¾)
+    // å†™crc16å’Œç»“æŸä½å®Œæˆ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ÇåÁã
+        if(wt_stage == WT_STAGE_WAIT) // æ¸…é›¶
             # simulation_delay wt_crc16_end_finished <= 1'b0;
-        else if((wt_stage == WT_STAGE_CRC_END) & sdio_dout_upd) // ¸üĞÂ
+        else if((wt_stage == WT_STAGE_CRC_END) & sdio_dout_upd) // æ›´æ–°
             # simulation_delay wt_crc16_end_finished <= wt_crc16_end_cnt == 5'd16;
     end
     
-    // ½×¶Î:½ÓÊÕ×´Ì¬ĞÅÏ¢
-    // Ğ´Êı¾İ½ÓÊÕ×´Ì¬·µ»ØµÄ½×¶Î
+    // é˜¶æ®µ:æ¥æ”¶çŠ¶æ€ä¿¡æ¯
+    // å†™æ•°æ®æ¥æ”¶çŠ¶æ€è¿”å›çš„é˜¶æ®µ
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ¸´Î»
+        if(wt_stage == WT_STAGE_WAIT) // å¤ä½
             # simulation_delay wt_sts_stage <= WT_STS_WAIT_START;
         else if((wt_stage == WT_STAGE_STS) & sdio_sts_sample)
         begin
             # simulation_delay;
             
             case(wt_sts_stage)
-                WT_STS_WAIT_START: // ½×¶Î:µÈ´ıÆğÊ¼Î»
+                WT_STS_WAIT_START: // é˜¶æ®µ:ç­‰å¾…èµ·å§‹ä½
                     if(~sdio_d0_i)
                         wt_sts_stage <= WT_STS_B2;
-                WT_STS_B2: // ½×¶Î:½ÓÊÕµÚ2¸ö×´Ì¬Î»
+                WT_STS_B2: // é˜¶æ®µ:æ¥æ”¶ç¬¬2ä¸ªçŠ¶æ€ä½
                     wt_sts_stage <= WT_STS_B1;
-                WT_STS_B1: // ½×¶Î:½ÓÊÕµÚ1¸ö×´Ì¬Î»
+                WT_STS_B1: // é˜¶æ®µ:æ¥æ”¶ç¬¬1ä¸ªçŠ¶æ€ä½
                     wt_sts_stage <= WT_STS_B0;
-                WT_STS_B0: // ½×¶Î:½ÓÊÕµÚ0¸ö×´Ì¬Î»
+                WT_STS_B0: // é˜¶æ®µ:æ¥æ”¶ç¬¬0ä¸ªçŠ¶æ€ä½
                     wt_sts_stage <= WT_STS_END;
-                WT_STS_END: // ½×¶Î:½ÓÊÕ½áÊøÎ»
+                WT_STS_END: // é˜¶æ®µ:æ¥æ”¶ç»“æŸä½
                     wt_sts_stage <= WT_STS_END; // hold
                 default:
                     wt_sts_stage <= WT_STS_WAIT_START;
@@ -1469,63 +1493,63 @@ module sdio_ctrler #(
         end
     end
     
-    // Ğ´Êı¾İ×´Ì¬·µ»Ø
+    // å†™æ•°æ®çŠ¶æ€è¿”å›
     always @(posedge clk)
     begin
-        if(sdio_sts_sample & ((wt_sts_stage == WT_STS_B2) | (wt_sts_stage == WT_STS_B1) | (wt_sts_stage == WT_STS_B0))) // Ïò×óÒÆÈë
+        if(sdio_sts_sample & ((wt_sts_stage == WT_STS_B2) | (wt_sts_stage == WT_STS_B1) | (wt_sts_stage == WT_STS_B0))) // å‘å·¦ç§»å…¥
             # simulation_delay wt_sts <= {wt_sts[1:0], sdio_d0_i};
     end
     
-    // Ğ´Êı¾İ×´Ì¬·µ»Ø½ÓÊÕÍê³É(±êÖ¾)
+    // å†™æ•°æ®çŠ¶æ€è¿”å›æ¥æ”¶å®Œæˆ(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ÇåÁã
+        if(wt_stage == WT_STAGE_WAIT) // æ¸…é›¶
             # simulation_delay wt_sts_received <= 1'b0;
-        else if((~wt_sts_received) & (wt_stage == WT_STAGE_STS)) // Õ³ÖÍÖÃÎ»
+        else if((~wt_sts_received) & (wt_stage == WT_STAGE_STS)) // ç²˜æ»ç½®ä½
             # simulation_delay wt_sts_received <= sdio_sts_sample & (wt_sts_stage == WT_STS_END);
     end
     
-    // Ğ´Êı¾İ×´Ì¬·µ»ØAXISµÄvalidĞÅºÅ
+    // å†™æ•°æ®çŠ¶æ€è¿”å›AXISçš„validä¿¡å·
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             m_axis_wt_sts_valid_reg <= 1'b0;
-        else // ²úÉúÂö³å
+        else // äº§ç”Ÿè„‰å†²
             # simulation_delay m_axis_wt_sts_valid_reg <= (wt_stage == WT_STAGE_STS) & sdio_sts_sample & (wt_sts_stage == WT_STS_B0);
     end
     
-    // ½×¶Î:µÈ´ı´Ó»úidle
-    // ´Ó»ú¿ÕÏĞ(±êÖ¾)
+    // é˜¶æ®µ:ç­‰å¾…ä»æœºidle
+    // ä»æœºç©ºé—²(æ ‡å¿—)
     always @(posedge clk)
     begin
-        if(wt_stage == WT_STAGE_WAIT) // ÇåÁã
+        if(wt_stage == WT_STAGE_WAIT) // æ¸…é›¶
             # simulation_delay wt_slave_idle <= 1'b0;
-        else if((~wt_slave_idle) & (wt_stage == WT_STAGE_WAIT_IDLE)) // Õ³ÖÍÖÃÎ»
+        else if((~wt_slave_idle) & (wt_stage == WT_STAGE_WAIT_IDLE)) // ç²˜æ»ç½®ä½
             # simulation_delay wt_slave_idle <= sdio_sts_sample & sdio_d0_i;
     end
     
-    /** sdio×ÜÏßÈıÌ¬ÃÅ·½Ïò¿ØÖÆ **/
-    // 0ÎªÊä³ö, 1ÎªÊäÈë
-    reg sdio_cmd_t_reg; // ÃüÁîÏß·½Ïò
-    reg[3:0] sdio_d_t_regs; // Êı¾İÏß·½Ïò
+    /** sdioæ€»çº¿ä¸‰æ€é—¨æ–¹å‘æ§åˆ¶ **/
+    // 0ä¸ºè¾“å‡º, 1ä¸ºè¾“å…¥
+    reg sdio_cmd_t_reg; // å‘½ä»¤çº¿æ–¹å‘
+    reg[3:0] sdio_d_t_regs; // æ•°æ®çº¿æ–¹å‘
     
     assign sdio_cmd_t = sdio_cmd_t_reg;
     assign {sdio_d3_t, sdio_d2_t, sdio_d1_t, sdio_d0_t} = sdio_d_t_regs;
     
-    // ÃüÁîÏß·½Ïò
-    // 1ÎªÊäÈë, 0ÎªÊä³ö
+    // å‘½ä»¤çº¿æ–¹å‘
+    // 1ä¸ºè¾“å…¥, 0ä¸ºè¾“å‡º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             sdio_cmd_t_reg <= 1'b1;
-        else if(cmd_to_send_en_shift) // ¸üĞÂ
+        else if(cmd_to_send_en_shift) // æ›´æ–°
         begin
             # simulation_delay;
             
             case(ctrler_status)
-                IDLE: // ×´Ì¬:¿ÕÏĞ
+                IDLE: // çŠ¶æ€:ç©ºé—²
                     sdio_cmd_t_reg <= ~cmd_fetched;
-                SEND_CMD: // ×´Ì¬:·¢ËÍÃüÁî
+                SEND_CMD: // çŠ¶æ€:å‘é€å‘½ä»¤
                     sdio_cmd_t_reg <= sending_cmd_bit_i == (48 + cmd_pre_p_num);
                 default:
                     sdio_cmd_t_reg <= 1'b1;
@@ -1533,26 +1557,26 @@ module sdio_ctrler #(
         end
     end
     
-    // Êı¾İÏß·½Ïò
-    // 1ÎªÊäÈë, 0ÎªÊä³ö
+    // æ•°æ®çº¿æ–¹å‘
+    // 1ä¸ºè¾“å…¥, 0ä¸ºè¾“å‡º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             sdio_d_t_regs <= 4'b1111;
-        else if(sdio_dout_upd) // ¸üĞÂ
+        else if(sdio_dout_upd) // æ›´æ–°
         begin
             # simulation_delay;
             
             if(ctrler_status == WT_DATA)
             begin
                 case(wt_stage)
-                    WT_STAGE_WAIT: // ½×¶Î:Ğ´µÈ´ı
+                    WT_STAGE_WAIT: // é˜¶æ®µ:å†™ç­‰å¾…
                         sdio_d_t_regs <= en_wide_sdio ? {4{~wt_wait_finished}}:{3'b111, ~wt_wait_finished};
-                    WT_STAGE_PULL_UP, WT_STAGE_START, WT_STAGE_TRANS: // ½×¶Î:Ö÷»úÇ¿Çı¶¯µ½¸ßµçÆ½, ÆğÊ¼Î», ÕıÔÚĞ´
+                    WT_STAGE_PULL_UP, WT_STAGE_START, WT_STAGE_TRANS: // é˜¶æ®µ:ä¸»æœºå¼ºé©±åŠ¨åˆ°é«˜ç”µå¹³, èµ·å§‹ä½, æ­£åœ¨å†™
                         sdio_d_t_regs <= en_wide_sdio ? 4'b0000:4'b1110;
-                    WT_STAGE_CRC_END: // ½×¶Î:Ğ£ÑéºÍ½áÊøÎ»
+                    WT_STAGE_CRC_END: // é˜¶æ®µ:æ ¡éªŒå’Œç»“æŸä½
                         sdio_d_t_regs <= en_wide_sdio ? {4{wt_crc16_end_finished}}:{3'b111, wt_crc16_end_finished};
-                    WT_STAGE_STS, WT_STAGE_WAIT_IDLE, WT_STAGE_FINISHED: // ½×¶Î:½ÓÊÕ×´Ì¬ĞÅÏ¢, µÈ´ı´Ó»úidle, Íê³É
+                    WT_STAGE_STS, WT_STAGE_WAIT_IDLE, WT_STAGE_FINISHED: // é˜¶æ®µ:æ¥æ”¶çŠ¶æ€ä¿¡æ¯, ç­‰å¾…ä»æœºidle, å®Œæˆ
                         sdio_d_t_regs <= 4'b1111;
                     default:
                         sdio_d_t_regs <= 4'b1111;

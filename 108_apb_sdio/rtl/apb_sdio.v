@@ -1,99 +1,123 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: APB-SDIO
+æœ¬æ¨¡å—: APB-SDIO
 
-ÃèÊö:
-1.¿ÉÑ¡µÄÓ²¼ş³õÊ¼»¯Ä£¿é
-2.Ö§³ÖÒ»Ïß/ËÄÏßÄ£Ê½
-3.Ö§³ÖÃüÁî->
-(1)¿ØÖÆ/×´Ì¬ÃüÁî
-ÃüÁîºÅ  ÏìÓ¦ÀàĞÍ                      º¬Òå
- CMD0     ---                        ¸´Î»
- CMD5     R4                     IO½Ó¿ÚµçÑ¹ÉèÖÃ
- CMD6     R1                     ²éÑ¯/ÇĞ»»¹¦ÄÜ
- CMD8     R7             ·¢ËÍSD¿¨½Ó¿Ú»·¾³(Ìá¹©µçÑ¹µÈ)
- CMD11    R1                        µçÑ¹ÇĞ»»
- CMD55    R1             Ö¸Ê¾ÏÂÒ»ÌõÃüÁîÊÇÌØ¶¨µÄÓ¦ÓÃÃüÁî
- ACMD41   R3     ·¢ËÍÖ÷»úµçÈİ¹©¸øĞÅÏ¢(HCS)²¢»ñÈ¡²Ù×÷»·¾³¼Ä´æÆ÷(OCR)
- CMD2     R2                  »ñÈ¡¿¨±êÊ¶ºÅ(CID)
- CMD3     R6                 »ñÈ¡¿¨Ïà¶ÔµØÖ·(RCA)
- CMD7     R1b                  Ñ¡ÖĞ»òÈ¡ÏûÑ¡ÖĞ¿¨
- CMD16    R1                       ÉèÖÃ¿é´óĞ¡
- ACMD6    R1                      ÉèÖÃ×ÜÏßÎ»¿í
-(2)¶ÁĞ´ÃüÁî
-ÃüÁîºÅ  ÏìÓ¦ÀàĞÍ        º¬Òå
- CMD17    R1             µ¥¿é¶Á
- CMD18    R1             ¶à¿é¶Á
- CMD24    R1             µ¥¿éĞ´
- CMD25    R1             ¶à¿éĞ´
- CMD12    R1b         Í£Ö¹µ±Ç°´«Êä
-4.¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ    |                ±¸×¢
-    0x00    0:ÃüÁîfifoÊÇ·ñÂú                    R
-            1:¶ÁÊı¾İfifoÊÇ·ñ¿Õ                  R
-            2:Ğ´Êı¾İfifoÊÇ·ñÂú                  R
-    0x04    5~0:ÃüÁîºÅ                         W             Ğ´¸Ã¼Ä´æÆ÷Ê±»á²úÉúÃüÁîfifoĞ´Ê¹ÄÜ
-            15~8:±¾´Î¶ÁĞ´µÄ¿é¸öÊı-1            W              Ğ´¸Ã¼Ä´æÆ÷Ê±»á²úÉúÃüÁîfifoĞ´Ê¹ÄÜ
-    0x08    31~0:ÃüÁî²ÎÊı                      W
-    0x0C    31~0:¶ÁÊı¾İ                        R             ¶Á¸Ã¼Ä´æÆ÷Ê±»á²úÉú¶ÁÊı¾İfifo¶ÁÊ¹ÄÜ
-    0x10    31~0:Ğ´Êı¾İ                        W             Ğ´¸Ã¼Ä´æÆ÷Ê±»á²úÉúĞ´Êı¾İfifoĞ´Ê¹ÄÜ
-    0x14    0:SDIOÈ«¾ÖÖĞ¶ÏÊ¹ÄÜ                  W
-            8:SDIO¶ÁÊı¾İÖĞ¶ÏÊ¹ÄÜ                W
-            9:SDIOĞ´Êı¾İÖĞ¶ÏÊ¹ÄÜ                W
-            10:SDIO³£¹æÃüÁî´¦ÀíÍê³ÉÖĞ¶ÏÊ¹ÄÜ     W
-    0x18    0:SDIOÈ«¾ÖÖĞ¶Ï±êÖ¾                 RWC              ÇëÔÚÖĞ¶Ï·şÎñº¯ÊıÖĞÇå³ıÖĞ¶Ï±êÖ¾
-            8:SDIO¶ÁÊı¾İÖĞ¶Ï±êÖ¾                R
-            9:SDIOĞ´Êı¾İÖĞ¶Ï±êÖ¾                R
-            10:SDIO³£¹æÃüÁî´¦ÀíÍê³ÉÖĞ¶Ï±êÖ¾     R
-    0x1C    31~0:ÏìÓ¦[119:88]                  R
-    0x20    31~0:ÏìÓ¦[87:56]                   R
-    0x24    31~0:ÏìÓ¦[55:24]                   R
-    0x28    23~0:ÏìÓ¦[23:0]                    R
-            24:ÊÇ·ñ³¤ÏìÓ¦                      R
-            25:CRC´íÎó                         R
-            26:½ÓÊÕ³¬Ê±                        R
-    0x2C    0:¿ØÖÆÆ÷ÊÇ·ñ¿ÕÏĞ                   R
-            5~1:¶ÁÊı¾İ·µ»Ø½á¹û                 R
-            10~8:Ğ´Êı¾İ·µ»Ø×´Ì¬ĞÅÏ¢            R
-            16:ÊÇ·ñÆôÓÃsdioÊ±ÖÓ               W
-            17:ÊÇ·ñÆôÓÃËÄÏßÄ£Ê½               W
-            27~18:sdioÊ±ÖÓ·ÖÆµÏµÊı            W                  ·ÖÆµÊı = (·ÖÆµÏµÊı + 1) * 2
-   [0x30,   0:¿ªÊ¼³õÊ¼»¯±êÖ¾                  W               Ğ´¸Ã¼Ä´æÆ÷²¢ÇÒ¸ÃÎ»Îª1Ê±¿ªÊ¼³õÊ¼»¯
-    ½öÊ¹ÄÜ   1:³õÊ¼»¯Ä£¿éÊÇ·ñ¿ÕÏĞ              R
-    Ó²¼ş     23~8:RCA                         R                    ³õÊ¼»¯½á¹û[18:3]
-    ³õÊ¼»¯   24:³õÊ¼»¯ÊÇ·ñ³É¹¦                 R                    ³õÊ¼»¯½á¹û[0]
-    Ê±¿ÉÓÃ]  25:ÊÇ·ñÖ§³ÖSD2.0                  R                    ³õÊ¼»¯½á¹û[1]
-            26:ÊÇ·ñ´óÈİÁ¿¿¨                   R                     ³õÊ¼»¯½á¹û[2]
+æè¿°:
+1.å¯é€‰çš„ç¡¬ä»¶åˆå§‹åŒ–æ¨¡å—
+2.æ”¯æŒä¸€çº¿/å››çº¿æ¨¡å¼
+3.æ”¯æŒå‘½ä»¤->
+(1)æ§åˆ¶/çŠ¶æ€å‘½ä»¤
+å‘½ä»¤å·  å“åº”ç±»å‹                      å«ä¹‰
+ CMD0     ---                        å¤ä½
+ CMD5     R4                     IOæ¥å£ç”µå‹è®¾ç½®
+ CMD6     R1                     æŸ¥è¯¢/åˆ‡æ¢åŠŸèƒ½
+ CMD8     R7             å‘é€SDå¡æ¥å£ç¯å¢ƒ(æä¾›ç”µå‹ç­‰)
+ CMD11    R1                        ç”µå‹åˆ‡æ¢
+ CMD55    R1             æŒ‡ç¤ºä¸‹ä¸€æ¡å‘½ä»¤æ˜¯ç‰¹å®šçš„åº”ç”¨å‘½ä»¤
+ ACMD41   R3     å‘é€ä¸»æœºç”µå®¹ä¾›ç»™ä¿¡æ¯(HCS)å¹¶è·å–æ“ä½œç¯å¢ƒå¯„å­˜å™¨(OCR)
+ CMD2     R2                  è·å–å¡æ ‡è¯†å·(CID)
+ CMD3     R6                 è·å–å¡ç›¸å¯¹åœ°å€(RCA)
+ CMD7     R1b                  é€‰ä¸­æˆ–å–æ¶ˆé€‰ä¸­å¡
+ CMD16    R1                       è®¾ç½®å—å¤§å°
+ ACMD6    R1                      è®¾ç½®æ€»çº¿ä½å®½
+(2)è¯»å†™å‘½ä»¤
+å‘½ä»¤å·  å“åº”ç±»å‹        å«ä¹‰
+ CMD17    R1             å•å—è¯»
+ CMD18    R1             å¤šå—è¯»
+ CMD24    R1             å•å—å†™
+ CMD25    R1             å¤šå—å†™
+ CMD12    R1b         åœæ­¢å½“å‰ä¼ è¾“
+4.å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§    |                å¤‡æ³¨
+    0x00    0:å‘½ä»¤fifoæ˜¯å¦æ»¡                    R
+            1:è¯»æ•°æ®fifoæ˜¯å¦ç©º                  R
+            2:å†™æ•°æ®fifoæ˜¯å¦æ»¡                  R
+    0x04    5~0:å‘½ä»¤å·                         W             å†™è¯¥å¯„å­˜å™¨æ—¶ä¼šäº§ç”Ÿå‘½ä»¤fifoå†™ä½¿èƒ½
+            15~8:æœ¬æ¬¡è¯»å†™çš„å—ä¸ªæ•°-1            W              å†™è¯¥å¯„å­˜å™¨æ—¶ä¼šäº§ç”Ÿå‘½ä»¤fifoå†™ä½¿èƒ½
+    0x08    31~0:å‘½ä»¤å‚æ•°                      W
+    0x0C    31~0:è¯»æ•°æ®                        R             è¯»è¯¥å¯„å­˜å™¨æ—¶ä¼šäº§ç”Ÿè¯»æ•°æ®fifoè¯»ä½¿èƒ½
+    0x10    31~0:å†™æ•°æ®                        W             å†™è¯¥å¯„å­˜å™¨æ—¶ä¼šäº§ç”Ÿå†™æ•°æ®fifoå†™ä½¿èƒ½
+    0x14    0:SDIOå…¨å±€ä¸­æ–­ä½¿èƒ½                  W
+            8:SDIOè¯»æ•°æ®ä¸­æ–­ä½¿èƒ½                W
+            9:SDIOå†™æ•°æ®ä¸­æ–­ä½¿èƒ½                W
+            10:SDIOå¸¸è§„å‘½ä»¤å¤„ç†å®Œæˆä¸­æ–­ä½¿èƒ½     W
+    0x18    0:SDIOå…¨å±€ä¸­æ–­æ ‡å¿—                 RWC              è¯·åœ¨ä¸­æ–­æœåŠ¡å‡½æ•°ä¸­æ¸…é™¤ä¸­æ–­æ ‡å¿—
+            8:SDIOè¯»æ•°æ®ä¸­æ–­æ ‡å¿—                R
+            9:SDIOå†™æ•°æ®ä¸­æ–­æ ‡å¿—                R
+            10:SDIOå¸¸è§„å‘½ä»¤å¤„ç†å®Œæˆä¸­æ–­æ ‡å¿—     R
+    0x1C    31~0:å“åº”[119:88]                  R
+    0x20    31~0:å“åº”[87:56]                   R
+    0x24    31~0:å“åº”[55:24]                   R
+    0x28    23~0:å“åº”[23:0]                    R
+            24:æ˜¯å¦é•¿å“åº”                      R
+            25:CRCé”™è¯¯                         R
+            26:æ¥æ”¶è¶…æ—¶                        R
+    0x2C    0:æ§åˆ¶å™¨æ˜¯å¦ç©ºé—²                   R
+            5~1:è¯»æ•°æ®è¿”å›ç»“æœ                 R
+            10~8:å†™æ•°æ®è¿”å›çŠ¶æ€ä¿¡æ¯            R
+            16:æ˜¯å¦å¯ç”¨sdioæ—¶é’Ÿ               W
+            17:æ˜¯å¦å¯ç”¨å››çº¿æ¨¡å¼               W
+            27~18:sdioæ—¶é’Ÿåˆ†é¢‘ç³»æ•°            W                  åˆ†é¢‘æ•° = (åˆ†é¢‘ç³»æ•° + 1) * 2
+   [0x30,   0:å¼€å§‹åˆå§‹åŒ–æ ‡å¿—                  W               å†™è¯¥å¯„å­˜å™¨å¹¶ä¸”è¯¥ä½ä¸º1æ—¶å¼€å§‹åˆå§‹åŒ–
+    ä»…ä½¿èƒ½   1:åˆå§‹åŒ–æ¨¡å—æ˜¯å¦ç©ºé—²              R
+    ç¡¬ä»¶     23~8:RCA                         R                    åˆå§‹åŒ–ç»“æœ[18:3]
+    åˆå§‹åŒ–   24:åˆå§‹åŒ–æ˜¯å¦æˆåŠŸ                 R                    åˆå§‹åŒ–ç»“æœ[0]
+    æ—¶å¯ç”¨]  25:æ˜¯å¦æ”¯æŒSD2.0                  R                    åˆå§‹åŒ–ç»“æœ[1]
+            26:æ˜¯å¦å¤§å®¹é‡å¡                   R                     åˆå§‹åŒ–ç»“æœ[2]
 
-×¢Òâ£º
-SD¿¨¿é´óĞ¡Îª512×Ö½Ú
-R2ÏìÓ¦ÓĞ136bit, ÆäËûÀàĞÍµÄÏìÓ¦ÓĞ48bit
-CMD6ºóÒ²»á²úÉú¶ÁÊı¾İÖĞ¶Ï
+æ³¨æ„ï¼š
+SDå¡å—å¤§å°ä¸º512å­—èŠ‚
+R2å“åº”æœ‰136bit, å…¶ä»–ç±»å‹çš„å“åº”æœ‰48bit
+CMD6åä¹Ÿä¼šäº§ç”Ÿè¯»æ•°æ®ä¸­æ–­
 
-Ğ­Òé:
+åè®®:
 APB SLAVE
 SDIO MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/01/24
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/01/24
 ********************************************************************/
 
 
 module apb_sdio #(
-    parameter en_hw_init = "false", // Ê¹ÄÜÓ²¼ş³õÊ¼»¯
-    parameter integer init_acmd41_try_n = 20, // ³õÊ¼»¯Ê±·¢ËÍACMD41ÃüÁîµÄ³¢ÊÔ´ÎÊı(±ØĞë<=32, ½öÊ¹ÄÜÓ²¼ş³õÊ¼»¯Ê±ÓĞĞ§)
-    parameter integer resp_timeout = 64, // ÏìÓ¦³¬Ê±ÖÜÆÚÊı
-    parameter integer resp_with_busy_timeout = 64, // ÏìÓ¦ºóbusy³¬Ê±ÖÜÆÚÊı
-    parameter integer read_timeout = -1, // ¶Á³¬Ê±ÖÜÆÚÊı
-    parameter en_resp_rd_crc = "false", // Ê¹ÄÜÏìÓ¦ºÍ¶ÁÊı¾İCRC
-	parameter en_sdio_clken = "true", // ÊÇ·ñÊ¹ÓÃsdioÊ±ÖÓÊ±ÖÓÊ¹ÄÜ
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter en_hw_init = "false", // ä½¿èƒ½ç¡¬ä»¶åˆå§‹åŒ–
+    parameter integer init_acmd41_try_n = 20, // åˆå§‹åŒ–æ—¶å‘é€ACMD41å‘½ä»¤çš„å°è¯•æ¬¡æ•°(å¿…é¡»<=32, ä»…ä½¿èƒ½ç¡¬ä»¶åˆå§‹åŒ–æ—¶æœ‰æ•ˆ)
+    parameter integer resp_timeout = 64, // å“åº”è¶…æ—¶å‘¨æœŸæ•°
+    parameter integer resp_with_busy_timeout = 64, // å“åº”åbusyè¶…æ—¶å‘¨æœŸæ•°
+    parameter integer read_timeout = -1, // è¯»è¶…æ—¶å‘¨æœŸæ•°
+    parameter en_resp_rd_crc = "false", // ä½¿èƒ½å“åº”å’Œè¯»æ•°æ®CRC
+	parameter en_sdio_clken = "true", // æ˜¯å¦ä½¿ç”¨sdioæ—¶é’Ÿæ—¶é’Ÿä½¿èƒ½
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // APB´Ó»ú½Ó¿Ú
+    // APBä»æœºæ¥å£
     input wire[31:0] paddr,
     input wire psel,
     input wire penable,
@@ -103,7 +127,7 @@ module apb_sdio #(
     output wire[31:0] prdata_out,
     output wire pslverr_out, // const -> 1'b0
     
-    // sdio½Ó¿Ú(ÈıÌ¬×ÜÏß·½ÏòÑ¡Ôñ -> 0±íÊ¾Êä³ö, 1±íÊ¾ÊäÈë)
+    // sdioæ¥å£(ä¸‰æ€æ€»çº¿æ–¹å‘é€‰æ‹© -> 0è¡¨ç¤ºè¾“å‡º, 1è¡¨ç¤ºè¾“å…¥)
     // clk
     output wire sdio_clk,
     // cmd
@@ -115,16 +139,16 @@ module apb_sdio #(
     output wire[3:0] sdio_data_o,
     input wire[3:0] sdio_data_i,
     
-    // ÖĞ¶Ï
+    // ä¸­æ–­
     output wire itr
 );
     
-    /** ÃüÁîfifo(Éî¶ÈÎª1¼´¿É) **/
-    // Ğ´¶Ë¿Ú
+    /** å‘½ä»¤fifo(æ·±åº¦ä¸º1å³å¯) **/
+    // å†™ç«¯å£
     wire cmd_fifo_wen;
     reg cmd_fifo_full;
     wire[45:0] cmd_fifo_din;
-    // ¶Á¶Ë¿Ú
+    // è¯»ç«¯å£
     wire cmd_fifo_ren;
     reg cmd_fifo_empty_n;
     reg[45:0] cmd_fifo_dout;
@@ -151,12 +175,12 @@ module apb_sdio #(
             # simulation_delay cmd_fifo_dout <= cmd_fifo_din;
     end
     
-    /** ¶ÁÊı¾İfifo **/
-    // Ğ´¶Ë¿Ú
+    /** è¯»æ•°æ®fifo **/
+    // å†™ç«¯å£
     wire rdata_fifo_wen;
     wire rdata_fifo_full_n;
     wire[31:0] rdata_fifo_din;
-    // ¶Á¶Ë¿Ú
+    // è¯»ç«¯å£
     wire rdata_fifo_ren;
     wire rdata_fifo_empty;
     wire[31:0] rdata_fifo_dout;
@@ -187,12 +211,12 @@ module apb_sdio #(
         .fifo_empty(rdata_fifo_empty)
     );
     
-    /** Ğ´Êı¾İfifo **/
-    // Ğ´¶Ë¿Ú
+    /** å†™æ•°æ®fifo **/
+    // å†™ç«¯å£
     wire wdata_fifo_wen;
     wire wdata_fifo_full;
     wire[31:0] wdata_fifo_din;
-    // ¶Á¶Ë¿Ú
+    // è¯»ç«¯å£
     wire wdata_fifo_ren;
     wire wdata_fifo_empty_n;
     wire[31:0] wdata_fifo_dout;
@@ -223,37 +247,37 @@ module apb_sdio #(
         .fifo_empty_n(wdata_fifo_empty_n)
     );
 
-    /** ¿ØÖÆ/×´Ì¬¼Ä´æÆ÷½Ó¿Ú **/
-    // ¿ØÖÆÆ÷×´Ì¬
+    /** æ§åˆ¶/çŠ¶æ€å¯„å­˜å™¨æ¥å£ **/
+    // æ§åˆ¶å™¨çŠ¶æ€
     wire sdio_ctrler_idle;
-    // ¿ØÖÆÆ÷ÔËĞĞÊ±²ÎÊı
-    wire en_sdio_clk; // ÆôÓÃsdioÊ±ÖÓ(¸´Î»Ê±±ØĞëÎª0)
-    wire[9:0] div_rate; // ·ÖÆµÏµÊı(·ÖÆµÊı = (·ÖÆµÏµÊı + 1) * 2)
-    wire en_wide_sdio; // ÆôÓÃËÄÏßÄ£Ê½
-    // ³õÊ¼»¯Ä£¿é¿ØÖÆ
-    wire init_start; // ¿ªÊ¼³õÊ¼»¯ÇëÇó(Ö¸Ê¾)
-    wire init_idle; // ³õÊ¼»¯Ä£¿é¿ÕÏĞ(±êÖ¾)
-    // ÏìÓ¦AXIS
-    wire[119:0] s_axis_resp_data; // 48bitÏìÓ¦ -> {ÃüÁîºÅ(6bit), ²ÎÊı(32bit)}, 136bitÏìÓ¦ -> {²ÎÊı(120bit)}
-    wire[2:0] s_axis_resp_user; // {½ÓÊÕ³¬Ê±(1bit), CRC´íÎó(1bit), ÊÇ·ñ³¤ÏìÓ¦(1bit)}
+    // æ§åˆ¶å™¨è¿è¡Œæ—¶å‚æ•°
+    wire en_sdio_clk; // å¯ç”¨sdioæ—¶é’Ÿ(å¤ä½æ—¶å¿…é¡»ä¸º0)
+    wire[9:0] div_rate; // åˆ†é¢‘ç³»æ•°(åˆ†é¢‘æ•° = (åˆ†é¢‘ç³»æ•° + 1) * 2)
+    wire en_wide_sdio; // å¯ç”¨å››çº¿æ¨¡å¼
+    // åˆå§‹åŒ–æ¨¡å—æ§åˆ¶
+    wire init_start; // å¼€å§‹åˆå§‹åŒ–è¯·æ±‚(æŒ‡ç¤º)
+    wire init_idle; // åˆå§‹åŒ–æ¨¡å—ç©ºé—²(æ ‡å¿—)
+    // å“åº”AXIS
+    wire[119:0] s_axis_resp_data; // 48bitå“åº” -> {å‘½ä»¤å·(6bit), å‚æ•°(32bit)}, 136bitå“åº” -> {å‚æ•°(120bit)}
+    wire[2:0] s_axis_resp_user; // {æ¥æ”¶è¶…æ—¶(1bit), CRCé”™è¯¯(1bit), æ˜¯å¦é•¿å“åº”(1bit)}
     wire s_axis_resp_valid;
-    // ³õÊ¼»¯½á¹ûAXIS
-    wire[23:0] m_axis_init_res_data; // {±£Áô(5bit), RCA(16bit), ÊÇ·ñ´óÈİÁ¿¿¨(1bit), ÊÇ·ñÖ§³ÖSD2.0(1bit), ÊÇ·ñ³É¹¦(1bit)}
+    // åˆå§‹åŒ–ç»“æœAXIS
+    wire[23:0] m_axis_init_res_data; // {ä¿ç•™(5bit), RCA(16bit), æ˜¯å¦å¤§å®¹é‡å¡(1bit), æ˜¯å¦æ”¯æŒSD2.0(1bit), æ˜¯å¦æˆåŠŸ(1bit)}
     wire m_axis_init_res_valid;
-    // ¶ÁÊı¾İ·µ»Ø½á¹ûAXIS
-    wire[7:0] s_axis_rd_sts_data; // {±£Áô(3bit), ¶Á³¬Ê±(1bit), Ğ£Ñé½á¹û(4bit)}
+    // è¯»æ•°æ®è¿”å›ç»“æœAXIS
+    wire[7:0] s_axis_rd_sts_data; // {ä¿ç•™(3bit), è¯»è¶…æ—¶(1bit), æ ¡éªŒç»“æœ(4bit)}
     wire s_axis_rd_sts_valid;
-    // Ğ´Êı¾İ×´Ì¬·µ»ØAXIS
-    wire[7:0] s_axis_wt_sts_data; // {±£Áô(5bit), ×´Ì¬ĞÅÏ¢(3bit)}
+    // å†™æ•°æ®çŠ¶æ€è¿”å›AXIS
+    wire[7:0] s_axis_wt_sts_data; // {ä¿ç•™(5bit), çŠ¶æ€ä¿¡æ¯(3bit)}
     wire s_axis_wt_sts_valid;
-    // ÖĞ¶Ï¿ØÖÆ
-    wire rdata_itr_org_pulse; // ¶ÁÊı¾İÔ­Ê¼ÖĞ¶ÏÂö³å
-    wire wdata_itr_org_pulse; // Ğ´Êı¾İÔ­Ê¼ÖĞ¶ÏÂö³å
-    wire common_itr_org_pulse; // ³£¹æÃüÁî´¦ÀíÍê³ÉÖĞ¶ÏÂö³å
-    wire rdata_itr_en; // ¶ÁÊı¾İÖĞ¶ÏÊ¹ÄÜ
-    wire wdata_itr_en; // Ğ´Êı¾İÖĞ¶ÏÊ¹ÄÜ
-    wire common_itr_en; // ³£¹æÃüÁî´¦ÀíÍê³ÉÖĞ¶ÏÊ¹ÄÜ
-    wire global_org_itr_pulse; // È«¾ÖÔ­Ê¼ÖĞ¶ÏÂö³å
+    // ä¸­æ–­æ§åˆ¶
+    wire rdata_itr_org_pulse; // è¯»æ•°æ®åŸå§‹ä¸­æ–­è„‰å†²
+    wire wdata_itr_org_pulse; // å†™æ•°æ®åŸå§‹ä¸­æ–­è„‰å†²
+    wire common_itr_org_pulse; // å¸¸è§„å‘½ä»¤å¤„ç†å®Œæˆä¸­æ–­è„‰å†²
+    wire rdata_itr_en; // è¯»æ•°æ®ä¸­æ–­ä½¿èƒ½
+    wire wdata_itr_en; // å†™æ•°æ®ä¸­æ–­ä½¿èƒ½
+    wire common_itr_en; // å¸¸è§„å‘½ä»¤å¤„ç†å®Œæˆä¸­æ–­ä½¿èƒ½
+    wire global_org_itr_pulse; // å…¨å±€åŸå§‹ä¸­æ–­è„‰å†²
     
     sdio_regs_interface #(
         .simulation_delay(simulation_delay)
@@ -301,8 +325,8 @@ module apb_sdio #(
         .global_org_itr_pulse(global_org_itr_pulse)
     );
     
-    /** ÖĞ¶Ï·¢ÉúÆ÷ **/
-    // ¿ØÖÆÆ÷×´Ì¬
+    /** ä¸­æ–­å‘ç”Ÿå™¨ **/
+    // æ§åˆ¶å™¨çŠ¶æ€
     wire sdio_ctrler_done;
     wire[1:0] sdio_ctrler_rw_type_done;
     
@@ -323,7 +347,7 @@ module apb_sdio #(
         .itr(itr)
     );
     
-    /** SDIO»òSD¿¨¿ØÖÆÆ÷ **/
+    /** SDIOæˆ–SDå¡æ§åˆ¶å™¨ **/
     wire sdio_d0_t;
     wire sdio_d0_o;
     wire sdio_d0_i;

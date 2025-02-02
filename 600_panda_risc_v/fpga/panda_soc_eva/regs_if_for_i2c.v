@@ -1,53 +1,77 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: APB-I2CµÄ¼Ä´æÆ÷½Ó¿Ú
+æœ¬æ¨¡å—: APB-I2Cçš„å¯„å­˜å™¨æ¥å£
 
-ÃèÊö: 
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ    |                 ±¸×¢
-    0x00    0:·¢ËÍfifoÊÇ·ñÂú                    R
-            1:·¢ËÍfifoĞ´Ê¹ÄÜ                    W         Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±²úÉú·¢ËÍfifoĞ´Ê¹ÄÜ
-            10~2:·¢ËÍfifoĞ´Êı¾İ                 W                 {last(1bit), data(8bit)}
-            16:½ÓÊÕfifoÊÇ·ñ¿Õ                   R
-            17:½ÓÊÕfifo¶ÁÊ¹ÄÜ                   W         Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±²úÉú½ÓÊÕfifo¶ÁÊ¹ÄÜ
-            25~18:½ÓÊÕfifo¶ÁÊı¾İ                R
-    0x04    0:I2CÈ«¾ÖÖĞ¶ÏÊ¹ÄÜ                   W
-            8:I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ         W
-            9:I2C´Ó»úÏìÓ¦´íÎóÖĞ¶ÏÊ¹ÄÜ           W
-            10:I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ        W
-            11:I2C½ÓÊÕÒç³öÖĞ¶ÏÊ¹ÄÜ              W
-    0x08    7~0:I2C·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ           W                  ·¢ËÍ×Ö½ÚÊı > ãĞÖµÊ±·¢ÉúÖĞ¶Ï
-            15~8:I2C½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ          W                  ½ÓÊÕ×Ö½ÚÊı > ãĞÖµÊ±·¢ÉúÖĞ¶Ï
-			23~16:I2CÊ±ÖÓ·ÖÆµÏµÊı               W                  ·ÖÆµÊı = (·ÖÆµÏµÊı + 1) * 2
-			                                                              ·ÖÆµÏµÊıÓ¦>=1
-    0x0C    0:I2CÈ«¾ÖÖĞ¶Ï±êÖ¾                  RWC                 ÇëÔÚÖĞ¶Ï·şÎñº¯ÊıÖĞÇå³ıÖĞ¶Ï±êÖ¾
-            1:I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶Ï±êÖ¾         R
-            2:I2C´Ó»úÏìÓ¦´íÎóÖĞ¶Ï±êÖ¾           R
-            3:I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶Ï±êÖ¾         R
-            4:I2C½ÓÊÕÒç³öÖĞ¶Ï±êÖ¾               R
-            19~8:I2C·¢ËÍ×Ö½ÚÊı                RWC                  Ã¿µ±·¢ËÍÒ»¸öI2CÊı¾İ°üºó¸üĞÂ
-            31~20:I2C½ÓÊÕ×Ö½ÚÊı               RWC                  Ã¿µ±½ÓÊÕÒ»¸öI2CÊı¾İ°üºó¸üĞÂ
+æè¿°: 
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§    |                 å¤‡æ³¨
+    0x00    0:å‘é€fifoæ˜¯å¦æ»¡                    R
+            1:å‘é€fifoå†™ä½¿èƒ½                    W         å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶äº§ç”Ÿå‘é€fifoå†™ä½¿èƒ½
+            10~2:å‘é€fifoå†™æ•°æ®                 W                 {last(1bit), data(8bit)}
+            16:æ¥æ”¶fifoæ˜¯å¦ç©º                   R
+            17:æ¥æ”¶fifoè¯»ä½¿èƒ½                   W         å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶äº§ç”Ÿæ¥æ”¶fifoè¯»ä½¿èƒ½
+            25~18:æ¥æ”¶fifoè¯»æ•°æ®                R
+    0x04    0:I2Cå…¨å±€ä¸­æ–­ä½¿èƒ½                   W
+            8:I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½         W
+            9:I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­ä½¿èƒ½           W
+            10:I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½        W
+            11:I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­ä½¿èƒ½              W
+    0x08    7~0:I2Cå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼           W                  å‘é€å­—èŠ‚æ•° > é˜ˆå€¼æ—¶å‘ç”Ÿä¸­æ–­
+            15~8:I2Cæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼          W                  æ¥æ”¶å­—èŠ‚æ•° > é˜ˆå€¼æ—¶å‘ç”Ÿä¸­æ–­
+			23~16:I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°               W                  åˆ†é¢‘æ•° = (åˆ†é¢‘ç³»æ•° + 1) * 2
+			                                                              åˆ†é¢‘ç³»æ•°åº”>=1
+    0x0C    0:I2Cå…¨å±€ä¸­æ–­æ ‡å¿—                  RWC                 è¯·åœ¨ä¸­æ–­æœåŠ¡å‡½æ•°ä¸­æ¸…é™¤ä¸­æ–­æ ‡å¿—
+            1:I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ ‡å¿—         R
+            2:I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­æ ‡å¿—           R
+            3:I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ ‡å¿—         R
+            4:I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­æ ‡å¿—               R
+            19~8:I2Cå‘é€å­—èŠ‚æ•°                RWC                  æ¯å½“å‘é€ä¸€ä¸ªI2Cæ•°æ®åŒ…åæ›´æ–°
+            31~20:I2Cæ¥æ”¶å­—èŠ‚æ•°               RWC                  æ¯å½“æ¥æ”¶ä¸€ä¸ªI2Cæ•°æ®åŒ…åæ›´æ–°
 
-×¢Òâ£º
-I2C·¢ËÍ/½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÃ¿µ±·¢ËÍ/½ÓÊÕÒ»¸öI2CÊı¾İ°üºóÅĞ¶Ï
-Ã¿¸öI2CÊı¾İ°ü²»ÄÜ³¬¹ı15×Ö½Ú
+æ³¨æ„ï¼š
+I2Cå‘é€/æ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ¯å½“å‘é€/æ¥æ”¶ä¸€ä¸ªI2Cæ•°æ®åŒ…ååˆ¤æ–­
+æ¯ä¸ªI2Cæ•°æ®åŒ…ä¸èƒ½è¶…è¿‡15å­—èŠ‚
 
-Ğ­Òé:
+åè®®:
 APB SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/14
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/14
 ********************************************************************/
 
 
 module regs_if_for_i2c #(
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // APB´Ó»ú½Ó¿Ú
+    // APBä»æœºæ¥å£
     input wire[31:0] paddr,
     input wire psel,
     input wire penable,
@@ -57,62 +81,62 @@ module regs_if_for_i2c #(
     output wire[31:0] prdata_out,
     output wire pslverr_out, // const -> 1'b0
     
-    // ·¢ËÍfifoĞ´¶Ë¿Ú
+    // å‘é€fifoå†™ç«¯å£
     output wire tx_fifo_wen,
     output wire[8:0] tx_fifo_din,
     input wire tx_fifo_full,
-    // ½ÓÊÕfifo¶Á¶Ë¿Ú
+    // æ¥æ”¶fifoè¯»ç«¯å£
     output wire rx_fifo_ren,
     input wire[7:0] rx_fifo_dout,
     input wire rx_fifo_empty,
     
-    // I2CÊ±ÖÓ·ÖÆµÏµÊı
+    // I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°
     output wire[7:0] i2c_scl_div_rate,
     
-    // I2C·¢ËÍÍê³ÉÖ¸Ê¾
+    // I2Cå‘é€å®ŒæˆæŒ‡ç¤º
     input wire i2c_tx_done,
     input wire[3:0] i2c_tx_bytes_n,
-    // I2C½ÓÊÕÍê³ÉÖ¸Ê¾
+    // I2Cæ¥æ”¶å®ŒæˆæŒ‡ç¤º
     input wire i2c_rx_done,
     input wire[3:0] i2c_rx_bytes_n,
-    // I2C´Ó»úÏìÓ¦´íÎó
+    // I2Cä»æœºå“åº”é”™è¯¯
     input wire i2c_slave_resp_err,
-    // I2C½ÓÊÕÒç³ö
+    // I2Cæ¥æ”¶æº¢å‡º
     input wire i2c_rx_overflow,
     
-    // ÖĞ¶ÏĞÅºÅ
+    // ä¸­æ–­ä¿¡å·
     output wire itr
 );
     
-    /** APBĞ´¼Ä´æÆ÷ºÍÖĞ¶Ï´¦Àí **/
+    /** APBå†™å¯„å­˜å™¨å’Œä¸­æ–­å¤„ç† **/
     // 0x00
-    reg tx_fifo_wen_reg; // ·¢ËÍfifoĞ´Ê¹ÄÜ
-    reg[8:0] tx_fifo_din_regs; // ·¢ËÍfifoĞ´Êı¾İ
-    reg rx_fifo_ren_reg; // ½ÓÊÕfifo¶ÁÊ¹ÄÜ
+    reg tx_fifo_wen_reg; // å‘é€fifoå†™ä½¿èƒ½
+    reg[8:0] tx_fifo_din_regs; // å‘é€fifoå†™æ•°æ®
+    reg rx_fifo_ren_reg; // æ¥æ”¶fifoè¯»ä½¿èƒ½
     // 0x04
-    reg global_itr_en; // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-    reg i2c_tx_reach_bytes_n_itr_en; // I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ
-    reg i2c_slave_resp_err_itr_en; // I2C´Ó»úÏìÓ¦´íÎóÖĞ¶ÏÊ¹ÄÜ
-    reg i2c_rx_reach_bytes_n_itr_en; // I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ
-    reg i2c_rx_overflow_itr_en; // I2C½ÓÊÕÒç³öÖĞ¶ÏÊ¹ÄÜ
+    reg global_itr_en; // å…¨å±€ä¸­æ–­ä½¿èƒ½
+    reg i2c_tx_reach_bytes_n_itr_en; // I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½
+    reg i2c_slave_resp_err_itr_en; // I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­ä½¿èƒ½
+    reg i2c_rx_reach_bytes_n_itr_en; // I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½
+    reg i2c_rx_overflow_itr_en; // I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­ä½¿èƒ½
     // 0x08
-    reg[7:0] i2c_tx_bytes_n_th; // I2C·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-    reg[7:0] i2c_rx_bytes_n_th; // I2C½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-    reg[7:0] i2c_scl_div_rate_regs; // I2CÊ±ÖÓ·ÖÆµÏµÊı
+    reg[7:0] i2c_tx_bytes_n_th; // I2Cå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+    reg[7:0] i2c_rx_bytes_n_th; // I2Cæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+    reg[7:0] i2c_scl_div_rate_regs; // I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°
     // 0x0C
-    reg global_itr_flag; // È«¾ÖÖĞ¶Ï±êÖ¾
-    reg[3:0] sub_itr_flag; // ×ÓÖĞ¶Ï±êÖ¾
-    reg[11:0] i2c_bytes_n_sent; // I2C·¢ËÍ×Ö½ÚÊı
-    reg[11:0] i2c_bytes_n_rev; // I2C½ÓÊÕ×Ö½ÚÊı
-    // ÖĞ¶Ï´¦Àí
-    reg i2c_tx_done_d; // ÑÓ³Ù1clkµÄI2C·¢ËÍÍê³ÉÖ¸Ê¾
-    reg i2c_rx_done_d; // ÑÓ³Ù1clkµÄI2C·¢ËÍÍê³ÉÖ¸Ê¾
-    reg i2c_tx_reach_bytes_n_itr_req; // I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÇëÇó
-    wire i2c_slave_resp_err_itr_req; // I2C´Ó»úÏìÓ¦´íÎóÖĞ¶ÏÇëÇó
-    reg i2c_rx_reach_bytes_n_itr_req; // I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÇëÇó
-    wire i2c_rx_overflow_itr_req; // I2C½ÓÊÕÒç³öÖĞ¶ÏÇëÇó
-    wire[3:0] org_itr_req_vec; // Ô­Ê¼ÖĞ¶ÏÇëÇóÏòÁ¿
-    wire global_itr_req; // ×ÜÖĞ¶ÏÇëÇó
+    reg global_itr_flag; // å…¨å±€ä¸­æ–­æ ‡å¿—
+    reg[3:0] sub_itr_flag; // å­ä¸­æ–­æ ‡å¿—
+    reg[11:0] i2c_bytes_n_sent; // I2Cå‘é€å­—èŠ‚æ•°
+    reg[11:0] i2c_bytes_n_rev; // I2Cæ¥æ”¶å­—èŠ‚æ•°
+    // ä¸­æ–­å¤„ç†
+    reg i2c_tx_done_d; // å»¶è¿Ÿ1clkçš„I2Cå‘é€å®ŒæˆæŒ‡ç¤º
+    reg i2c_rx_done_d; // å»¶è¿Ÿ1clkçš„I2Cå‘é€å®ŒæˆæŒ‡ç¤º
+    reg i2c_tx_reach_bytes_n_itr_req; // I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­è¯·æ±‚
+    wire i2c_slave_resp_err_itr_req; // I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­è¯·æ±‚
+    reg i2c_rx_reach_bytes_n_itr_req; // I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­è¯·æ±‚
+    wire i2c_rx_overflow_itr_req; // I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­è¯·æ±‚
+    wire[3:0] org_itr_req_vec; // åŸå§‹ä¸­æ–­è¯·æ±‚å‘é‡
+    wire global_itr_req; // æ€»ä¸­æ–­è¯·æ±‚
     
     assign tx_fifo_wen = tx_fifo_wen_reg;
     assign tx_fifo_din = tx_fifo_din_regs;
@@ -127,7 +151,7 @@ module regs_if_for_i2c #(
         {i2c_rx_overflow_itr_en, i2c_rx_reach_bytes_n_itr_en, i2c_slave_resp_err_itr_en, i2c_tx_reach_bytes_n_itr_en};
     assign global_itr_req = (|org_itr_req_vec) & global_itr_en & (~global_itr_flag);
     
-    // ·¢ËÍfifoĞ´Ê¹ÄÜ
+    // å‘é€fifoå†™ä½¿èƒ½
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -135,13 +159,13 @@ module regs_if_for_i2c #(
         else
             # simulation_delay tx_fifo_wen_reg <= psel & penable & pwrite & (paddr[3:2] == 2'd0) & pwdata[1];
     end
-    // ·¢ËÍfifoĞ´Êı¾İ
+    // å‘é€fifoå†™æ•°æ®
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[3:2] == 2'd0))
             # simulation_delay tx_fifo_din_regs <= pwdata[10:2];
     end
-    // ½ÓÊÕfifo¶ÁÊ¹ÄÜ
+    // æ¥æ”¶fifoè¯»ä½¿èƒ½
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -150,11 +174,11 @@ module regs_if_for_i2c #(
             # simulation_delay rx_fifo_ren_reg <= psel & penable & pwrite & (paddr[3:2] == 2'd0) & pwdata[17];
     end
     
-    // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-    // I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ
-    // I2C´Ó»úÏìÓ¦´íÎóÖĞ¶ÏÊ¹ÄÜ
-    // I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ
-    // I2C½ÓÊÕÒç³öÖĞ¶ÏÊ¹ÄÜ
+    // å…¨å±€ä¸­æ–­ä½¿èƒ½
+    // I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½
+    // I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­ä½¿èƒ½
+    // I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½
+    // I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­ä½¿èƒ½
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -164,16 +188,16 @@ module regs_if_for_i2c #(
                 {pwdata[11:8], pwdata[0]};
     end
     
-    // I2C·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-    // I2C½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-    // I2CÊ±ÖÓ·ÖÆµÏµÊı
+    // I2Cå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+    // I2Cæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+    // I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°
     always @(posedge clk)
     begin
         if(psel & penable & pwrite & (paddr[3:2] == 2'd2))
             # simulation_delay {i2c_scl_div_rate_regs, i2c_rx_bytes_n_th, i2c_tx_bytes_n_th} <= pwdata[23:0];
     end
     
-    // È«¾ÖÖĞ¶Ï±êÖ¾
+    // å…¨å±€ä¸­æ–­æ ‡å¿—
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -183,13 +207,13 @@ module regs_if_for_i2c #(
         else if(~global_itr_flag)
             # simulation_delay global_itr_flag <= global_itr_req;
     end
-    // ×ÓÖĞ¶Ï±êÖ¾
+    // å­ä¸­æ–­æ ‡å¿—
     always @(posedge clk)
     begin
         if(global_itr_req)
             # simulation_delay sub_itr_flag <= org_itr_req_vec;
     end
-    // I2C·¢ËÍ×Ö½ÚÊı
+    // I2Cå‘é€å­—èŠ‚æ•°
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -199,7 +223,7 @@ module regs_if_for_i2c #(
         else if(i2c_tx_done)
             # simulation_delay i2c_bytes_n_sent <= i2c_bytes_n_sent + i2c_tx_bytes_n;
     end
-    // I2C½ÓÊÕ×Ö½ÚÊı
+    // I2Cæ¥æ”¶å­—èŠ‚æ•°
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -210,7 +234,7 @@ module regs_if_for_i2c #(
             # simulation_delay i2c_bytes_n_rev <= i2c_bytes_n_rev + i2c_rx_bytes_n;
     end
     
-    // ÑÓ³Ù1clkµÄI2C·¢ËÍÍê³ÉÖ¸Ê¾
+    // å»¶è¿Ÿ1clkçš„I2Cå‘é€å®ŒæˆæŒ‡ç¤º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -218,7 +242,7 @@ module regs_if_for_i2c #(
         else
             # simulation_delay i2c_tx_done_d <= i2c_tx_done;
     end
-    // ÑÓ³Ù1clkµÄI2C·¢ËÍÍê³ÉÖ¸Ê¾
+    // å»¶è¿Ÿ1clkçš„I2Cå‘é€å®ŒæˆæŒ‡ç¤º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -226,7 +250,7 @@ module regs_if_for_i2c #(
         else
             # simulation_delay i2c_rx_done_d <= i2c_rx_done;
     end
-    // I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÇëÇó
+    // I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­è¯·æ±‚
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -234,7 +258,7 @@ module regs_if_for_i2c #(
         else
             # simulation_delay i2c_tx_reach_bytes_n_itr_req <= i2c_tx_done_d & (i2c_bytes_n_sent > i2c_tx_bytes_n_th);
     end
-    // I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÇëÇó
+    // I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­è¯·æ±‚
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -243,7 +267,7 @@ module regs_if_for_i2c #(
             # simulation_delay i2c_rx_reach_bytes_n_itr_req <= i2c_rx_done_d & (i2c_bytes_n_rev > i2c_rx_bytes_n_th);
     end
     
-    // ÖĞ¶Ï·¢ÉúÆ÷
+    // ä¸­æ–­å‘ç”Ÿå™¨
     itr_generator #(
         .pulse_w(10),
         .simulation_delay(simulation_delay)
@@ -256,14 +280,14 @@ module regs_if_for_i2c #(
         .itr(itr)
     );
     
-    /** APB¶Á¼Ä´æÆ÷ **/
-    reg[31:0] prdata_out_regs; // APB¶ÁÊı¾İÊä³ö
+    /** APBè¯»å¯„å­˜å™¨ **/
+    reg[31:0] prdata_out_regs; // APBè¯»æ•°æ®è¾“å‡º
     
     assign pready_out = 1'b1;
     assign prdata_out = prdata_out_regs;
     assign pslverr_out = 1'b0;
     
-    // APB¶ÁÊı¾İÊä³ö
+    // APBè¯»æ•°æ®è¾“å‡º
 	generate
 		if(simulation_delay == 0)
 		begin

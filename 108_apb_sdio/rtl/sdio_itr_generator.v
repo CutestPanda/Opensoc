@@ -1,50 +1,74 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: APB-SDIOµÄÖĞ¶Ï·¢ÉúÆ÷
+æœ¬æ¨¡å—: APB-SDIOçš„ä¸­æ–­å‘ç”Ÿå™¨
 
-ÃèÊö:
-ÖĞ¶Ï -> ¶ÁÊı¾İÖĞ¶Ï, Ğ´Êı¾İÖĞ¶Ï, ³£¹æÃüÁî´¦ÀíÍê³ÉÖĞ¶ÏÂö³å
+æè¿°:
+ä¸­æ–­ -> è¯»æ•°æ®ä¸­æ–­, å†™æ•°æ®ä¸­æ–­, å¸¸è§„å‘½ä»¤å¤„ç†å®Œæˆä¸­æ–­è„‰å†²
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/01/24
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/01/24
 ********************************************************************/
 
 
 module sdio_itr_generator  #(
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // ¿ØÖÆÆ÷×´Ì¬
+    // æ§åˆ¶å™¨çŠ¶æ€
     input wire sdio_ctrler_done,
     input wire[1:0] sdio_ctrler_rw_type_done,
     
-    // ÖĞ¶Ï¿ØÖÆ
-    output wire rdata_itr_org_pulse, // ¶ÁÊı¾İÔ­Ê¼ÖĞ¶ÏÂö³å
-    output wire wdata_itr_org_pulse, // Ğ´Êı¾İÔ­Ê¼ÖĞ¶ÏÂö³å
-    output wire common_itr_org_pulse, // ³£¹æÃüÁî´¦ÀíÍê³ÉÖĞ¶ÏÂö³å
-    input wire rdata_itr_en, // ¶ÁÊı¾İÖĞ¶ÏÊ¹ÄÜ
-    input wire wdata_itr_en, // Ğ´Êı¾İÖĞ¶ÏÊ¹ÄÜ
-    input wire common_itr_en, // ³£¹æÃüÁî´¦ÀíÍê³ÉÖĞ¶ÏÊ¹ÄÜ
-    input wire global_org_itr_pulse, // È«¾ÖÔ­Ê¼ÖĞ¶ÏÂö³å
-    output wire itr // ÖĞ¶ÏĞÅºÅ
+    // ä¸­æ–­æ§åˆ¶
+    output wire rdata_itr_org_pulse, // è¯»æ•°æ®åŸå§‹ä¸­æ–­è„‰å†²
+    output wire wdata_itr_org_pulse, // å†™æ•°æ®åŸå§‹ä¸­æ–­è„‰å†²
+    output wire common_itr_org_pulse, // å¸¸è§„å‘½ä»¤å¤„ç†å®Œæˆä¸­æ–­è„‰å†²
+    input wire rdata_itr_en, // è¯»æ•°æ®ä¸­æ–­ä½¿èƒ½
+    input wire wdata_itr_en, // å†™æ•°æ®ä¸­æ–­ä½¿èƒ½
+    input wire common_itr_en, // å¸¸è§„å‘½ä»¤å¤„ç†å®Œæˆä¸­æ–­ä½¿èƒ½
+    input wire global_org_itr_pulse, // å…¨å±€åŸå§‹ä¸­æ–­è„‰å†²
+    output wire itr // ä¸­æ–­ä¿¡å·
 );
 
-    /** ³£Á¿ **/
-    // ÃüÁîµÄ¶ÁĞ´ÀàĞÍ
-    localparam RW_TYPE_NON = 2'b00; // ·Ç¶ÁĞ´
-    localparam RW_TYPE_READ = 2'b01; // ¶Á
-    localparam RW_TYPE_WRITE = 2'b10; // Ğ´
+    /** å¸¸é‡ **/
+    // å‘½ä»¤çš„è¯»å†™ç±»å‹
+    localparam RW_TYPE_NON = 2'b00; // éè¯»å†™
+    localparam RW_TYPE_READ = 2'b01; // è¯»
+    localparam RW_TYPE_WRITE = 2'b10; // å†™
 
-    /** Ô­Ê¼×ÓÖĞ¶ÏÂö³å **/
+    /** åŸå§‹å­ä¸­æ–­è„‰å†² **/
     reg rdata_itr_org_pulse_reg;
     reg wdata_itr_org_pulse_reg;
     reg common_itr_org_pulse_reg;
@@ -55,31 +79,31 @@ module sdio_itr_generator  #(
     begin
         if(~resetn)
             rdata_itr_org_pulse_reg <= 1'b0;
-        else if(~rdata_itr_en) // Ç¿ÖÆÇåÁã
+        else if(~rdata_itr_en) // å¼ºåˆ¶æ¸…é›¶
             # simulation_delay rdata_itr_org_pulse_reg <= 1'b0;
-        else // ²úÉúÂö³å
+        else // äº§ç”Ÿè„‰å†²
             # simulation_delay rdata_itr_org_pulse_reg <= sdio_ctrler_done & (sdio_ctrler_rw_type_done == RW_TYPE_READ);
     end
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             wdata_itr_org_pulse_reg <= 1'b0;
-        else if(~wdata_itr_en) // Ç¿ÖÆÇåÁã
+        else if(~wdata_itr_en) // å¼ºåˆ¶æ¸…é›¶
             # simulation_delay wdata_itr_org_pulse_reg <= 1'b0;
-        else // ²úÉúÂö³å
+        else // äº§ç”Ÿè„‰å†²
             # simulation_delay wdata_itr_org_pulse_reg <= sdio_ctrler_done & (sdio_ctrler_rw_type_done == RW_TYPE_WRITE);
     end
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             common_itr_org_pulse_reg <= 1'b0;
-        else if(~common_itr_en) // Ç¿ÖÆÇåÁã
+        else if(~common_itr_en) // å¼ºåˆ¶æ¸…é›¶
             # simulation_delay common_itr_org_pulse_reg <= 1'b0;
-        else // ²úÉúÂö³å
+        else // äº§ç”Ÿè„‰å†²
             # simulation_delay common_itr_org_pulse_reg <= sdio_ctrler_done & (sdio_ctrler_rw_type_done == RW_TYPE_NON);
     end
     
-    /** ÖĞ¶ÏĞÅºÅ **/
+    /** ä¸­æ–­ä¿¡å· **/
     itr_generator #(
         .pulse_w(10),
         .simulation_delay(simulation_delay)

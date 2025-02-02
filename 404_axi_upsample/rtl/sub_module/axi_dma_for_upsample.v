@@ -1,71 +1,95 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ÉÏ²ÉÑùµ¥ÔªµÄÊäÈë/Êä³öÌØÕ÷Í¼DMA
+æœ¬æ¨¡å—: ä¸Šé‡‡æ ·å•å…ƒçš„è¾“å…¥/è¾“å‡ºç‰¹å¾å›¾DMA
 
-ÃèÊö:
-32Î»µØÖ·64Î»Êı¾İµÄAXIÖ÷»ú
+æè¿°:
+32ä½åœ°å€64ä½æ•°æ®çš„AXIä¸»æœº
 
-¿ÉÑ¡µÄAXI¶ÁÊı¾İbufferÒÔÌá¸ßAXI¶ÁÍ»·¢µÄ´«ÊäĞ§ÂÊ
-ÄÚ²¿µÄAXIĞ´Êı¾İbufferÌá¸ßÁËAXIĞ´Í»·¢µÄ´«ÊäĞ§ÂÊ
+å¯é€‰çš„AXIè¯»æ•°æ®bufferä»¥æé«˜AXIè¯»çªå‘çš„ä¼ è¾“æ•ˆç‡
+å†…éƒ¨çš„AXIå†™æ•°æ®bufferæé«˜äº†AXIå†™çªå‘çš„ä¼ è¾“æ•ˆç‡
 
-×¢Òâ£º
-²»Ö§³Ö·Ç¶ÔÆë´«Êä
-²»Ö§³Ö4KB±ß½ç±£»¤, ±ØĞë±£Ö¤ÊäÈë/Êä³öÌØÕ÷Í¼»º´æÇøÊ×µØÖ·ÄÜ±»(axi_max_burst_len*8)Õû³ı, ´Ó¶øÈ·±£Ã¿´ÎÍ»·¢´«Êä²»»á¿çÔ½4KB±ß½ç
-¶ÔÓÚÊä³ö½á¹ûÌØÕ÷Í¼Êı¾İÁ÷À´Ëµ, ±ØĞë±£Ö¤Ã¿¸öÊı¾İ°üµÄ×Ö½ÚÊıÓëĞ´ÇëÇó×Ö½ÚÊıÒ»ÖÂ
+æ³¨æ„ï¼š
+ä¸æ”¯æŒéå¯¹é½ä¼ è¾“
+ä¸æ”¯æŒ4KBè¾¹ç•Œä¿æŠ¤, å¿…é¡»ä¿è¯è¾“å…¥/è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºé¦–åœ°å€èƒ½è¢«(axi_max_burst_len*8)æ•´é™¤, ä»è€Œç¡®ä¿æ¯æ¬¡çªå‘ä¼ è¾“ä¸ä¼šè·¨è¶Š4KBè¾¹ç•Œ
+å¯¹äºè¾“å‡ºç»“æœç‰¹å¾å›¾æ•°æ®æµæ¥è¯´, å¿…é¡»ä¿è¯æ¯ä¸ªæ•°æ®åŒ…çš„å­—èŠ‚æ•°ä¸å†™è¯·æ±‚å­—èŠ‚æ•°ä¸€è‡´
 
-Ğ­Òé:
+åè®®:
 BLK CTRL
 AXIS MASTER/SLAVE
 AXI MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/25
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/25
 ********************************************************************/
 
 
 module axi_dma_for_upsample #(
-	parameter integer axi_max_burst_len = 32, // AXIÖ÷»ú×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-	parameter integer axi_addr_outstanding = 4, // AXIµØÖ·»º³åÉî¶È(1~16)
-	parameter integer max_rd_btt = 4 * 512, // ×î´óµÄ¶ÁÇëÇó´«Êä×Ö½ÚÊı(256 | 512 | 1024 | ...)
-	parameter integer axi_rdata_buffer_depth = 512, // AXI¶ÁÊı¾İbufferÉî¶È(0 -> ²»ÆôÓÃ | 512 | 1024 | ...)
-	parameter integer max_wt_btt = 4 * 512, // ×î´óµÄĞ´ÇëÇó´«Êä×Ö½ÚÊı(256 | 512 | 1024 | ...)
-	parameter integer axi_wdata_buffer_depth = 512, // AXIĞ´Êı¾İbufferÉî¶È(512 | 1024 | ...)
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer axi_max_burst_len = 32, // AXIä¸»æœºæœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+	parameter integer axi_addr_outstanding = 4, // AXIåœ°å€ç¼“å†²æ·±åº¦(1~16)
+	parameter integer max_rd_btt = 4 * 512, // æœ€å¤§çš„è¯»è¯·æ±‚ä¼ è¾“å­—èŠ‚æ•°(256 | 512 | 1024 | ...)
+	parameter integer axi_rdata_buffer_depth = 512, // AXIè¯»æ•°æ®bufferæ·±åº¦(0 -> ä¸å¯ç”¨ | 512 | 1024 | ...)
+	parameter integer max_wt_btt = 4 * 512, // æœ€å¤§çš„å†™è¯·æ±‚ä¼ è¾“å­—èŠ‚æ•°(256 | 512 | 1024 | ...)
+	parameter integer axi_wdata_buffer_depth = 512, // AXIå†™æ•°æ®bufferæ·±åº¦(512 | 1024 | ...)
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire[31:0] in_ft_map_buf_baseaddr, // ÊäÈëÌØÕ÷Í¼»º´æÇø»ùµØÖ·
-	input wire[31:0] in_ft_map_buf_len, // ÊäÈëÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
-	input wire[31:0] out_ft_map_buf_baseaddr, // Êä³öÌØÕ÷Í¼»º´æÇø»ùµØÖ·
-	input wire[31:0] out_ft_map_buf_len, // Êä³öÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire[31:0] in_ft_map_buf_baseaddr, // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
+	input wire[31:0] in_ft_map_buf_len, // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
+	input wire[31:0] out_ft_map_buf_baseaddr, // è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
+	input wire[31:0] out_ft_map_buf_len, // è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
 	
-	// MM2S¿ØÖÆ
+	// MM2Sæ§åˆ¶
 	input wire mm2s_start,
 	output wire mm2s_idle,
 	output wire mm2s_done,
-	// S2MM¿ØÖÆ
+	// S2MMæ§åˆ¶
 	input wire s2mm_start,
 	output wire s2mm_idle,
 	output wire s2mm_done,
 	
-	// Êä³ö½á¹ûÌØÕ÷Í¼Êı¾İÁ÷
+	// è¾“å‡ºç»“æœç‰¹å¾å›¾æ•°æ®æµ
 	input wire[63:0] s_axis_out_ft_map_data,
 	input wire[7:0] s_axis_out_ft_map_keep,
 	input wire s_axis_out_ft_map_last,
 	input wire s_axis_out_ft_map_valid,
 	output wire s_axis_out_ft_map_ready,
 	
-	// ÊäÈë´ı´¦ÀíÌØÕ÷Í¼Êı¾İÁ÷
+	// è¾“å…¥å¾…å¤„ç†ç‰¹å¾å›¾æ•°æ®æµ
 	output wire[63:0] m_axis_in_ft_map_data,
 	output wire[7:0] m_axis_in_ft_map_keep,
 	output wire m_axis_in_ft_map_last,
 	output wire m_axis_in_ft_map_valid,
 	input wire m_axis_in_ft_map_ready,
 	
-	// AXIÖ÷»ú
+	// AXIä¸»æœº
 	// AR
     output wire[31:0] m_axi_araddr,
     output wire[1:0] m_axi_arburst, // const -> 2'b01(INCR)
@@ -100,7 +124,7 @@ module axi_dma_for_upsample #(
     input wire m_axi_wready
 );
 	
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -113,20 +137,20 @@ module axi_dma_for_upsample #(
     end
     endfunction
 	
-	/** ³£Á¿ **/
-	// ¶ÁÊı¾İbuffer´æ´¢µÄ×î´ó¶ÁÍ»·¢´ÎÊı
+	/** å¸¸é‡ **/
+	// è¯»æ•°æ®bufferå­˜å‚¨çš„æœ€å¤§è¯»çªå‘æ¬¡æ•°
 	localparam integer MAX_RDATA_BUFFER_STORE_N = (axi_rdata_buffer_depth == 0) ? 4:(axi_rdata_buffer_depth / axi_max_burst_len);
-	// Ğ´Êı¾İbuffer´æ´¢µÄ×î´óĞ´Í»·¢´ÎÊı
+	// å†™æ•°æ®bufferå­˜å‚¨çš„æœ€å¤§å†™çªå‘æ¬¡æ•°
 	localparam integer MAX_WDATA_BUFFER_STORE_N = axi_wdata_buffer_depth / axi_max_burst_len;
 	
-	/** Á÷³Ì¿ØÖÆ **/
-	reg mm2s_idle_reg; // MM2SÍ¨µÀ¿ÕÏĞ±êÖ¾
-	reg s2mm_idle_reg; // S2MMÍ¨µÀ¿ÕÏĞ±êÖ¾
+	/** æµç¨‹æ§åˆ¶ **/
+	reg mm2s_idle_reg; // MM2Sé€šé“ç©ºé—²æ ‡å¿—
+	reg s2mm_idle_reg; // S2MMé€šé“ç©ºé—²æ ‡å¿—
 	
 	assign mm2s_idle = mm2s_idle_reg;
 	assign s2mm_idle = s2mm_idle_reg;
 	
-	// MM2SÍ¨µÀ¿ÕÏĞ±êÖ¾
+	// MM2Sé€šé“ç©ºé—²æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -134,7 +158,7 @@ module axi_dma_for_upsample #(
 		else
 			mm2s_idle_reg <= # simulation_delay mm2s_idle ? (~mm2s_start):mm2s_done;
 	end
-	// S2MMÍ¨µÀ¿ÕÏĞ±êÖ¾
+	// S2MMé€šé“ç©ºé—²æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -143,20 +167,20 @@ module axi_dma_for_upsample #(
 			s2mm_idle_reg <= # simulation_delay s2mm_idle ? (~s2mm_start):s2mm_done;
 	end
 	
-	/** AXI¶ÁµØÖ·Í¨µÀ **/
-	reg[31:0] ar_addr; // ¶ÁµØÖ·
-	reg[clogb2(max_rd_btt/8-1):0] remaining_rd_trans_n; // Ê£ÓàµÄ(¶Á´«Êä´ÎÊı - 1)
-	reg to_suppress_ar_addr; // ÕòÑ¹¶ÁµØÖ·Í¨µÀ(±êÖ¾)
-	reg[clogb2(max_rd_btt/8-1):0] rd_trans_n_latched; // Ëø´æµÄ(¶Á´«Êä´ÎÊı - 1)
-	reg[7:0] last_rd_trans_keep_latched; // Ëø´æµÄ×îºó1´Î¶Á´«ÊäµÄkeepĞÅºÅ
-	wire last_rd_burst; // ×îºó1´Î¶ÁÍ»·¢(±êÖ¾)
-	wire rdata_buffer_allow_arvalid; // ¶ÁÊı¾İbufferÔÊĞí¶ÁµØÖ·Í¨µÀÓĞĞ§(±êÖ¾)
-	wire raddr_outstanding_ctrl_allow_arvalid; // ¶ÁµØÖ·outstanding¿ØÖÆÔÊĞí¶ÁµØÖ·Í¨µÀÓĞĞ§(±êÖ¾)
-	// ¶ÁµØÖ·»º´æ
-	reg[clogb2(axi_addr_outstanding):0] ar_outstanding_n; // ÖÍÍâµÄ¶Á´«Êä¸öÊı
-	reg ar_outstanding_full_n; // ¶ÁµØÖ·»º´æÂú±êÖ¾
-	wire on_pre_launch_rd_burst; // Ô¤Æô¶¯ĞÂµÄ¶ÁÍ»·¢(Ö¸Ê¾)
-	wire on_rdata_return; // ¶ÁÍ»·¢Êı¾İÒÑ·µ»Ø(Ö¸Ê¾)
+	/** AXIè¯»åœ°å€é€šé“ **/
+	reg[31:0] ar_addr; // è¯»åœ°å€
+	reg[clogb2(max_rd_btt/8-1):0] remaining_rd_trans_n; // å‰©ä½™çš„(è¯»ä¼ è¾“æ¬¡æ•° - 1)
+	reg to_suppress_ar_addr; // é•‡å‹è¯»åœ°å€é€šé“(æ ‡å¿—)
+	reg[clogb2(max_rd_btt/8-1):0] rd_trans_n_latched; // é”å­˜çš„(è¯»ä¼ è¾“æ¬¡æ•° - 1)
+	reg[7:0] last_rd_trans_keep_latched; // é”å­˜çš„æœ€å1æ¬¡è¯»ä¼ è¾“çš„keepä¿¡å·
+	wire last_rd_burst; // æœ€å1æ¬¡è¯»çªå‘(æ ‡å¿—)
+	wire rdata_buffer_allow_arvalid; // è¯»æ•°æ®bufferå…è®¸è¯»åœ°å€é€šé“æœ‰æ•ˆ(æ ‡å¿—)
+	wire raddr_outstanding_ctrl_allow_arvalid; // è¯»åœ°å€outstandingæ§åˆ¶å…è®¸è¯»åœ°å€é€šé“æœ‰æ•ˆ(æ ‡å¿—)
+	// è¯»åœ°å€ç¼“å­˜
+	reg[clogb2(axi_addr_outstanding):0] ar_outstanding_n; // æ»å¤–çš„è¯»ä¼ è¾“ä¸ªæ•°
+	reg ar_outstanding_full_n; // è¯»åœ°å€ç¼“å­˜æ»¡æ ‡å¿—
+	wire on_pre_launch_rd_burst; // é¢„å¯åŠ¨æ–°çš„è¯»çªå‘(æŒ‡ç¤º)
+	wire on_rdata_return; // è¯»çªå‘æ•°æ®å·²è¿”å›(æŒ‡ç¤º)
 	
 	assign m_axi_araddr = ar_addr;
 	assign m_axi_arburst = 2'b01;
@@ -170,14 +194,14 @@ module axi_dma_for_upsample #(
 	assign on_pre_launch_rd_burst = m_axi_arvalid & m_axi_arready;
 	assign on_rdata_return = m_axi_rvalid & m_axi_rready & m_axi_rlast;
 	
-	// ¶ÁµØÖ·
+	// è¯»åœ°å€
 	always @(posedge clk)
 	begin
 		if((mm2s_idle & mm2s_start) | on_pre_launch_rd_burst)
 			ar_addr <= # simulation_delay mm2s_idle ? in_ft_map_buf_baseaddr:(ar_addr + (axi_max_burst_len * 8));
 	end
 	
-	// Ê£ÓàµÄ(¶Á´«Êä´ÎÊı - 1)
+	// å‰©ä½™çš„(è¯»ä¼ è¾“æ¬¡æ•° - 1)
 	always @(posedge clk)
 	begin
 		if((mm2s_idle & mm2s_start) | on_pre_launch_rd_burst)
@@ -185,7 +209,7 @@ module axi_dma_for_upsample #(
 				in_ft_map_buf_len[3+clogb2(max_rd_btt/8-1):3]:(remaining_rd_trans_n - axi_max_burst_len);
 	end
 	
-	// ÕòÑ¹¶ÁµØÖ·Í¨µÀ(±êÖ¾)
+	// é•‡å‹è¯»åœ°å€é€šé“(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -195,14 +219,14 @@ module axi_dma_for_upsample #(
 				(~mm2s_done):(on_pre_launch_rd_burst & last_rd_burst);
 	end
 	
-	// Ëø´æµÄ(¶Á´«Êä´ÎÊı - 1)
+	// é”å­˜çš„(è¯»ä¼ è¾“æ¬¡æ•° - 1)
 	always @(posedge clk)
 	begin
 		if(mm2s_idle & mm2s_start)
 			rd_trans_n_latched <= # simulation_delay in_ft_map_buf_len[3+clogb2(max_rd_btt/8-1):3];
 	end
 	
-	// Ëø´æµÄ×îºó1´Î¶Á´«ÊäµÄkeepĞÅºÅ
+	// é”å­˜çš„æœ€å1æ¬¡è¯»ä¼ è¾“çš„keepä¿¡å·
 	always @(posedge clk)
 	begin
 		if(mm2s_idle & mm2s_start)
@@ -231,7 +255,7 @@ module axi_dma_for_upsample #(
 			};
 	end
 	
-	// ÖÍÍâµÄ¶Á´«Êä¸öÊı
+	// æ»å¤–çš„è¯»ä¼ è¾“ä¸ªæ•°
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -240,7 +264,7 @@ module axi_dma_for_upsample #(
 			ar_outstanding_n <= # simulation_delay 
 				on_pre_launch_rd_burst ? (ar_outstanding_n + 1):(ar_outstanding_n - 1);
 	end
-	// ¶ÁµØÖ·»º´æÂú±êÖ¾
+	// è¯»åœ°å€ç¼“å­˜æ»¡æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -251,23 +275,23 @@ module axi_dma_for_upsample #(
 				(~on_pre_launch_rd_burst) | (ar_outstanding_n != (axi_addr_outstanding - 1));
 	end
 	
-	/** AXI¶ÁÊı¾İÍ¨µÀ **/
-	reg[clogb2(MAX_RDATA_BUFFER_STORE_N):0] pre_launched_rd_burst_n; // Ô¤Æô¶¯µÄ¶ÁÍ»·¢´ÎÊı
-	reg rdata_buffer_pre_full_n; // ¶ÁÊı¾İbufferÔ¤Âú(±êÖ¾)
-	wire on_rd_burst_complete; // ¶ÁÍ»·¢Íê³É(Ö¸Ê¾)
-	reg[clogb2(max_rd_btt/8-1):0] rd_trans_out_cnt; // ÒÑÊä³öµÄ¶Á´«ÊäÊı¾İÁ¿(¼ÆÊıÆ÷)
-	// ¶ÁÊı¾İbufferĞ´¶Ë¿Ú
+	/** AXIè¯»æ•°æ®é€šé“ **/
+	reg[clogb2(MAX_RDATA_BUFFER_STORE_N):0] pre_launched_rd_burst_n; // é¢„å¯åŠ¨çš„è¯»çªå‘æ¬¡æ•°
+	reg rdata_buffer_pre_full_n; // è¯»æ•°æ®bufferé¢„æ»¡(æ ‡å¿—)
+	wire on_rd_burst_complete; // è¯»çªå‘å®Œæˆ(æŒ‡ç¤º)
+	reg[clogb2(max_rd_btt/8-1):0] rd_trans_out_cnt; // å·²è¾“å‡ºçš„è¯»ä¼ è¾“æ•°æ®é‡(è®¡æ•°å™¨)
+	// è¯»æ•°æ®bufferå†™ç«¯å£
 	wire rdata_buffer_wen;
 	wire rdata_buffer_full_n;
 	wire[63:0] rdata_buffer_din;
-	wire rdata_buffer_din_burst_last; // Ö¸Ê¾¶ÁÍ»·¢×îºó1×éÊı¾İ
-	// ¶ÁÊı¾İbuffer¶Á¶Ë¿Ú
+	wire rdata_buffer_din_burst_last; // æŒ‡ç¤ºè¯»çªå‘æœ€å1ç»„æ•°æ®
+	// è¯»æ•°æ®bufferè¯»ç«¯å£
 	wire rdata_buffer_ren;
 	wire rdata_buffer_empty_n;
 	wire[63:0] rdata_buffer_dout;
 	wire[7:0] rdata_buffer_dout_keep;
-	wire rdata_buffer_dout_ft_last; // Ö¸Ê¾ÌØÕ÷Í¼×îºó1×éÊı¾İ
-	wire rdata_buffer_dout_burst_last; // Ö¸Ê¾¶ÁÍ»·¢×îºó1×éÊı¾İ
+	wire rdata_buffer_dout_ft_last; // æŒ‡ç¤ºç‰¹å¾å›¾æœ€å1ç»„æ•°æ®
+	wire rdata_buffer_dout_burst_last; // æŒ‡ç¤ºè¯»çªå‘æœ€å1ç»„æ•°æ®
 	
 	assign mm2s_done = m_axis_in_ft_map_valid & m_axis_in_ft_map_ready & m_axis_in_ft_map_last;
 	
@@ -290,7 +314,7 @@ module axi_dma_for_upsample #(
 	assign rdata_buffer_dout_keep = {8{~rdata_buffer_dout_ft_last}} | last_rd_trans_keep_latched;
 	assign rdata_buffer_dout_ft_last = rd_trans_out_cnt == rd_trans_n_latched;
 	
-	// Ô¤Æô¶¯µÄ¶ÁÍ»·¢´ÎÊı
+	// é¢„å¯åŠ¨çš„è¯»çªå‘æ¬¡æ•°
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -299,7 +323,7 @@ module axi_dma_for_upsample #(
 			pre_launched_rd_burst_n <= # simulation_delay 
 				on_pre_launch_rd_burst ? (pre_launched_rd_burst_n + 1):(pre_launched_rd_burst_n - 1);
 	end
-	// ¶ÁÊı¾İbufferÔ¤Âú(±êÖ¾)
+	// è¯»æ•°æ®bufferé¢„æ»¡(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -310,7 +334,7 @@ module axi_dma_for_upsample #(
 				(~on_pre_launch_rd_burst) | (pre_launched_rd_burst_n != (MAX_RDATA_BUFFER_STORE_N - 1));
 	end
 	
-	// ÒÑÊä³öµÄ¶Á´«ÊäÊı¾İÁ¿(¼ÆÊıÆ÷)
+	// å·²è¾“å‡ºçš„è¯»ä¼ è¾“æ•°æ®é‡(è®¡æ•°å™¨)
 	always @(posedge clk)
 	begin
 		if((mm2s_idle & mm2s_start) | (m_axis_in_ft_map_valid & m_axis_in_ft_map_ready))
@@ -318,7 +342,7 @@ module axi_dma_for_upsample #(
 			rd_trans_out_cnt <= # simulation_delay {(clogb2(max_rd_btt/8-1)+1){~mm2s_idle}} & (rd_trans_out_cnt + 1);
 	end
 	
-	// ¶ÁÊı¾İbuffer
+	// è¯»æ•°æ®buffer
 	generate
 		if(axi_rdata_buffer_depth > 0)
 		begin
@@ -357,18 +381,18 @@ module axi_dma_for_upsample #(
 		end
 	endgenerate
 	
-	/** AXIĞ´µØÖ·Í¨µÀ **/
-	reg[31:0] aw_addr; // Ğ´µØÖ·
-	reg[clogb2(max_wt_btt/8-1):0] remaining_wt_trans_n; // Ê£ÓàµÄ(Ğ´´«Êä´ÎÊı - 1)
-	reg to_suppress_aw_addr; // ÕòÑ¹Ğ´µØÖ·Í¨µÀ(±êÖ¾)
-	wire last_wt_burst; // ×îºó1´ÎĞ´Í»·¢(±êÖ¾)
-	wire wdata_buffer_allow_awvalid; // Ğ´Êı¾İbufferÔÊĞíĞ´µØÖ·Í¨µÀÓĞĞ§(±êÖ¾)
-	wire waddr_outstanding_ctrl_allow_awvalid; // Ğ´µØÖ·outstanding¿ØÖÆÔÊĞíĞ´µØÖ·Í¨µÀÓĞĞ§(±êÖ¾)
-	// Ğ´µØÖ·»º´æ
-	reg[clogb2(axi_addr_outstanding):0] aw_outstanding_n; // ÖÍÍâµÄĞ´´«Êä¸öÊı
-	reg aw_outstanding_full_n; // Ğ´µØÖ·»º´æÂú±êÖ¾
-	wire on_pre_launch_wt_burst; // Ô¤Æô¶¯ĞÂµÄĞ´Í»·¢(Ö¸Ê¾)
-	wire on_bresp_gotten; // µÃµ½Ğ´ÏìÓ¦(Ö¸Ê¾)
+	/** AXIå†™åœ°å€é€šé“ **/
+	reg[31:0] aw_addr; // å†™åœ°å€
+	reg[clogb2(max_wt_btt/8-1):0] remaining_wt_trans_n; // å‰©ä½™çš„(å†™ä¼ è¾“æ¬¡æ•° - 1)
+	reg to_suppress_aw_addr; // é•‡å‹å†™åœ°å€é€šé“(æ ‡å¿—)
+	wire last_wt_burst; // æœ€å1æ¬¡å†™çªå‘(æ ‡å¿—)
+	wire wdata_buffer_allow_awvalid; // å†™æ•°æ®bufferå…è®¸å†™åœ°å€é€šé“æœ‰æ•ˆ(æ ‡å¿—)
+	wire waddr_outstanding_ctrl_allow_awvalid; // å†™åœ°å€outstandingæ§åˆ¶å…è®¸å†™åœ°å€é€šé“æœ‰æ•ˆ(æ ‡å¿—)
+	// å†™åœ°å€ç¼“å­˜
+	reg[clogb2(axi_addr_outstanding):0] aw_outstanding_n; // æ»å¤–çš„å†™ä¼ è¾“ä¸ªæ•°
+	reg aw_outstanding_full_n; // å†™åœ°å€ç¼“å­˜æ»¡æ ‡å¿—
+	wire on_pre_launch_wt_burst; // é¢„å¯åŠ¨æ–°çš„å†™çªå‘(æŒ‡ç¤º)
+	wire on_bresp_gotten; // å¾—åˆ°å†™å“åº”(æŒ‡ç¤º)
 	
 	assign m_axi_awaddr = aw_addr;
 	assign m_axi_awburst = 2'b01;
@@ -382,14 +406,14 @@ module axi_dma_for_upsample #(
 	assign on_pre_launch_wt_burst = m_axi_awvalid & m_axi_awready;
 	assign on_bresp_gotten = m_axi_bvalid;
 	
-	// Ğ´µØÖ·
+	// å†™åœ°å€
 	always @(posedge clk)
 	begin
 		if((s2mm_idle & s2mm_start) | on_pre_launch_wt_burst)
 			aw_addr <= # simulation_delay s2mm_idle ? out_ft_map_buf_baseaddr:(aw_addr + (axi_max_burst_len * 8));
 	end
 	
-	// Ê£ÓàµÄ(Ğ´´«Êä´ÎÊı - 1)
+	// å‰©ä½™çš„(å†™ä¼ è¾“æ¬¡æ•° - 1)
 	always @(posedge clk)
 	begin
 		if((s2mm_idle & s2mm_start) | on_pre_launch_wt_burst)
@@ -397,7 +421,7 @@ module axi_dma_for_upsample #(
 				out_ft_map_buf_len[3+clogb2(max_wt_btt/8-1):3]:(remaining_wt_trans_n - axi_max_burst_len);
 	end
 	
-	// ÕòÑ¹Ğ´µØÖ·Í¨µÀ(±êÖ¾)
+	// é•‡å‹å†™åœ°å€é€šé“(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -407,7 +431,7 @@ module axi_dma_for_upsample #(
 				(~s2mm_done):(on_pre_launch_wt_burst & last_wt_burst);
 	end
 	
-	// ÖÍÍâµÄĞ´´«Êä¸öÊı
+	// æ»å¤–çš„å†™ä¼ è¾“ä¸ªæ•°
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -416,7 +440,7 @@ module axi_dma_for_upsample #(
 			aw_outstanding_n <= # simulation_delay 
 				on_pre_launch_wt_burst ? (aw_outstanding_n + 1):(aw_outstanding_n - 1);
 	end
-	// Ğ´µØÖ·»º´æÂú±êÖ¾
+	// å†™åœ°å€ç¼“å­˜æ»¡æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -427,13 +451,13 @@ module axi_dma_for_upsample #(
 				(~on_pre_launch_wt_burst) | (aw_outstanding_n != (axi_addr_outstanding - 1));
 	end
 	
-	/** AXIĞ´ÏìÓ¦Í¨µÀ **/
-	// Ğ´Í»·¢ĞÅÏ¢fifoĞ´¶Ë¿Ú
+	/** AXIå†™å“åº”é€šé“ **/
+	// å†™çªå‘ä¿¡æ¯fifoå†™ç«¯å£
 	wire wburst_msg_fifo_wen;
-	wire wburst_msg_fifo_din; // Ö¸Ê¾±¾´ÎĞ´ÇëÇó×îºó1´ÎĞ´Í»·¢
-	// Ğ´Í»·¢ĞÅÏ¢fifo¶Á¶Ë¿Ú
+	wire wburst_msg_fifo_din; // æŒ‡ç¤ºæœ¬æ¬¡å†™è¯·æ±‚æœ€å1æ¬¡å†™çªå‘
+	// å†™çªå‘ä¿¡æ¯fifoè¯»ç«¯å£
 	wire wburst_msg_fifo_ren;
-	wire wburst_msg_fifo_dout; // Ö¸Ê¾±¾´ÎĞ´ÇëÇó×îºó1´ÎĞ´Í»·¢
+	wire wburst_msg_fifo_dout; // æŒ‡ç¤ºæœ¬æ¬¡å†™è¯·æ±‚æœ€å1æ¬¡å†™çªå‘
 	
 	assign s2mm_done = m_axi_bvalid & wburst_msg_fifo_dout;
 	assign m_axi_bready = 1'b1;
@@ -442,10 +466,10 @@ module axi_dma_for_upsample #(
 	assign wburst_msg_fifo_din = last_wt_burst;
 	assign wburst_msg_fifo_ren = m_axi_bvalid;
 	
-	// Ğ´Í»·¢ĞÅÏ¢fifo
+	// å†™çªå‘ä¿¡æ¯fifo
 	fifo_based_on_regs #(
 		.fwft_mode("true"),
-		.fifo_depth(axi_addr_outstanding), // Éî¶ÈÉèÎª1Ò²²»»á³ö´í
+		.fifo_depth(axi_addr_outstanding), // æ·±åº¦è®¾ä¸º1ä¹Ÿä¸ä¼šå‡ºé”™
 		.fifo_data_width(1),
 		.almost_full_th(),
 		.almost_empty_th(),
@@ -463,23 +487,23 @@ module axi_dma_for_upsample #(
 		.fifo_empty_n()
 	);
 	
-	/** AXIĞ´Êı¾İÍ¨µÀ **/
-	wire on_wdata_buffered; // »º´æ1´ÎĞ´Í»·¢¶ÔÓ¦µÄÊı¾İ(Ö¸Ê¾)
-	reg[clogb2(MAX_WDATA_BUFFER_STORE_N):0] wdata_buffer_store_n; // Ğ´Êı¾İbufferÒÑ»º´æµÄĞ´Í»·¢¸öÊı
-	reg wdata_buffer_has_stored_burst; // Ğ´Êı¾İbuffer»º´æ·Ç¿Õ±êÖ¾
-	reg[clogb2(axi_max_burst_len-1):0] wdata_tid_in_burst; // Ğ´Êı¾İÔÚĞ´Í»·¢ÖĞµÄ±àºÅ(¼ÆÊıÆ÷)
-	// Ğ´Êı¾İbufferĞ´¶Ë¿Ú
+	/** AXIå†™æ•°æ®é€šé“ **/
+	wire on_wdata_buffered; // ç¼“å­˜1æ¬¡å†™çªå‘å¯¹åº”çš„æ•°æ®(æŒ‡ç¤º)
+	reg[clogb2(MAX_WDATA_BUFFER_STORE_N):0] wdata_buffer_store_n; // å†™æ•°æ®bufferå·²ç¼“å­˜çš„å†™çªå‘ä¸ªæ•°
+	reg wdata_buffer_has_stored_burst; // å†™æ•°æ®bufferç¼“å­˜éç©ºæ ‡å¿—
+	reg[clogb2(axi_max_burst_len-1):0] wdata_tid_in_burst; // å†™æ•°æ®åœ¨å†™çªå‘ä¸­çš„ç¼–å·(è®¡æ•°å™¨)
+	// å†™æ•°æ®bufferå†™ç«¯å£
 	wire wdata_buffer_wen;
 	wire wdata_buffer_full_n;
 	wire[63:0] wdata_buffer_din;
-	wire[2:0] wdata_buffer_din_kid; // ×Ö½ÚÊ¹ÄÜÑÚÂë±àºÅ
-	wire wdata_buffer_din_last; // Ö¸Ê¾Ğ´Í»·¢×îºó1×éÊı¾İ
-	// Ğ´Êı¾İbuffer¶Á¶Ë¿Ú
+	wire[2:0] wdata_buffer_din_kid; // å­—èŠ‚ä½¿èƒ½æ©ç ç¼–å·
+	wire wdata_buffer_din_last; // æŒ‡ç¤ºå†™çªå‘æœ€å1ç»„æ•°æ®
+	// å†™æ•°æ®bufferè¯»ç«¯å£
 	wire wdata_buffer_ren;
 	wire wdata_buffer_empty_n;
 	wire[63:0] wdata_buffer_dout;
-	wire[2:0] wdata_buffer_dout_kid; // ×Ö½ÚÊ¹ÄÜÑÚÂë±àºÅ
-	wire wdata_buffer_dout_last; // Ö¸Ê¾Ğ´Í»·¢×îºó1×éÊı¾İ
+	wire[2:0] wdata_buffer_dout_kid; // å­—èŠ‚ä½¿èƒ½æ©ç ç¼–å·
+	wire wdata_buffer_dout_last; // æŒ‡ç¤ºå†™çªå‘æœ€å1ç»„æ•°æ®
 	
 	assign m_axi_wdata = wdata_buffer_dout;
 	/*
@@ -533,7 +557,7 @@ module axi_dma_for_upsample #(
 	};
 	assign wdata_buffer_din_last = (wdata_tid_in_burst == (axi_max_burst_len - 1)) | s_axis_out_ft_map_last;
 	
-	// Ğ´Êı¾İbufferÒÑ»º´æµÄĞ´Í»·¢¸öÊı
+	// å†™æ•°æ®bufferå·²ç¼“å­˜çš„å†™çªå‘ä¸ªæ•°
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -541,7 +565,7 @@ module axi_dma_for_upsample #(
 		else if(on_wdata_buffered ^ on_pre_launch_wt_burst)
 			wdata_buffer_store_n <= # simulation_delay on_pre_launch_wt_burst ? (wdata_buffer_store_n - 1):(wdata_buffer_store_n + 1);
 	end
-	// Ğ´Êı¾İbuffer»º´æ·Ç¿Õ±êÖ¾
+	// å†™æ•°æ®bufferç¼“å­˜éç©ºæ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -551,7 +575,7 @@ module axi_dma_for_upsample #(
 			wdata_buffer_has_stored_burst <= # simulation_delay (~on_pre_launch_wt_burst) | (wdata_buffer_store_n != 1);
 	end
 	
-	// Ğ´Êı¾İÔÚĞ´Í»·¢ÖĞµÄ±àºÅ(¼ÆÊıÆ÷)
+	// å†™æ•°æ®åœ¨å†™çªå‘ä¸­çš„ç¼–å·(è®¡æ•°å™¨)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -561,7 +585,7 @@ module axi_dma_for_upsample #(
 			wdata_tid_in_burst <= # simulation_delay {(clogb2(axi_max_burst_len-1)+1){~s_axis_out_ft_map_last}} & (wdata_tid_in_burst + 1);
 	end
 	
-	// Ğ´Êı¾İbuffer
+	// å†™æ•°æ®buffer
 	ram_fifo_wrapper #(
 		.fwft_mode("true"),
 		.ram_type("bram"),

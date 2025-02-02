@@ -1,30 +1,54 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXISÎ»¿í±ä»»
+æœ¬æ¨¡å—: AXISä½å®½å˜æ¢
 
-ÃèÊö: 
-¶ÔAXIS½Ó¿Ú½øĞĞÎ»¿í±ä»»
-Ö§³ÖÎ»¿í±¶Ôö/·ÇÕûÊı±¶Ôö¼Ó/±¶Ëõ/·ÇÕûÊı±¶Ëõ¼õ/²»±ä
+æè¿°: 
+å¯¹AXISæ¥å£è¿›è¡Œä½å®½å˜æ¢
+æ”¯æŒä½å®½å€å¢/éæ•´æ•°å€å¢åŠ /å€ç¼©/éæ•´æ•°å€ç¼©å‡/ä¸å˜
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/02
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/02
 ********************************************************************/
 
 
 module axis_dw_cvt #(
-    parameter integer slave_data_width = 64, // ´Ó»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter integer master_data_width = 48, // Ö÷»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter integer slave_user_width_foreach_byte = 1, // ´Ó»úÃ¿¸öÊı¾İ×Ö½ÚµÄuserÎ»¿í(±ØĞë>=1, ²»ÓÃÊ±Ğü¿Õ¼´¿É)
-    parameter en_keep = "true", // ÊÇ·ñÊ¹ÓÃkeepĞÅºÅ
-    parameter en_last = "true", // ÊÇ·ñÊ¹ÓÃlastĞÅºÅ
-    parameter en_out_isolation = "true", // ÊÇ·ñÆôÓÃÊä³ö¸ôÀë
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer slave_data_width = 64, // ä»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter integer master_data_width = 48, // ä¸»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter integer slave_user_width_foreach_byte = 1, // ä»æœºæ¯ä¸ªæ•°æ®å­—èŠ‚çš„userä½å®½(å¿…é¡»>=1, ä¸ç”¨æ—¶æ‚¬ç©ºå³å¯)
+    parameter en_keep = "true", // æ˜¯å¦ä½¿ç”¨keepä¿¡å·
+    parameter en_last = "true", // æ˜¯å¦ä½¿ç”¨lastä¿¡å·
+    parameter en_out_isolation = "true", // æ˜¯å¦å¯ç”¨è¾“å‡ºéš”ç¦»
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
     input wire clk,
     input wire rst_n,
@@ -46,15 +70,15 @@ module axis_dw_cvt #(
     input wire m_axis_ready
 );
 
-    localparam en_keep_all0_filter = "false"; // ÊÇ·ñ¹ıÂËkeepÈ«0µÄ±¶ÔöÊä³ö
+    localparam en_keep_all0_filter = "false"; // æ˜¯å¦è¿‡æ»¤keepå…¨0çš„å€å¢è¾“å‡º
 
     generate
         if(slave_data_width > master_data_width)
         begin
-            // Î»¿íËõ¼õ
+            // ä½å®½ç¼©å‡
             if(slave_data_width % master_data_width)
             begin
-                // ·ÇÕûÊı±¶µÄÎ»¿íËõ¼õ
+                // éæ•´æ•°å€çš„ä½å®½ç¼©å‡
                 axis_dw_cvt_not_tpc #(
                     .slave_data_width(slave_data_width),
                     .slave_user_width_foreach_byte(slave_user_width_foreach_byte),
@@ -80,7 +104,7 @@ module axis_dw_cvt #(
             end
             else
             begin
-                // Î»¿í±¶¼õ
+                // ä½å®½å€å‡
                 axis_dw_cvt_downsizer #(
                     .slave_data_width(slave_data_width),
                     .slave_user_width_foreach_byte(slave_user_width_foreach_byte),
@@ -108,10 +132,10 @@ module axis_dw_cvt #(
         end
         else if(slave_data_width < master_data_width)
         begin
-            // Î»¿íÔö¼Ó
+            // ä½å®½å¢åŠ 
             if(master_data_width % slave_data_width)
             begin
-                // ·ÇÕûÊı±¶µÄÎ»¿íÔö¼Ó
+                // éæ•´æ•°å€çš„ä½å®½å¢åŠ 
                 axis_dw_cvt_not_tpc #(
                     .slave_data_width(slave_data_width),
                     .slave_user_width_foreach_byte(slave_user_width_foreach_byte),
@@ -137,7 +161,7 @@ module axis_dw_cvt #(
             end
             else
             begin
-                // Î»¿í±¶Ôö
+                // ä½å®½å€å¢
                 axis_dw_cvt_upsizer #(
                     .slave_data_width(slave_data_width),
                     .slave_user_width_foreach_byte(slave_user_width_foreach_byte),
@@ -165,7 +189,7 @@ module axis_dw_cvt #(
         end
         else
         begin
-            // Î»¿í²»±ä
+            // ä½å®½ä¸å˜
             assign m_axis_data = s_axis_data;
             assign m_axis_keep = s_axis_keep;
             assign m_axis_user = s_axis_user;

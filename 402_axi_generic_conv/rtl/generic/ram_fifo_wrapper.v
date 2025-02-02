@@ -1,49 +1,73 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: »ùÓÚlutram»òbramµÄÍ¬²½fifo
+æœ¬æ¨¡å—: åŸºäºŽlutramæˆ–bramçš„åŒæ­¥fifo
 
-ÃèÊö: 
-È«Á÷Ë®µÄ¸ßÐÔÄÜÍ¬²½fifo
-»ùÓÚlutram»òbram
-Ö§³Öfirst word fall throughÌØÐÔ(READ LA = 0)
-¿ÉÑ¡µÄ¹Ì¶¨ãÐÖµ½«Âú/½«¿ÕÐÅºÅ
-¿ÉÑ¡µÄ´æ´¢¼ÆÊýÊä³ö
+æè¿°: 
+å…¨æµæ°´çš„é«˜æ€§èƒ½åŒæ­¥fifo
+åŸºäºŽlutramæˆ–bram
+æ”¯æŒfirst word fall throughç‰¹æ€§(READ LA = 0)
+å¯é€‰çš„å›ºå®šé˜ˆå€¼å°†æ»¡/å°†ç©ºä¿¡å·
+å¯é€‰çš„å­˜å‚¨è®¡æ•°è¾“å‡º
 
-×¢Òâ£º
-½«ÂúÐÅºÅµ±´æ´¢¼ÆÊý >= almost_full_thÊ±ÓÐÐ§
-½«¿ÕÐÅºÅµ±´æ´¢¼ÆÊý <= almost_empty_thÊ±ÓÐÐ§
-almost_full_thºÍalmost_empty_th±ØÐëÔÚ[1, fifo_depth-1]·¶Î§ÄÚ
-±¾Ä£¿éÓÃÓÚfpga, ×ÓÄ£¿éfifo_based_on_ram¿ÉÓÃÓÚasicÉè¼Æ
-¼Ä´æÆ÷fifoÇëÓÃ×ÓÄ£¿éfifo_based_on_regs
+æ³¨æ„ï¼š
+å°†æ»¡ä¿¡å·å½“å­˜å‚¨è®¡æ•° >= almost_full_thæ—¶æœ‰æ•ˆ
+å°†ç©ºä¿¡å·å½“å­˜å‚¨è®¡æ•° <= almost_empty_thæ—¶æœ‰æ•ˆ
+almost_full_thå’Œalmost_empty_thå¿…é¡»åœ¨[1, fifo_depth-1]èŒƒå›´å†…
+æœ¬æ¨¡å—ç”¨äºŽfpga, å­æ¨¡å—fifo_based_on_ramå¯ç”¨äºŽasicè®¾è®¡
+å¯„å­˜å™¨fifoè¯·ç”¨å­æ¨¡å—fifo_based_on_regs
 
-Ð­Òé:
+åè®®:
 FIFO WRITE/READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/10/29
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/10/29
 ********************************************************************/
 
 
 module ram_fifo_wrapper #(
-    parameter fwft_mode = "true", // ÊÇ·ñÆôÓÃfirst word fall throughÌØÐÔ
-    parameter ram_type = "lutram", // RAMÀàÐÍ(lutram|bram)
-    parameter en_bram_reg = "false", // ÊÇ·ñÆôÓÃBRAMÊä³ö¼Ä´æÆ÷
-    parameter integer fifo_depth = 32, // fifoÉî¶È(±ØÐëÎª2|4|8|16|...)
-    parameter integer fifo_data_width = 32, // fifoÎ»¿í
-    parameter full_assert_polarity = "low", // ÂúÐÅºÅÓÐÐ§¼«ÐÔ(low|high)
-    parameter empty_assert_polarity = "low", // ¿ÕÐÅºÅÓÐÐ§¼«ÐÔ(low|high)
-    parameter almost_full_assert_polarity = "no", // ½«ÂúÐÅºÅÓÐÐ§¼«ÐÔ(low|high|no)
-    parameter almost_empty_assert_polarity = "no", // ½«¿ÕÐÅºÅÓÐÐ§¼«ÐÔ(low|high|no)
-    parameter en_data_cnt = "false", // ÊÇ·ñÆôÓÃ´æ´¢¼ÆÊýÆ÷
-    parameter integer almost_full_th = 20, // fifo½«ÂúãÐÖµ
-    parameter integer almost_empty_th = 5, // fifo½«¿ÕãÐÖµ
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter fwft_mode = "true", // æ˜¯å¦å¯ç”¨first word fall throughç‰¹æ€§
+    parameter ram_type = "lutram", // RAMç±»åž‹(lutram|bram)
+    parameter en_bram_reg = "false", // æ˜¯å¦å¯ç”¨BRAMè¾“å‡ºå¯„å­˜å™¨
+    parameter integer fifo_depth = 32, // fifoæ·±åº¦(å¿…é¡»ä¸º2|4|8|16|...)
+    parameter integer fifo_data_width = 32, // fifoä½å®½
+    parameter full_assert_polarity = "low", // æ»¡ä¿¡å·æœ‰æ•ˆæžæ€§(low|high)
+    parameter empty_assert_polarity = "low", // ç©ºä¿¡å·æœ‰æ•ˆæžæ€§(low|high)
+    parameter almost_full_assert_polarity = "no", // å°†æ»¡ä¿¡å·æœ‰æ•ˆæžæ€§(low|high|no)
+    parameter almost_empty_assert_polarity = "no", // å°†ç©ºä¿¡å·æœ‰æ•ˆæžæ€§(low|high|no)
+    parameter en_data_cnt = "false", // æ˜¯å¦å¯ç”¨å­˜å‚¨è®¡æ•°å™¨
+    parameter integer almost_full_th = 20, // fifoå°†æ»¡é˜ˆå€¼
+    parameter integer almost_empty_th = 5, // fifoå°†ç©ºé˜ˆå€¼
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // FIFO WRITE(fifoÐ´¶Ë¿Ú)
+    // FIFO WRITE(fifoå†™ç«¯å£)
     input wire fifo_wen,
     input wire[fifo_data_width-1:0] fifo_din,
     output wire fifo_full,
@@ -51,7 +75,7 @@ module ram_fifo_wrapper #(
     output wire fifo_almost_full,
     output wire fifo_almost_full_n,
     
-    // FIFO READ(fifo¶Á¶Ë¿Ú)
+    // FIFO READ(fifoè¯»ç«¯å£)
     input wire fifo_ren,
     output wire[fifo_data_width-1:0] fifo_dout,
     output wire fifo_empty,
@@ -59,11 +83,11 @@ module ram_fifo_wrapper #(
     output wire fifo_almost_empty,
     output wire fifo_almost_empty_n,
     
-    // ´æ´¢¼ÆÊý
+    // å­˜å‚¨è®¡æ•°
     output wire[clogb2(fifo_depth):0] data_cnt
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin

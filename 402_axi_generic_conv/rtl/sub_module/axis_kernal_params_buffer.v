@@ -1,72 +1,96 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIS¾í»ıºË²ÎÊı»º´æÇø
+æœ¬æ¨¡å—: AXISå·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒº
 
-ÃèÊö:
-½«¶àÍ¨µÀ¾í»ıºË´æÈën¸ö»º´æÇø, ¶Á»º´æÇøÊ±Í¬Ê±Êä³öm¸ö¶àÍ¨µÀ¾í»ıºËµÄÍ¬Ò»Í¨µÀ
-Ğ´¶àÍ¨µÀ¾í»ıºËÊ±Ã¿clk´ÓÊäÈë¾í»ıºË²ÎÊıÁ÷ÖĞÈ¡1¸ö²ÎÊıµã
+æè¿°:
+å°†å¤šé€šé“å·ç§¯æ ¸å­˜å…¥nä¸ªç¼“å­˜åŒº, è¯»ç¼“å­˜åŒºæ—¶åŒæ—¶è¾“å‡ºmä¸ªå¤šé€šé“å·ç§¯æ ¸çš„åŒä¸€é€šé“
+å†™å¤šé€šé“å·ç§¯æ ¸æ—¶æ¯clkä»è¾“å…¥å·ç§¯æ ¸å‚æ•°æµä¸­å–1ä¸ªå‚æ•°ç‚¹
 
-MEM¶ÁÊ±ÑÓ = 2clk
+MEMè¯»æ—¶å»¶ = 2clk
 
-		 [------¶àÍ¨µÀ¾í»ıºË#0------]  --
-         [------¶àÍ¨µÀ¾í»ıºË#1------]   |----->
-		 [------¶àÍ¨µÀ¾í»ıºË#2------]   |----->
-		 [------¶àÍ¨µÀ¾í»ıºË#3------]  --
- ----->  [------¶àÍ¨µÀ¾í»ıºË#4------]
-		 [------¶àÍ¨µÀ¾í»ıºË#5------]
-		 [------¶àÍ¨µÀ¾í»ıºË#6------]
-		 [------¶àÍ¨µÀ¾í»ıºË#7------]
+		 [------å¤šé€šé“å·ç§¯æ ¸#0------]  --
+         [------å¤šé€šé“å·ç§¯æ ¸#1------]   |----->
+		 [------å¤šé€šé“å·ç§¯æ ¸#2------]   |----->
+		 [------å¤šé€šé“å·ç§¯æ ¸#3------]  --
+ ----->  [------å¤šé€šé“å·ç§¯æ ¸#4------]
+		 [------å¤šé€šé“å·ç§¯æ ¸#5------]
+		 [------å¤šé€šé“å·ç§¯æ ¸#6------]
+		 [------å¤šé€šé“å·ç§¯æ ¸#7------]
 
-3x3µ¥Í¨µÀ¾í»ıºË´æ´¢·½Ê½:
+3x3å•é€šé“å·ç§¯æ ¸å­˜å‚¨æ–¹å¼:
 	{x3y3, x2y3, x1y3, x3y2, x2y2, x1y2, x3y1, x2y1, x1y1}
 
-×¢Òâ£º
-¾í»ıºË²ÎÊı»º´æ¸öÊı(kernal_pars_buffer_n)±ØĞë>=¶àÍ¨µÀ¾í»ıºËµÄ²¢ĞĞ¸öÊı(kernal_prl_n)
+æ³¨æ„ï¼š
+å·ç§¯æ ¸å‚æ•°ç¼“å­˜ä¸ªæ•°(kernal_pars_buffer_n)å¿…é¡»>=å¤šé€šé“å·ç§¯æ ¸çš„å¹¶è¡Œä¸ªæ•°(kernal_prl_n)
 
-Ğ­Òé:
+åè®®:
 AXIS SLAVE
 FIFO READ
 MEM READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/22
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/22
 ********************************************************************/
 
 
 module axis_kernal_params_buffer #(
-	parameter integer kernal_pars_buffer_n = 8, // ¾í»ıºË²ÎÊı»º´æ¸öÊı
-	parameter integer kernal_prl_n = 4, // ¶àÍ¨µÀ¾í»ıºËµÄ²¢ĞĞ¸öÊı
-	parameter integer kernal_param_data_width = 16, // ¾í»ıºË²ÎÊıÎ»¿í(8 | 16 | 32 | 64)
-	parameter integer max_feature_map_chn_n = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼Í¨µÀÊı
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer kernal_pars_buffer_n = 8, // å·ç§¯æ ¸å‚æ•°ç¼“å­˜ä¸ªæ•°
+	parameter integer kernal_prl_n = 4, // å¤šé€šé“å·ç§¯æ ¸çš„å¹¶è¡Œä¸ªæ•°
+	parameter integer kernal_param_data_width = 16, // å·ç§¯æ ¸å‚æ•°ä½å®½(8 | 16 | 32 | 64)
+	parameter integer max_feature_map_chn_n = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾é€šé“æ•°
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire kernal_type, // ¾í»ıºËÀàĞÍ(1'b0 -> 1x1, 1'b1 -> 3x3)
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire kernal_type, // å·ç§¯æ ¸ç±»å‹(1'b0 -> 1x1, 1'b1 -> 3x3)
 	
-	// ÊäÈë¾í»ıºË²ÎÊıÁ÷(AXIS´Ó»ú)
+	// è¾“å…¥å·ç§¯æ ¸å‚æ•°æµ(AXISä»æœº)
 	input wire[63:0] s_axis_kernal_pars_data,
 	input wire[7:0] s_axis_kernal_pars_keep,
-	input wire s_axis_kernal_pars_last, // ±íÊ¾×îºó1×é¾í»ıºË²ÎÊı
-	input wire s_axis_kernal_pars_user, // µ±Ç°¶àÍ¨µÀ¾í»ıºËÊÇ·ñÓĞĞ§
+	input wire s_axis_kernal_pars_last, // è¡¨ç¤ºæœ€å1ç»„å·ç§¯æ ¸å‚æ•°
+	input wire s_axis_kernal_pars_user, // å½“å‰å¤šé€šé“å·ç§¯æ ¸æ˜¯å¦æœ‰æ•ˆ
 	input wire s_axis_kernal_pars_valid,
-	output wire s_axis_kernal_pars_ready, // ×¢Òâ:·Ç¼Ä´æÆ÷Êä³ö!
+	output wire s_axis_kernal_pars_ready, // æ³¨æ„:éå¯„å­˜å™¨è¾“å‡º!
 	
-	// ¾í»ıºË²ÎÊı»º´æ¿ØÖÆ(fifo¶Á¶Ë¿Ú)
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜æ§åˆ¶(fifoè¯»ç«¯å£)
 	input wire kernal_pars_buf_fifo_ren,
 	output wire kernal_pars_buf_fifo_empty_n,
 	
-	// ¾í»ıºË²ÎÊı»º´æMEM¶Á¶Ë¿Ú
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜MEMè¯»ç«¯å£
 	input wire kernal_pars_buf_mem_buf_ren_s0,
 	input wire kernal_pars_buf_mem_buf_ren_s1,
-	input wire[15:0] kernal_pars_buf_mem_buf_raddr, // Ã¿¸ö¶ÁµØÖ·¶ÔÓ¦1¸öµ¥Í¨µÀ¾í»ıºË
-	output wire[kernal_prl_n*kernal_param_data_width*9-1:0] kernal_pars_buf_mem_buf_dout // {ºË#(n-1), ..., ºË#1, ºË#0}
+	input wire[15:0] kernal_pars_buf_mem_buf_raddr, // æ¯ä¸ªè¯»åœ°å€å¯¹åº”1ä¸ªå•é€šé“å·ç§¯æ ¸
+	output wire[kernal_prl_n*kernal_param_data_width*9-1:0] kernal_pars_buf_mem_buf_dout // {æ ¸#(n-1), ..., æ ¸#1, æ ¸#0}
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -79,12 +103,12 @@ module axis_kernal_params_buffer #(
     end
     endfunction
 	
-	/** ³£Á¿ **/
-	localparam integer kernal_pars_n_per_clk = 64/kernal_param_data_width; // Ğ´»º´æÇøÊ±Ã¿clkÊäÈëµÄ¾í»ıºË²ÎÊı¸öÊı
+	/** å¸¸é‡ **/
+	localparam integer kernal_pars_n_per_clk = 64/kernal_param_data_width; // å†™ç¼“å­˜åŒºæ—¶æ¯clkè¾“å…¥çš„å·ç§¯æ ¸å‚æ•°ä¸ªæ•°
 	
-	/** ÊäÈë¾í»ıºË²ÎÊıÁ÷ **/
-	wire[kernal_param_data_width-1:0] in_kernal_pars[0:kernal_pars_n_per_clk-1]; // ÊäÈë¾í»ıºË²ÎÊı
-	wire[kernal_pars_n_per_clk-1:0] in_kernal_pars_vld_mask; // ÊäÈë¾í»ıºË²ÎÊıµÄÓĞĞ§ÑÚÂë
+	/** è¾“å…¥å·ç§¯æ ¸å‚æ•°æµ **/
+	wire[kernal_param_data_width-1:0] in_kernal_pars[0:kernal_pars_n_per_clk-1]; // è¾“å…¥å·ç§¯æ ¸å‚æ•°
+	wire[kernal_pars_n_per_clk-1:0] in_kernal_pars_vld_mask; // è¾“å…¥å·ç§¯æ ¸å‚æ•°çš„æœ‰æ•ˆæ©ç 
 	
 	genvar in_kernal_pars_i;
 	generate
@@ -98,22 +122,22 @@ module axis_kernal_params_buffer #(
 		end
 	endgenerate
 	
-	/** »º´æÇøĞ´Êı¾İÁ÷ **/
-	// Ğ´»º´æÇøAXISÖ÷»ú
+	/** ç¼“å­˜åŒºå†™æ•°æ®æµ **/
+	// å†™ç¼“å­˜åŒºAXISä¸»æœº
 	wire[kernal_param_data_width*9-1:0] m_axis_buf_wt_data;
-	wire m_axis_buf_wt_last; // ±íÊ¾¶àÍ¨µÀ¾í»ıºËµÄ×îºó1¸öÍ¨µÀ
-	wire m_axis_buf_wt_user; // µ±Ç°¶àÍ¨µÀ¾í»ıºËÊÇ·ñÓĞĞ§
+	wire m_axis_buf_wt_last; // è¡¨ç¤ºå¤šé€šé“å·ç§¯æ ¸çš„æœ€å1ä¸ªé€šé“
+	wire m_axis_buf_wt_user; // å½“å‰å¤šé€šé“å·ç§¯æ ¸æ˜¯å¦æœ‰æ•ˆ
 	wire m_axis_buf_wt_valid;
 	wire m_axis_buf_wt_ready;
-	// µ¥Í¨µÀ¾í»ıºË²ÎÊı»º´æ
-	reg[kernal_param_data_width-1:0] single_chn_kernal_pars_buffer[0:7]; // »º´æÇø
-	reg[8:0] single_chn_kernal_pars_saved_vec; // »º´æ½ø¶È(¶ÀÈÈÂë)
-	reg[kernal_pars_n_per_clk-1:0] single_chn_kernal_pars_item_sel_cur; // µ±Ç°ÏîÑ¡Ôñ(¶ÀÈÈÂë)
-	wire[kernal_pars_n_per_clk-1:0] single_chn_kernal_pars_item_sel_nxt; // ÏÂÒ»ÏîÑ¡Ôñ(¶ÀÈÈÂë)
-	wire last_kernal_pars_item; // ×îºó1¸ö¾í»ıºË²ÎÊı(±êÖ¾)
-	wire[kernal_param_data_width-1:0] single_chn_kernal_pars_data_selected; // Ñ¡ÔñµÄ¾í»ıºË²ÎÊıÊı¾İÏî
+	// å•é€šé“å·ç§¯æ ¸å‚æ•°ç¼“å­˜
+	reg[kernal_param_data_width-1:0] single_chn_kernal_pars_buffer[0:7]; // ç¼“å­˜åŒº
+	reg[8:0] single_chn_kernal_pars_saved_vec; // ç¼“å­˜è¿›åº¦(ç‹¬çƒ­ç )
+	reg[kernal_pars_n_per_clk-1:0] single_chn_kernal_pars_item_sel_cur; // å½“å‰é¡¹é€‰æ‹©(ç‹¬çƒ­ç )
+	wire[kernal_pars_n_per_clk-1:0] single_chn_kernal_pars_item_sel_nxt; // ä¸‹ä¸€é¡¹é€‰æ‹©(ç‹¬çƒ­ç )
+	wire last_kernal_pars_item; // æœ€å1ä¸ªå·ç§¯æ ¸å‚æ•°(æ ‡å¿—)
+	wire[kernal_param_data_width-1:0] single_chn_kernal_pars_data_selected; // é€‰æ‹©çš„å·ç§¯æ ¸å‚æ•°æ•°æ®é¡¹
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_kernal_pars_valid & m_axis_buf_wt_ready & (single_chn_kernal_pars_item_sel_cur[kernal_pars_n_per_clk-1]
+	// æ¡æ‰‹æ¡ä»¶: s_axis_kernal_pars_valid & m_axis_buf_wt_ready & (single_chn_kernal_pars_item_sel_cur[kernal_pars_n_per_clk-1]
 	//     | (s_axis_kernal_pars_last & ((single_chn_kernal_pars_item_sel_nxt & in_kernal_pars_vld_mask)
 	//         == {kernal_pars_n_per_clk{1'b0}})))
 	assign s_axis_kernal_pars_ready = m_axis_buf_wt_ready & (single_chn_kernal_pars_item_sel_cur[kernal_pars_n_per_clk-1] | 
@@ -130,7 +154,7 @@ module axis_kernal_params_buffer #(
 		single_chn_kernal_pars_buffer[7],
 		single_chn_kernal_pars_buffer[6],
 		single_chn_kernal_pars_buffer[5],
-		// ¾í»ıºËÀàĞÍÎª1x1Ê±½ö±£Áôx2y2´¦µÄ²ÎÊı
+		// å·ç§¯æ ¸ç±»å‹ä¸º1x1æ—¶ä»…ä¿ç•™x2y2å¤„çš„å‚æ•°
 		kernal_type ? single_chn_kernal_pars_buffer[4]:single_chn_kernal_pars_data_selected,
 		single_chn_kernal_pars_buffer[3],
 		single_chn_kernal_pars_buffer[2],
@@ -139,7 +163,7 @@ module axis_kernal_params_buffer #(
 	};
 	assign m_axis_buf_wt_last = last_kernal_pars_item;
 	assign m_axis_buf_wt_user = s_axis_kernal_pars_user;
-	// ÎÕÊÖÌõ¼ş: s_axis_kernal_pars_valid & m_axis_buf_wt_ready & 
+	// æ¡æ‰‹æ¡ä»¶: s_axis_kernal_pars_valid & m_axis_buf_wt_ready & 
 	//     (single_chn_kernal_pars_saved_vec[8] | (~kernal_type))
 	assign m_axis_buf_wt_valid = s_axis_kernal_pars_valid & 
 		(single_chn_kernal_pars_saved_vec[8] | last_kernal_pars_item | (~kernal_type));
@@ -173,7 +197,7 @@ module axis_kernal_params_buffer #(
 		(in_kernal_pars[(kernal_param_data_width == 8) ? 7:0] & 
 			{kernal_param_data_width{single_chn_kernal_pars_item_sel_cur[(kernal_param_data_width == 8) ? 7:0]}});
 	
-	// µ¥Í¨µÀ¾í»ıºË²ÎÊı»º´æÇø
+	// å•é€šé“å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒº
 	genvar single_chn_kernal_pars_buffer_i;
 	generate
 		for(single_chn_kernal_pars_buffer_i = 0;single_chn_kernal_pars_buffer_i < 8;
@@ -191,7 +215,7 @@ module axis_kernal_params_buffer #(
 		end
 	endgenerate
 	
-	// µ¥Í¨µÀ¾í»ıºË²ÎÊı»º´æ½ø¶È(¶ÀÈÈÂë)
+	// å•é€šé“å·ç§¯æ ¸å‚æ•°ç¼“å­˜è¿›åº¦(ç‹¬çƒ­ç )
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -203,7 +227,7 @@ module axis_kernal_params_buffer #(
 				{{8{~(last_kernal_pars_item | (~kernal_type))}} & single_chn_kernal_pars_saved_vec[7:0], 
 					last_kernal_pars_item | (~kernal_type) | single_chn_kernal_pars_saved_vec[8]};
 	end
-	// µ¥Í¨µÀ¾í»ıºË²ÎÊıµ±Ç°ÏîÑ¡Ôñ(¶ÀÈÈÂë)
+	// å•é€šé“å·ç§¯æ ¸å‚æ•°å½“å‰é¡¹é€‰æ‹©(ç‹¬çƒ­ç )
 	generate
 		if(kernal_pars_n_per_clk == 1)
 		begin
@@ -228,22 +252,22 @@ module axis_kernal_params_buffer #(
 		end
 	endgenerate
 	
-	/** »º´æÇø¿ØÖÆ **/
-	// Ğ´¶Ë¿Ú
-	wire kernal_pars_buffer_wen; // Ğ´Ê¹ÄÜ
-	reg kernal_pars_buffer_full_n; // Âú±êÖ¾
-	reg[kernal_pars_buffer_n-1:0] kernal_pars_buffer_wptr; // Ğ´Ö¸Õë
-	// ¶Á¶Ë¿Ú
-	wire kernal_pars_buffer_ren; // ¶ÁÊ¹ÄÜ
-	reg kernal_pars_buffer_empty_n; // ¿Õ±êÖ¾
-	reg[kernal_pars_buffer_n-1:0] kernal_pars_buffer_rptr; // ¶ÁÖ¸Õë
-	reg[clogb2(kernal_pars_buffer_n-1):0] kernal_pars_buffer_rd_sel; // ¶ÁÆ¬Ñ¡
-	wire[clogb2(kernal_pars_buffer_n-1):0] kernal_pars_buffer_rd_sel_incr; // ¶ÁÆ¬Ñ¡ÔöÁ¿
-	reg[clogb2(kernal_pars_buffer_n-1):0] kernal_pars_buffer_rd_sel_d; // ÑÓ³Ù1clkµÄ¶ÁÆ¬Ñ¡
-	// ´æ´¢¼ÆÊı
-	reg[clogb2(kernal_pars_buffer_n):0] kernal_pars_buffer_str_n_cur; // µ±Ç°µÄ¶àÍ¨µÀ¾í»ıºË´æ´¢¸öÊı
-	wire[clogb2(kernal_pars_buffer_n):0] kernal_pars_buffer_str_n_nxt; // ÏÂÒ»µÄ¶àÍ¨µÀ¾í»ıºË´æ´¢¸öÊı
-	wire[clogb2(kernal_pars_buffer_n):0] kernal_pars_buffer_str_n_incr; // ¶àÍ¨µÀ¾í»ıºË´æ´¢¸öÊıÔöÁ¿
+	/** ç¼“å­˜åŒºæ§åˆ¶ **/
+	// å†™ç«¯å£
+	wire kernal_pars_buffer_wen; // å†™ä½¿èƒ½
+	reg kernal_pars_buffer_full_n; // æ»¡æ ‡å¿—
+	reg[kernal_pars_buffer_n-1:0] kernal_pars_buffer_wptr; // å†™æŒ‡é’ˆ
+	// è¯»ç«¯å£
+	wire kernal_pars_buffer_ren; // è¯»ä½¿èƒ½
+	reg kernal_pars_buffer_empty_n; // ç©ºæ ‡å¿—
+	reg[kernal_pars_buffer_n-1:0] kernal_pars_buffer_rptr; // è¯»æŒ‡é’ˆ
+	reg[clogb2(kernal_pars_buffer_n-1):0] kernal_pars_buffer_rd_sel; // è¯»ç‰‡é€‰
+	wire[clogb2(kernal_pars_buffer_n-1):0] kernal_pars_buffer_rd_sel_incr; // è¯»ç‰‡é€‰å¢é‡
+	reg[clogb2(kernal_pars_buffer_n-1):0] kernal_pars_buffer_rd_sel_d; // å»¶è¿Ÿ1clkçš„è¯»ç‰‡é€‰
+	// å­˜å‚¨è®¡æ•°
+	reg[clogb2(kernal_pars_buffer_n):0] kernal_pars_buffer_str_n_cur; // å½“å‰çš„å¤šé€šé“å·ç§¯æ ¸å­˜å‚¨ä¸ªæ•°
+	wire[clogb2(kernal_pars_buffer_n):0] kernal_pars_buffer_str_n_nxt; // ä¸‹ä¸€çš„å¤šé€šé“å·ç§¯æ ¸å­˜å‚¨ä¸ªæ•°
+	wire[clogb2(kernal_pars_buffer_n):0] kernal_pars_buffer_str_n_incr; // å¤šé€šé“å·ç§¯æ ¸å­˜å‚¨ä¸ªæ•°å¢é‡
 	
 	assign m_axis_buf_wt_ready = kernal_pars_buffer_full_n;
 	
@@ -266,7 +290,7 @@ module axis_kernal_params_buffer #(
 			== 2'b11) ? ((~kernal_prl_n) + 2):
 						1;
 	
-	// ¾í»ıºË²ÎÊı»º´æÇøĞ´Ö¸Õë
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºå†™æŒ‡é’ˆ
 	generate
 		if(kernal_pars_buffer_n == 1)
 		begin
@@ -286,7 +310,7 @@ module axis_kernal_params_buffer #(
 		end
 	endgenerate
 	
-	// ¾í»ıºË²ÎÊı»º´æÇøÂú±êÖ¾
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºæ»¡æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -294,7 +318,7 @@ module axis_kernal_params_buffer #(
 		else if((kernal_pars_buffer_wen & kernal_pars_buffer_full_n) | (kernal_pars_buffer_ren & kernal_pars_buffer_empty_n))
 			kernal_pars_buffer_full_n <= # simulation_delay kernal_pars_buffer_str_n_nxt != kernal_pars_buffer_n;
 	end
-	// ¾í»ıºË²ÎÊı»º´æÇø¿Õ±êÖ¾
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºç©ºæ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -303,7 +327,7 @@ module axis_kernal_params_buffer #(
 			kernal_pars_buffer_empty_n <= # simulation_delay kernal_pars_buffer_str_n_nxt >= kernal_prl_n;
 	end
 	
-	// µ±Ç°µÄ¶àÍ¨µÀ¾í»ıºË´æ´¢¸öÊı
+	// å½“å‰çš„å¤šé€šé“å·ç§¯æ ¸å­˜å‚¨ä¸ªæ•°
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -312,7 +336,7 @@ module axis_kernal_params_buffer #(
 			kernal_pars_buffer_str_n_cur <= # simulation_delay kernal_pars_buffer_str_n_nxt;
 	end
 	
-	// ¾í»ıºË²ÎÊı»º´æÇø¶ÁÖ¸Õë
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºè¯»æŒ‡é’ˆ
 	generate
 		if(kernal_pars_buffer_n == kernal_prl_n)
 		begin
@@ -327,7 +351,7 @@ module axis_kernal_params_buffer #(
 					kernal_pars_buffer_rptr <= {{(kernal_pars_buffer_n-kernal_prl_n){1'b0}}, 
 						{kernal_prl_n{1'b1}}};
 				else if(kernal_pars_buffer_ren & kernal_pars_buffer_empty_n)
-					// Ñ­»·×óÒÆkernal_prl_nÎ»
+					// å¾ªç¯å·¦ç§»kernal_prl_nä½
 					kernal_pars_buffer_rptr <= # simulation_delay 
 						(kernal_pars_buffer_rptr << kernal_prl_n) | 
 						(kernal_pars_buffer_rptr >> (kernal_pars_buffer_n-kernal_prl_n));
@@ -335,7 +359,7 @@ module axis_kernal_params_buffer #(
 		end
 	endgenerate
 	
-	// ¾í»ıºË²ÎÊı»º´æÇø¶ÁÆ¬Ñ¡
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºè¯»ç‰‡é€‰
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -343,17 +367,17 @@ module axis_kernal_params_buffer #(
 		else if(kernal_pars_buffer_ren & kernal_pars_buffer_empty_n)
 			kernal_pars_buffer_rd_sel <= # simulation_delay kernal_pars_buffer_rd_sel + kernal_pars_buffer_rd_sel_incr;
 	end
-	// ÑÓ³Ù1clkµÄ¾í»ıºË²ÎÊı»º´æÇø¶ÁÆ¬Ñ¡
+	// å»¶è¿Ÿ1clkçš„å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºè¯»ç‰‡é€‰
 	always @(posedge clk)
 	begin
 		if(kernal_pars_buf_mem_buf_ren_s0)
 			kernal_pars_buffer_rd_sel_d <= # simulation_delay kernal_pars_buffer_rd_sel;
 	end
 	
-	/** ¶àÍ¨µÀ¾í»ıºËĞÅÏ¢fifo **/
-	reg kernal_msg_fifo[kernal_pars_buffer_n-1:0]; // fifo´æ´¢ÊµÌå
-	wire[kernal_pars_buffer_n-1:0] kernal_vld_vec; // ¶àÍ¨µÀ¾í»ıºËÓĞĞ§±êÖ¾ÏòÁ¿
-	reg[kernal_pars_buffer_n-1:0] kernal_vld_vec_d; // ÑÓ³Ù1clkµÄ¶àÍ¨µÀ¾í»ıºËÓĞĞ§±êÖ¾ÏòÁ¿
+	/** å¤šé€šé“å·ç§¯æ ¸ä¿¡æ¯fifo **/
+	reg kernal_msg_fifo[kernal_pars_buffer_n-1:0]; // fifoå­˜å‚¨å®ä½“
+	wire[kernal_pars_buffer_n-1:0] kernal_vld_vec; // å¤šé€šé“å·ç§¯æ ¸æœ‰æ•ˆæ ‡å¿—å‘é‡
+	reg[kernal_pars_buffer_n-1:0] kernal_vld_vec_d; // å»¶è¿Ÿ1clkçš„å¤šé€šé“å·ç§¯æ ¸æœ‰æ•ˆæ ‡å¿—å‘é‡
 	
 	genvar kernal_msg_fifo_i;
 	generate
@@ -361,7 +385,7 @@ module axis_kernal_params_buffer #(
 		begin
 			assign kernal_vld_vec[kernal_msg_fifo_i] = kernal_msg_fifo[kernal_msg_fifo_i];
 			
-			// ¶àÍ¨µÀ¾í»ıºËÓĞĞ§±êÖ¾
+			// å¤šé€šé“å·ç§¯æ ¸æœ‰æ•ˆæ ‡å¿—
 			always @(posedge clk)
 			begin
 				if(kernal_pars_buffer_wen & kernal_pars_buffer_full_n & kernal_pars_buffer_wptr[kernal_msg_fifo_i])
@@ -370,21 +394,21 @@ module axis_kernal_params_buffer #(
 		end
 	endgenerate
 	
-	// ÑÓ³Ù1clkµÄ¶àÍ¨µÀ¾í»ıºËÓĞĞ§±êÖ¾ÏòÁ¿
+	// å»¶è¿Ÿ1clkçš„å¤šé€šé“å·ç§¯æ ¸æœ‰æ•ˆæ ‡å¿—å‘é‡
 	always @(posedge clk)
 	begin
 		if(kernal_pars_buf_mem_buf_ren_s0)
 			kernal_vld_vec_d <= # simulation_delay kernal_vld_vec;
 	end
 	
-	/** »º´æÇøMEM **/
-	// ¾í»ıºË²ÎÊı»º´æÇøMEMĞ´¶Ë¿Ú
+	/** ç¼“å­˜åŒºMEM **/
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºMEMå†™ç«¯å£
 	wire[kernal_pars_buffer_n-1:0] kernal_pars_buffer_mem_wen;
-	reg[clogb2(max_feature_map_chn_n-1):0] kernal_pars_buffer_mem_waddr; // Ã¿¸öĞ´µØÖ·¶ÔÓ¦1¸öµ¥Í¨µÀ¾í»ıºË
+	reg[clogb2(max_feature_map_chn_n-1):0] kernal_pars_buffer_mem_waddr; // æ¯ä¸ªå†™åœ°å€å¯¹åº”1ä¸ªå•é€šé“å·ç§¯æ ¸
 	wire[kernal_param_data_width*9-1:0] kernal_pars_buffer_mem_din;
-	// ¾í»ıºË²ÎÊı»º´æÇøMEM¶Á¶Ë¿Ú
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºMEMè¯»ç«¯å£
 	wire[kernal_pars_buffer_n-1:0] kernal_pars_buffer_mem_ren;
-	wire[clogb2(max_feature_map_chn_n-1):0] kernal_pars_buffer_mem_raddr; // Ã¿¸ö¶ÁµØÖ·¶ÔÓ¦1¸öµ¥Í¨µÀ¾í»ıºË
+	wire[clogb2(max_feature_map_chn_n-1):0] kernal_pars_buffer_mem_raddr; // æ¯ä¸ªè¯»åœ°å€å¯¹åº”1ä¸ªå•é€šé“å·ç§¯æ ¸
 	wire[kernal_param_data_width*9-1:0] kernal_pars_buffer_mem_dout[0:kernal_pars_buffer_n-1];
 	wire[kernal_pars_buffer_n*kernal_param_data_width*9-1:0] kernal_pars_buffer_mem_dout_flattened;
 	wire[kernal_prl_n*kernal_param_data_width*9-1:0] kernal_pars_buffer_mem_dout_reorg;
@@ -398,14 +422,14 @@ module axis_kernal_params_buffer #(
 	assign kernal_pars_buffer_mem_raddr = kernal_pars_buf_mem_buf_raddr[clogb2(max_feature_map_chn_n-1):0];
 	assign kernal_pars_buf_mem_buf_dout = kernal_pars_buffer_mem_dout_reorg_d;
 	
-	// Ñ­»·ÓÒÒÆ(kernal_pars_buffer_rd_sel_d * kernal_param_data_width * 9)Î», ½ö±£Áôkernal_pars_buffer_nÖÖÇé¿ö
+	// å¾ªç¯å³ç§»(kernal_pars_buffer_rd_sel_d * kernal_param_data_width * 9)ä½, ä»…ä¿ç•™kernal_pars_buffer_nç§æƒ…å†µ
 	assign kernal_pars_buffer_mem_dout_reorg = (kernal_pars_buffer_rd_sel_d >= kernal_pars_buffer_n) ? 
 		{(kernal_param_data_width*9*kernal_prl_n){1'bx}}: // not care!
 		((kernal_pars_buffer_mem_dout_flattened >> (kernal_pars_buffer_rd_sel_d * kernal_param_data_width * 9)) | 
 			(kernal_pars_buffer_mem_dout_flattened << 
 				((kernal_pars_buffer_n - kernal_pars_buffer_rd_sel_d) * kernal_param_data_width * 9)));
 	
-	// Õ¹Æ½µÄ¶ÁÊı¾İ
+	// å±•å¹³çš„è¯»æ•°æ®
 	genvar kernal_pars_buffer_mem_dout_flattened_i;
 	generate
 		for(kernal_pars_buffer_mem_dout_flattened_i = 0;kernal_pars_buffer_mem_dout_flattened_i < kernal_pars_buffer_n;
@@ -414,12 +438,12 @@ module axis_kernal_params_buffer #(
 			assign kernal_pars_buffer_mem_dout_flattened[(kernal_pars_buffer_mem_dout_flattened_i+1)*kernal_param_data_width*9-1:
 				kernal_pars_buffer_mem_dout_flattened_i*kernal_param_data_width*9] = 
 				kernal_pars_buffer_mem_dout[kernal_pars_buffer_mem_dout_flattened_i] & 
-				// ¸ù¾İ¶àÍ¨µÀ¾í»ıºËÓĞĞ§±êÖ¾¶Ô¶ÁÊı¾İ½øĞĞÑÚÂëÇåÁã´¦Àí
+				// æ ¹æ®å¤šé€šé“å·ç§¯æ ¸æœ‰æ•ˆæ ‡å¿—å¯¹è¯»æ•°æ®è¿›è¡Œæ©ç æ¸…é›¶å¤„ç†
 				{(kernal_param_data_width*9){kernal_vld_vec_d[kernal_pars_buffer_mem_dout_flattened_i]}};
 		end
 	endgenerate
 	
-	// ¾í»ıºË²ÎÊı»º´æÇøMEMĞ´µØÖ·
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºMEMå†™åœ°å€
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -430,14 +454,14 @@ module axis_kernal_params_buffer #(
 				{(clogb2(max_feature_map_chn_n-1)+1){~m_axis_buf_wt_last}} & (kernal_pars_buffer_mem_waddr + 1);
 	end
 	
-	// ÑÓ³Ù1clkµÄÖØÕûÀíµÄ¾í»ıºË²ÎÊı»º´æÇøMEM¶ÁÊı¾İ
+	// å»¶è¿Ÿ1clkçš„é‡æ•´ç†çš„å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºMEMè¯»æ•°æ®
 	always @(posedge clk)
 	begin
 		if(kernal_pars_buf_mem_buf_ren_s1)
 			kernal_pars_buffer_mem_dout_reorg_d <= # simulation_delay kernal_pars_buffer_mem_dout_reorg;
 	end
 	
-	// »º´æMEM
+	// ç¼“å­˜MEM
 	genvar kernal_pars_buf_mem_i;
 	generate
 		for(kernal_pars_buf_mem_i = 0;kernal_pars_buf_mem_i < kernal_pars_buffer_n;

@@ -1,64 +1,88 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ±ê×¼SPI¿ØÖÆÆ÷
+æœ¬æ¨¡å—: æ ‡å‡†SPIæ§åˆ¶å™¨
 
-ÃèÊö: 
-Ê¹ÓÃ·¢ËÍ/½ÓÊÕfifoµÄ±ê×¼SPI¿ØÖÆÆ÷
+æè¿°: 
+ä½¿ç”¨å‘é€/æ¥æ”¶fifoçš„æ ‡å‡†SPIæ§åˆ¶å™¨
 MSB First
-Ö§³ÖÈ«Ë«¹¤/°ëË«¹¤/µ¥¹¤
-SPIÊÂÎñÊı¾İÎ»¿í->8bit
+æ”¯æŒå…¨åŒå·¥/åŠåŒå·¥/å•å·¥
+SPIäº‹åŠ¡æ•°æ®ä½å®½->8bit
 
-×¢Òâ£º
-ÊÕ·¢fifo¾ùÎª±ê×¼fifo
-ÈôĞèÒªÊ¹ÓÃ±ê×¼SPIµÄµ¥¹¤Ä£Ê½, ¹Ì¶¨ºÃSPI´«Êä·½Ïò¼´¿É
+æ³¨æ„ï¼š
+æ”¶å‘fifoå‡ä¸ºæ ‡å‡†fifo
+è‹¥éœ€è¦ä½¿ç”¨æ ‡å‡†SPIçš„å•å·¥æ¨¡å¼, å›ºå®šå¥½SPIä¼ è¾“æ–¹å‘å³å¯
 
-Ğ­Òé:
+åè®®:
 FIFO READ/WRITE
 SPI MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/17
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/17
 ********************************************************************/
 
 
 module std_spi_tx_rx #(
-    parameter integer spi_slave_n = 1, // SPI´Ó»ú¸öÊı
-    parameter integer spi_sck_div_n = 2, // SPIÊ±ÖÓ·ÖÆµÏµÊı(±ØĞëÄÜ±»2Õû³ı, ÇÒ>=2)
-    parameter integer spi_cpol = 0, // SPI¿ÕÏĞÊ±µÄµçÆ½×´Ì¬(0->µÍµçÆ½ 1->¸ßµçÆ½)
-    parameter integer spi_cpha = 0, // SPIÊı¾İ²ÉÑùÑØ(0->ÆæÊıÑØ 1->Å¼ÊıÑØ)
-    parameter integer tx_user_data_width = 0, // ·¢ËÍÊ±ÓÃ»§Êı¾İÎ»¿í(0~32)
-    parameter tx_user_default_v = 16'hff_ff, // ·¢ËÍÊ±ÓÃ»§Êı¾İÄ¬ÈÏÖµ
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer spi_slave_n = 1, // SPIä»æœºä¸ªæ•°
+    parameter integer spi_sck_div_n = 2, // SPIæ—¶é’Ÿåˆ†é¢‘ç³»æ•°(å¿…é¡»èƒ½è¢«2æ•´é™¤, ä¸”>=2)
+    parameter integer spi_cpol = 0, // SPIç©ºé—²æ—¶çš„ç”µå¹³çŠ¶æ€(0->ä½ç”µå¹³ 1->é«˜ç”µå¹³)
+    parameter integer spi_cpha = 0, // SPIæ•°æ®é‡‡æ ·æ²¿(0->å¥‡æ•°æ²¿ 1->å¶æ•°æ²¿)
+    parameter integer tx_user_data_width = 0, // å‘é€æ—¶ç”¨æˆ·æ•°æ®ä½å®½(0~32)
+    parameter tx_user_default_v = 16'hff_ff, // å‘é€æ—¶ç”¨æˆ·æ•°æ®é»˜è®¤å€¼
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire spi_clk,
     input wire spi_resetn,
-	// AMBA×ÜÏßÊ±ÖÓºÍ¸´Î»
+	// AMBAæ€»çº¿æ—¶é’Ÿå’Œå¤ä½
 	input wire amba_clk,
 	input wire amba_resetn,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire[clogb2(spi_slave_n-1):0] rx_tx_sel, // ´Ó»úÑ¡Ôñ
-	input wire[1:0] rx_tx_dire, // ´«Êä·½Ïò(2'b11->ÊÕ·¢ 2'b10->½ÓÊÕ 2'b01->·¢ËÍ 2'b00->±£Áô)
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire[clogb2(spi_slave_n-1):0] rx_tx_sel, // ä»æœºé€‰æ‹©
+	input wire[1:0] rx_tx_dire, // ä¼ è¾“æ–¹å‘(2'b11->æ”¶å‘ 2'b10->æ¥æ”¶ 2'b01->å‘é€ 2'b00->ä¿ç•™)
     
-    // ·¢ËÍfifo¶Á¶Ë¿Ú
+    // å‘é€fifoè¯»ç«¯å£
     output wire tx_fifo_ren,
     input wire tx_fifo_empty,
     input wire[7:0] tx_fifo_dout,
     input wire tx_fifo_dout_ss,
     input wire[tx_user_data_width-1:0] tx_fifo_dout_user,
-    // ½ÓÊÕfifoĞ´¶Ë¿Ú
+    // æ¥æ”¶fifoå†™ç«¯å£
     output wire rx_fifo_wen,
     input wire rx_fifo_full,
     output wire[7:0] rx_fifo_din,
     
-    // ¿ØÖÆÆ÷ÊÕ·¢Ö¸Ê¾
+    // æ§åˆ¶å™¨æ”¶å‘æŒ‡ç¤º
     output wire rx_tx_start,
     output wire rx_tx_done,
     output wire rx_tx_idle,
-    output wire rx_err, // ½ÓÊÕÒç³öÖ¸Ê¾
+    output wire rx_err, // æ¥æ”¶æº¢å‡ºæŒ‡ç¤º
     
-    // SPIÖ÷»ú½Ó¿Ú
+    // SPIä¸»æœºæ¥å£
     output wire[spi_slave_n-1:0] spi_ss,
     output wire spi_sck,
     output wire spi_mosi,
@@ -66,7 +90,7 @@ module std_spi_tx_rx #(
     output wire[tx_user_data_width-1:0] spi_user
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -76,17 +100,17 @@ module std_spi_tx_rx #(
     end                                        
     endfunction
 
-    /** ²ÎÊı **/
-    localparam integer sck_cnt_range = spi_sck_div_n/2-1; // SPIÊ±ÖÓ·ÖÆµ¼ÆÊıÆ÷¼ÆÊı·¶Î§(0~sck_cnt_range)
+    /** å‚æ•° **/
+    localparam integer sck_cnt_range = spi_sck_div_n/2-1; // SPIæ—¶é’Ÿåˆ†é¢‘è®¡æ•°å™¨è®¡æ•°èŒƒå›´(0~sck_cnt_range)
     
-    /** SPIÊÕ·¢¿ØÖÆ **/
-    // SPI´«Êä×´Ì¬¿ØÖÆ
-    reg rx_tx_done_reg; // ±¾´ÎSPI´«ÊäÍê³É(Âö³å)
-    reg rx_tx_idle_reg; // SPI´«Êä¿ÕÏĞ(±êÖ¾)
+    /** SPIæ”¶å‘æ§åˆ¶ **/
+    // SPIä¼ è¾“çŠ¶æ€æ§åˆ¶
+    reg rx_tx_done_reg; // æœ¬æ¬¡SPIä¼ è¾“å®Œæˆ(è„‰å†²)
+    reg rx_tx_idle_reg; // SPIä¼ è¾“ç©ºé—²(æ ‡å¿—)
     
-    reg is_now_transmitting; // µ±Ç°ÊÇ·ñÕıÔÚ´«Êä(±êÖ¾)
-    reg now_transmission_start; // µ±Ç°´«Êä¿ªÊ¼(Âö³å)
-    wire now_transmission_end; // µ±Ç°´«Êä½áÊø(Âö³å)
+    reg is_now_transmitting; // å½“å‰æ˜¯å¦æ­£åœ¨ä¼ è¾“(æ ‡å¿—)
+    reg now_transmission_start; // å½“å‰ä¼ è¾“å¼€å§‹(è„‰å†²)
+    wire now_transmission_end; // å½“å‰ä¼ è¾“ç»“æŸ(è„‰å†²)
     
     assign tx_fifo_ren = (~is_now_transmitting) | (is_now_transmitting & now_transmission_end);
     
@@ -110,10 +134,10 @@ module std_spi_tx_rx #(
         end
     end
     
-    // SPIÆ¬Ñ¡
-    reg[spi_slave_n-1:0] spi_ss_regs; // SPIÆ¬Ñ¡ĞÅºÅ
-    reg spi_ss_to_high; // SPIÆ¬Ñ¡À­¸ß(±êÖ¾)
-    reg ss_latched; // Ëø´æµÄµ±Ç°byte½áÊøºóSSµçÆ½
+    // SPIç‰‡é€‰
+    reg[spi_slave_n-1:0] spi_ss_regs; // SPIç‰‡é€‰ä¿¡å·
+    reg spi_ss_to_high; // SPIç‰‡é€‰æ‹‰é«˜(æ ‡å¿—)
+    reg ss_latched; // é”å­˜çš„å½“å‰byteç»“æŸåSSç”µå¹³
     
     assign spi_ss = spi_ss_regs;
     
@@ -156,7 +180,7 @@ module std_spi_tx_rx #(
         end
     endgenerate
     
-    // SPIÓÃ»§Êı¾İ
+    // SPIç”¨æˆ·æ•°æ®
     reg tx_fifo_ren_d;
     reg[tx_user_data_width-1:0] spi_user_regs;
     
@@ -177,13 +201,13 @@ module std_spi_tx_rx #(
             # simulation_delay spi_user_regs <= tx_user_default_v;
     end
     
-    // SPI·¢ËÍÊı¾İ
-    reg[7:0] tx_byte; // ´ı·¢ËÍ×Ö½Ú(Êı¾İ)
-    wire tx_byte_load; // ´ı·¢ËÍ×Ö½Ú(¼ÓÔØ±êÖ¾)
-    wire tx_byte_shift; // ´ı·¢ËÍ×Ö½Ú(ÒÆÎ»±êÖ¾)
-    wire tx_bit_valid; // ·¢ËÍÎ»¼ÆÊıĞÅÏ¢ÓĞĞ§(±êÖ¾)
-    reg[2:0] tx_bit_cnt; // µ±Ç°·¢ËÍÎ»±àºÅ(¼ÆÊıÆ÷)
-    reg tx_bit_last; // µ±Ç°·¢ËÍµÄÊÇ×îºó1bit(±êÖ¾)
+    // SPIå‘é€æ•°æ®
+    reg[7:0] tx_byte; // å¾…å‘é€å­—èŠ‚(æ•°æ®)
+    wire tx_byte_load; // å¾…å‘é€å­—èŠ‚(åŠ è½½æ ‡å¿—)
+    wire tx_byte_shift; // å¾…å‘é€å­—èŠ‚(ç§»ä½æ ‡å¿—)
+    wire tx_bit_valid; // å‘é€ä½è®¡æ•°ä¿¡æ¯æœ‰æ•ˆ(æ ‡å¿—)
+    reg[2:0] tx_bit_cnt; // å½“å‰å‘é€ä½ç¼–å·(è®¡æ•°å™¨)
+    reg tx_bit_last; // å½“å‰å‘é€çš„æ˜¯æœ€å1bit(æ ‡å¿—)
     
     assign spi_mosi = tx_byte[7];
     
@@ -193,7 +217,7 @@ module std_spi_tx_rx #(
     
     always @(posedge spi_clk)
     begin
-        if(tx_byte_load) // ¼ÓÔØ
+        if(tx_byte_load) // åŠ è½½
             # simulation_delay ss_latched <= tx_fifo_dout_ss;
     end
     
@@ -201,22 +225,22 @@ module std_spi_tx_rx #(
     begin
         if(~spi_resetn)
             tx_bit_last <= 1'b0;
-        else if(tx_byte_load) // ¼ÓÔØ
+        else if(tx_byte_load) // åŠ è½½
             # simulation_delay tx_bit_last <= 1'b0;
-        else if(tx_byte_shift) // ÒÆÎ»
+        else if(tx_byte_shift) // ç§»ä½
             # simulation_delay tx_bit_last <= tx_bit_cnt == 3'd1;
     end
     
     always @(posedge spi_clk)
     begin
-        if(tx_byte_load) // ¼ÓÔØ
+        if(tx_byte_load) // åŠ è½½
         begin
             # simulation_delay;
             
             tx_byte <= rx_tx_dire[0] ? tx_fifo_dout:8'dx;
             tx_bit_cnt <= 3'd7;
         end
-        else if(tx_byte_shift) // ÒÆÎ»
+        else if(tx_byte_shift) // ç§»ä½
         begin
             # simulation_delay;
             
@@ -225,10 +249,10 @@ module std_spi_tx_rx #(
         end
     end
     
-    // Éú³ÉSPIÊ±ÖÓ
-    reg sck_reg; // SPIÊ±ÖÓ
-    reg[clogb2(sck_cnt_range):0] sck_div_cnt; // SPIÊ±ÖÓ·ÖÆµ¼ÆÊıÆ÷
-    wire sck_toggle; // SPIÊ±ÖÓĞÅºÅ·­×ª±êÖ¾
+    // ç”ŸæˆSPIæ—¶é’Ÿ
+    reg sck_reg; // SPIæ—¶é’Ÿ
+    reg[clogb2(sck_cnt_range):0] sck_div_cnt; // SPIæ—¶é’Ÿåˆ†é¢‘è®¡æ•°å™¨
+    wire sck_toggle; // SPIæ—¶é’Ÿä¿¡å·ç¿»è½¬æ ‡å¿—
     
     assign spi_sck = sck_reg;
     
@@ -241,13 +265,13 @@ module std_spi_tx_rx #(
     end
     
     generate
-        wire sck_div_cnt_rst; // SPIÊ±ÖÓ·ÖÆµ¼ÆÊıÆ÷»ØÁã(±êÖ¾)
+        wire sck_div_cnt_rst; // SPIæ—¶é’Ÿåˆ†é¢‘è®¡æ•°å™¨å›é›¶(æ ‡å¿—)
         
         assign tx_byte_shift = (spi_sck != (spi_cpol ^ spi_cpha)) & is_now_transmitting & (sck_toggle | (spi_cpha & sck_div_cnt_rst & (spi_sck == spi_cpol)));
         
-        if(spi_cpha) // Å¼ÊıÑØ²ÉÑù
+        if(spi_cpha) // å¶æ•°æ²¿é‡‡æ ·
             assign sck_toggle = tx_byte_load | (sck_div_cnt_rst & (~((spi_sck == spi_cpol) & tx_bit_last)));
-        else // ÆæÊıÑØ²ÉÑù
+        else // å¥‡æ•°æ²¿é‡‡æ ·
             assign sck_toggle = sck_div_cnt_rst;
         
         if(sck_cnt_range > 0)
@@ -258,7 +282,7 @@ module std_spi_tx_rx #(
             begin
                 if(~spi_resetn)
                     sck_div_cnt <= 0;
-                else if(~tx_bit_valid) // ¼ÆÊıĞÅÏ¢ÎŞĞ§ -> SPIÊ±ÖÓ·ÖÆµ¼ÆÊıÆ÷ÇåÁã
+                else if(~tx_bit_valid) // è®¡æ•°ä¿¡æ¯æ— æ•ˆ -> SPIæ—¶é’Ÿåˆ†é¢‘è®¡æ•°å™¨æ¸…é›¶
                     # simulation_delay sck_div_cnt <= 0;
                 else
                     # simulation_delay sck_div_cnt <= sck_div_cnt_rst ? 0:(sck_div_cnt + 1);
@@ -268,14 +292,14 @@ module std_spi_tx_rx #(
             assign sck_div_cnt_rst = tx_bit_valid;
     endgenerate
     
-    // SPI½ÓÊÕÊı¾İ
-    reg rx_fifo_wen_reg; // ½ÓÊÕfifoĞ´Ê¹ÄÜ
-    reg[7:0] rx_fifo_din_regs; // ½ÓÊÕfifoĞ´Êı¾İ
+    // SPIæ¥æ”¶æ•°æ®
+    reg rx_fifo_wen_reg; // æ¥æ”¶fifoå†™ä½¿èƒ½
+    reg[7:0] rx_fifo_din_regs; // æ¥æ”¶fifoå†™æ•°æ®
     
-    wire rx_byte_shift; // ½ÓÊÕ×Ö½Ú(ÒÆÎ»±êÖ¾)
-    reg[7:0] rx_byte; // ½ÓÊÕ×Ö½Ú(Êı¾İ)
-    reg[2:0] rx_bit_cnt; // µ±Ç°½ÓÊÕÎ»±àºÅ(¼ÆÊıÆ÷)
-    reg rx_bit_last; // µ±Ç°½ÓÊÕµÄÊÇ×îºó1bit(±êÖ¾)
+    wire rx_byte_shift; // æ¥æ”¶å­—èŠ‚(ç§»ä½æ ‡å¿—)
+    reg[7:0] rx_byte; // æ¥æ”¶å­—èŠ‚(æ•°æ®)
+    reg[2:0] rx_bit_cnt; // å½“å‰æ¥æ”¶ä½ç¼–å·(è®¡æ•°å™¨)
+    reg rx_bit_last; // å½“å‰æ¥æ”¶çš„æ˜¯æœ€å1bit(æ ‡å¿—)
     
     assign rx_fifo_wen = rx_fifo_wen_reg;
     assign rx_fifo_din = rx_fifo_din_regs;
@@ -317,8 +341,8 @@ module std_spi_tx_rx #(
         end
     end
     
-    // Éú³É½ÓÊÕÒç³öÖ¸Ê¾
-    reg rx_err_reg; // ½ÓÊÕÒç³öÖ¸Ê¾
+    // ç”Ÿæˆæ¥æ”¶æº¢å‡ºæŒ‡ç¤º
+    reg rx_err_reg; // æ¥æ”¶æº¢å‡ºæŒ‡ç¤º
     
     always @(posedge spi_clk or negedge spi_resetn)
     begin
@@ -328,13 +352,13 @@ module std_spi_tx_rx #(
             # simulation_delay rx_err_reg <= rx_fifo_wen & rx_fifo_full;
     end
 	
-	/** ¿ØÖÆÆ÷ÊÕ·¢Ö¸Ê¾ **/
-	reg rx_tx_idle_d; // ÑÓ³Ù1clkµÄÊÕ·¢Æ÷¿ÕÏĞ(±êÖ¾)
-	reg rx_tx_idle_d2; // ÑÓ³Ù2clkµÄÊÕ·¢Æ÷¿ÕÏĞ(±êÖ¾)
+	/** æ§åˆ¶å™¨æ”¶å‘æŒ‡ç¤º **/
+	reg rx_tx_idle_d; // å»¶è¿Ÿ1clkçš„æ”¶å‘å™¨ç©ºé—²(æ ‡å¿—)
+	reg rx_tx_idle_d2; // å»¶è¿Ÿ2clkçš„æ”¶å‘å™¨ç©ºé—²(æ ‡å¿—)
 	
 	assign rx_tx_idle = rx_tx_idle_d2;
 	
-	// ¿çÊ±ÖÓÓò: ÎÕÊÖÍ¬²½Æ÷!
+	// è·¨æ—¶é’ŸåŸŸ: æ¡æ‰‹åŒæ­¥å™¨!
 	async_handshake #(
 		.simulation_delay(simulation_delay)
 	)async_handshake_u0(
@@ -349,7 +373,7 @@ module std_spi_tx_rx #(
 		
 		.req2(rx_tx_start)
 	);
-	// ¿çÊ±ÖÓÓò: ÎÕÊÖÍ¬²½Æ÷!
+	// è·¨æ—¶é’ŸåŸŸ: æ¡æ‰‹åŒæ­¥å™¨!
 	async_handshake #(
 		.simulation_delay(simulation_delay)
 	)async_handshake_u1(
@@ -364,7 +388,7 @@ module std_spi_tx_rx #(
 		
 		.req2(rx_tx_done)
 	);
-	// ¿çÊ±ÖÓÓò: ÎÕÊÖÍ¬²½Æ÷!
+	// è·¨æ—¶é’ŸåŸŸ: æ¡æ‰‹åŒæ­¥å™¨!
 	async_handshake #(
 		.simulation_delay(simulation_delay)
 	)async_handshake_u2(
@@ -380,8 +404,8 @@ module std_spi_tx_rx #(
 		.req2(rx_err)
 	);
 	
-	// ½«ÊÕ·¢Æ÷¿ÕÏĞ(±êÖ¾)´ò2ÅÄ
-	// ¿çÊ±ÖÓÓò: rx_tx_idle_reg -> rx_tx_idle_d!
+	// å°†æ”¶å‘å™¨ç©ºé—²(æ ‡å¿—)æ‰“2æ‹
+	// è·¨æ—¶é’ŸåŸŸ: rx_tx_idle_reg -> rx_tx_idle_d!
 	always @(posedge amba_clk or negedge amba_resetn)
 	begin
 		if(~amba_resetn)

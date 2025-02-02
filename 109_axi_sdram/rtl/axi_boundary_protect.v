@@ -1,48 +1,72 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI±ß½ç±£»¤
+æœ¬æ¨¡å—: AXIè¾¹ç•Œä¿æŠ¤
 
-ÃèÊö: 
-¶ÔAXI´Ó»úµÄAR/AW/WÍ¨µÀ½øĞĞ±ß½ç±£»¤
-32Î»µØÖ·/Êı¾İ×ÜÏß
-Ö§³Ö·Ç¶ÔÆë´«Êä/Õ­´ø´«Êä
+æè¿°: 
+å¯¹AXIä»æœºçš„AR/AW/Wé€šé“è¿›è¡Œè¾¹ç•Œä¿æŠ¤
+32ä½åœ°å€/æ•°æ®æ€»çº¿
+æ”¯æŒéå¯¹é½ä¼ è¾“/çª„å¸¦ä¼ è¾“
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
 
-ÒÔÏÂ·Ç¼Ä´æÆ÷Êä³ö ->
-    AXI´Ó»úµÄRÍ¨µÀ: m_axis_r_last, m_axis_r_valid
-    AXIÖ÷»úµÄRÍ¨µÀ: m_axi_rready
-    AXI´Ó»úWÍ¨µÀ: s_axis_w_ready
-    AXIÖ÷»úWÍ¨µÀ: m_axi_wlast, m_axi_wvalid
-    AXI´Ó»úBÍ¨µÀ: m_axis_b_valid
-    AXIÖ÷»úBÍ¨µÀ: m_axi_bready
+ä»¥ä¸‹éå¯„å­˜å™¨è¾“å‡º ->
+    AXIä»æœºçš„Ré€šé“: m_axis_r_last, m_axis_r_valid
+    AXIä¸»æœºçš„Ré€šé“: m_axi_rready
+    AXIä»æœºWé€šé“: s_axis_w_ready
+    AXIä¸»æœºWé€šé“: m_axi_wlast, m_axi_wvalid
+    AXIä»æœºBé€šé“: m_axis_b_valid
+    AXIä¸»æœºBé€šé“: m_axi_bready
 
-Ğ­Òé:
+åè®®:
 AXI MASTER
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module axi_boundary_protect #(
-    parameter en_narrow_transfer = "false", // ÊÇ·ñÔÊĞíÕ­´ø´«Êä
-    parameter integer boundary_size = 1, // ±ß½ç´óĞ¡(ÒÔKB¼Æ)(1 | 2 | 4)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter en_narrow_transfer = "false", // æ˜¯å¦å…è®¸çª„å¸¦ä¼ è¾“
+    parameter integer boundary_size = 1, // è¾¹ç•Œå¤§å°(ä»¥KBè®¡)(1 | 2 | 4)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»ú
+    // AXIä»æœº
     // AR
-    input wire[53:0] s_axis_ar_data, // {±£Áô(1bit), arsize(3bit), arprot(3bit), arlock(1bit), arlen(8bit), arcache(4bit), arburst(2bit), araddr(32bit)}
+    input wire[53:0] s_axis_ar_data, // {ä¿ç•™(1bit), arsize(3bit), arprot(3bit), arlock(1bit), arlen(8bit), arcache(4bit), arburst(2bit), araddr(32bit)}
     input wire s_axis_ar_valid,
     output wire s_axis_ar_ready,
     // AW
-    input wire[53:0] s_axis_aw_data, // {±£Áô(1bit), awsize(3bit), awprot(3bit), awlock(1bit), awlen(8bit), awcache(4bit), awburst(2bit), awaddr(32bit)}
+    input wire[53:0] s_axis_aw_data, // {ä¿ç•™(1bit), awsize(3bit), awprot(3bit), awlock(1bit), awlen(8bit), awcache(4bit), awburst(2bit), awaddr(32bit)}
     input wire s_axis_aw_valid,
     output wire s_axis_aw_ready,
     // W
@@ -58,11 +82,11 @@ module axi_boundary_protect #(
     output wire m_axis_r_valid,
     input wire m_axis_r_ready,
     // B
-    output wire[7:0] m_axis_b_data, // {±£Áô(6bit), bresp(2bit)}
+    output wire[7:0] m_axis_b_data, // {ä¿ç•™(6bit), bresp(2bit)}
     output wire m_axis_b_valid,
     input wire m_axis_b_ready,
     
-    // AXIÖ÷»ú
+    // AXIä¸»æœº
     // AR
     output wire[31:0] m_axi_araddr,
     output wire[1:0] m_axi_arburst,
@@ -101,8 +125,8 @@ module axi_boundary_protect #(
     output wire m_axi_bready
 );
     
-    /** ARÍ¨µÀ±ß½ç±£»¤ **/
-    // ¶Á¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú
+    /** ARé€šé“è¾¹ç•Œä¿æŠ¤ **/
+    // è¯»è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£
     wire rd_across_boundary_fifo_wen;
     wire rd_across_boundary_fifo_din;
     wire rd_across_boundary_fifo_full_n;
@@ -134,8 +158,8 @@ module axi_boundary_protect #(
         .across_boundary_fifo_full_n(rd_across_boundary_fifo_full_n)
     );
     
-    /** RÍ¨µÀ±ß½ç±£»¤ **/
-    // ¶Á¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú
+    /** Ré€šé“è¾¹ç•Œä¿æŠ¤ **/
+    // è¯»è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£
     wire rd_across_boundary_fifo_ren;
     wire rd_across_boundary_fifo_dout;
     wire rd_across_boundary_fifo_empty_n;
@@ -160,7 +184,7 @@ module axi_boundary_protect #(
         .rd_across_boundary_fifo_empty_n(rd_across_boundary_fifo_empty_n)
     );
     
-    /** ¶Á¿ç½ç±êÖ¾fifo **/
+    /** è¯»è·¨ç•Œæ ‡å¿—fifo **/
     fifo_based_on_regs #(
         .fwft_mode("false"),
         .fifo_depth(4),
@@ -179,12 +203,12 @@ module axi_boundary_protect #(
         .fifo_empty_n(rd_across_boundary_fifo_empty_n)
     );
     
-    /** AWÍ¨µÀ±ß½ç±£»¤ **/
-    // Ğ´Í»·¢³¤¶ÈfifoĞ´¶Ë¿Ú
+    /** AWé€šé“è¾¹ç•Œä¿æŠ¤ **/
+    // å†™çªå‘é•¿åº¦fifoå†™ç«¯å£
     wire wt_burst_len_fifo_wen;
-    wire[7:0] wt_burst_len_fifo_din; // Ğ´Í»·¢³¤¶È - 1
+    wire[7:0] wt_burst_len_fifo_din; // å†™çªå‘é•¿åº¦ - 1
     wire wt_burst_len_fifo_almost_full_n;
-    // Ğ´¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú
+    // å†™è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£
     wire wt_across_boundary_fifo_wen;
     wire wt_across_boundary_fifo_din;
     wire wt_across_boundary_fifo_full_n;
@@ -216,10 +240,10 @@ module axi_boundary_protect #(
         .across_boundary_fifo_full_n(wt_across_boundary_fifo_full_n)
     );
     
-    /** WÍ¨µÀ±ß½ç±£»¤ **/
-    // Ğ´Í»·¢³¤¶Èfifo¶Á¶Ë¿Ú
+    /** Wé€šé“è¾¹ç•Œä¿æŠ¤ **/
+    // å†™çªå‘é•¿åº¦fifoè¯»ç«¯å£
     wire wt_burst_len_fifo_ren;
-    wire[7:0] wt_burst_len_fifo_dout; // Í»·¢³¤¶È - 1
+    wire[7:0] wt_burst_len_fifo_dout; // çªå‘é•¿åº¦ - 1
     wire wt_burst_len_fifo_empty_n;
     
     axi_w_boundary_protect #(
@@ -242,7 +266,7 @@ module axi_boundary_protect #(
         .burst_len_fifo_empty_n(wt_burst_len_fifo_empty_n)
     );
     
-    /** Ğ´Í»·¢³¤¶Èfifo **/
+    /** å†™çªå‘é•¿åº¦fifo **/
     fifo_based_on_regs #(
         .fwft_mode("false"),
         .fifo_depth(4),
@@ -261,8 +285,8 @@ module axi_boundary_protect #(
         .fifo_empty_n(wt_burst_len_fifo_empty_n)
     );
     
-    /** BÍ¨µÀ±ß½ç±£»¤ **/
-    // Ğ´¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú
+    /** Bé€šé“è¾¹ç•Œä¿æŠ¤ **/
+    // å†™è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£
     wire wt_across_boundary_fifo_ren;
     wire wt_across_boundary_fifo_dout;
     wire wt_across_boundary_fifo_empty_n;
@@ -283,7 +307,7 @@ module axi_boundary_protect #(
         .wt_across_boundary_fifo_empty_n(wt_across_boundary_fifo_empty_n)
     );
     
-    /** Ğ´¿ç½ç±êÖ¾fifo **/
+    /** å†™è·¨ç•Œæ ‡å¿—fifo **/
     fifo_based_on_regs #(
         .fwft_mode("true"),
         .fifo_depth(4),

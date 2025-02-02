@@ -1,42 +1,66 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-��ģ��: ����ram��ͬ��fifo������
+本模块: 基于ram的同步fifo控制器
 
-����: 
-ȫ��ˮ�ĸ�����ͬ��fifo������
-����ram
-֧��first word fall through����(READ LA = 0)
-��ѡ�Ĺ̶���ֵ����/�����ź�
+描述: 
+全流水的高性能同步fifo控制器
+基于ram
+支持first word fall through特性(READ LA = 0)
+可选的固定阈值将满/将空信号
 
-ע�⣺
-�����źŵ��洢���� >= almost_full_thʱ��Ч
-�����źŵ��洢���� <= almost_empty_thʱ��Ч
-almost_full_th��almost_empty_th������[1, fifo_depth-1]��Χ��
-��ʹ��FWFTʱ, Ҫ��ram�Ķ��ӳ�=1��2clk; ʹ��FWFTʱ, Ҫ��ram�Ķ��ӳ�=1clk
+注意：
+将满信号当存储计数 >= almost_full_th时有效
+将空信号当存储计数 <= almost_empty_th时有效
+almost_full_th和almost_empty_th必须在[1, fifo_depth-1]范围内
+不使能FWFT时, 要求ram的读延迟=1或2clk; 使能FWFT时, 要求ram的读延迟=1clk
 
-Э��:
+协议:
 FIFO WRITE/READ
 MEM WRITE/READ
 
-����: �¼�ҫ
-����: 2023/10/29
+作者: 陈家耀
+日期: 2023/10/29
 ********************************************************************/
 
 
 module fifo_based_on_ram #(
-    parameter fwft_mode = "true", // �Ƿ�����first word fall through����
-    parameter ram_read_la = 1, // ram���ӳ�(1|2)(���ڲ�ʹ��FWFTʱ����)
-    parameter integer fifo_depth = 32, // fifo���(����Ϊ2|4|8|16|...)
-    parameter integer fifo_data_width = 32, // fifoλ��
-    parameter integer almost_full_th = 20, // fifo������ֵ
-    parameter integer almost_empty_th = 5, // fifo������ֵ
-    parameter real simulation_delay = 1 // ������ʱ
+    parameter fwft_mode = "true", // 是否启用first word fall through特性
+    parameter ram_read_la = 1, // ram读延迟(1|2)(仅在不使能FWFT时可用)
+    parameter integer fifo_depth = 32, // fifo深度(必须为2|4|8|16|...)
+    parameter integer fifo_data_width = 32, // fifo位宽
+    parameter integer almost_full_th = 20, // fifo将满阈值
+    parameter integer almost_empty_th = 5, // fifo将空阈值
+    parameter real simulation_delay = 1 // 仿真延时
 )(
-    // ʱ�Ӻ͸�λ
+    // 时钟和复位
     input wire clk,
     input wire rst_n,
     
-    // FIFO WRITE(fifoд�˿�)
+    // FIFO WRITE(fifo写端口)
     input wire fifo_wen,
     input wire[fifo_data_width-1:0] fifo_din,
     output wire fifo_full,
@@ -44,7 +68,7 @@ module fifo_based_on_ram #(
     output wire fifo_almost_full,
     output wire fifo_almost_full_n,
     
-    // FIFO READ(fifo���˿�)
+    // FIFO READ(fifo读端口)
     input wire fifo_ren,
     output wire[fifo_data_width-1:0] fifo_dout,
     output wire fifo_empty,
@@ -52,21 +76,21 @@ module fifo_based_on_ram #(
     output wire fifo_almost_empty,
     output wire fifo_almost_empty_n,
     
-    // MEM WRITE(ramд�˿�)
+    // MEM WRITE(ram写端口)
     output wire ram_wen,
     output wire[clogb2(fifo_depth-1):0] ram_w_addr,
     output wire[fifo_data_width-1:0] ram_din,
     
-    // MEM RAD(ram���˿�)
+    // MEM RAD(ram读端口)
     output wire ram_ren,
     output wire[clogb2(fifo_depth-1):0] ram_r_addr,
     input wire[fifo_data_width-1:0] ram_dout,
     
-    // �洢����
+    // 存储计数
     output wire[clogb2(fifo_depth):0] data_cnt
 );
 
-    // ����log2(bit_depth)               
+    // 计算log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -76,7 +100,7 @@ module fifo_based_on_ram #(
     end                                        
     endfunction
     
-    /** ��fifo **/
+    /** 主fifo **/
     wire m_fifo_ren;
     wire[fifo_data_width-1:0] m_fifo_dout;
     wire m_fifo_empty_n;
@@ -84,7 +108,7 @@ module fifo_based_on_ram #(
     generate
         if(fwft_mode == "true")
         begin
-            // FWFTģʽ
+            // FWFT模式
             fifo_based_on_ram_std #(
                 .fifo_depth(fifo_depth),
                 .fifo_data_width(fifo_data_width),
@@ -117,7 +141,7 @@ module fifo_based_on_ram #(
         end
         else
         begin
-            // ��׼ģʽ
+            // 标准模式
             fifo_based_on_ram_std #(
                 .fifo_depth(fifo_depth),
                 .fifo_data_width(fifo_data_width),
@@ -150,7 +174,7 @@ module fifo_based_on_ram #(
         end
     endgenerate
     
-    /** ��fifo(��FWFTģʽ����Ҫ) **/
+    /** 从fifo(仅FWFT模式下需要) **/
     generate
         if(fwft_mode == "true")
         begin

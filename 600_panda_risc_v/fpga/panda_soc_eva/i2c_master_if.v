@@ -1,100 +1,124 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: I2CÖ÷½Ó¿Ú
+æœ¬æ¨¡å—: I2Cä¸»æ¥å£
 
-ÃèÊö: 
-¸ù¾İ´«Êä·½ÏòºÍ´ı·¢ËÍÊı¾İÀ´Çı¶¯I2CÖ÷½Ó¿Ú
+æè¿°: 
+æ ¹æ®ä¼ è¾“æ–¹å‘å’Œå¾…å‘é€æ•°æ®æ¥é©±åŠ¨I2Cä¸»æ¥å£
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 I2C MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/15
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/15
 ********************************************************************/
 
 
 module i2c_master_if #(
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // I2CÊ±ÖÓ·ÖÆµÏµÊı
-    // ·ÖÆµÊı = (·ÖÆµÏµÊı + 1) * 2
-    // ¶ÏÑÔ:·ÖÆµÏµÊı>=1!
+    // I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°
+    // åˆ†é¢‘æ•° = (åˆ†é¢‘ç³»æ•° + 1) * 2
+    // æ–­è¨€:åˆ†é¢‘ç³»æ•°>=1!
     input wire[7:0] i2c_scl_div_rate,
     
-    // Á÷³Ì¿ØÖÆ
+    // æµç¨‹æ§åˆ¶
     input wire ctrler_start,
     output wire ctrler_idle,
     output wire ctrler_done,
     
-    // ÊÕ·¢¿ØÖÆ
-    input wire[1:0] mode, // ´«ÊäÄ£Ê½(2'b00 -> ´øÆğÊ¼Î», 2'b01 -> ´ø½áÊøÎ», 2'b10 -> Õı³£, 2'b11 -> Ô¤Áô)
-    input wire direction, // ´«Êä·½Ïò(1'b0 -> ·¢ËÍ, 1'b1 -> ½ÓÊÕ)
-    input wire[7:0] byte_to_send, // ´ı·¢ËÍÊı¾İ
-    output wire[7:0] byte_recv, // ½ÓÊÕµ½µÄÊı¾İ
+    // æ”¶å‘æ§åˆ¶
+    input wire[1:0] mode, // ä¼ è¾“æ¨¡å¼(2'b00 -> å¸¦èµ·å§‹ä½, 2'b01 -> å¸¦ç»“æŸä½, 2'b10 -> æ­£å¸¸, 2'b11 -> é¢„ç•™)
+    input wire direction, // ä¼ è¾“æ–¹å‘(1'b0 -> å‘é€, 1'b1 -> æ¥æ”¶)
+    input wire[7:0] byte_to_send, // å¾…å‘é€æ•°æ®
+    output wire[7:0] byte_recv, // æ¥æ”¶åˆ°çš„æ•°æ®
     
-    // I2C´Ó»úÏìÓ¦´íÎó
+    // I2Cä»æœºå“åº”é”™è¯¯
     output wire i2c_slave_resp_err,
     
-    // I2CÖ÷»ú½Ó¿Ú
+    // I2Cä¸»æœºæ¥å£
     // scl
-    output wire scl_t, // 1'b1ÎªÊäÈë, 1'b0ÎªÊä³ö
+    output wire scl_t, // 1'b1ä¸ºè¾“å…¥, 1'b0ä¸ºè¾“å‡º
     input wire scl_i,
     output wire scl_o,
     // sda
-    output wire sda_t, // 1'b1ÎªÊäÈë, 1'b0ÎªÊä³ö
+    output wire sda_t, // 1'b1ä¸ºè¾“å…¥, 1'b0ä¸ºè¾“å‡º
     input wire sda_i,
     output wire sda_o
 );
     
-    /** ³£Á¿ **/
-    // Ä£Ê½³£Á¿
-    localparam MODE_WITH_START = 2'b00; // Ä£Ê½:´øÆğÊ¼Î»
-    localparam MODE_WITH_STOP = 2'b01; // Ä£Ê½:´ø½áÊøÎ»
-    localparam MODE_NORMAL = 2'b10; // Ä£Ê½:Õı³£
-    // ¿ØÖÆÆ÷×´Ì¬³£Á¿
-    localparam CTRLER_STS_IDLE = 3'b000; // ×´Ì¬:¿ÕÏĞ
-    localparam CTRLER_STS_START = 3'b001; // ×´Ì¬:ÆğÊ¼Î»
-    localparam CTRLER_STS_DATA = 3'b010; // ×´Ì¬:Êı¾İÎ»
-    localparam CTRLER_STS_RESP = 3'b011; // ×´Ì¬:ÏìÓ¦
-    localparam CTRLER_STS_STOP = 3'b100; // ×´Ì¬:Í£Ö¹Î»
-    localparam CTRLER_STS_DONE = 3'b101; // ×´Ì¬:Íê³É
+    /** å¸¸é‡ **/
+    // æ¨¡å¼å¸¸é‡
+    localparam MODE_WITH_START = 2'b00; // æ¨¡å¼:å¸¦èµ·å§‹ä½
+    localparam MODE_WITH_STOP = 2'b01; // æ¨¡å¼:å¸¦ç»“æŸä½
+    localparam MODE_NORMAL = 2'b10; // æ¨¡å¼:æ­£å¸¸
+    // æ§åˆ¶å™¨çŠ¶æ€å¸¸é‡
+    localparam CTRLER_STS_IDLE = 3'b000; // çŠ¶æ€:ç©ºé—²
+    localparam CTRLER_STS_START = 3'b001; // çŠ¶æ€:èµ·å§‹ä½
+    localparam CTRLER_STS_DATA = 3'b010; // çŠ¶æ€:æ•°æ®ä½
+    localparam CTRLER_STS_RESP = 3'b011; // çŠ¶æ€:å“åº”
+    localparam CTRLER_STS_STOP = 3'b100; // çŠ¶æ€:åœæ­¢ä½
+    localparam CTRLER_STS_DONE = 3'b101; // çŠ¶æ€:å®Œæˆ
     
-    /** ÔØÈëµÄ¿ØÖÆĞÅÏ¢ **/
-    reg[1:0] mode_latched; // Ëø´æµÄ´«ÊäÄ£Ê½(2'b00 -> ´øÆğÊ¼Î», 2'b01 -> ´ø½áÊøÎ», 2'b10 -> Õı³£, 2'b11 -> Ô¤Áô)
-    reg direction_latched; // Ëø´æµÄ´«Êä·½Ïò(1'b0 -> ·¢ËÍ, 1'b1 -> ½ÓÊÕ)
+    /** è½½å…¥çš„æ§åˆ¶ä¿¡æ¯ **/
+    reg[1:0] mode_latched; // é”å­˜çš„ä¼ è¾“æ¨¡å¼(2'b00 -> å¸¦èµ·å§‹ä½, 2'b01 -> å¸¦ç»“æŸä½, 2'b10 -> æ­£å¸¸, 2'b11 -> é¢„ç•™)
+    reg direction_latched; // é”å­˜çš„ä¼ è¾“æ–¹å‘(1'b0 -> å‘é€, 1'b1 -> æ¥æ”¶)
     
-    // Ëø´æµÄ´«ÊäÄ£Ê½
+    // é”å­˜çš„ä¼ è¾“æ¨¡å¼
     always @(posedge clk)
     begin
         if(ctrler_idle & ctrler_start)
             # simulation_delay mode_latched <= mode;
     end
-    // Ëø´æµÄ´«Êä·½Ïò
+    // é”å­˜çš„ä¼ è¾“æ–¹å‘
     always @(posedge clk)
     begin
         if(ctrler_idle & ctrler_start)
             # simulation_delay direction_latched <= direction;
     end
     
-    /** Á÷³Ì¿ØÖÆ **/
-    reg[2:0] i2c_if_ctrler_sts; // ¿ØÖÆÆ÷×´Ì¬
-    wire rx_tx_byte_done; // ×Ö½ÚÊÕ·¢Íê³É(Ö¸Ê¾)
-    wire resp_disposed; // ÏìÓ¦´¦ÀíÍê³É(Ö¸Ê¾)
-    wire stop_disposed; // Í£Ö¹Î»´¦ÀíÍê³É(Ö¸Ê¾)
-    reg ctrler_idle_reg; // ¿ØÖÆÆ÷¿ÕÏĞ(±êÖ¾)
-    reg ctrler_done_reg; // ¿ØÖÆÆ÷Íê³É(Ö¸Ê¾)
+    /** æµç¨‹æ§åˆ¶ **/
+    reg[2:0] i2c_if_ctrler_sts; // æ§åˆ¶å™¨çŠ¶æ€
+    wire rx_tx_byte_done; // å­—èŠ‚æ”¶å‘å®Œæˆ(æŒ‡ç¤º)
+    wire resp_disposed; // å“åº”å¤„ç†å®Œæˆ(æŒ‡ç¤º)
+    wire stop_disposed; // åœæ­¢ä½å¤„ç†å®Œæˆ(æŒ‡ç¤º)
+    reg ctrler_idle_reg; // æ§åˆ¶å™¨ç©ºé—²(æ ‡å¿—)
+    reg ctrler_done_reg; // æ§åˆ¶å™¨å®Œæˆ(æŒ‡ç¤º)
     
     assign ctrler_idle = ctrler_idle_reg;
     assign ctrler_done = ctrler_done_reg;
     
-    // ¿ØÖÆÆ÷×´Ì¬
+    // æ§åˆ¶å™¨çŠ¶æ€
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -104,29 +128,29 @@ module i2c_master_if #(
             # simulation_delay;
             
             case(i2c_if_ctrler_sts)
-                CTRLER_STS_IDLE: // ×´Ì¬:¿ÕÏĞ
+                CTRLER_STS_IDLE: // çŠ¶æ€:ç©ºé—²
                     if(ctrler_start)
-                        i2c_if_ctrler_sts <= CTRLER_STS_START; // -> ×´Ì¬:ÆğÊ¼Î»
-                CTRLER_STS_START: // ×´Ì¬:ÆğÊ¼Î»
-                    i2c_if_ctrler_sts <= CTRLER_STS_DATA; // -> ×´Ì¬:Êı¾İÎ»
-                CTRLER_STS_DATA: // ×´Ì¬:Êı¾İÎ»
+                        i2c_if_ctrler_sts <= CTRLER_STS_START; // -> çŠ¶æ€:èµ·å§‹ä½
+                CTRLER_STS_START: // çŠ¶æ€:èµ·å§‹ä½
+                    i2c_if_ctrler_sts <= CTRLER_STS_DATA; // -> çŠ¶æ€:æ•°æ®ä½
+                CTRLER_STS_DATA: // çŠ¶æ€:æ•°æ®ä½
                     if(rx_tx_byte_done)
-                        i2c_if_ctrler_sts <= CTRLER_STS_RESP; // -> ×´Ì¬:ÏìÓ¦
-                CTRLER_STS_RESP: // ×´Ì¬:ÏìÓ¦
+                        i2c_if_ctrler_sts <= CTRLER_STS_RESP; // -> çŠ¶æ€:å“åº”
+                CTRLER_STS_RESP: // çŠ¶æ€:å“åº”
                     if(resp_disposed)
-                        i2c_if_ctrler_sts <= CTRLER_STS_STOP; // -> ×´Ì¬:Í£Ö¹Î»
-                CTRLER_STS_STOP: // ×´Ì¬:Í£Ö¹Î»
+                        i2c_if_ctrler_sts <= CTRLER_STS_STOP; // -> çŠ¶æ€:åœæ­¢ä½
+                CTRLER_STS_STOP: // çŠ¶æ€:åœæ­¢ä½
                     if((mode_latched == MODE_WITH_STOP) ? stop_disposed:1'b1)
-                        i2c_if_ctrler_sts <= CTRLER_STS_DONE; // -> ×´Ì¬:Íê³É
-                CTRLER_STS_DONE: // ×´Ì¬:Íê³É
-                    i2c_if_ctrler_sts <= CTRLER_STS_IDLE; // -> ×´Ì¬:¿ÕÏĞ
+                        i2c_if_ctrler_sts <= CTRLER_STS_DONE; // -> çŠ¶æ€:å®Œæˆ
+                CTRLER_STS_DONE: // çŠ¶æ€:å®Œæˆ
+                    i2c_if_ctrler_sts <= CTRLER_STS_IDLE; // -> çŠ¶æ€:ç©ºé—²
                 default:
                     i2c_if_ctrler_sts <= CTRLER_STS_IDLE;
             endcase
         end
     end
     
-    // ¿ØÖÆÆ÷¿ÕÏĞ(±êÖ¾)
+    // æ§åˆ¶å™¨ç©ºé—²(æ ‡å¿—)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -134,7 +158,7 @@ module i2c_master_if #(
         else
             # simulation_delay ctrler_idle_reg <= ctrler_idle_reg ? (~ctrler_start):ctrler_done_reg;
     end
-    // ¿ØÖÆÆ÷Íê³É(Ö¸Ê¾)
+    // æ§åˆ¶å™¨å®Œæˆ(æŒ‡ç¤º)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -143,18 +167,18 @@ module i2c_master_if #(
             # simulation_delay ctrler_done_reg <= (i2c_if_ctrler_sts == CTRLER_STS_STOP) & ((mode_latched == MODE_WITH_STOP) ? stop_disposed:1'b1);
     end
     
-    /** Êı¾İÊÕ·¢¿ØÖÆ **/
-    reg shift_send_bit; // ´ı·¢ËÍÊı¾İÒÆÎ»±êÖ¾
-    reg sample_recv_bit; // ´ı½ÓÊÕÊı¾İ²ÉÑù±êÖ¾
-    reg[7:0] send_byte_buffer; // ´ı·¢ËÍÊı¾İ»º³åÇø
-    reg[7:0] recv_byte_buffer; // ´ı½ÓÊÕÊı¾İ»º³åÇø
-    reg[7:0] rx_tx_stage_onehot; // ÊÕ·¢½ø³Ì¶ÀÈÈÂë
+    /** æ•°æ®æ”¶å‘æ§åˆ¶ **/
+    reg shift_send_bit; // å¾…å‘é€æ•°æ®ç§»ä½æ ‡å¿—
+    reg sample_recv_bit; // å¾…æ¥æ”¶æ•°æ®é‡‡æ ·æ ‡å¿—
+    reg[7:0] send_byte_buffer; // å¾…å‘é€æ•°æ®ç¼“å†²åŒº
+    reg[7:0] recv_byte_buffer; // å¾…æ¥æ”¶æ•°æ®ç¼“å†²åŒº
+    reg[7:0] rx_tx_stage_onehot; // æ”¶å‘è¿›ç¨‹ç‹¬çƒ­ç 
     
     assign byte_recv = recv_byte_buffer;
     
     assign rx_tx_byte_done = rx_tx_stage_onehot[7] & sample_recv_bit;
     
-    // ´ı·¢ËÍÊı¾İ»º³åÇø
+    // å¾…å‘é€æ•°æ®ç¼“å†²åŒº
     always @(posedge clk)
     begin
         if(ctrler_idle & ctrler_start)
@@ -162,14 +186,14 @@ module i2c_master_if #(
         else if(shift_send_bit)
             # simulation_delay send_byte_buffer <= {send_byte_buffer[6:0], 1'bx};
     end
-    // ´ı½ÓÊÕÊı¾İ»º³åÇø
+    // å¾…æ¥æ”¶æ•°æ®ç¼“å†²åŒº
     always @(posedge clk)
     begin
         if(sample_recv_bit)
             # simulation_delay recv_byte_buffer <= {recv_byte_buffer[6:0], sda_i};
     end
     
-    // ÊÕ·¢½ø³Ì¶ÀÈÈÂë
+    // æ”¶å‘è¿›ç¨‹ç‹¬çƒ­ç 
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -178,16 +202,16 @@ module i2c_master_if #(
             # simulation_delay rx_tx_stage_onehot <= {rx_tx_stage_onehot[6:0], rx_tx_stage_onehot[7]};
     end
     
-    /** ÏìÓ¦¿ØÖÆ **/
-	reg[7:0] resp_div_cnt; // ÏìÓ¦Ê±scl·ÖÆµ¼ÆÊıÆ÷
-    reg[5:0] resp_stage_onehot; // ÏìÓ¦½ø³Ì¶ÀÈÈÂë(6'b000001 -> SCL¸ß, 6'b000010 -> SCL¸ß, 6'b000100 -> SCLµÍ, 6'b001000 -> SCLµÍÇÒÊä³öÏìÓ¦, 6'b010000 -> SCL¸ß, 6'b100000 -> SCL¸ß)
-    reg i2c_slave_resp_err_reg; // I2C´Ó»úÏìÓ¦´íÎó
+    /** å“åº”æ§åˆ¶ **/
+	reg[7:0] resp_div_cnt; // å“åº”æ—¶sclåˆ†é¢‘è®¡æ•°å™¨
+    reg[5:0] resp_stage_onehot; // å“åº”è¿›ç¨‹ç‹¬çƒ­ç (6'b000001 -> SCLé«˜, 6'b000010 -> SCLé«˜, 6'b000100 -> SCLä½, 6'b001000 -> SCLä½ä¸”è¾“å‡ºå“åº”, 6'b010000 -> SCLé«˜, 6'b100000 -> SCLé«˜)
+    reg i2c_slave_resp_err_reg; // I2Cä»æœºå“åº”é”™è¯¯
     
     assign i2c_slave_resp_err = i2c_slave_resp_err_reg;
     
     assign resp_disposed = resp_stage_onehot[5];
 	
-	// ÏìÓ¦Ê±scl·ÖÆµ¼ÆÊıÆ÷
+	// å“åº”æ—¶sclåˆ†é¢‘è®¡æ•°å™¨
 	always @(posedge clk)
 	begin
 		if((i2c_if_ctrler_sts == CTRLER_STS_RESP) & (resp_stage_onehot[0] | resp_stage_onehot[2]))
@@ -196,7 +220,7 @@ module i2c_master_if #(
 			# simulation_delay resp_div_cnt <= 8'd0;
 	end
     
-    // ÏìÓ¦½ø³Ì¶ÀÈÈÂë
+    // å“åº”è¿›ç¨‹ç‹¬çƒ­ç 
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -206,7 +230,7 @@ module i2c_master_if #(
             # simulation_delay resp_stage_onehot <= {resp_stage_onehot[4:0], resp_stage_onehot[5]};
     end
     
-    // I2C´Ó»úÏìÓ¦´íÎó
+    // I2Cä»æœºå“åº”é”™è¯¯
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -215,13 +239,13 @@ module i2c_master_if #(
             # simulation_delay i2c_slave_resp_err_reg <= (i2c_if_ctrler_sts == CTRLER_STS_RESP) & resp_stage_onehot[4] & sda_i;
     end
     
-    /** Í£Ö¹Î»¿ØÖÆ **/
-	reg[7:0] stop_div_cnt; // Í£Ö¹Î»scl·ÖÆµ¼ÆÊıÆ÷
-    reg[5:0] stop_stage_onehot; // Í£Ö¹Î»½ø³Ì¶ÀÈÈÂë(6'b000001 -> SCL¸ß, 6'b000010 -> SCL¸ß, 6'b000100 -> SCLµÍ, 6'b001000 -> SCLµÍÇÒSDAµÍ, 6'b010000 -> SCL¸ß, 6'b100000 -> SCL¸ßÇÒSDA¸ß)
+    /** åœæ­¢ä½æ§åˆ¶ **/
+	reg[7:0] stop_div_cnt; // åœæ­¢ä½sclåˆ†é¢‘è®¡æ•°å™¨
+    reg[5:0] stop_stage_onehot; // åœæ­¢ä½è¿›ç¨‹ç‹¬çƒ­ç (6'b000001 -> SCLé«˜, 6'b000010 -> SCLé«˜, 6'b000100 -> SCLä½, 6'b001000 -> SCLä½ä¸”SDAä½, 6'b010000 -> SCLé«˜, 6'b100000 -> SCLé«˜ä¸”SDAé«˜)
     
     assign stop_disposed = stop_stage_onehot[5];
     
-	// Í£Ö¹Î»scl·ÖÆµ¼ÆÊıÆ÷
+	// åœæ­¢ä½sclåˆ†é¢‘è®¡æ•°å™¨
 	always @(posedge clk)
 	begin
 		if((i2c_if_ctrler_sts == CTRLER_STS_STOP) & (mode_latched == MODE_WITH_STOP) & 
@@ -231,7 +255,7 @@ module i2c_master_if #(
 			# simulation_delay stop_div_cnt <= 8'd0;
 	end
 	
-    // Í£Ö¹Î»½ø³Ì¶ÀÈÈÂë
+    // åœæ­¢ä½è¿›ç¨‹ç‹¬çƒ­ç 
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -241,13 +265,13 @@ module i2c_master_if #(
             # simulation_delay stop_stage_onehot <= {stop_stage_onehot[4:0], stop_stage_onehot[5]};
     end
     
-    /** I2CÊ±ÖÓ·ÖÆµ **/
-    reg[7:0] i2c_scl_div_cnt; // I2CÊ±ÖÓ·ÖÆµ¼ÆÊıÆ÷
-    wire i2c_scl_div_cnt_rst; // I2CÊ±ÖÓ·ÖÆµ¼ÆÊıÆ÷»ØÁãÖ¸Ê¾
+    /** I2Cæ—¶é’Ÿåˆ†é¢‘ **/
+    reg[7:0] i2c_scl_div_cnt; // I2Cæ—¶é’Ÿåˆ†é¢‘è®¡æ•°å™¨
+    wire i2c_scl_div_cnt_rst; // I2Cæ—¶é’Ÿåˆ†é¢‘è®¡æ•°å™¨å›é›¶æŒ‡ç¤º
     
     assign i2c_scl_div_cnt_rst = i2c_scl_div_cnt == i2c_scl_div_rate;
     
-    // ´ı·¢ËÍÊı¾İÒÆÎ»±êÖ¾
+    // å¾…å‘é€æ•°æ®ç§»ä½æ ‡å¿—
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -255,7 +279,7 @@ module i2c_master_if #(
         else
             # simulation_delay shift_send_bit <= scl_o & (i2c_if_ctrler_sts == CTRLER_STS_DATA) & i2c_scl_div_cnt_rst;
     end
-    // ´ı½ÓÊÕÊı¾İ²ÉÑù±êÖ¾
+    // å¾…æ¥æ”¶æ•°æ®é‡‡æ ·æ ‡å¿—
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -264,7 +288,7 @@ module i2c_master_if #(
             # simulation_delay sample_recv_bit <= (~scl_o) & (i2c_if_ctrler_sts == CTRLER_STS_DATA) & i2c_scl_div_cnt_rst;
     end
     
-    // I2CÊ±ÖÓ·ÖÆµ¼ÆÊıÆ÷
+    // I2Cæ—¶é’Ÿåˆ†é¢‘è®¡æ•°å™¨
     always @(posedge clk)
     begin
         if(i2c_if_ctrler_sts == CTRLER_STS_DATA)
@@ -273,17 +297,17 @@ module i2c_master_if #(
             # simulation_delay i2c_scl_div_cnt <= 8'd0;
     end
     
-    /** I2CÖ÷½Ó¿Ú **/
-    reg scl_o_reg; // SCLÊä³ö
-    reg sda_t_reg; // SDA·½Ïò
-    reg sda_o_reg; // SDAÊä³ö
+    /** I2Cä¸»æ¥å£ **/
+    reg scl_o_reg; // SCLè¾“å‡º
+    reg sda_t_reg; // SDAæ–¹å‘
+    reg sda_o_reg; // SDAè¾“å‡º
     
     assign scl_t = 1'b0;
     assign scl_o = scl_o_reg;
     assign sda_t = sda_t_reg;
     assign sda_o = sda_o_reg;
     
-    // SCLÊä³ö
+    // SCLè¾“å‡º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -296,7 +320,7 @@ module i2c_master_if #(
         end
     end
     
-    // SDA·½Ïò(1'b1ÎªÊäÈë, 1'b0ÎªÊä³ö)
+    // SDAæ–¹å‘(1'b1ä¸ºè¾“å…¥, 1'b0ä¸ºè¾“å‡º)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -313,7 +337,7 @@ module i2c_master_if #(
                     1'b0;
         end
     end
-    // SDAÊä³ö
+    // SDAè¾“å‡º
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)

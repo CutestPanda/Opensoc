@@ -1,67 +1,91 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIS¶ÁÇëÇóÅÉ·¢µ¥Ôª
+æœ¬æ¨¡å—: AXISè¯»è¯·æ±‚æ´¾å‘å•å…ƒ
 
-ÃèÊö:
-½âÎö¶ÁÇëÇóÃèÊö×Ó, ²úÉúÊäÈëÌØÕ÷Í¼/¾í»ıºË/ÏßĞÔ²ÎÊı¶ÁÇëÇóºÍÅÉ·¢ĞÅÏ¢Á÷
+æè¿°:
+è§£æè¯»è¯·æ±‚æè¿°å­, äº§ç”Ÿè¾“å…¥ç‰¹å¾å›¾/å·ç§¯æ ¸/çº¿æ€§å‚æ•°è¯»è¯·æ±‚å’Œæ´¾å‘ä¿¡æ¯æµ
 
-Ã¿¸ö¶ÁÇëÇóÃèÊö×ÓµÄ³¤¶ÈÊÇ64bit -> 
-	Î»±àºÅ            ÄÚÈİ
-	 31~0            »ùµØÖ·
-	 33~32      ÅÉ·¢Ä¿±êÀàĞÍ±àºÅ
-	         (2'b00 -> ÏßĞÔ²ÎÊı»º´æ, 
-			 2'b01 -> ¾í»ıºË²ÎÊı»º´æ, 
-			 2'b10 -> ÊäÈëÌØÕ÷Í¼»º´æ)
-	 35~34         Êı¾İ°üĞÅÏ¢
-              (¼ûÅÉ·¢ĞÅÏ¢Á÷µÄÃèÊö)
-	 63~36       ´ı¶ÁÈ¡µÄ×Ö½ÚÊı
+æ¯ä¸ªè¯»è¯·æ±‚æè¿°å­çš„é•¿åº¦æ˜¯64bit -> 
+	ä½ç¼–å·            å†…å®¹
+	 31~0            åŸºåœ°å€
+	 33~32      æ´¾å‘ç›®æ ‡ç±»å‹ç¼–å·
+	         (2'b00 -> çº¿æ€§å‚æ•°ç¼“å­˜, 
+			 2'b01 -> å·ç§¯æ ¸å‚æ•°ç¼“å­˜, 
+			 2'b10 -> è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜)
+	 35~34         æ•°æ®åŒ…ä¿¡æ¯
+              (è§æ´¾å‘ä¿¡æ¯æµçš„æè¿°)
+	 63~36       å¾…è¯»å–çš„å­—èŠ‚æ•°
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/07
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/07
 ********************************************************************/
 
 
 module axis_rd_req_distributor #(
-	parameter integer max_rd_btt = 4 * 512, // ×î´óµÄ¶Á´«Êä×Ö½ÚÊı(256 | 512 | 1024 | ...)
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer max_rd_btt = 4 * 512, // æœ€å¤§çš„è¯»ä¼ è¾“å­—èŠ‚æ•°(256 | 512 | 1024 | ...)
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ¶ÁÇëÇóÃèÊö×Ó(AXIS´Ó»ú)
+	// è¯»è¯·æ±‚æè¿°å­(AXISä»æœº)
 	input wire[63:0] s_axis_dsc_data,
 	input wire s_axis_dsc_valid,
 	output wire s_axis_dsc_ready,
 	
-	// ÊäÈëÌØÕ÷Í¼/¾í»ıºË/ÏßĞÔ²ÎÊı¶ÁÇëÇó(AXISÖ÷»ú)
-	output wire[63:0] m_axis_rd_req_data, // {´ı¶ÁÈ¡µÄ×Ö½ÚÊı(32bit), »ùµØÖ·(32bit)}
+	// è¾“å…¥ç‰¹å¾å›¾/å·ç§¯æ ¸/çº¿æ€§å‚æ•°è¯»è¯·æ±‚(AXISä¸»æœº)
+	output wire[63:0] m_axis_rd_req_data, // {å¾…è¯»å–çš„å­—èŠ‚æ•°(32bit), åŸºåœ°å€(32bit)}
 	output wire m_axis_rd_req_valid,
 	input wire m_axis_rd_req_ready,
 	
-	// ÅÉ·¢ĞÅÏ¢Á÷(AXISÖ÷»ú)
+	// æ´¾å‘ä¿¡æ¯æµ(AXISä¸»æœº)
 	/*
-	Î»±àºÅ
-     7~5    ±£Áô
-	 4~3    ÅÉ·¢¸øÊäÈëÌØÕ÷Í¼»º´æ -> {±¾ĞĞÊÇ·ñÓĞĞ§, µ±Ç°»º´æÇø×îºó1ĞĞ±êÖ¾}
-	        ÅÉ·¢¸ø¾í»ıºË²ÎÊı»º´æ -> {µ±Ç°¶àÍ¨µÀ¾í»ıºËÊÇ·ñÓĞĞ§, 1'bx}
-	        ÅÉ·¢¸øÏßĞÔ²ÎÊı»º´æ   -> {ÏßĞÔ²ÎÊıÊÇ·ñÓĞĞ§, ÏßĞÔ²ÎÊıÀàĞÍ(1'b0 -> A, 1'b1 -> B)}
-	  2     ÅÉ·¢¸øÊäÈëÌØÕ÷Í¼»º´æ
-	  1     ÅÉ·¢¸ø¾í»ıºË²ÎÊı»º´æ
-	  0     ÅÉ·¢¸øÏßĞÔ²ÎÊı»º´æ
+	ä½ç¼–å·
+     7~5    ä¿ç•™
+	 4~3    æ´¾å‘ç»™è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜ -> {æœ¬è¡Œæ˜¯å¦æœ‰æ•ˆ, å½“å‰ç¼“å­˜åŒºæœ€å1è¡Œæ ‡å¿—}
+	        æ´¾å‘ç»™å·ç§¯æ ¸å‚æ•°ç¼“å­˜ -> {å½“å‰å¤šé€šé“å·ç§¯æ ¸æ˜¯å¦æœ‰æ•ˆ, 1'bx}
+	        æ´¾å‘ç»™çº¿æ€§å‚æ•°ç¼“å­˜   -> {çº¿æ€§å‚æ•°æ˜¯å¦æœ‰æ•ˆ, çº¿æ€§å‚æ•°ç±»å‹(1'b0 -> A, 1'b1 -> B)}
+	  2     æ´¾å‘ç»™è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜
+	  1     æ´¾å‘ç»™å·ç§¯æ ¸å‚æ•°ç¼“å­˜
+	  0     æ´¾å‘ç»™çº¿æ€§å‚æ•°ç¼“å­˜
 	*/
 	output wire[7:0] m_axis_dispatch_msg_data,
 	output wire m_axis_dispatch_msg_valid,
 	input wire m_axis_dispatch_msg_ready
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -74,40 +98,40 @@ module axis_rd_req_distributor #(
     end
     endfunction
 	
-    /** ³£Á¿ **/
-	// ÅÉ·¢Ä¿±êÀàĞÍ±àºÅ
-	localparam DISPATCH_TARGET_LINEAR_PARS = 2'b00; // ÅÉ·¢Ä¿±êÀàĞÍ: ÏßĞÔ²ÎÊı»º´æ
-	localparam DISPATCH_TARGET_KERNAL_PARS = 2'b01; // ÅÉ·¢Ä¿±êÀàĞÍ: ¾í»ıºË²ÎÊı»º´æ
-	localparam DISPATCH_TARGET_FT_MAP = 2'b10; // ÅÉ·¢Ä¿±êÀàĞÍ: ÊäÈëÌØÕ÷Í¼»º´æ
+    /** å¸¸é‡ **/
+	// æ´¾å‘ç›®æ ‡ç±»å‹ç¼–å·
+	localparam DISPATCH_TARGET_LINEAR_PARS = 2'b00; // æ´¾å‘ç›®æ ‡ç±»å‹: çº¿æ€§å‚æ•°ç¼“å­˜
+	localparam DISPATCH_TARGET_KERNAL_PARS = 2'b01; // æ´¾å‘ç›®æ ‡ç±»å‹: å·ç§¯æ ¸å‚æ•°ç¼“å­˜
+	localparam DISPATCH_TARGET_FT_MAP = 2'b10; // æ´¾å‘ç›®æ ‡ç±»å‹: è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜
 	
-	/** ¶ÁÇëÇóÃèÊö×Ó **/
-	wire[31:0] rd_req_baseaddr; // ¶ÁÇëÇó»ùµØÖ·
-	wire[clogb2(max_rd_btt):0] rd_req_btt; // ´ı¶ÁÈ¡µÄ×Ö½ÚÊı
-	wire[1:0] dispatch_target; // ÅÉ·¢Ä¿±êÀàĞÍ±àºÅ
-	wire[1:0] pkt_msg; // Êı¾İ°üĞÅÏ¢
+	/** è¯»è¯·æ±‚æè¿°å­ **/
+	wire[31:0] rd_req_baseaddr; // è¯»è¯·æ±‚åŸºåœ°å€
+	wire[clogb2(max_rd_btt):0] rd_req_btt; // å¾…è¯»å–çš„å­—èŠ‚æ•°
+	wire[1:0] dispatch_target; // æ´¾å‘ç›®æ ‡ç±»å‹ç¼–å·
+	wire[1:0] pkt_msg; // æ•°æ®åŒ…ä¿¡æ¯
 	
 	assign rd_req_baseaddr = s_axis_dsc_data[31:0];
 	assign dispatch_target = s_axis_dsc_data[33:32];
 	assign pkt_msg = s_axis_dsc_data[35:34];
 	assign rd_req_btt = s_axis_dsc_data[63:36];
 	
-	/** ¶ÁÇëÇóÃèÊö×ÓAXIS´Ó»ú **/
-	wire ft_map_pars_fifo_full_n; // ÊäÈëÌØÕ÷Í¼/¾í»ıºË/ÏßĞÔ²ÎÊı¶ÁÇëÇófifoÂú±êÖ¾
-	wire dispatch_msg_fifo_full_n; // ÅÉ·¢ĞÅÏ¢fifoÂú±êÖ¾
+	/** è¯»è¯·æ±‚æè¿°å­AXISä»æœº **/
+	wire ft_map_pars_fifo_full_n; // è¾“å…¥ç‰¹å¾å›¾/å·ç§¯æ ¸/çº¿æ€§å‚æ•°è¯»è¯·æ±‚fifoæ»¡æ ‡å¿—
+	wire dispatch_msg_fifo_full_n; // æ´¾å‘ä¿¡æ¯fifoæ»¡æ ‡å¿—
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_dsc_valid & ft_map_pars_fifo_full_n & dispatch_msg_fifo_full_n
+	// æ¡æ‰‹æ¡ä»¶: s_axis_dsc_valid & ft_map_pars_fifo_full_n & dispatch_msg_fifo_full_n
 	assign s_axis_dsc_ready = ft_map_pars_fifo_full_n & dispatch_msg_fifo_full_n;
 	
-	/** ÊäÈëÌØÕ÷Í¼/¾í»ıºË/ÏßĞÔ²ÎÊı¶ÁÇëÇófifo **/
-	// fifoĞ´¶Ë¿Ú
+	/** è¾“å…¥ç‰¹å¾å›¾/å·ç§¯æ ¸/çº¿æ€§å‚æ•°è¯»è¯·æ±‚fifo **/
+	// fifoå†™ç«¯å£
 	wire ft_map_pars_fifo_wen;
 	wire[32+clogb2(max_rd_btt):0] ft_map_pars_fifo_din;
-	// fifo¶Á¶Ë¿Ú
+	// fifoè¯»ç«¯å£
 	wire ft_map_pars_fifo_ren;
 	wire[32+clogb2(max_rd_btt):0] ft_map_pars_fifo_dout;
 	wire ft_map_pars_fifo_empty_n;
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_dsc_valid & ft_map_pars_fifo_full_n & dispatch_msg_fifo_full_n & pkt_msg[1]
+	// æ¡æ‰‹æ¡ä»¶: s_axis_dsc_valid & ft_map_pars_fifo_full_n & dispatch_msg_fifo_full_n & pkt_msg[1]
 	assign ft_map_pars_fifo_wen = s_axis_dsc_valid & dispatch_msg_fifo_full_n & pkt_msg[1];
 	assign ft_map_pars_fifo_din = {rd_req_btt, rd_req_baseaddr};
 	
@@ -135,16 +159,16 @@ module axis_rd_req_distributor #(
 		.fifo_empty_n(ft_map_pars_fifo_empty_n)
 	);
 	
-	/** ÅÉ·¢ĞÅÏ¢fifo **/
-	// fifoĞ´¶Ë¿Ú
+	/** æ´¾å‘ä¿¡æ¯fifo **/
+	// fifoå†™ç«¯å£
 	wire dispatch_msg_fifo_wen;
 	wire[3:0] dispatch_msg_fifo_din;
-	// fifo¶Á¶Ë¿Ú
+	// fifoè¯»ç«¯å£
 	wire dispatch_msg_fifo_ren;
 	wire[3:0] dispatch_msg_fifo_dout;
 	wire dispatch_msg_fifo_empty_n;
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_dsc_valid & ft_map_pars_fifo_full_n & dispatch_msg_fifo_full_n
+	// æ¡æ‰‹æ¡ä»¶: s_axis_dsc_valid & ft_map_pars_fifo_full_n & dispatch_msg_fifo_full_n
 	assign dispatch_msg_fifo_wen = s_axis_dsc_valid & ft_map_pars_fifo_full_n;
 	assign dispatch_msg_fifo_din = {pkt_msg, dispatch_target};
 	

@@ -1,62 +1,86 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: sdramÃüÁî´úÀí
+æœ¬æ¨¡å—: sdramå‘½ä»¤ä»£ç†
 
-ÃèÊö:
-½ÓÊÜÃüÁîÁ÷, ÒÔ·ûºÏsdramÊ±ĞòÒªÇóµÄ·½Ê½¿ØÖÆÃüÁîÏß
+æè¿°:
+æ¥å—å‘½ä»¤æµ, ä»¥ç¬¦åˆsdramæ—¶åºè¦æ±‚çš„æ–¹å¼æ§åˆ¶å‘½ä»¤çº¿
 
-2Î»bankµØÖ·, 11Î»ĞĞ/ÁĞµØÖ·
+2ä½bankåœ°å€, 11ä½è¡Œ/åˆ—åœ°å€
 
-Ö§³ÖÈçÏÂÃüÁî:
-ÃüÁîºÅ     º¬Òå                  ±¸×¢
-  0      ¼¤»îbank        ÓÃ»§Ò»°ãÎŞĞèÖ¸¶¨¸ÃÃüÁî
-  1     Ô¤³äµçbank       ÓÃ»§Ò»°ãÎŞĞèÖ¸¶¨¸ÃÃüÁî
-  2      Ğ´Êı¾İ
-  3      ¶ÁÊı¾İ
-  4   ÉèÖÃÄ£Ê½¼Ä´æÆ÷     ÓÃ»§Ò»°ãÎŞĞèÖ¸¶¨¸ÃÃüÁî
-  5     ×Ô¶¯Ë¢ĞÂ         ÓÃ»§Ò»°ãÎŞĞèÖ¸¶¨¸ÃÃüÁî
-  6     Í£Ö¹Í»·¢    ½öÄÚ²¿Ê¹ÓÃ, ÓÃ»§²»¿ÉÖ¸¶¨¸ÃÃüÁîºÅ
-  7      ¿Õ²Ù×÷         ÓÃ»§Ò»°ãÎŞĞèÖ¸¶¨¸ÃÃüÁî
+æ”¯æŒå¦‚ä¸‹å‘½ä»¤:
+å‘½ä»¤å·     å«ä¹‰                  å¤‡æ³¨
+  0      æ¿€æ´»bank        ç”¨æˆ·ä¸€èˆ¬æ— éœ€æŒ‡å®šè¯¥å‘½ä»¤
+  1     é¢„å……ç”µbank       ç”¨æˆ·ä¸€èˆ¬æ— éœ€æŒ‡å®šè¯¥å‘½ä»¤
+  2      å†™æ•°æ®
+  3      è¯»æ•°æ®
+  4   è®¾ç½®æ¨¡å¼å¯„å­˜å™¨     ç”¨æˆ·ä¸€èˆ¬æ— éœ€æŒ‡å®šè¯¥å‘½ä»¤
+  5     è‡ªåŠ¨åˆ·æ–°         ç”¨æˆ·ä¸€èˆ¬æ— éœ€æŒ‡å®šè¯¥å‘½ä»¤
+  6     åœæ­¢çªå‘    ä»…å†…éƒ¨ä½¿ç”¨, ç”¨æˆ·ä¸å¯æŒ‡å®šè¯¥å‘½ä»¤å·
+  7      ç©ºæ“ä½œ         ç”¨æˆ·ä¸€èˆ¬æ— éœ€æŒ‡å®šè¯¥å‘½ä»¤
 
-×¢Òâ£º
-Ê±ÖÓÖÜÆÚºÍÊ±¼äÒªÇóÒÔns¼Æ
-Í»·¢³¤¶È½öµ±Ê¹ÓÃÈ«Ò³Í»·¢ÇÒÔÚ¶Á/Ğ´Êı¾İÃüÁîÏÂ¿ÉÓÃ
-Í»·¢ÀàĞÍ¹Ì¶¨ÎªË³ĞòÍ»·¢(sequential)
+æ³¨æ„ï¼š
+æ—¶é’Ÿå‘¨æœŸå’Œæ—¶é—´è¦æ±‚ä»¥nsè®¡
+çªå‘é•¿åº¦ä»…å½“ä½¿ç”¨å…¨é¡µçªå‘ä¸”åœ¨è¯»/å†™æ•°æ®å‘½ä»¤ä¸‹å¯ç”¨
+çªå‘ç±»å‹å›ºå®šä¸ºé¡ºåºçªå‘(sequential)
 
-Ğ­Òé:
+åè®®:
 AXIS SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/13
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/13
 ********************************************************************/
 
 
 module axis_sdram_cmd_agent #(
-    parameter integer cas_latency = 2, // sdram¶ÁÇ±·üÆÚÊ±ÑÓ(2 | 3)
-    parameter real clk_period = 5.0, // Ê±ÖÓÖÜÆÚ
-    parameter real tRC = 55.0, // (¼¤»îÄ³¸öbank -> ¼¤»îÍ¬Ò»bank)ºÍ(Ë¢ĞÂÍê³ÉÊ±¼ä)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRRD = 10.0, // (¼¤»îÄ³¸öbank -> ¼¤»î²»Í¬bank)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRCD = 18.0, // (¼¤»îÄ³¸öbank -> ¶ÁĞ´Õâ¸öbank)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRP = 15.0, // (Ô¤³äµçÄ³¸öbank -> Ë¢ĞÂ/¼¤»îÍ¬Ò»bank/ÉèÖÃÄ£Ê½¼Ä´æÆ÷)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRAS_min = 35.0, // (¼¤»îÄ³¸öbank -> Ô¤³äµçÍ¬Ò»bank)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRAS_max = 100000.0, // (¼¤»îÄ³¸öbank -> Ô¤³äµçÍ¬Ò»bank)µÄ×î´óÊ±¼äÒªÇó
-    parameter real tWR = 2.0, // (Ğ´Í»·¢½áÊø -> Ô¤³äµç)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter integer burst_len = -1, // Í»·¢³¤¶È(-1 -> È«Ò³; 1 | 2 | 4 | 8)
-    parameter allow_auto_precharge = "true", // ÊÇ·ñÔÊĞí×Ô¶¯Ô¤³äµç
-    parameter en_cmd_axis_reg_slice = "true", // ÊÇ·ñÊ¹ÄÜÃüÁîAXIS¼Ä´æÆ÷Æ¬
-    parameter en_expt_tip = "false" // ÊÇ·ñÊ¹ÄÜÒì³£Ö¸Ê¾
+    parameter integer cas_latency = 2, // sdramè¯»æ½œä¼æœŸæ—¶å»¶(2 | 3)
+    parameter real clk_period = 5.0, // æ—¶é’Ÿå‘¨æœŸ
+    parameter real tRC = 55.0, // (æ¿€æ´»æŸä¸ªbank -> æ¿€æ´»åŒä¸€bank)å’Œ(åˆ·æ–°å®Œæˆæ—¶é—´)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRRD = 10.0, // (æ¿€æ´»æŸä¸ªbank -> æ¿€æ´»ä¸åŒbank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRCD = 18.0, // (æ¿€æ´»æŸä¸ªbank -> è¯»å†™è¿™ä¸ªbank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRP = 15.0, // (é¢„å……ç”µæŸä¸ªbank -> åˆ·æ–°/æ¿€æ´»åŒä¸€bank/è®¾ç½®æ¨¡å¼å¯„å­˜å™¨)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRAS_min = 35.0, // (æ¿€æ´»æŸä¸ªbank -> é¢„å……ç”µåŒä¸€bank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRAS_max = 100000.0, // (æ¿€æ´»æŸä¸ªbank -> é¢„å……ç”µåŒä¸€bank)çš„æœ€å¤§æ—¶é—´è¦æ±‚
+    parameter real tWR = 2.0, // (å†™çªå‘ç»“æŸ -> é¢„å……ç”µ)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter integer burst_len = -1, // çªå‘é•¿åº¦(-1 -> å…¨é¡µ; 1 | 2 | 4 | 8)
+    parameter allow_auto_precharge = "true", // æ˜¯å¦å…è®¸è‡ªåŠ¨é¢„å……ç”µ
+    parameter en_cmd_axis_reg_slice = "true", // æ˜¯å¦ä½¿èƒ½å‘½ä»¤AXISå¯„å­˜å™¨ç‰‡
+    parameter en_expt_tip = "false" // æ˜¯å¦ä½¿èƒ½å¼‚å¸¸æŒ‡ç¤º
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ÃüÁîAXIS
-    input wire[15:0] s_axis_cmd_data, // {BS(2bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    input wire[8:0] s_axis_cmd_user, // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}(½ö¶ÔÈ«Ò³Í»·¢ÓĞĞ§)
+    // å‘½ä»¤AXIS
+    input wire[15:0] s_axis_cmd_data, // {BS(2bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    input wire[8:0] s_axis_cmd_user, // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}(ä»…å¯¹å…¨é¡µçªå‘æœ‰æ•ˆ)
     input wire s_axis_cmd_valid,
     output wire s_axis_cmd_ready,
     
-    // sdramÃüÁîÏß
+    // sdramå‘½ä»¤çº¿
     output wire sdram_cs_n,
     output wire sdram_ras_n,
     output wire sdram_cas_n,
@@ -64,21 +88,21 @@ module axis_sdram_cmd_agent #(
     output wire[1:0] sdram_ba,
     output wire[10:0] sdram_addr,
     
-    // Í»·¢ĞÅÏ¢
-    output wire new_burst_start, // Í»·¢¿ªÊ¼Ö¸Ê¾
-    output wire is_write_burst, // ÊÇ·ñĞ´Í»·¢
-    output wire[7:0] new_burst_len, // Í»·¢³¤¶È - 1
+    // çªå‘ä¿¡æ¯
+    output wire new_burst_start, // çªå‘å¼€å§‹æŒ‡ç¤º
+    output wire is_write_burst, // æ˜¯å¦å†™çªå‘
+    output wire[7:0] new_burst_len, // çªå‘é•¿åº¦ - 1
     
-    // Òì³£Ö¸Ê¾
-    output wire pcg_spcf_idle_bank_err, // Ô¤³äµç¿ÕÏĞµÄÌØ¶¨bank(Òì³£Ö¸Ê¾)
-    output wire pcg_spcf_bank_tot_err, // Ô¤³äµçÌØ¶¨bank³¬Ê±(Òì³£Ö¸Ê¾)
-    output wire rw_idle_bank_err, // ¶ÁĞ´¿ÕÏĞµÄbank(Òì³£Ö¸Ê¾)
-    output wire rfs_with_act_banks_err, // Ë¢ĞÂÊ±´øÓĞÒÑ¼¤»îµÄbank(Òì³£Ö¸Ê¾)
-    output wire illegal_logic_cmd_err, // ·Ç·¨µÄÂß¼­ÃüÁî±àÂë(Òì³£Ö¸Ê¾)
-    output wire rw_cross_line_err // ¿çĞĞµÄ¶ÁĞ´ÃüÁî(Òì³£Ö¸Ê¾)
+    // å¼‚å¸¸æŒ‡ç¤º
+    output wire pcg_spcf_idle_bank_err, // é¢„å……ç”µç©ºé—²çš„ç‰¹å®šbank(å¼‚å¸¸æŒ‡ç¤º)
+    output wire pcg_spcf_bank_tot_err, // é¢„å……ç”µç‰¹å®šbankè¶…æ—¶(å¼‚å¸¸æŒ‡ç¤º)
+    output wire rw_idle_bank_err, // è¯»å†™ç©ºé—²çš„bank(å¼‚å¸¸æŒ‡ç¤º)
+    output wire rfs_with_act_banks_err, // åˆ·æ–°æ—¶å¸¦æœ‰å·²æ¿€æ´»çš„bank(å¼‚å¸¸æŒ‡ç¤º)
+    output wire illegal_logic_cmd_err, // éæ³•çš„é€»è¾‘å‘½ä»¤ç¼–ç (å¼‚å¸¸æŒ‡ç¤º)
+    output wire rw_cross_line_err // è·¨è¡Œçš„è¯»å†™å‘½ä»¤(å¼‚å¸¸æŒ‡ç¤º)
 );
     
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -88,48 +112,48 @@ module axis_sdram_cmd_agent #(
     end
     endfunction
     
-    /** ³£Á¿ **/
-    localparam rw_data_with_auto_precharge = (burst_len == -1) ? "false":allow_auto_precharge; // Ê¹ÄÜ¶ÁĞ´Êı¾İÃüÁîµÄ×Ô¶¯Ô¤³äµç
-    // Ê±¼äÒªÇó(ÒÔÊ±ÖÓÖÜÆÚ¼Æ)
-    localparam integer tRC_p = $ceil(tRC / clk_period); // (¼¤»îÄ³¸öbank -> ¼¤»îÍ¬Ò»bank)ºÍ(Ë¢ĞÂÍê³ÉÊ±¼ä)µÄ×îĞ¡Ê±¼äÒªÇó
-    localparam integer tRRD_p = $ceil(tRRD / clk_period); // (¼¤»îÄ³¸öbank -> ¼¤»î²»Í¬bank)µÄ×îĞ¡Ê±¼äÒªÇó
-    localparam integer tRCD_p = $ceil(tRCD / clk_period); // (¼¤»îÄ³¸öbank -> ¶ÁĞ´Õâ¸öbank)µÄ×îĞ¡Ê±¼äÒªÇó
-    localparam integer tRP_p = $ceil(tRP / clk_period); // (Ô¤³äµçÄ³¸öbank -> Ë¢ĞÂ/¼¤»îÍ¬Ò»bank/ÉèÖÃÄ£Ê½¼Ä´æÆ÷)µÄ×îĞ¡Ê±¼äÒªÇó
-    localparam integer tRAS_min_p = $ceil(tRAS_min / clk_period); // (¼¤»îÄ³¸öbank -> Ô¤³äµçÍ¬Ò»bank)µÄ×îĞ¡Ê±¼äÒªÇó
-    localparam integer tRAS_max_p = $ceil(tRAS_max / clk_period); // (¼¤»îÄ³¸öbank -> Ô¤³äµçÍ¬Ò»bank)µÄ×î´óÊ±¼äÒªÇó
-    localparam integer tWR_p = $ceil(tWR / clk_period); // (Ğ´Í»·¢½áÊø -> Ô¤³äµç)µÄ×îĞ¡Ê±¼äÒªÇó
-    // ´ø×Ô¶¯Ô¤³äµçµÄ¶Á -> tRP + burst_len; ´ø×Ô¶¯Ô¤³äµçµÄĞ´ -> tRP + burst_len - 1 + tWR
-    localparam integer tATRFS_p = tRP_p + 1; // (×Ô¶¯Ô¤³äµçÍê³ÉÊ±¼ä)µÄ×îĞ¡Ê±¼äÒªÇó
-    // ÃüÁîµÄÂß¼­±àÂë
-    localparam CMD_LOGI_BANK_ACTIVE = 3'b000; // ÃüÁî:¼¤»îbank
-    localparam CMD_LOGI_BANK_PRECHARGE = 3'b001; // ÃüÁî:Ô¤³äµçbank
-    localparam CMD_LOGI_WT_DATA = 3'b010; // ÃüÁî:Ğ´Êı¾İ
-    localparam CMD_LOGI_RD_DATA = 3'b011; // ÃüÁî:¶ÁÊı¾İ
-    localparam CMD_LOGI_MR_SET = 3'b100; // ÃüÁî:ÉèÖÃÄ£Ê½¼Ä´æÆ÷
-    localparam CMD_LOGI_AUTO_REFRESH = 3'b101; // ÃüÁî:×Ô¶¯Ë¢ĞÂ
-    localparam CMD_LOGI_BURST_STOP = 3'b110; // ÃüÁî:Í£Ö¹Í»·¢
-    localparam CMD_LOGI_NOP = 3'b111; // ÃüÁî:¿Õ²Ù×÷
-    // ÃüÁîµÄÎïÀí±àÂë(CS_N, RAS_N, CAS_N, WE_N)
-    localparam CMD_PHY_BANK_ACTIVE = 4'b0011; // ÃüÁî:¼¤»îbank
-    localparam CMD_PHY_BANK_PRECHARGE = 4'b0010; // ÃüÁî:Ô¤³äµçbank
-    localparam CMD_PHY_WT_DATA = 4'b0100; // ÃüÁî:Ğ´Êı¾İ
-    localparam CMD_PHY_RD_DATA = 4'b0101; // ÃüÁî:¶ÁÊı¾İ
-    localparam CMD_PHY_MR_SET = 4'b0000; // ÃüÁî:ÉèÖÃÄ£Ê½¼Ä´æÆ÷
-    localparam CMD_PHY_BURST_STOP = 4'b0110; // ÃüÁî:Í£Ö¹Í»·¢
-    localparam CMD_PHY_AUTO_REFRESH = 4'b0001; // ÃüÁî:×Ô¶¯Ë¢ĞÂ
-    localparam CMD_PHY_NOP = 4'b0111; // ÃüÁî:¿Õ²Ù×÷
-    // bank×´Ì¬
-    localparam STS_BANK_IDLE = 2'b00; // ×´Ì¬:¿ÕÏĞ
-    localparam STS_BANK_ACTIVE = 2'b01; // ×´Ì¬:¼¤»î
-    localparam STS_BANK_BURST = 2'b10; // ×´Ì¬:Í»·¢½øĞĞÖĞ
-    // Í»·¢³¤¶È¼ÆÊıÆ÷µÄÎ»¿í
+    /** å¸¸é‡ **/
+    localparam rw_data_with_auto_precharge = (burst_len == -1) ? "false":allow_auto_precharge; // ä½¿èƒ½è¯»å†™æ•°æ®å‘½ä»¤çš„è‡ªåŠ¨é¢„å……ç”µ
+    // æ—¶é—´è¦æ±‚(ä»¥æ—¶é’Ÿå‘¨æœŸè®¡)
+    localparam integer tRC_p = $ceil(tRC / clk_period); // (æ¿€æ´»æŸä¸ªbank -> æ¿€æ´»åŒä¸€bank)å’Œ(åˆ·æ–°å®Œæˆæ—¶é—´)çš„æœ€å°æ—¶é—´è¦æ±‚
+    localparam integer tRRD_p = $ceil(tRRD / clk_period); // (æ¿€æ´»æŸä¸ªbank -> æ¿€æ´»ä¸åŒbank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    localparam integer tRCD_p = $ceil(tRCD / clk_period); // (æ¿€æ´»æŸä¸ªbank -> è¯»å†™è¿™ä¸ªbank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    localparam integer tRP_p = $ceil(tRP / clk_period); // (é¢„å……ç”µæŸä¸ªbank -> åˆ·æ–°/æ¿€æ´»åŒä¸€bank/è®¾ç½®æ¨¡å¼å¯„å­˜å™¨)çš„æœ€å°æ—¶é—´è¦æ±‚
+    localparam integer tRAS_min_p = $ceil(tRAS_min / clk_period); // (æ¿€æ´»æŸä¸ªbank -> é¢„å……ç”µåŒä¸€bank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    localparam integer tRAS_max_p = $ceil(tRAS_max / clk_period); // (æ¿€æ´»æŸä¸ªbank -> é¢„å……ç”µåŒä¸€bank)çš„æœ€å¤§æ—¶é—´è¦æ±‚
+    localparam integer tWR_p = $ceil(tWR / clk_period); // (å†™çªå‘ç»“æŸ -> é¢„å……ç”µ)çš„æœ€å°æ—¶é—´è¦æ±‚
+    // å¸¦è‡ªåŠ¨é¢„å……ç”µçš„è¯» -> tRP + burst_len; å¸¦è‡ªåŠ¨é¢„å……ç”µçš„å†™ -> tRP + burst_len - 1 + tWR
+    localparam integer tATRFS_p = tRP_p + 1; // (è‡ªåŠ¨é¢„å……ç”µå®Œæˆæ—¶é—´)çš„æœ€å°æ—¶é—´è¦æ±‚
+    // å‘½ä»¤çš„é€»è¾‘ç¼–ç 
+    localparam CMD_LOGI_BANK_ACTIVE = 3'b000; // å‘½ä»¤:æ¿€æ´»bank
+    localparam CMD_LOGI_BANK_PRECHARGE = 3'b001; // å‘½ä»¤:é¢„å……ç”µbank
+    localparam CMD_LOGI_WT_DATA = 3'b010; // å‘½ä»¤:å†™æ•°æ®
+    localparam CMD_LOGI_RD_DATA = 3'b011; // å‘½ä»¤:è¯»æ•°æ®
+    localparam CMD_LOGI_MR_SET = 3'b100; // å‘½ä»¤:è®¾ç½®æ¨¡å¼å¯„å­˜å™¨
+    localparam CMD_LOGI_AUTO_REFRESH = 3'b101; // å‘½ä»¤:è‡ªåŠ¨åˆ·æ–°
+    localparam CMD_LOGI_BURST_STOP = 3'b110; // å‘½ä»¤:åœæ­¢çªå‘
+    localparam CMD_LOGI_NOP = 3'b111; // å‘½ä»¤:ç©ºæ“ä½œ
+    // å‘½ä»¤çš„ç‰©ç†ç¼–ç (CS_N, RAS_N, CAS_N, WE_N)
+    localparam CMD_PHY_BANK_ACTIVE = 4'b0011; // å‘½ä»¤:æ¿€æ´»bank
+    localparam CMD_PHY_BANK_PRECHARGE = 4'b0010; // å‘½ä»¤:é¢„å……ç”µbank
+    localparam CMD_PHY_WT_DATA = 4'b0100; // å‘½ä»¤:å†™æ•°æ®
+    localparam CMD_PHY_RD_DATA = 4'b0101; // å‘½ä»¤:è¯»æ•°æ®
+    localparam CMD_PHY_MR_SET = 4'b0000; // å‘½ä»¤:è®¾ç½®æ¨¡å¼å¯„å­˜å™¨
+    localparam CMD_PHY_BURST_STOP = 4'b0110; // å‘½ä»¤:åœæ­¢çªå‘
+    localparam CMD_PHY_AUTO_REFRESH = 4'b0001; // å‘½ä»¤:è‡ªåŠ¨åˆ·æ–°
+    localparam CMD_PHY_NOP = 4'b0111; // å‘½ä»¤:ç©ºæ“ä½œ
+    // bankçŠ¶æ€
+    localparam STS_BANK_IDLE = 2'b00; // çŠ¶æ€:ç©ºé—²
+    localparam STS_BANK_ACTIVE = 2'b01; // çŠ¶æ€:æ¿€æ´»
+    localparam STS_BANK_BURST = 2'b10; // çŠ¶æ€:çªå‘è¿›è¡Œä¸­
+    // çªå‘é•¿åº¦è®¡æ•°å™¨çš„ä½å®½
     localparam integer burst_len_cnt_width = (burst_len == -1) ? 8:
                                               (burst_len == 1) ? 1:
                                               (clogb2(burst_len - 1) + 1);
     
-    /** ¿ÉÑ¡µÄÃüÁîAXIS¼Ä´æÆ÷Æ¬ **/
-    wire[15:0] m_axis_cmd_data; // {BS(2bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    wire[8:0] m_axis_cmd_user; // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}
+    /** å¯é€‰çš„å‘½ä»¤AXISå¯„å­˜å™¨ç‰‡ **/
+    wire[15:0] m_axis_cmd_data; // {BS(2bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    wire[8:0] m_axis_cmd_user; // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}
     wire m_axis_cmd_valid;
     wire m_axis_cmd_ready;
     
@@ -157,27 +181,27 @@ module axis_sdram_cmd_agent #(
         .m_axis_ready(m_axis_cmd_ready)
     );
     
-    /** ÃüÁî×îĞ¡Ê±¼äÒªÇóÏŞÖÆ **/
-    // ÀäÈ´¼ÆÊıÆ÷´¥·¢ĞÅºÅ
-    wire refresh_start; // ¿ªÊ¼×Ô¶¯Ë¢ĞÂ(Ö¸Ê¾)
-    wire auto_precharge_start; // ¿ªÊ¼×Ô¶¯Ô¤³äµç(Ö¸Ê¾)
-    wire[3:0] bank_active_same_cd_trigger; // ¼¤»îÍ¬Ò»bankµÄÀäÈ´´¥·¢
-    wire[3:0] bank_active_diff_cd_trigger; // ¼¤»î²»Í¬bankµÄÀäÈ´´¥·¢
-    wire[3:0] bank_active_to_rw_itv_trigger; // ¼¤»îµ½¶ÁĞ´µÄµÈ´ı´¥·¢
-    wire[3:0] bank_precharge_itv_trigger; // Ô¤³äµçµ½Ë¢ĞÂ/¼¤»îÍ¬Ò»bank/ÉèÖÃÄ£Ê½¼Ä´æÆ÷µÄµÈ´ı´¥·¢
-    wire[3:0] bank_precharge_same_cd_trigger; // Ô¤³äµçÍ¬Ò»bankµÄÀäÈ´´¥·¢
-    // ÀäÈ´¼ÆÊıÆ÷¾ÍĞ÷ºÍÍê³ÉĞÅºÅ
-    wire refresh_busy_n; // ×Ô¶¯Ë¢ĞÂÃ¦Âµ(±êÖ¾)
-    wire auto_precharge_busy_n; // ×Ô¶¯Ô¤³äµçÃ¦Âµ(±ê¼Ç)
-    wire auto_precharge_itv_done; // ×Ô¶¯Ô¤³äµçµÄµÈ´ıÍê³É
-    wire[3:0] bank_active_same_cd_ready; // ¼¤»îÍ¬Ò»bankµÄÀäÈ´¾ÍĞ÷
-    wire[3:0] bank_active_diff_cd_ready; // ¼¤»î²»Í¬bankµÄÀäÈ´¾ÍĞ÷
-    wire[3:0] bank_active_to_rw_itv_ready; // ¼¤»îµ½¶ÁĞ´µÄµÈ´ı¾ÍĞ÷
-    wire[3:0] bank_precharge_itv_done; // Ô¤³äµçµ½Ë¢ĞÂ/¼¤»îÍ¬Ò»bank/ÉèÖÃÄ£Ê½¼Ä´æÆ÷µÄµÈ´ıÍê³É
-    wire[3:0] bank_precharge_itv_ready; // Ô¤³äµçµ½Ë¢ĞÂ/¼¤»îÍ¬Ò»bank/ÉèÖÃÄ£Ê½¼Ä´æÆ÷µÄµÈ´ı¾ÍĞ÷
-    wire[3:0] bank_precharge_same_cd_ready; // Ô¤³äµçÍ¬Ò»bankµÄÀäÈ´¾ÍĞ÷
+    /** å‘½ä»¤æœ€å°æ—¶é—´è¦æ±‚é™åˆ¶ **/
+    // å†·å´è®¡æ•°å™¨è§¦å‘ä¿¡å·
+    wire refresh_start; // å¼€å§‹è‡ªåŠ¨åˆ·æ–°(æŒ‡ç¤º)
+    wire auto_precharge_start; // å¼€å§‹è‡ªåŠ¨é¢„å……ç”µ(æŒ‡ç¤º)
+    wire[3:0] bank_active_same_cd_trigger; // æ¿€æ´»åŒä¸€bankçš„å†·å´è§¦å‘
+    wire[3:0] bank_active_diff_cd_trigger; // æ¿€æ´»ä¸åŒbankçš„å†·å´è§¦å‘
+    wire[3:0] bank_active_to_rw_itv_trigger; // æ¿€æ´»åˆ°è¯»å†™çš„ç­‰å¾…è§¦å‘
+    wire[3:0] bank_precharge_itv_trigger; // é¢„å……ç”µåˆ°åˆ·æ–°/æ¿€æ´»åŒä¸€bank/è®¾ç½®æ¨¡å¼å¯„å­˜å™¨çš„ç­‰å¾…è§¦å‘
+    wire[3:0] bank_precharge_same_cd_trigger; // é¢„å……ç”µåŒä¸€bankçš„å†·å´è§¦å‘
+    // å†·å´è®¡æ•°å™¨å°±ç»ªå’Œå®Œæˆä¿¡å·
+    wire refresh_busy_n; // è‡ªåŠ¨åˆ·æ–°å¿™ç¢Œ(æ ‡å¿—)
+    wire auto_precharge_busy_n; // è‡ªåŠ¨é¢„å……ç”µå¿™ç¢Œ(æ ‡è®°)
+    wire auto_precharge_itv_done; // è‡ªåŠ¨é¢„å……ç”µçš„ç­‰å¾…å®Œæˆ
+    wire[3:0] bank_active_same_cd_ready; // æ¿€æ´»åŒä¸€bankçš„å†·å´å°±ç»ª
+    wire[3:0] bank_active_diff_cd_ready; // æ¿€æ´»ä¸åŒbankçš„å†·å´å°±ç»ª
+    wire[3:0] bank_active_to_rw_itv_ready; // æ¿€æ´»åˆ°è¯»å†™çš„ç­‰å¾…å°±ç»ª
+    wire[3:0] bank_precharge_itv_done; // é¢„å……ç”µåˆ°åˆ·æ–°/æ¿€æ´»åŒä¸€bank/è®¾ç½®æ¨¡å¼å¯„å­˜å™¨çš„ç­‰å¾…å®Œæˆ
+    wire[3:0] bank_precharge_itv_ready; // é¢„å……ç”µåˆ°åˆ·æ–°/æ¿€æ´»åŒä¸€bank/è®¾ç½®æ¨¡å¼å¯„å­˜å™¨çš„ç­‰å¾…å°±ç»ª
+    wire[3:0] bank_precharge_same_cd_ready; // é¢„å……ç”µåŒä¸€bankçš„å†·å´å°±ç»ª
     
-    // ×Ô¶¯Ë¢ĞÂÃ¦Âµ¼ÆÊıÆ÷
+    // è‡ªåŠ¨åˆ·æ–°å¿™ç¢Œè®¡æ•°å™¨
     cool_down_cnt #(
         .max_cd(tRC_p + 1)
     )refresh_busy_cnt(
@@ -189,7 +213,7 @@ module axis_sdram_cmd_agent #(
         .timer_ready(refresh_busy_n),
         .timer_v()
     );
-    // ×Ô¶¯Ô¤³äµçÃ¦Âµ¼ÆÊıÆ÷
+    // è‡ªåŠ¨é¢„å……ç”µå¿™ç¢Œè®¡æ•°å™¨
     cool_down_cnt #(
         .max_cd(tATRFS_p + 1)
     )auto_precharge_cnt(
@@ -201,7 +225,7 @@ module axis_sdram_cmd_agent #(
         .timer_ready(auto_precharge_busy_n),
         .timer_v()
     );
-    // ¼¤»îÍ¬Ò»bankµÄÀäÈ´¼ÆÊıÆ÷
+    // æ¿€æ´»åŒä¸€bankçš„å†·å´è®¡æ•°å™¨
     genvar bank_active_same_cd_cnt_i;
     generate
         for(bank_active_same_cd_cnt_i = 0;bank_active_same_cd_cnt_i < 4;bank_active_same_cd_cnt_i = bank_active_same_cd_cnt_i + 1)
@@ -219,7 +243,7 @@ module axis_sdram_cmd_agent #(
             );
         end
     endgenerate
-    // ¼¤»î²»Í¬bankµÄÀäÈ´¼ÆÊıÆ÷
+    // æ¿€æ´»ä¸åŒbankçš„å†·å´è®¡æ•°å™¨
     genvar bank_active_diff_cd_cnt_i;
     generate
         for(bank_active_diff_cd_cnt_i = 0;bank_active_diff_cd_cnt_i < 4;bank_active_diff_cd_cnt_i = bank_active_diff_cd_cnt_i + 1)
@@ -237,7 +261,7 @@ module axis_sdram_cmd_agent #(
             );
         end
     endgenerate
-    // ¼¤»îµ½¶ÁĞ´µÄµÈ´ı¼ÆÊıÆ÷
+    // æ¿€æ´»åˆ°è¯»å†™çš„ç­‰å¾…è®¡æ•°å™¨
     genvar bank_active_to_rw_itv_cnt_i;
     generate
         for(bank_active_to_rw_itv_cnt_i = 0;bank_active_to_rw_itv_cnt_i < 4;bank_active_to_rw_itv_cnt_i = bank_active_to_rw_itv_cnt_i + 1)
@@ -256,7 +280,7 @@ module axis_sdram_cmd_agent #(
         end
     endgenerate
     
-    // Ô¤³äµçµ½Ë¢ĞÂ/¼¤»îÍ¬Ò»bank/ÉèÖÃÄ£Ê½¼Ä´æÆ÷µÄµÈ´ı¼ÆÊıÆ÷
+    // é¢„å……ç”µåˆ°åˆ·æ–°/æ¿€æ´»åŒä¸€bank/è®¾ç½®æ¨¡å¼å¯„å­˜å™¨çš„ç­‰å¾…è®¡æ•°å™¨
     genvar precharge_itv_cnt_i;
     generate
         for(precharge_itv_cnt_i = 0;precharge_itv_cnt_i < 4;precharge_itv_cnt_i = precharge_itv_cnt_i + 1)
@@ -293,14 +317,14 @@ module axis_sdram_cmd_agent #(
         end
     endgenerate
     
-    /** bank×´Ì¬ **/
-    wire[3:0] bank_rw_start; // ¶ÁĞ´bank¿ªÊ¼(Ö¸Ê¾)
-    reg[1:0] bank_in_burst; // ÕıÔÚ½øĞĞ¶ÁĞ´Í»·¢µÄbank
-    wire rw_burst_done; // ¶ÁĞ´Í»·¢Íê³É(Ö¸Ê¾)
-    reg rw_burst_done_d; // ÑÓ³Ù1clkµÄ¶ÁĞ´Í»·¢Íê³É(Ö¸Ê¾)
-    reg[1:0] bank_sts[3:0]; // bank×´Ì¬
+    /** bankçŠ¶æ€ **/
+    wire[3:0] bank_rw_start; // è¯»å†™bankå¼€å§‹(æŒ‡ç¤º)
+    reg[1:0] bank_in_burst; // æ­£åœ¨è¿›è¡Œè¯»å†™çªå‘çš„bank
+    wire rw_burst_done; // è¯»å†™çªå‘å®Œæˆ(æŒ‡ç¤º)
+    reg rw_burst_done_d; // å»¶è¿Ÿ1clkçš„è¯»å†™çªå‘å®Œæˆ(æŒ‡ç¤º)
+    reg[1:0] bank_sts[3:0]; // bankçŠ¶æ€
     
-    // ÑÓ³Ù1clkµÄ¶ÁĞ´Í»·¢Íê³É(Ö¸Ê¾)
+    // å»¶è¿Ÿ1clkçš„è¯»å†™çªå‘å®Œæˆ(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -320,20 +344,20 @@ module axis_sdram_cmd_agent #(
                 else
                 begin
                     case(bank_sts[bank_sts_i])
-                        STS_BANK_IDLE: // ×´Ì¬:¿ÕÏĞ
+                        STS_BANK_IDLE: // çŠ¶æ€:ç©ºé—²
                             if(bank_active_same_cd_trigger[bank_sts_i])
-                                bank_sts[bank_sts_i] <= STS_BANK_ACTIVE; // -> ×´Ì¬:¼¤»î
-                        STS_BANK_ACTIVE: // ×´Ì¬:¼¤»î
+                                bank_sts[bank_sts_i] <= STS_BANK_ACTIVE; // -> çŠ¶æ€:æ¿€æ´»
+                        STS_BANK_ACTIVE: // çŠ¶æ€:æ¿€æ´»
                             if(bank_rw_start[bank_sts_i])
-                                bank_sts[bank_sts_i] <= STS_BANK_BURST; // -> ×´Ì¬:Í»·¢½øĞĞÖĞ
-                            else if(bank_precharge_itv_done[bank_sts_i] | // Ô¤³äµçÍê³É
-                                ((rw_data_with_auto_precharge == "true") & auto_precharge_itv_done & (bank_in_burst == bank_sts_i))) // ×Ô¶¯Ô¤³äµçÍê³É
-                                bank_sts[bank_sts_i] <= STS_BANK_IDLE; // -> ×´Ì¬:¿ÕÏĞ
-                        STS_BANK_BURST: // ×´Ì¬:Í»·¢½øĞĞÖĞ
-                            // µ±Í»·¢³¤¶ÈÎª1Ê±, Ö±½Ó·µ»Ø"¼¤»î"×´Ì¬
-                            // È«Ò³Í»·¢Ê±, ĞèÒª¶îÍâµÄ1clkÀ´·¢ËÍ"Í£Ö¹Í»·¢"ÃüÁî
+                                bank_sts[bank_sts_i] <= STS_BANK_BURST; // -> çŠ¶æ€:çªå‘è¿›è¡Œä¸­
+                            else if(bank_precharge_itv_done[bank_sts_i] | // é¢„å……ç”µå®Œæˆ
+                                ((rw_data_with_auto_precharge == "true") & auto_precharge_itv_done & (bank_in_burst == bank_sts_i))) // è‡ªåŠ¨é¢„å……ç”µå®Œæˆ
+                                bank_sts[bank_sts_i] <= STS_BANK_IDLE; // -> çŠ¶æ€:ç©ºé—²
+                        STS_BANK_BURST: // çŠ¶æ€:çªå‘è¿›è¡Œä¸­
+                            // å½“çªå‘é•¿åº¦ä¸º1æ—¶, ç›´æ¥è¿”å›"æ¿€æ´»"çŠ¶æ€
+                            // å…¨é¡µçªå‘æ—¶, éœ€è¦é¢å¤–çš„1clkæ¥å‘é€"åœæ­¢çªå‘"å‘½ä»¤
                             if((burst_len == -1) ? rw_burst_done_d:((burst_len == 1) | rw_burst_done))
-                                bank_sts[bank_sts_i] <= STS_BANK_ACTIVE; // -> ×´Ì¬:¼¤»î
+                                bank_sts[bank_sts_i] <= STS_BANK_ACTIVE; // -> çŠ¶æ€:æ¿€æ´»
                         default:
                             bank_sts[bank_sts_i] <= STS_BANK_IDLE;
                     endcase
@@ -342,41 +366,41 @@ module axis_sdram_cmd_agent #(
         end
     endgenerate
     
-    /** ¶ÁĞ´Í»·¢¼ÆÊıÆ÷ **/
-    wire burst_start; // ¿ªÊ¼Í»·¢(Ö¸Ê¾)
-    reg burst_start_d; // ÑÓ³Ù1clkµÄ¿ªÊ¼Í»·¢(Ö¸Ê¾)
-    reg wt_burst_start_d; // ÑÓ³Ù1clkµÄ¿ªÊ¼Ğ´Í»·¢(Ö¸Ê¾)
-    reg[7:0] burst_len_d; // ÑÓ³Ù1clkµÄÍ»·¢³¤¶È
-    reg burst_transmitting; // Í»·¢½øĞĞÖĞ(±êÖ¾)
-    reg[burst_len_cnt_width-1:0] burst_len_cnt; // Í»·¢³¤¶È¼ÆÊıÆ÷
-    reg burst_last; // Í»·¢ÖĞ×îºó1´Î´«Êä(Ö¸Ê¾)
-    reg is_wt_burst_latched; // Ëø´æµÄÊÇ·ñĞ´Í»·¢
-    wire is_wt_burst; // ÊÇ·ñĞ´Í»·¢
-    reg addr10_latched; // Ëø´æµÄĞĞ/ÁĞµØÖ·µÚ10Î»
-    wire auto_add_burst_stop; // ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî
-    reg auto_add_burst_stop_latched; // Ëø´æµÄ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî
-    reg[cas_latency:0] rd_burst_end_waiting; // ¶ÁÍ»·¢Íê³ÉºóµÈ´ı(¼ÆÊıÆ÷)
-    reg to_add_burst_stop; // Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(Ö¸Ê¾)
+    /** è¯»å†™çªå‘è®¡æ•°å™¨ **/
+    wire burst_start; // å¼€å§‹çªå‘(æŒ‡ç¤º)
+    reg burst_start_d; // å»¶è¿Ÿ1clkçš„å¼€å§‹çªå‘(æŒ‡ç¤º)
+    reg wt_burst_start_d; // å»¶è¿Ÿ1clkçš„å¼€å§‹å†™çªå‘(æŒ‡ç¤º)
+    reg[7:0] burst_len_d; // å»¶è¿Ÿ1clkçš„çªå‘é•¿åº¦
+    reg burst_transmitting; // çªå‘è¿›è¡Œä¸­(æ ‡å¿—)
+    reg[burst_len_cnt_width-1:0] burst_len_cnt; // çªå‘é•¿åº¦è®¡æ•°å™¨
+    reg burst_last; // çªå‘ä¸­æœ€å1æ¬¡ä¼ è¾“(æŒ‡ç¤º)
+    reg is_wt_burst_latched; // é”å­˜çš„æ˜¯å¦å†™çªå‘
+    wire is_wt_burst; // æ˜¯å¦å†™çªå‘
+    reg addr10_latched; // é”å­˜çš„è¡Œ/åˆ—åœ°å€ç¬¬10ä½
+    wire auto_add_burst_stop; // è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤
+    reg auto_add_burst_stop_latched; // é”å­˜çš„è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤
+    reg[cas_latency:0] rd_burst_end_waiting; // è¯»çªå‘å®Œæˆåç­‰å¾…(è®¡æ•°å™¨)
+    reg to_add_burst_stop; // æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(æŒ‡ç¤º)
     
     assign new_burst_start = burst_start_d;
     assign is_write_burst = wt_burst_start_d;
     assign new_burst_len = burst_len_d;
     
-    // ¶ÔÈ«Ò³Í»·¢À´Ëµ, Í»·¢³¤¶È¿ÉÄÜÎª1, Í»·¢¿ªÊ¼µÄÄÇ1clkÓ¦Ö±½Ó¶ÔÃüÁîAXISÖĞµÄuser×÷ÅĞ¶Ï
+    // å¯¹å…¨é¡µçªå‘æ¥è¯´, çªå‘é•¿åº¦å¯èƒ½ä¸º1, çªå‘å¼€å§‹çš„é‚£1clkåº”ç›´æ¥å¯¹å‘½ä»¤AXISä¸­çš„userä½œåˆ¤æ–­
     assign rw_burst_done = burst_transmitting ? burst_last:(burst_start & ((burst_len == -1) & (m_axis_cmd_user[7:0] == 8'd0)));
     
-    // Í»·¢¿ªÊ¼µÄÄÇ1clkÓ¦Ö±½Ó¶ÔÃüÁîAXISÖĞµÄdata/user×÷ÅĞ¶Ï
+    // çªå‘å¼€å§‹çš„é‚£1clkåº”ç›´æ¥å¯¹å‘½ä»¤AXISä¸­çš„data/userä½œåˆ¤æ–­
     assign is_wt_burst = burst_start ? (m_axis_cmd_data[2:0] == CMD_LOGI_WT_DATA):is_wt_burst_latched;
     assign auto_add_burst_stop = burst_start ? m_axis_cmd_user[8]:auto_add_burst_stop_latched;
     
-    // ÕıÔÚ½øĞĞ¶ÁĞ´Í»·¢µÄbank
+    // æ­£åœ¨è¿›è¡Œè¯»å†™çªå‘çš„bank
     always @(posedge clk)
     begin
         if(burst_start)
             bank_in_burst <= m_axis_cmd_data[15:14];
     end
     
-    // ÑÓ³Ù1clkµÄ¿ªÊ¼Í»·¢(Ö¸Ê¾)
+    // å»¶è¿Ÿ1clkçš„å¼€å§‹çªå‘(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -384,23 +408,23 @@ module axis_sdram_cmd_agent #(
         else
             burst_start_d <= burst_start;
     end
-    // ÑÓ³Ù1clkµÄ¿ªÊ¼Ğ´Í»·¢(Ö¸Ê¾)
+    // å»¶è¿Ÿ1clkçš„å¼€å§‹å†™çªå‘(æŒ‡ç¤º)
     always @(posedge clk)
         wt_burst_start_d <= m_axis_cmd_data[2:0] == CMD_LOGI_WT_DATA;
-    // ÑÓ³Ù1clkµÄÍ»·¢³¤¶È
+    // å»¶è¿Ÿ1clkçš„çªå‘é•¿åº¦
     always @(posedge clk)
         burst_len_d <= (burst_len == -1) ? m_axis_cmd_user[7:0]:(burst_len - 1);
     
-    // Í»·¢½øĞĞÖĞ(±êÖ¾)
+    // çªå‘è¿›è¡Œä¸­(æ ‡å¿—)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
             burst_transmitting <= 1'b0;
         else
-            // ¶ÔÈ«Ò³Í»·¢À´Ëµ, Èç¹ûÔÚÍ»·¢¿ªÊ¼µÄÄÇ1clk·¢ÏÖÍ»·¢³¤¶ÈÎª1, "Í»·¢½øĞĞÖĞ"±êÖ¾²»ÔÙÓĞĞ§, ÕâÊÇÒòÎªÄ¿Ç°¾ÍÊÇµ±Ç°Í»·¢µÄ×îºó1´Î´«Êä
+            // å¯¹å…¨é¡µçªå‘æ¥è¯´, å¦‚æœåœ¨çªå‘å¼€å§‹çš„é‚£1clkå‘ç°çªå‘é•¿åº¦ä¸º1, "çªå‘è¿›è¡Œä¸­"æ ‡å¿—ä¸å†æœ‰æ•ˆ, è¿™æ˜¯å› ä¸ºç›®å‰å°±æ˜¯å½“å‰çªå‘çš„æœ€å1æ¬¡ä¼ è¾“
             burst_transmitting <= burst_transmitting ? (~burst_last):(burst_start & ((burst_len != -1) | (m_axis_cmd_user[7:0] != 8'd0)));
     end
-    // Í»·¢³¤¶È¼ÆÊıÆ÷
+    // çªå‘é•¿åº¦è®¡æ•°å™¨
     always @(posedge clk)
     begin
         if(burst_start)
@@ -408,7 +432,7 @@ module axis_sdram_cmd_agent #(
         else
             burst_len_cnt <= burst_len_cnt - 1;
     end
-    // Í»·¢ÖĞ×îºó1´Î´«Êä(Ö¸Ê¾)
+    // çªå‘ä¸­æœ€å1æ¬¡ä¼ è¾“(æŒ‡ç¤º)
     always @(posedge clk)
     begin
         if(burst_start)
@@ -417,27 +441,27 @@ module axis_sdram_cmd_agent #(
             burst_last <= burst_len_cnt == 2;
     end
     
-    // Ëø´æµÄÊÇ·ñĞ´Í»·¢
+    // é”å­˜çš„æ˜¯å¦å†™çªå‘
     always @(posedge clk)
     begin
         if(burst_start)
             is_wt_burst_latched <= m_axis_cmd_data[2:0] == CMD_LOGI_WT_DATA;
     end
-    // Ëø´æµÄĞĞ/ÁĞµØÖ·µÚ10Î»
+    // é”å­˜çš„è¡Œ/åˆ—åœ°å€ç¬¬10ä½
     always @(posedge clk)
     begin
         if(burst_start)
             addr10_latched <= m_axis_cmd_data[13];
     end
     
-    // Ëø´æµÄ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî
+    // é”å­˜çš„è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤
     always @(posedge clk)
     begin
         if(burst_start)
             auto_add_burst_stop_latched <= m_axis_cmd_user[8];
     end
     
-    // ¶ÁĞ´Í»·¢Íê³ÉºóµÈ´ı(±êÖ¾)
+    // è¯»å†™çªå‘å®Œæˆåç­‰å¾…(æ ‡å¿—)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -446,7 +470,7 @@ module axis_sdram_cmd_agent #(
             rd_burst_end_waiting <= {rd_burst_end_waiting[cas_latency-1:0], rd_burst_end_waiting[cas_latency]};
     end
     
-    // Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(Ö¸Ê¾)
+    // æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -455,8 +479,8 @@ module axis_sdram_cmd_agent #(
             to_add_burst_stop <= rw_burst_done & auto_add_burst_stop;
     end
     
-    /** Ğ´Í»·¢½áÊøµÈ´ı¼ÆÊıÆ÷ **/
-    // ¶ÏÑÔ:tWR_p²»»áÌ«´ó, ±ÈÈç<=9!
+    /** å†™çªå‘ç»“æŸç­‰å¾…è®¡æ•°å™¨ **/
+    // æ–­è¨€:tWR_pä¸ä¼šå¤ªå¤§, æ¯”å¦‚<=9!
     reg[tWR_p:0] wt_burst_end_itv_cnt;
     
     always @(posedge clk or negedge rst_n)
@@ -467,12 +491,12 @@ module axis_sdram_cmd_agent #(
             wt_burst_end_itv_cnt <= {wt_burst_end_itv_cnt[tWR_p-1:0], wt_burst_end_itv_cnt[tWR_p]};
     end
     
-    /** Ğ´Ä£Ê½¼Ä´æÆ÷µÈ´ı **/
-    // Ğ´Ä£Ê½¼Ä´æÆ÷ĞèÒª1clkÀ´Íê³É
-    wire next_cmd_is_mr_set; // ÏÂÒ»ÃüÁîÊÇ"ÉèÖÃÄ£Ê½¼Ä´æÆ÷"(Ö¸Ê¾)
-    reg to_wait_for_mr_set_n; // Ğ´Ä£Ê½¼Ä´æÆ÷µÈ´ı
+    /** å†™æ¨¡å¼å¯„å­˜å™¨ç­‰å¾… **/
+    // å†™æ¨¡å¼å¯„å­˜å™¨éœ€è¦1clkæ¥å®Œæˆ
+    wire next_cmd_is_mr_set; // ä¸‹ä¸€å‘½ä»¤æ˜¯"è®¾ç½®æ¨¡å¼å¯„å­˜å™¨"(æŒ‡ç¤º)
+    reg to_wait_for_mr_set_n; // å†™æ¨¡å¼å¯„å­˜å™¨ç­‰å¾…
     
-    // Ğ´Ä£Ê½¼Ä´æÆ÷µÈ´ı
+    // å†™æ¨¡å¼å¯„å­˜å™¨ç­‰å¾…
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -481,27 +505,27 @@ module axis_sdram_cmd_agent #(
             to_wait_for_mr_set_n <= ~next_cmd_is_mr_set;
     end
     
-    /** ÃüÁî²úÉú **/
-    // ÏÂÒ»ÃüÁî
-    wire[2:0] next_cmd_id; // ÏÂÒ»ÃüÁîµÄÂß¼­±àÂë
-    wire[10:0] next_cmd_addr; // ÏÂÒ»ÃüÁîµÄĞĞ/ÁĞµØÖ·
-    wire[1:0] next_cmd_ba; // ÏÂÒ»ÃüÁîµÄbankµØÖ·
-    // µ±Ç°ÃüÁî
-    reg[3:0] now_cmd_ecd; // µ±Ç°ÃüÁîµÄÎïÀí±àÂë
-    reg[10:0] now_cmd_addr; // µ±Ç°ÃüÁîµÄĞĞ/ÁĞµØÖ·
-    reg[1:0] now_cmd_ba; // µ±Ç°ÃüÁîµÄbankµØÖ·
+    /** å‘½ä»¤äº§ç”Ÿ **/
+    // ä¸‹ä¸€å‘½ä»¤
+    wire[2:0] next_cmd_id; // ä¸‹ä¸€å‘½ä»¤çš„é€»è¾‘ç¼–ç 
+    wire[10:0] next_cmd_addr; // ä¸‹ä¸€å‘½ä»¤çš„è¡Œ/åˆ—åœ°å€
+    wire[1:0] next_cmd_ba; // ä¸‹ä¸€å‘½ä»¤çš„bankåœ°å€
+    // å½“å‰å‘½ä»¤
+    reg[3:0] now_cmd_ecd; // å½“å‰å‘½ä»¤çš„ç‰©ç†ç¼–ç 
+    reg[10:0] now_cmd_addr; // å½“å‰å‘½ä»¤çš„è¡Œ/åˆ—åœ°å€
+    reg[1:0] now_cmd_ba; // å½“å‰å‘½ä»¤çš„bankåœ°å€
     
-    assign m_axis_cmd_ready = refresh_busy_n & // ×Ô¶¯Ë¢ĞÂÊ±µÄµÈ´ı
-        to_wait_for_mr_set_n & // Ğ´Ä£Ê½¼Ä´æÆ÷µÈ´ı
-        ((allow_auto_precharge == "false") | (burst_len == -1) | auto_precharge_busy_n) & // ×Ô¶¯Ô¤³äµçÊ±µÄµÈ´ı, ×¢Òâµ½È«Ò³Í»·¢Ê±²»¿ÉÄÜ´æÔÚ×Ô¶¯Ô¤³äµç
-        ((burst_len == 1) | ((~burst_transmitting) & ((burst_len != -1) | (rd_burst_end_waiting[0] & (~rw_burst_done_d))))) & // ¶ÁĞ´Êı¾İÆÚ¼äÓ¦²úÉúNOPÃüÁî, ¶ÔÈ«Ò³Í»·¢À´Ëµ½áÊøºóÎŞÂÛÊÇ·ñ²úÉú"Í£Ö¹Í»·¢"ÃüÁî¶¼²»½ÓÊÜÏÂÃæ2/3ÌõÃüÁî
+    assign m_axis_cmd_ready = refresh_busy_n & // è‡ªåŠ¨åˆ·æ–°æ—¶çš„ç­‰å¾…
+        to_wait_for_mr_set_n & // å†™æ¨¡å¼å¯„å­˜å™¨ç­‰å¾…
+        ((allow_auto_precharge == "false") | (burst_len == -1) | auto_precharge_busy_n) & // è‡ªåŠ¨é¢„å……ç”µæ—¶çš„ç­‰å¾…, æ³¨æ„åˆ°å…¨é¡µçªå‘æ—¶ä¸å¯èƒ½å­˜åœ¨è‡ªåŠ¨é¢„å……ç”µ
+        ((burst_len == 1) | ((~burst_transmitting) & ((burst_len != -1) | (rd_burst_end_waiting[0] & (~rw_burst_done_d))))) & // è¯»å†™æ•°æ®æœŸé—´åº”äº§ç”ŸNOPå‘½ä»¤, å¯¹å…¨é¡µçªå‘æ¥è¯´ç»“æŸåæ— è®ºæ˜¯å¦äº§ç”Ÿ"åœæ­¢çªå‘"å‘½ä»¤éƒ½ä¸æ¥å—ä¸‹é¢2/3æ¡å‘½ä»¤
         ((m_axis_cmd_data[2:0] == CMD_LOGI_BANK_ACTIVE) ? (bank_active_same_cd_ready[next_cmd_ba] & 
-            bank_active_diff_cd_ready[next_cmd_ba] & bank_precharge_itv_ready[next_cmd_ba]): // BANK¼¤»îµÄÀäÈ´
+            bank_active_diff_cd_ready[next_cmd_ba] & bank_precharge_itv_ready[next_cmd_ba]): // BANKæ¿€æ´»çš„å†·å´
         (m_axis_cmd_data[2:0] == CMD_LOGI_BANK_PRECHARGE) ? ((next_cmd_addr[10] ? (&bank_precharge_same_cd_ready):bank_precharge_same_cd_ready[next_cmd_ba]) & 
-            ((burst_len == -1) | wt_burst_end_itv_cnt[0])): // Ô¤³äµçµÄÀäÈ´
-        ((m_axis_cmd_data[2:0] == CMD_LOGI_WT_DATA) | (m_axis_cmd_data[2:0] == CMD_LOGI_RD_DATA)) ? bank_active_to_rw_itv_ready[next_cmd_ba]: // ¶ÁĞ´Êı¾İµÄÀäÈ´
-        ((m_axis_cmd_data[2:0] == CMD_LOGI_MR_SET) | (m_axis_cmd_data[2:0] == CMD_LOGI_AUTO_REFRESH)) ? (&bank_precharge_itv_ready): // ÉèÖÃÄ£Ê½¼Ä´æÆ÷ºÍ×Ô¶¯Ë¢ĞÂµÄÀäÈ´
-        1'b1 // ¿Õ²Ù×÷
+            ((burst_len == -1) | wt_burst_end_itv_cnt[0])): // é¢„å……ç”µçš„å†·å´
+        ((m_axis_cmd_data[2:0] == CMD_LOGI_WT_DATA) | (m_axis_cmd_data[2:0] == CMD_LOGI_RD_DATA)) ? bank_active_to_rw_itv_ready[next_cmd_ba]: // è¯»å†™æ•°æ®çš„å†·å´
+        ((m_axis_cmd_data[2:0] == CMD_LOGI_MR_SET) | (m_axis_cmd_data[2:0] == CMD_LOGI_AUTO_REFRESH)) ? (&bank_precharge_itv_ready): // è®¾ç½®æ¨¡å¼å¯„å­˜å™¨å’Œè‡ªåŠ¨åˆ·æ–°çš„å†·å´
+        1'b1 // ç©ºæ“ä½œ
     );
     
     assign {sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} = now_cmd_ecd;
@@ -510,8 +534,8 @@ module axis_sdram_cmd_agent #(
     
     assign next_cmd_is_mr_set = next_cmd_id == CMD_LOGI_MR_SET;
     assign refresh_start = next_cmd_id == CMD_LOGI_AUTO_REFRESH;
-    // Í»·¢³¤¶ÈÎª1Ê±, ÔÚÍ»·¢¿ªÊ¼µÄÄÇ1clkÖ±½Ó¶ÔÃüÁîAXISÖĞµÄdata×÷ÅĞ¶Ï, ÈôÎªÆäËûÇé¿ö, ¾ÍÔÚÍ»·¢½áÊøÊ±ÅĞ¶Ï
-    // ×¢Òâµ½È«Ò³Í»·¢Ê±²»¿ÉÄÜ´æÔÚ×Ô¶¯Ô¤³äµç
+    // çªå‘é•¿åº¦ä¸º1æ—¶, åœ¨çªå‘å¼€å§‹çš„é‚£1clkç›´æ¥å¯¹å‘½ä»¤AXISä¸­çš„dataä½œåˆ¤æ–­, è‹¥ä¸ºå…¶ä»–æƒ…å†µ, å°±åœ¨çªå‘ç»“æŸæ—¶åˆ¤æ–­
+    // æ³¨æ„åˆ°å…¨é¡µçªå‘æ—¶ä¸å¯èƒ½å­˜åœ¨è‡ªåŠ¨é¢„å……ç”µ
     assign auto_precharge_start = (burst_len == 1) ? (burst_start & m_axis_cmd_data[13]):(rw_burst_done & addr10_latched);
     
     genvar trigger_i;
@@ -530,14 +554,14 @@ module axis_sdram_cmd_agent #(
     
     assign burst_start = (next_cmd_id == CMD_LOGI_WT_DATA) | (next_cmd_id == CMD_LOGI_RD_DATA);
     
-    assign next_cmd_id = (m_axis_cmd_valid & m_axis_cmd_ready) ? m_axis_cmd_data[2:0]: // ½ÓÊÜÏÂÒ»ÌõÃüÁî
-        ((burst_len == -1) & to_add_burst_stop) ? CMD_LOGI_BURST_STOP: // ¶ÔÈ«Ò³Í»·¢À´Ëµ½áÊøºó¿ÉÄÜÒª²úÉú"Í£Ö¹Í»·¢"ÃüÁî
+    assign next_cmd_id = (m_axis_cmd_valid & m_axis_cmd_ready) ? m_axis_cmd_data[2:0]: // æ¥å—ä¸‹ä¸€æ¡å‘½ä»¤
+        ((burst_len == -1) & to_add_burst_stop) ? CMD_LOGI_BURST_STOP: // å¯¹å…¨é¡µçªå‘æ¥è¯´ç»“æŸåå¯èƒ½è¦äº§ç”Ÿ"åœæ­¢çªå‘"å‘½ä»¤
         CMD_LOGI_NOP;
     assign next_cmd_addr = m_axis_cmd_data[13:3];
     assign next_cmd_ba = m_axis_cmd_data[15:14];
     
-    // µ±Ç°ÃüÁîµÄÎïÀí±àÂë
-    // Âß¼­±àÂë -> ÎïÀí±àÂë
+    // å½“å‰å‘½ä»¤çš„ç‰©ç†ç¼–ç 
+    // é€»è¾‘ç¼–ç  -> ç‰©ç†ç¼–ç 
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -557,22 +581,22 @@ module axis_sdram_cmd_agent #(
             endcase
         end
     end
-    // µ±Ç°ÃüÁîµÄĞĞ/ÁĞµØÖ·
+    // å½“å‰å‘½ä»¤çš„è¡Œ/åˆ—åœ°å€
     always @(posedge clk)
         now_cmd_addr <= next_cmd_addr;
-    // µ±Ç°ÃüÁîµÄbankµØÖ·
+    // å½“å‰å‘½ä»¤çš„bankåœ°å€
     always @(posedge clk)
         now_cmd_ba <= next_cmd_ba;
     
-    /** Òì³£Ö¸Ê¾ **/
-    reg pcg_spcf_idle_bank_err_reg; // Ô¤³äµç¿ÕÏĞµÄÌØ¶¨bank(Òì³£Ö¸Ê¾)
-    reg pcg_spcf_bank_tot_err_reg; // Ô¤³äµçÌØ¶¨bank³¬Ê±(Òì³£Ö¸Ê¾)
-    reg rw_idle_bank_err_reg; // ¶ÁĞ´¿ÕÏĞµÄbank(Òì³£Ö¸Ê¾)
-    reg rfs_with_act_banks_err_reg; // Ë¢ĞÂÊ±´øÓĞÒÑ¼¤»îµÄbank(Òì³£Ö¸Ê¾)
-    reg illegal_logic_cmd_err_reg; // ·Ç·¨µÄÂß¼­ÃüÁî±àÂë(Òì³£Ö¸Ê¾)
-    reg rw_cross_line_err_reg; // ¿çĞĞµÄ¶ÁĞ´ÃüÁî(Òì³£Ö¸Ê¾)
-    wire[8:0] col_addr_add_burst_len; // ÁĞµØÖ· + Í»·¢³¤¶È
-    reg[clogb2(tRAS_max_p-1):0] pcg_tot_cnt[3:0]; // Ô¤³äµçÌØ¶¨bank³¬Ê±¼ÆÊıÆ÷
+    /** å¼‚å¸¸æŒ‡ç¤º **/
+    reg pcg_spcf_idle_bank_err_reg; // é¢„å……ç”µç©ºé—²çš„ç‰¹å®šbank(å¼‚å¸¸æŒ‡ç¤º)
+    reg pcg_spcf_bank_tot_err_reg; // é¢„å……ç”µç‰¹å®šbankè¶…æ—¶(å¼‚å¸¸æŒ‡ç¤º)
+    reg rw_idle_bank_err_reg; // è¯»å†™ç©ºé—²çš„bank(å¼‚å¸¸æŒ‡ç¤º)
+    reg rfs_with_act_banks_err_reg; // åˆ·æ–°æ—¶å¸¦æœ‰å·²æ¿€æ´»çš„bank(å¼‚å¸¸æŒ‡ç¤º)
+    reg illegal_logic_cmd_err_reg; // éæ³•çš„é€»è¾‘å‘½ä»¤ç¼–ç (å¼‚å¸¸æŒ‡ç¤º)
+    reg rw_cross_line_err_reg; // è·¨è¡Œçš„è¯»å†™å‘½ä»¤(å¼‚å¸¸æŒ‡ç¤º)
+    wire[8:0] col_addr_add_burst_len; // åˆ—åœ°å€ + çªå‘é•¿åº¦
+    reg[clogb2(tRAS_max_p-1):0] pcg_tot_cnt[3:0]; // é¢„å……ç”µç‰¹å®šbankè¶…æ—¶è®¡æ•°å™¨
     
     assign pcg_spcf_idle_bank_err = (en_expt_tip == "true") ? pcg_spcf_idle_bank_err_reg:1'b0;
     assign pcg_spcf_bank_tot_err = (en_expt_tip == "true") ? pcg_spcf_bank_tot_err_reg:1'b0;
@@ -583,7 +607,7 @@ module axis_sdram_cmd_agent #(
     
     assign col_addr_add_burst_len = m_axis_cmd_data[10:3] + ((burst_len == -1) ? m_axis_cmd_user[7:0]:(burst_len - 1));
     
-    // Ô¤³äµç¿ÕÏĞµÄÌØ¶¨bank(Òì³£Ö¸Ê¾)
+    // é¢„å……ç”µç©ºé—²çš„ç‰¹å®šbank(å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -591,7 +615,7 @@ module axis_sdram_cmd_agent #(
         else
             pcg_spcf_idle_bank_err_reg <= (next_cmd_id == CMD_LOGI_BANK_PRECHARGE) & (bank_sts[next_cmd_ba] == STS_BANK_IDLE) & (~next_cmd_addr[10]);
     end
-    // Ô¤³äµçÌØ¶¨bank³¬Ê±(Òì³£Ö¸Ê¾)
+    // é¢„å……ç”µç‰¹å®šbankè¶…æ—¶(å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -602,7 +626,7 @@ module axis_sdram_cmd_agent #(
                 ((bank_sts[2] != STS_BANK_IDLE) & (pcg_tot_cnt[2] == 0)) | 
                 ((bank_sts[3] != STS_BANK_IDLE) & (pcg_tot_cnt[3] == 0));
     end
-    // ¶ÁĞ´¿ÕÏĞµÄbank(Òì³£Ö¸Ê¾)
+    // è¯»å†™ç©ºé—²çš„bank(å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -610,7 +634,7 @@ module axis_sdram_cmd_agent #(
         else
             rw_idle_bank_err_reg <= ((next_cmd_id == CMD_LOGI_WT_DATA) | (next_cmd_id == CMD_LOGI_RD_DATA)) & (bank_sts[next_cmd_ba] == STS_BANK_IDLE);
     end
-    // Ë¢ĞÂÊ±´øÓĞÒÑ¼¤»îµÄbank(Òì³£Ö¸Ê¾)
+    // åˆ·æ–°æ—¶å¸¦æœ‰å·²æ¿€æ´»çš„bank(å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -619,7 +643,7 @@ module axis_sdram_cmd_agent #(
             rfs_with_act_banks_err_reg <= (next_cmd_id == CMD_LOGI_AUTO_REFRESH) & 
                 ((bank_sts[0] != STS_BANK_IDLE) | (bank_sts[1] != STS_BANK_IDLE) | (bank_sts[2] != STS_BANK_IDLE) | (bank_sts[3] != STS_BANK_IDLE));
     end
-    // ·Ç·¨µÄÂß¼­ÃüÁî±àÂë(Òì³£Ö¸Ê¾)
+    // éæ³•çš„é€»è¾‘å‘½ä»¤ç¼–ç (å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -628,7 +652,7 @@ module axis_sdram_cmd_agent #(
             illegal_logic_cmd_err_reg <= (m_axis_cmd_valid & m_axis_cmd_ready) & 
                 (m_axis_cmd_data[2:0] == CMD_LOGI_BURST_STOP);
     end
-    // ¿çĞĞµÄ¶ÁĞ´ÃüÁî(Òì³£Ö¸Ê¾)
+    // è·¨è¡Œçš„è¯»å†™å‘½ä»¤(å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -639,7 +663,7 @@ module axis_sdram_cmd_agent #(
                 col_addr_add_burst_len[8];
     end
     
-    // Ô¤³äµçÌØ¶¨bank³¬Ê±¼ÆÊıÆ÷
+    // é¢„å……ç”µç‰¹å®šbankè¶…æ—¶è®¡æ•°å™¨
     genvar pcg_tot_i;
     generate
         for(pcg_tot_i = 0;pcg_tot_i < 4;pcg_tot_i = pcg_tot_i + 1)

@@ -1,26 +1,50 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: UART½ÓÊÕ¿ØÖÆÆ÷
+æœ¬æ¨¡å—: UARTæ¥æ”¶æ§åˆ¶å™¨
 
-ÃèÊö: 
-·ûºÏAXISĞ­ÒéµÄUART½ÓÊÕ¿ØÖÆÆ÷
+æè¿°: 
+ç¬¦åˆAXISåè®®çš„UARTæ¥æ”¶æ§åˆ¶å™¨
 
-×¢Òâ£º
-UART½ÓÊÕ¿ÉÄÜÒç³ö
+æ³¨æ„ï¼š
+UARTæ¥æ”¶å¯èƒ½æº¢å‡º
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER
 UART
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/08
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/08
 ********************************************************************/
 
 
 module uart_rx #(
-    parameter integer clk_frequency = 200000000, // Ê±ÖÓÆµÂÊ
-    parameter integer baud_rate = 115200, // ²¨ÌØÂÊ
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer clk_frequency = 200000000, // æ—¶é’Ÿé¢‘ç‡
+    parameter integer baud_rate = 115200, // æ³¢ç‰¹ç‡
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
     input wire clk,
     input wire rst_n,
@@ -36,7 +60,7 @@ module uart_rx #(
     output wire rx_start
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -46,9 +70,9 @@ module uart_rx #(
     end                                        
     endfunction
 
-    localparam integer clk_n_per_bit = clk_frequency / baud_rate; // ´«ÊäÃ¿Ò»Î»ËùÓÃµÄÊ±ÖÓÖÜÆÚ¸öÊı
+    localparam integer clk_n_per_bit = clk_frequency / baud_rate; // ä¼ è¾“æ¯ä¸€ä½æ‰€ç”¨çš„æ—¶é’Ÿå‘¨æœŸä¸ªæ•°
     
-    /** ´òÁ½ÅÄÏû³ıÑÇÎÈÌ¬ **/
+    /** æ‰“ä¸¤æ‹æ¶ˆé™¤äºšç¨³æ€ **/
     reg rx_d;
     reg rx_d2;
     wire rx_stable;
@@ -63,9 +87,9 @@ module uart_rx #(
             # simulation_delay {rx_d2, rx_d} <= {rx_d, rx};
     end
     
-    /** ¼ì²âÏÂ½µÑØ **/
+    /** æ£€æµ‹ä¸‹é™æ²¿ **/
     reg rx_stable_d;
-    reg rx_neg_edge_detected; // ¼ì²âµ½ÏÂ½µÑØ(Âö³å)
+    reg rx_neg_edge_detected; // æ£€æµ‹åˆ°ä¸‹é™æ²¿(è„‰å†²)
     
     always @(posedge clk or negedge rst_n)
     begin
@@ -83,22 +107,22 @@ module uart_rx #(
             # simulation_delay rx_neg_edge_detected <= (~rx_stable) & rx_stable_d;
     end
     
-    /** Êı¾İ½ÓÊÕ×´Ì¬»ú **/
-    localparam status_idle = 2'b00; // ×´Ì¬:¿ÕÏĞ
-    localparam status_start = 2'b01; // ×´Ì¬:ÆğÊ¼Î»
-    localparam status_data = 2'b10; // ×´Ì¬:Êı¾İÎ»
-    localparam status_stop = 2'b11; // ×´Ì¬:Í£Ö¹Î»
+    /** æ•°æ®æ¥æ”¶çŠ¶æ€æœº **/
+    localparam status_idle = 2'b00; // çŠ¶æ€:ç©ºé—²
+    localparam status_start = 2'b01; // çŠ¶æ€:èµ·å§‹ä½
+    localparam status_data = 2'b10; // çŠ¶æ€:æ•°æ®ä½
+    localparam status_stop = 2'b11; // çŠ¶æ€:åœæ­¢ä½
     
     reg[1:0] now_status;
     
-    reg[clogb2(clk_n_per_bit-1):0] cnt; // ²¨ÌØÂÊ¼ÆÊıÆ÷
-    reg[2:0] now_bit_i; // µ±Ç°½ÓÊÕ×Ö½ÚÎ»±àºÅ
-    reg[7:0] byte; // µ±Ç°½ÓÊÕµÄ×Ö½Ú
-    reg byte_vld; // ½ÓÊÕ×Ö½ÚÍê³É(Âö³å)
-    reg rx_idle_reg; // UART¿ØÖÆÆ÷½ÓÊÕ¿ÕÏĞ(±êÖ¾)
+    reg[clogb2(clk_n_per_bit-1):0] cnt; // æ³¢ç‰¹ç‡è®¡æ•°å™¨
+    reg[2:0] now_bit_i; // å½“å‰æ¥æ”¶å­—èŠ‚ä½ç¼–å·
+    reg[7:0] byte; // å½“å‰æ¥æ”¶çš„å­—èŠ‚
+    reg byte_vld; // æ¥æ”¶å­—èŠ‚å®Œæˆ(è„‰å†²)
+    reg rx_idle_reg; // UARTæ§åˆ¶å™¨æ¥æ”¶ç©ºé—²(æ ‡å¿—)
     
-    reg cnt_eq_clk_n_per_bit_div2_sub1; // ²¨ÌØÂÊ¼ÆÊıÆ÷ == UARTÎ»Ê±ÖÓÖÜÆÚ / 2 - 1(Âö³å)
-    reg cnt_eq_clk_n_per_bit_sub1; // ²¨ÌØÂÊ¼ÆÊıÆ÷ == UARTÎ»Ê±ÖÓÖÜÆÚ - 1(Âö³å)
+    reg cnt_eq_clk_n_per_bit_div2_sub1; // æ³¢ç‰¹ç‡è®¡æ•°å™¨ == UARTä½æ—¶é’Ÿå‘¨æœŸ / 2 - 1(è„‰å†²)
+    reg cnt_eq_clk_n_per_bit_sub1; // æ³¢ç‰¹ç‡è®¡æ•°å™¨ == UARTä½æ—¶é’Ÿå‘¨æœŸ - 1(è„‰å†²)
     
     assign rx_byte_data = byte;
     assign rx_byte_valid = byte_vld;
@@ -106,7 +130,7 @@ module uart_rx #(
     assign rx_done = byte_vld;
     assign rx_start = rx_neg_edge_detected;
     
-    // ²¨ÌØÂÊ¼ÆÊıÆ÷±È½Ï½á¹ûÖ¸Ê¾
+    // æ³¢ç‰¹ç‡è®¡æ•°å™¨æ¯”è¾ƒç»“æœæŒ‡ç¤º
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -139,11 +163,11 @@ module uart_rx #(
             
             byte_vld <= 1'b0;
             case(now_status)
-                status_idle: // ×´Ì¬:¿ÕÏĞ
+                status_idle: // çŠ¶æ€:ç©ºé—²
                 begin
-                    rx_idle_reg <= rx_idle_reg | cnt_eq_clk_n_per_bit_div2_sub1; // ÎªÁËÌø¹ıÉÏÒ»´Î´«ÊäµÄÍ£Ö¹Î», idleĞÅºÅÖ»ÄÜÔÚ²¨ÌØÂÊ¼ÆÊıÆ÷ == UARTÎ»Ê±ÖÓÖÜÆÚ / 2 - 1Ê±ÖÃÎªÓĞĞ§
+                    rx_idle_reg <= rx_idle_reg | cnt_eq_clk_n_per_bit_div2_sub1; // ä¸ºäº†è·³è¿‡ä¸Šä¸€æ¬¡ä¼ è¾“çš„åœæ­¢ä½, idleä¿¡å·åªèƒ½åœ¨æ³¢ç‰¹ç‡è®¡æ•°å™¨ == UARTä½æ—¶é’Ÿå‘¨æœŸ / 2 - 1æ—¶ç½®ä¸ºæœ‰æ•ˆ
                     
-                    if(rx_neg_edge_detected) // ¼ì²âµ½¿ªÊ¼Î»
+                    if(rx_neg_edge_detected) // æ£€æµ‹åˆ°å¼€å§‹ä½
                     begin
                         now_status <= status_start;
                         cnt <= 0;
@@ -154,11 +178,11 @@ module uart_rx #(
                         cnt <= cnt + 1;
                     end
                 end
-                status_start: // ×´Ì¬:ÆğÊ¼Î»
+                status_start: // çŠ¶æ€:èµ·å§‹ä½
                 begin
                     rx_idle_reg <= 1'b0;
                     
-                    if(cnt_eq_clk_n_per_bit_div2_sub1) // ¶ÔÆëµ½ÆğÊ¼Î»ÖĞÑëÔÙ¼ÌĞø½ÓÊÕ
+                    if(cnt_eq_clk_n_per_bit_div2_sub1) // å¯¹é½åˆ°èµ·å§‹ä½ä¸­å¤®å†ç»§ç»­æ¥æ”¶
                     begin
                         now_status <= status_data;
                         cnt <= 0;
@@ -169,11 +193,11 @@ module uart_rx #(
                         cnt <= cnt + 1;
                     end
                 end
-                status_data: // ×´Ì¬:Êı¾İÎ»
+                status_data: // çŠ¶æ€:æ•°æ®ä½
                 begin
                     rx_idle_reg <= 1'b0;
                     
-                    if(cnt_eq_clk_n_per_bit_sub1) // ½ÓÊÕUARTÊı¾İÎ»
+                    if(cnt_eq_clk_n_per_bit_sub1) // æ¥æ”¶UARTæ•°æ®ä½
                     begin
                         cnt <= 0;
                         now_bit_i <= now_bit_i + 3'b001;
@@ -189,11 +213,11 @@ module uart_rx #(
                         cnt <= cnt + 1;
                     end
                 end
-                status_stop: // ×´Ì¬:Í£Ö¹Î»
+                status_stop: // çŠ¶æ€:åœæ­¢ä½
                 begin
                     rx_idle_reg <= 1'b0;
                     
-                    if(cnt_eq_clk_n_per_bit_sub1) // ´ËÊ±¶ÔÆëµ½Í£Ö¹Î»µÄÖĞÑë
+                    if(cnt_eq_clk_n_per_bit_sub1) // æ­¤æ—¶å¯¹é½åˆ°åœæ­¢ä½çš„ä¸­å¤®
                     begin
                         now_status <= status_idle;
                         cnt <= 0;
@@ -216,7 +240,7 @@ module uart_rx #(
         end
     end
     
-    // µ±Ç°½ÓÊÕµÄ×Ö½Ú
+    // å½“å‰æ¥æ”¶çš„å­—èŠ‚
     always @(posedge clk)
     begin
         # simulation_delay;

@@ -1,31 +1,55 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI-SDRAMµÄ¶ÁĞ´ÖÙ²Ã
+æœ¬æ¨¡å—: AXI-SDRAMçš„è¯»å†™ä»²è£
 
-ÃèÊö: 
-¶ÔAXI´Ó»úµÄAR/AWÍ¨µÀ½øĞĞÖÙ²Ã, ²úÉúsdram¶ÁĞ´ÃüÁî
+æè¿°: 
+å¯¹AXIä»æœºçš„AR/AWé€šé“è¿›è¡Œä»²è£, äº§ç”Ÿsdramè¯»å†™å‘½ä»¤
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXI SLAVE(ONLY AR/AW)
 AXIS MASTER
 FIFO WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module axi_sdram_rw_arb #(
-    parameter arb_algorithm = "round-robin" // ÖÙ²ÃËã·¨("round-robin" | "fixed-r" | "fixed-w")
+    parameter arb_algorithm = "round-robin" // ä»²è£ç®—æ³•("round-robin" | "fixed-r" | "fixed-w")
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»ú
+    // AXIä»æœº
     // AR
     input wire[31:0] s_axi_araddr,
     input wire[7:0] s_axi_arlen,
@@ -39,28 +63,28 @@ module axi_sdram_rw_arb #(
     input wire s_axi_awvalid,
     output wire s_axi_awready,
     
-    // SDRAMÓÃ»§ÃüÁîAXIS
-    output wire[31:0] m_axis_usr_cmd_data, // {±£Áô(5bit), ba(2bit), ĞĞµØÖ·(11bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    output wire[8:0] m_axis_usr_cmd_user, // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}
+    // SDRAMç”¨æˆ·å‘½ä»¤AXIS
+    output wire[31:0] m_axis_usr_cmd_data, // {ä¿ç•™(5bit), ba(2bit), è¡Œåœ°å€(11bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    output wire[8:0] m_axis_usr_cmd_user, // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}
     output wire m_axis_usr_cmd_valid,
     input wire m_axis_usr_cmd_ready,
     
-    // Ğ´Í»·¢·Ç¶ÔÆëµØÖ·ĞÅÏ¢fifoĞ´¶Ë¿Ú
+    // å†™çªå‘éå¯¹é½åœ°å€ä¿¡æ¯fifoå†™ç«¯å£
     output wire wt_burst_unaligned_msg_fifo_wen,
-    output wire[1:0] wt_burst_unaligned_msg_fifo_din, // Ğ´µØÖ·(awaddr)µÍ2Î»
+    output wire[1:0] wt_burst_unaligned_msg_fifo_din, // å†™åœ°å€(awaddr)ä½2ä½
     input wire wt_burst_unaligned_msg_fifo_full_n
 );
 
-    /** ³£Á¿ **/
-    // ÃüÁîµÄÂß¼­±àÂë
-    localparam CMD_LOGI_WT_DATA = 3'b010; // ÃüÁî:Ğ´Êı¾İ
-    localparam CMD_LOGI_RD_DATA = 3'b011; // ÃüÁî:¶ÁÊı¾İ
+    /** å¸¸é‡ **/
+    // å‘½ä»¤çš„é€»è¾‘ç¼–ç 
+    localparam CMD_LOGI_WT_DATA = 3'b010; // å‘½ä»¤:å†™æ•°æ®
+    localparam CMD_LOGI_RD_DATA = 3'b011; // å‘½ä»¤:è¯»æ•°æ®
     
-    /** ¶ÁĞ´ÖÙ²Ã **/
-    wire rd_req; // ¶ÁÇëÇó
-    wire wt_req; // Ğ´ÇëÇó
-    wire rd_grant; // ¶ÁÊÚÈ¨
-    wire wt_grant; // Ğ´ÊÚÈ¨
+    /** è¯»å†™ä»²è£ **/
+    wire rd_req; // è¯»è¯·æ±‚
+    wire wt_req; // å†™è¯·æ±‚
+    wire rd_grant; // è¯»æˆæƒ
+    wire wt_grant; // å†™æˆæƒ
     
     assign rd_req = s_axi_arvalid & m_axis_usr_cmd_ready;
     assign wt_req = s_axi_awvalid & m_axis_usr_cmd_ready & wt_burst_unaligned_msg_fifo_full_n;
@@ -76,10 +100,10 @@ module axi_sdram_rw_arb #(
     assign wt_burst_unaligned_msg_fifo_wen = s_axi_awvalid & s_axi_awready;
     assign wt_burst_unaligned_msg_fifo_din = s_axi_awaddr[1:0];
     
-    // ÖÙ²ÃÆ÷
+    // ä»²è£å™¨
     generate
         if(arb_algorithm == "round-robin")
-            // Round-RobinÖÙ²ÃÆ÷
+            // Round-Robinä»²è£å™¨
             round_robin_arbitrator #(
                 .chn_n(2),
                 .simulation_delay(0)
@@ -93,7 +117,7 @@ module axi_sdram_rw_arb #(
             );
         else
         begin
-            // ¹Ì¶¨ÓÅÏÈ¼¶
+            // å›ºå®šä¼˜å…ˆçº§
             assign {wt_grant, rd_grant} = ({wt_req, rd_req} == 2'b00) ? 2'b00:
                 ({wt_req, rd_req} == 2'b01) ? 2'b01:
                 ({wt_req, rd_req} == 2'b10) ? 2'b10:

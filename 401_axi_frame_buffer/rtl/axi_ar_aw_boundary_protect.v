@@ -1,40 +1,64 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIµØÖ·Í¨µÀµÄ±ß½ç±£»¤
+æœ¬æ¨¡å—: AXIåœ°å€é€šé“çš„è¾¹ç•Œä¿æŠ¤
 
-ÃèÊö: 
-¶ÔAXI´Ó»úµÄAR/AWÍ¨µÀ½øĞĞ±ß½ç±£»¤
-32Î»µØÖ·/Êı¾İ×ÜÏß
-Ö§³Ö·Ç¶ÔÆë´«Êä/Õ­´ø´«Êä
+æè¿°: 
+å¯¹AXIä»æœºçš„AR/AWé€šé“è¿›è¡Œè¾¹ç•Œä¿æŠ¤
+32ä½åœ°å€/æ•°æ®æ€»çº¿
+æ”¯æŒéå¯¹é½ä¼ è¾“/çª„å¸¦ä¼ è¾“
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
 
-Ğ­Òé:
+åè®®:
 AXI MASTER(ONLY AW/AR)
 AXIS SLAVE
 FIFO WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module axi_ar_aw_boundary_protect #(
-    parameter en_narrow_transfer = "false", // ÊÇ·ñÔÊĞíÕ­´ø´«Êä
-    parameter integer boundary_size = 1, // ±ß½ç´óĞ¡(ÒÔKB¼Æ)(1 | 2 | 4)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter en_narrow_transfer = "false", // æ˜¯å¦å…è®¸çª„å¸¦ä¼ è¾“
+    parameter integer boundary_size = 1, // è¾¹ç•Œå¤§å°(ä»¥KBè®¡)(1 | 2 | 4)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»úµÄAR»òAW
-    input wire[53:0] s_axis_ax_data, // {±£Áô(1bit), axsize(3bit), axprot(3bit), axlock(1bit), axlen(8bit), axcache(4bit), axburst(2bit), axaddr(32bit)}
+    // AXIä»æœºçš„ARæˆ–AW
+    input wire[53:0] s_axis_ax_data, // {ä¿ç•™(1bit), axsize(3bit), axprot(3bit), axlock(1bit), axlen(8bit), axcache(4bit), axburst(2bit), axaddr(32bit)}
     input wire s_axis_ax_valid,
     output wire s_axis_ax_ready,
     
-    // AXIÖ÷»úµÄAR»òAW
+    // AXIä¸»æœºçš„ARæˆ–AW
     output wire[31:0] m_axi_axaddr,
     output wire[1:0] m_axi_axburst,
     output wire[3:0] m_axi_axcache,
@@ -45,25 +69,25 @@ module axi_ar_aw_boundary_protect #(
     output wire m_axi_axvalid,
     input wire m_axi_axready,
     
-    // Í»·¢³¤¶ÈfifoĞ´¶Ë¿Ú
+    // çªå‘é•¿åº¦fifoå†™ç«¯å£
     output wire burst_len_fifo_wen,
-    output wire[7:0] burst_len_fifo_din, // Í»·¢³¤¶È - 1
-    input wire burst_len_fifo_almost_full_n, // fullÎŞĞ§Ê±fifoÖÁÉÙÊ£Óà2¸ö¿ÕÎ»
+    output wire[7:0] burst_len_fifo_din, // çªå‘é•¿åº¦ - 1
+    input wire burst_len_fifo_almost_full_n, // fullæ— æ•ˆæ—¶fifoè‡³å°‘å‰©ä½™2ä¸ªç©ºä½
     
-    // ¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú
+    // è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£
     output wire across_boundary_fifo_wen,
-    output wire across_boundary_fifo_din, // ÊÇ·ñ¿ç½ç
+    output wire across_boundary_fifo_din, // æ˜¯å¦è·¨ç•Œ
     input wire across_boundary_fifo_full_n
 );
 
-    /** ³£Á¿ **/
-    // ×´Ì¬³£Á¿
-    localparam STS_WAIT_S_AX_VLD = 2'b00; // ×´Ì¬:µÈ´ı´Ó»úÓĞĞ§
-    localparam STS_M_AX_0 = 2'b01; // ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢0µÄµØÖ·ĞÅÏ¢
-    localparam STS_M_AX_1 = 2'b10; // ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢1µÄµØÖ·ĞÅÏ¢
-    localparam STS_S_AX_RDY = 2'b11; // ×´Ì¬:´Ó»úµØÖ·Í¨µÀÎÕÊÖ
+    /** å¸¸é‡ **/
+    // çŠ¶æ€å¸¸é‡
+    localparam STS_WAIT_S_AX_VLD = 2'b00; // çŠ¶æ€:ç­‰å¾…ä»æœºæœ‰æ•ˆ
+    localparam STS_M_AX_0 = 2'b01; // çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘0çš„åœ°å€ä¿¡æ¯
+    localparam STS_M_AX_1 = 2'b10; // çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘1çš„åœ°å€ä¿¡æ¯
+    localparam STS_S_AX_RDY = 2'b11; // çŠ¶æ€:ä»æœºåœ°å€é€šé“æ¡æ‰‹
 
-    /** AXI´Ó»úµÄAR»òAW **/
+    /** AXIä»æœºçš„ARæˆ–AW **/
     wire[31:0] s_axi_ax_addr;
     wire[1:0] s_axi_ax_burst;
     wire[3:0] s_axi_ax_cache;
@@ -77,13 +101,13 @@ module axi_ar_aw_boundary_protect #(
     
     assign {s_axi_ax_size, s_axi_ax_prot, s_axi_ax_lock, s_axi_ax_len,s_axi_ax_cache, s_axi_ax_burst, s_axi_ax_addr} = s_axis_ax_data[52:0];
     
-    /** ±ß½ç±£»¤×´Ì¬»ú **/
-    reg across_boundary_latched; // Ëø´æµÄÊÇ·ñ¿çÔ½±ß½ç
-    reg[31:0] burst_addr[1:0]; // Á½´ÎÍ»·¢µÄÊ×µØÖ·
-    reg[7:0] burst_len[1:0]; // Á½´ÎÍ»·¢µÄ³¤¶È - 1
-    reg[1:0] boundary_protect_sts; // µ±Ç°×´Ì¬
+    /** è¾¹ç•Œä¿æŠ¤çŠ¶æ€æœº **/
+    reg across_boundary_latched; // é”å­˜çš„æ˜¯å¦è·¨è¶Šè¾¹ç•Œ
+    reg[31:0] burst_addr[1:0]; // ä¸¤æ¬¡çªå‘çš„é¦–åœ°å€
+    reg[7:0] burst_len[1:0]; // ä¸¤æ¬¡çªå‘çš„é•¿åº¦ - 1
+    reg[1:0] boundary_protect_sts; // å½“å‰çŠ¶æ€
     
-    // µ±Ç°×´Ì¬
+    // å½“å‰çŠ¶æ€
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -93,17 +117,17 @@ module axi_ar_aw_boundary_protect #(
             # simulation_delay;
             
             case(boundary_protect_sts)
-                STS_WAIT_S_AX_VLD: // ×´Ì¬:µÈ´ı´Ó»úÓĞĞ§
+                STS_WAIT_S_AX_VLD: // çŠ¶æ€:ç­‰å¾…ä»æœºæœ‰æ•ˆ
                     if(s_axis_ax_valid & burst_len_fifo_almost_full_n & across_boundary_fifo_full_n)
-                        boundary_protect_sts <= STS_M_AX_0; // -> ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢0µÄµØÖ·ĞÅÏ¢
-                STS_M_AX_0: // ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢0µÄµØÖ·ĞÅÏ¢
+                        boundary_protect_sts <= STS_M_AX_0; // -> çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘0çš„åœ°å€ä¿¡æ¯
+                STS_M_AX_0: // çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘0çš„åœ°å€ä¿¡æ¯
                     if(m_axi_axready)
-                        boundary_protect_sts <= across_boundary_latched ? STS_M_AX_1: // -> ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢1µÄµØÖ·ĞÅÏ¢
-                            STS_S_AX_RDY; // -> ×´Ì¬:´Ó»úµØÖ·Í¨µÀÎÕÊÖ
-                STS_M_AX_1: // ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢1µÄµØÖ·ĞÅÏ¢
+                        boundary_protect_sts <= across_boundary_latched ? STS_M_AX_1: // -> çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘1çš„åœ°å€ä¿¡æ¯
+                            STS_S_AX_RDY; // -> çŠ¶æ€:ä»æœºåœ°å€é€šé“æ¡æ‰‹
+                STS_M_AX_1: // çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘1çš„åœ°å€ä¿¡æ¯
                     if(m_axi_axready)
-                        boundary_protect_sts <= STS_S_AX_RDY; // -> ×´Ì¬:´Ó»úµØÖ·Í¨µÀÎÕÊÖ
-                STS_S_AX_RDY: // ×´Ì¬:´Ó»úµØÖ·Í¨µÀÎÕÊÖ
+                        boundary_protect_sts <= STS_S_AX_RDY; // -> çŠ¶æ€:ä»æœºåœ°å€é€šé“æ¡æ‰‹
+                STS_S_AX_RDY: // çŠ¶æ€:ä»æœºåœ°å€é€šé“æ¡æ‰‹
                     boundary_protect_sts <= STS_WAIT_S_AX_VLD;
                 default:
                     boundary_protect_sts <= STS_WAIT_S_AX_VLD;
@@ -111,7 +135,7 @@ module axi_ar_aw_boundary_protect #(
         end
     end
     
-    // AXI´Ó»úAR»òAWµÄreadyĞÅºÅ
+    // AXIä»æœºARæˆ–AWçš„readyä¿¡å·
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -121,14 +145,14 @@ module axi_ar_aw_boundary_protect #(
                 ((boundary_protect_sts == STS_M_AX_1) & m_axi_axready);
     end
     
-    /** ½øĞĞÍ»·¢»®·Ö **/
-    // Í»·¢»®·Ö½á¹û
-    // ¶Ô32Î»Êı¾İ×ÜÏßÀ´Ëµ, Ã¿´ÎÍ»·¢×î¶à´«Êä1KB, Òò´Ë½øĞĞ1/2/4KB±ß½ç±£»¤, ×î¶à°ÑÔ­À´µÄ1´ÎÍ»·¢»®·ÖÎª2´Î
-    wire across_boundary; // ÊÇ·ñ¿çÔ½±ß½ç
-    wire[31:0] burst0_addr; // Í»·¢0µÄÊ×µØÖ·
-    wire[7:0] burst0_len; // Í»·¢0µÄ³¤¶È - 1
-    wire[31:0] burst1_addr; // Í»·¢1µÄÊ×µØÖ·
-    wire[7:0] burst1_len; // Í»·¢1µÄ³¤¶È - 1
+    /** è¿›è¡Œçªå‘åˆ’åˆ† **/
+    // çªå‘åˆ’åˆ†ç»“æœ
+    // å¯¹32ä½æ•°æ®æ€»çº¿æ¥è¯´, æ¯æ¬¡çªå‘æœ€å¤šä¼ è¾“1KB, å› æ­¤è¿›è¡Œ1/2/4KBè¾¹ç•Œä¿æŠ¤, æœ€å¤šæŠŠåŸæ¥çš„1æ¬¡çªå‘åˆ’åˆ†ä¸º2æ¬¡
+    wire across_boundary; // æ˜¯å¦è·¨è¶Šè¾¹ç•Œ
+    wire[31:0] burst0_addr; // çªå‘0çš„é¦–åœ°å€
+    wire[7:0] burst0_len; // çªå‘0çš„é•¿åº¦ - 1
+    wire[31:0] burst1_addr; // çªå‘1çš„é¦–åœ°å€
+    wire[7:0] burst1_len; // çªå‘1çš„é•¿åº¦ - 1
     
     axi_burst_seperator_for_boundary_protect #(
         .en_narrow_transfer(en_narrow_transfer),
@@ -144,13 +168,13 @@ module axi_ar_aw_boundary_protect #(
         .burst1_len(burst1_len)
     );
     
-    // Ëø´æµÄÊÇ·ñ¿çÔ½±ß½ç
+    // é”å­˜çš„æ˜¯å¦è·¨è¶Šè¾¹ç•Œ
     always @(posedge clk)
     begin
         if((boundary_protect_sts == STS_WAIT_S_AX_VLD) & (s_axis_ax_valid & burst_len_fifo_almost_full_n & across_boundary_fifo_full_n))
             # simulation_delay across_boundary_latched <= across_boundary;
     end
-    // Á½´ÎÍ»·¢µÄÊ×µØÖ·
+    // ä¸¤æ¬¡çªå‘çš„é¦–åœ°å€
     always @(posedge clk)
     begin
         if((boundary_protect_sts == STS_WAIT_S_AX_VLD) & (s_axis_ax_valid & burst_len_fifo_almost_full_n & across_boundary_fifo_full_n))
@@ -158,7 +182,7 @@ module axi_ar_aw_boundary_protect #(
         else if((boundary_protect_sts == STS_M_AX_0) & m_axi_axready)
             # simulation_delay {burst_addr[1], burst_addr[0]} <= {burst_addr[0], burst_addr[1]};
     end
-    // Á½´ÎÍ»·¢µÄ³¤¶È - 1
+    // ä¸¤æ¬¡çªå‘çš„é•¿åº¦ - 1
     always @(posedge clk)
     begin
         if((boundary_protect_sts == STS_WAIT_S_AX_VLD) & (s_axis_ax_valid & burst_len_fifo_almost_full_n & across_boundary_fifo_full_n))
@@ -167,7 +191,7 @@ module axi_ar_aw_boundary_protect #(
             # simulation_delay {burst_len[1], burst_len[0]} <= {burst_len[0], burst_len[1]};
     end
     
-    /** AXIÖ÷»úµÄAR»òAW **/
+    /** AXIä¸»æœºçš„ARæˆ–AW **/
     reg m_axi_axvalid_reg;
     
     assign m_axi_axaddr = burst_addr[0];
@@ -179,7 +203,7 @@ module axi_ar_aw_boundary_protect #(
     assign m_axi_axsize = s_axi_ax_size;
     assign m_axi_axvalid = m_axi_axvalid_reg;
     
-    // AXIÖ÷»úAR»òAWµÄvalidĞÅºÅ
+    // AXIä¸»æœºARæˆ–AWçš„validä¿¡å·
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -189,13 +213,13 @@ module axi_ar_aw_boundary_protect #(
             # simulation_delay;
             
             case(boundary_protect_sts)
-                STS_WAIT_S_AX_VLD: // ×´Ì¬:µÈ´ı´Ó»úÓĞĞ§
+                STS_WAIT_S_AX_VLD: // çŠ¶æ€:ç­‰å¾…ä»æœºæœ‰æ•ˆ
                     m_axi_axvalid_reg <= s_axis_ax_valid & burst_len_fifo_almost_full_n & across_boundary_fifo_full_n;
-                STS_M_AX_0: // ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢0µÄµØÖ·ĞÅÏ¢
+                STS_M_AX_0: // çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘0çš„åœ°å€ä¿¡æ¯
                     m_axi_axvalid_reg <= m_axi_axready ? across_boundary_latched:1'b1;
-                STS_M_AX_1: // ×´Ì¬:ÏòÖ÷»ú´«µİÍ»·¢1µÄµØÖ·ĞÅÏ¢
+                STS_M_AX_1: // çŠ¶æ€:å‘ä¸»æœºä¼ é€’çªå‘1çš„åœ°å€ä¿¡æ¯
                     m_axi_axvalid_reg <= ~m_axi_axready;
-                STS_S_AX_RDY: // ×´Ì¬:´Ó»úµØÖ·Í¨µÀÎÕÊÖ
+                STS_S_AX_RDY: // çŠ¶æ€:ä»æœºåœ°å€é€šé“æ¡æ‰‹
                     m_axi_axvalid_reg <= 1'b0;
                 default:
                     m_axi_axvalid_reg <= 1'b0;
@@ -203,17 +227,17 @@ module axi_ar_aw_boundary_protect #(
         end
     end
     
-    /** Í»·¢³¤¶ÈfifoĞ´¶Ë¿Ú */
+    /** çªå‘é•¿åº¦fifoå†™ç«¯å£ */
     assign burst_len_fifo_wen = m_axi_axvalid & m_axi_axready;
     assign burst_len_fifo_din = burst_len[0];
     
-    /** ¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú **/
+    /** è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£ **/
     reg across_boundary_fifo_wen_reg;
     
     assign across_boundary_fifo_wen = across_boundary_fifo_wen_reg;
     assign across_boundary_fifo_din = across_boundary_latched;
     
-    // ¿ç½ç±êÖ¾fifoĞ´Ê¹ÄÜ
+    // è·¨ç•Œæ ‡å¿—fifoå†™ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

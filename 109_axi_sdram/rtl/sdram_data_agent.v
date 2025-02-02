@@ -1,67 +1,91 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: sdramÊı¾İ´úÀí
+æœ¬æ¨¡å—: sdramæ•°æ®ä»£ç†
 
-ÃèÊö:
-Ğ´Êı¾İ¹ãÒåfifo -> sdramĞ´Êı¾İ
-sdram¶ÁÊı¾İ -> ¶ÁÊı¾İ¹ãÒåfifo
+æè¿°:
+å†™æ•°æ®å¹¿ä¹‰fifo -> sdramå†™æ•°æ®
+sdramè¯»æ•°æ® -> è¯»æ•°æ®å¹¿ä¹‰fifo
 
-×¢Òâ£º
-Ğ´Êı¾İ¹ãÒåfifoµÄMEM¶ÁÑÓ³Ù = 1clk
-Ğ´/¶ÁÊı¾İ¹ãÒåfifo×ÜÉî¶È¹Ì¶¨Îª512
-µ±Í»·¢³¤¶ÈÎªÈ«Ò³Ê±, Ğ´/¶ÁÊı¾İ¹ãÒåfifoµÄÊı¾İÆ¬Éî¶ÈÎª256, ÆäËûÇé¿öÊ±ÎªÍ»·¢³¤¶È
+æ³¨æ„ï¼š
+å†™æ•°æ®å¹¿ä¹‰fifoçš„MEMè¯»å»¶è¿Ÿ = 1clk
+å†™/è¯»æ•°æ®å¹¿ä¹‰fifoæ€»æ·±åº¦å›ºå®šä¸º512
+å½“çªå‘é•¿åº¦ä¸ºå…¨é¡µæ—¶, å†™/è¯»æ•°æ®å¹¿ä¹‰fifoçš„æ•°æ®ç‰‡æ·±åº¦ä¸º256, å…¶ä»–æƒ…å†µæ—¶ä¸ºçªå‘é•¿åº¦
 
-Ğ­Òé:
+åè®®:
 EXT FIFO READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/14
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/14
 ********************************************************************/
 
 
 module sdram_data_agent #(
-    parameter integer rw_data_buffer_depth = 1024, // ¶ÁĞ´Êı¾İbufferÉî¶È(512 | 1024 | 2048 | 4096)
-    parameter integer burst_len = -1, // Í»·¢³¤¶È(-1 -> È«Ò³; 1 | 2 | 4 | 8)
-    parameter integer cas_latency = 2, // sdram¶ÁÇ±·üÆÚÊ±ÑÓ(2 | 3)
-    parameter integer data_width = 32, // Êı¾İÎ»¿í
-    parameter en_expt_tip = "false", // ÊÇ·ñÊ¹ÄÜÒì³£Ö¸Ê¾
-    parameter real sdram_if_signal_delay = 2.5 // sdram½Ó¿ÚĞÅºÅÑÓ³Ù
+    parameter integer rw_data_buffer_depth = 1024, // è¯»å†™æ•°æ®bufferæ·±åº¦(512 | 1024 | 2048 | 4096)
+    parameter integer burst_len = -1, // çªå‘é•¿åº¦(-1 -> å…¨é¡µ; 1 | 2 | 4 | 8)
+    parameter integer cas_latency = 2, // sdramè¯»æ½œä¼æœŸæ—¶å»¶(2 | 3)
+    parameter integer data_width = 32, // æ•°æ®ä½å®½
+    parameter en_expt_tip = "false", // æ˜¯å¦ä½¿èƒ½å¼‚å¸¸æŒ‡ç¤º
+    parameter real sdram_if_signal_delay = 2.5 // sdramæ¥å£ä¿¡å·å»¶è¿Ÿ
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // Í»·¢ĞÅÏ¢
-    input wire new_burst_start, // Í»·¢¿ªÊ¼Ö¸Ê¾
-    input wire is_write_burst, // ÊÇ·ñĞ´Í»·¢
-    input wire[7:0] new_burst_len, // Í»·¢³¤¶È - 1
+    // çªå‘ä¿¡æ¯
+    input wire new_burst_start, // çªå‘å¼€å§‹æŒ‡ç¤º
+    input wire is_write_burst, // æ˜¯å¦å†™çªå‘
+    input wire[7:0] new_burst_len, // çªå‘é•¿åº¦ - 1
     
-    // Ğ´Êı¾İ¹ãÒåfifo¶Á¶Ë¿Ú
+    // å†™æ•°æ®å¹¿ä¹‰fifoè¯»ç«¯å£
     output wire wdata_ext_fifo_ren,
     input wire wdata_ext_fifo_empty_n,
     output wire wdata_ext_fifo_mem_ren, // const -> 1'b1
     output wire[clogb2(rw_data_buffer_depth-1):0] wdata_ext_fifo_mem_raddr,
     input wire[data_width+data_width/8-1:0] wdata_ext_fifo_mem_dout, // {keep(data_width/8 bit), data(data_width bit)}
     
-    // ¶ÁÊı¾İ¹ãÒåfifoĞ´¶Ë¿Ú
+    // è¯»æ•°æ®å¹¿ä¹‰fifoå†™ç«¯å£
     output wire rdata_ext_fifo_wen,
     input wire rdata_ext_fifo_full_n,
     output wire rdata_ext_fifo_mem_wen,
     output wire[clogb2(rw_data_buffer_depth-1):0] rdata_ext_fifo_mem_waddr,
     output wire[data_width:0] rdata_ext_fifo_mem_din, // {last(1bit), data(data_width bit)}
     
-    // sdramÊı¾İÏß
+    // sdramæ•°æ®çº¿
     output wire[data_width/8-1:0] sdram_dqm, // 1'b0 -> data write/output enable; 1'b1 -> data mask/output disable
     input wire[data_width-1:0] sdram_dq_i,
-    output wire sdram_dq_t, // ÈıÌ¬ÃÅ·½Ïò(1±íÊ¾ÊäÈë, 0±íÊ¾Êä³ö)
+    output wire sdram_dq_t, // ä¸‰æ€é—¨æ–¹å‘(1è¡¨ç¤ºè¾“å…¥, 0è¡¨ç¤ºè¾“å‡º)
     output wire[data_width-1:0] sdram_dq_o,
     
-    // Òì³£Ö¸Ê¾
-    output wire ld_when_wdata_ext_fifo_empty_err, // ÔÚĞ´Êı¾İ¹ãÒåfifo¿ÕÊ±È¡Êı¾İ(Òì³£Ö¸Ê¾)
-    output wire st_when_rdata_ext_fifo_full_err // ÔÚ¶ÁÊı¾İ¹ãÒåfifoÂúÊ±´æÊı¾İ(Òì³£Ö¸Ê¾)
+    // å¼‚å¸¸æŒ‡ç¤º
+    output wire ld_when_wdata_ext_fifo_empty_err, // åœ¨å†™æ•°æ®å¹¿ä¹‰fifoç©ºæ—¶å–æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
+    output wire st_when_rdata_ext_fifo_full_err // åœ¨è¯»æ•°æ®å¹¿ä¹‰fifoæ»¡æ—¶å­˜æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
 );
 
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -71,28 +95,28 @@ module sdram_data_agent #(
     end
     endfunction
     
-    /** ³£Á¿ **/
-    // ÓÉÓÚĞ´Êı¾İ¹ãÒåfifoÖĞ¶ÁµØÖ·->¶ÁÊı¾İÊ±ÑÓÎª2clk, ËùÒÔ¶ÔsdramÃüÁîÑÓ³Ù2clk, ²úÉú¶îÍâ2clkµÄsdramÍ»·¢¶ÁÊ±ÑÓ
-    localparam integer sdram_burst_rd_latency = cas_latency + 2; // sdramÍ»·¢¶ÁÊ±ÑÓ
+    /** å¸¸é‡ **/
+    // ç”±äºå†™æ•°æ®å¹¿ä¹‰fifoä¸­è¯»åœ°å€->è¯»æ•°æ®æ—¶å»¶ä¸º2clk, æ‰€ä»¥å¯¹sdramå‘½ä»¤å»¶è¿Ÿ2clk, äº§ç”Ÿé¢å¤–2clkçš„sdramçªå‘è¯»æ—¶å»¶
+    localparam integer sdram_burst_rd_latency = cas_latency + 2; // sdramçªå‘è¯»æ—¶å»¶
     
-    /** sdramÊı¾İÏß **/
-    reg wt_burst_start_d; // ÑÓ³Ù1clkµÄĞ´Í»·¢¿ªÊ¼(Ö¸Ê¾)
-    wire wdata_ext_fifo_ren_d2; // ÑÓ³Ù2clkµÄĞ´Êı¾İ¹ãÒåfifo¶ÁÊ¹ÄÜ
-    reg sdram_dq_t_reg; // sdramÊı¾İÈıÌ¬ÃÅ·½Ïò
-    reg[data_width-1:0] wdata_ext_fifo_mem_dout_data_d; // ÑÓ³Ù1clkµÄĞ´Êı¾İ¹ãÒåfifoµÄMEM¶ÁÊı¾İÖĞµÄdata
-    wire wdata_cmd_vld_p2; // ÌáÇ°2clkµÄÕıÔÚĞ´Êı¾İ(Ö¸Ê¾)
-    wire rdata_cmd_vld_p2; // ÌáÇ°2clkµÄÕıÔÚ¶ÁÊı¾İ(Ö¸Ê¾)
-    reg wdata_cmd_vld_p1; // ÌáÇ°1clkµÄÕıÔÚĞ´Êı¾İ(Ö¸Ê¾)
-    reg rdata_cmd_vld_p1; // ÌáÇ°1clkµÄÕıÔÚ¶ÁÊı¾İ(Ö¸Ê¾)
-    reg rdata_cmd_vld; // ÕıÔÚ¶ÁÊı¾İ(Ö¸Ê¾)
-    reg[data_width/8-1:0] sdram_dqm_regs; // sdram×Ö½ÚÑÚÂë
+    /** sdramæ•°æ®çº¿ **/
+    reg wt_burst_start_d; // å»¶è¿Ÿ1clkçš„å†™çªå‘å¼€å§‹(æŒ‡ç¤º)
+    wire wdata_ext_fifo_ren_d2; // å»¶è¿Ÿ2clkçš„å†™æ•°æ®å¹¿ä¹‰fifoè¯»ä½¿èƒ½
+    reg sdram_dq_t_reg; // sdramæ•°æ®ä¸‰æ€é—¨æ–¹å‘
+    reg[data_width-1:0] wdata_ext_fifo_mem_dout_data_d; // å»¶è¿Ÿ1clkçš„å†™æ•°æ®å¹¿ä¹‰fifoçš„MEMè¯»æ•°æ®ä¸­çš„data
+    wire wdata_cmd_vld_p2; // æå‰2clkçš„æ­£åœ¨å†™æ•°æ®(æŒ‡ç¤º)
+    wire rdata_cmd_vld_p2; // æå‰2clkçš„æ­£åœ¨è¯»æ•°æ®(æŒ‡ç¤º)
+    reg wdata_cmd_vld_p1; // æå‰1clkçš„æ­£åœ¨å†™æ•°æ®(æŒ‡ç¤º)
+    reg rdata_cmd_vld_p1; // æå‰1clkçš„æ­£åœ¨è¯»æ•°æ®(æŒ‡ç¤º)
+    reg rdata_cmd_vld; // æ­£åœ¨è¯»æ•°æ®(æŒ‡ç¤º)
+    reg[data_width/8-1:0] sdram_dqm_regs; // sdramå­—èŠ‚æ©ç 
     
     assign sdram_dqm = sdram_dqm_regs;
     assign sdram_dq_t = sdram_dq_t_reg;
     assign sdram_dq_o = wdata_ext_fifo_mem_dout_data_d;
     
-    // ÌáÇ°1clkµÄÕıÔÚĞ´Êı¾İ(Ö¸Ê¾)
-    // ÌáÇ°1clkµÄÕıÔÚ¶ÁÊı¾İ(Ö¸Ê¾)
+    // æå‰1clkçš„æ­£åœ¨å†™æ•°æ®(æŒ‡ç¤º)
+    // æå‰1clkçš„æ­£åœ¨è¯»æ•°æ®(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -101,7 +125,7 @@ module sdram_data_agent #(
             {wdata_cmd_vld_p1, rdata_cmd_vld_p1} <= {wdata_cmd_vld_p2, rdata_cmd_vld_p2};
     end
     
-    // ÕıÔÚ¶ÁÊı¾İ(Ö¸Ê¾)
+    // æ­£åœ¨è¯»æ•°æ®(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -110,23 +134,23 @@ module sdram_data_agent #(
             rdata_cmd_vld <= rdata_cmd_vld_p1;
     end
     
-    // sdram×Ö½ÚÑÚÂë
+    // sdramå­—èŠ‚æ©ç 
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
             sdram_dqm_regs <= {(data_width/8){1'b1}};
         else
         begin
-            // ¶ÏÑÔ:wdata_cmd_vld_p1ºÍrdata_cmd_vld_p1²»¿ÉÄÜÍ¬Ê±Îª1
+            // æ–­è¨€:wdata_cmd_vld_p1å’Œrdata_cmd_vld_p1ä¸å¯èƒ½åŒæ—¶ä¸º1
             case({wdata_cmd_vld_p1, (cas_latency == 2) ? rdata_cmd_vld_p1:rdata_cmd_vld})
-                2'b01: sdram_dqm_regs <= # sdram_if_signal_delay {(data_width/8){1'b0}}; // ¶ÁÊı¾İÊ±DQM¶¼ÓĞĞ§, Ò²¾ÍÊÇÔÊĞíobufferÊä³ö
-                2'b10: sdram_dqm_regs <= # sdram_if_signal_delay (~wdata_ext_fifo_mem_dout[data_width+data_width/8-1:data_width]); // Ğ´Êı¾İÊ±È¡keepĞÅºÅµÄ°´Î»·´
-                default: sdram_dqm_regs <= # sdram_if_signal_delay {(data_width/8){1'b1}}; // ·Ç¶ÁĞ´Ê±DQM¶¼ÎŞĞ§
+                2'b01: sdram_dqm_regs <= # sdram_if_signal_delay {(data_width/8){1'b0}}; // è¯»æ•°æ®æ—¶DQMéƒ½æœ‰æ•ˆ, ä¹Ÿå°±æ˜¯å…è®¸obufferè¾“å‡º
+                2'b10: sdram_dqm_regs <= # sdram_if_signal_delay (~wdata_ext_fifo_mem_dout[data_width+data_width/8-1:data_width]); // å†™æ•°æ®æ—¶å–keepä¿¡å·çš„æŒ‰ä½å
+                default: sdram_dqm_regs <= # sdram_if_signal_delay {(data_width/8){1'b1}}; // éè¯»å†™æ—¶DQMéƒ½æ— æ•ˆ
             endcase
         end
     end
     
-    // ÑÓ³Ù1clkµÄĞ´Í»·¢¿ªÊ¼(Ö¸Ê¾)
+    // å»¶è¿Ÿ1clkçš„å†™çªå‘å¼€å§‹(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -135,7 +159,7 @@ module sdram_data_agent #(
             wt_burst_start_d <= new_burst_start & is_write_burst;
     end
     
-    // sdramÊı¾İÈıÌ¬ÃÅ·½Ïò
+    // sdramæ•°æ®ä¸‰æ€é—¨æ–¹å‘
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -144,18 +168,18 @@ module sdram_data_agent #(
             /*
             wt_burst_start_d wdata_ext_fifo_ren_d2 | sdram_dq_t_reg
                    0                  0                  hold
-                   0                  1                 1, ÊäÈë
-                   1                  0                 0, Êä³ö
-                   1                  1                 0, Êä³ö
+                   0                  1                 1, è¾“å…¥
+                   1                  0                 0, è¾“å‡º
+                   1                  1                 0, è¾“å‡º
             */
             sdram_dq_t_reg <= # sdram_if_signal_delay (~wt_burst_start_d);
     end
     
-    // ÑÓ³Ù1clkµÄĞ´Êı¾İ¹ãÒåfifoµÄMEM¶ÁÊı¾İ
+    // å»¶è¿Ÿ1clkçš„å†™æ•°æ®å¹¿ä¹‰fifoçš„MEMè¯»æ•°æ®
     always @(posedge clk)
         wdata_ext_fifo_mem_dout_data_d <= # sdram_if_signal_delay wdata_ext_fifo_mem_dout[data_width-1:0];
     
-    // ÑÓ³Ù2clkµÄĞ´Êı¾İ¹ãÒåfifo¶ÁÊ¹ÄÜ
+    // å»¶è¿Ÿ2clkçš„å†™æ•°æ®å¹¿ä¹‰fifoè¯»ä½¿èƒ½
     ram_based_shift_regs #(
         .data_width(1),
         .delay_n(2),
@@ -173,9 +197,9 @@ module sdram_data_agent #(
         .shift_out(wdata_ext_fifo_ren_d2)
     );
     
-    /** Ğ´Êı¾İ¹ãÒåfifo **/
-    reg[clogb2(rw_data_buffer_depth-1):0] wdata_ext_fifo_mem_raddr_regs; // Ğ´Êı¾İ¹ãÒåfifoµÄMEM¶ÁµØÖ·
-    wire wdata_ext_fifo_ld_data; // ´ÓĞ´Êı¾İ¹ãÒåfifo¼ÓÔØÊı¾İ(Ö¸Ê¾)
+    /** å†™æ•°æ®å¹¿ä¹‰fifo **/
+    reg[clogb2(rw_data_buffer_depth-1):0] wdata_ext_fifo_mem_raddr_regs; // å†™æ•°æ®å¹¿ä¹‰fifoçš„MEMè¯»åœ°å€
+    wire wdata_ext_fifo_ld_data; // ä»å†™æ•°æ®å¹¿ä¹‰fifoåŠ è½½æ•°æ®(æŒ‡ç¤º)
     
     assign wdata_ext_fifo_mem_ren = 1'b1;
     assign wdata_ext_fifo_mem_raddr = wdata_ext_fifo_mem_raddr_regs;
@@ -187,7 +211,7 @@ module sdram_data_agent #(
             assign wdata_ext_fifo_ld_data = new_burst_start & is_write_burst;
             assign wdata_cmd_vld_p2 = new_burst_start & is_write_burst;
             
-            // Ğ´Êı¾İ¹ãÒåfifoµÄMEM¶ÁµØÖ·
+            // å†™æ•°æ®å¹¿ä¹‰fifoçš„MEMè¯»åœ°å€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -198,13 +222,13 @@ module sdram_data_agent #(
         end
         else if((burst_len == 2) | (burst_len == 4) | (burst_len == 8))
         begin
-            reg[burst_len-1:0] wdata_ext_fifo_item_cnt; // Ğ´Êı¾İ¹ãÒåfifoÊı¾İÆ¬¶Á¼ÆÊıÆ÷
+            reg[burst_len-1:0] wdata_ext_fifo_item_cnt; // å†™æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡è¯»è®¡æ•°å™¨
             
             assign wdata_ext_fifo_ren = wdata_ext_fifo_item_cnt[burst_len-1];
             assign wdata_ext_fifo_ld_data = (new_burst_start & is_write_burst) | (~wdata_ext_fifo_item_cnt[0]);
             assign wdata_cmd_vld_p2 = (new_burst_start & is_write_burst) | (~wdata_ext_fifo_item_cnt[0]);
             
-            // Ğ´Êı¾İ¹ãÒåfifoÊı¾İÆ¬¶Á¼ÆÊıÆ÷
+            // å†™æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡è¯»è®¡æ•°å™¨
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -213,7 +237,7 @@ module sdram_data_agent #(
                     wdata_ext_fifo_item_cnt <= {wdata_ext_fifo_item_cnt[burst_len-2:0], wdata_ext_fifo_item_cnt[burst_len-1]};
             end
             
-            // Ğ´Êı¾İ¹ãÒåfifoµÄMEM¶ÁµØÖ·
+            // å†™æ•°æ®å¹¿ä¹‰fifoçš„MEMè¯»åœ°å€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -222,11 +246,11 @@ module sdram_data_agent #(
                     wdata_ext_fifo_mem_raddr_regs <= wdata_ext_fifo_mem_raddr_regs + 1;
             end
         end
-        else // burst_len == -1, È«Ò³Í»·¢
+        else // burst_len == -1, å…¨é¡µçªå‘
         begin
-            reg[7:0] burst_len_latched; // Ëø´æµÄ(Í»·¢³¤¶È - 1)
-            reg wt_burst_transmitting; // ÕıÔÚ½øĞĞĞ´Í»·¢(±êÖ¾)
-            reg[7:0] wdata_ext_fifo_item_cnt; // Ğ´Êı¾İ¹ãÒåfifoÊı¾İÆ¬¶Á¼ÆÊıÆ÷
+            reg[7:0] burst_len_latched; // é”å­˜çš„(çªå‘é•¿åº¦ - 1)
+            reg wt_burst_transmitting; // æ­£åœ¨è¿›è¡Œå†™çªå‘(æ ‡å¿—)
+            reg[7:0] wdata_ext_fifo_item_cnt; // å†™æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡è¯»è®¡æ•°å™¨
             
             assign wdata_ext_fifo_ren = wt_burst_transmitting ? 
                 (wdata_ext_fifo_item_cnt == burst_len_latched):
@@ -234,14 +258,14 @@ module sdram_data_agent #(
             assign wdata_ext_fifo_ld_data = (new_burst_start & is_write_burst) | wt_burst_transmitting;
             assign wdata_cmd_vld_p2 = (new_burst_start & is_write_burst) | wt_burst_transmitting;
             
-            // Ëø´æµÄ(Í»·¢³¤¶È - 1)
+            // é”å­˜çš„(çªå‘é•¿åº¦ - 1)
             always @(posedge clk)
             begin
                 if(new_burst_start & is_write_burst)
                     burst_len_latched <= new_burst_len;
             end
             
-            // ÕıÔÚ½øĞĞĞ´Í»·¢(±êÖ¾)
+            // æ­£åœ¨è¿›è¡Œå†™çªå‘(æ ‡å¿—)
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -250,16 +274,16 @@ module sdram_data_agent #(
                     wt_burst_transmitting <= wt_burst_transmitting ? (wdata_ext_fifo_item_cnt != burst_len_latched):(new_burst_start & is_write_burst & (new_burst_len != 8'd0));
             end
             
-            // Ğ´Êı¾İ¹ãÒåfifoÊı¾İÆ¬¶Á¼ÆÊıÆ÷
+            // å†™æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡è¯»è®¡æ•°å™¨
             always @(posedge clk)
             begin
                 if(new_burst_start & is_write_burst)
-                    wdata_ext_fifo_item_cnt <= 8'd1; // Ğ´Í»·¢¿ªÊ¼Ê±¾ÍÒÑÈ¡³ö1¸öÊı¾İ, Òò´ËÊı¾İÆ¬¶Á¼ÆÊıÆ÷³õÊ¼Ê±Ó¦ÔØÈë1
+                    wdata_ext_fifo_item_cnt <= 8'd1; // å†™çªå‘å¼€å§‹æ—¶å°±å·²å–å‡º1ä¸ªæ•°æ®, å› æ­¤æ•°æ®ç‰‡è¯»è®¡æ•°å™¨åˆå§‹æ—¶åº”è½½å…¥1
                 else if(wt_burst_transmitting)
                     wdata_ext_fifo_item_cnt <= wdata_ext_fifo_item_cnt + 8'd1;
             end
             
-            // Ğ´Êı¾İ¹ãÒåfifoµÄMEM¶ÁµØÖ·
+            // å†™æ•°æ®å¹¿ä¹‰fifoçš„MEMè¯»åœ°å€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -279,9 +303,9 @@ module sdram_data_agent #(
         end
     endgenerate
     
-    /** ¶ÁÊı¾İ¹ãÒåfifo **/
-    reg[clogb2(rw_data_buffer_depth-1):0] rdata_ext_fifo_mem_waddr_regs; // ¶ÁÊı¾İ¹ãÒåfifoµÄMEMĞ´µØÖ·
-    wire rdata_ext_fifo_st_data; // Ïò¶ÁÊı¾İ¹ãÒåfifo´æÈëÊı¾İ(Ö¸Ê¾)
+    /** è¯»æ•°æ®å¹¿ä¹‰fifo **/
+    reg[clogb2(rw_data_buffer_depth-1):0] rdata_ext_fifo_mem_waddr_regs; // è¯»æ•°æ®å¹¿ä¹‰fifoçš„MEMå†™åœ°å€
+    wire rdata_ext_fifo_st_data; // å‘è¯»æ•°æ®å¹¿ä¹‰fifoå­˜å…¥æ•°æ®(æŒ‡ç¤º)
     
     assign rdata_ext_fifo_mem_waddr = rdata_ext_fifo_mem_waddr_regs;
     assign rdata_ext_fifo_mem_din = {rdata_ext_fifo_wen, sdram_dq_i};
@@ -293,7 +317,7 @@ module sdram_data_agent #(
             assign rdata_ext_fifo_st_data = rdata_ext_fifo_mem_wen;
             assign rdata_cmd_vld_p2 = new_burst_start & (~is_write_burst);
             
-            // ¶ÁÊı¾İ¹ãÒåfifoµÄMEMĞ´Ê¹ÄÜ
+            // è¯»æ•°æ®å¹¿ä¹‰fifoçš„MEMå†™ä½¿èƒ½
             ram_based_shift_regs #(
                 .data_width(1),
                 .delay_n(sdram_burst_rd_latency),
@@ -311,7 +335,7 @@ module sdram_data_agent #(
                 .shift_out(rdata_ext_fifo_mem_wen)
             );
             
-            // ¶ÁÊı¾İ¹ãÒåfifoµÄMEMĞ´µØÖ·
+            // è¯»æ•°æ®å¹¿ä¹‰fifoçš„MEMå†™åœ°å€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -322,12 +346,12 @@ module sdram_data_agent #(
         end
         else if((burst_len == 2) | (burst_len == 4) | (burst_len == 8))
         begin
-            reg[burst_len-1:0] rdata_ext_fifo_item_cnt; // ¶ÁÊı¾İ¹ãÒåfifoÊı¾İÆ¬Ğ´¼ÆÊıÆ÷
+            reg[burst_len-1:0] rdata_ext_fifo_item_cnt; // è¯»æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡å†™è®¡æ•°å™¨
             
             assign rdata_ext_fifo_st_data = rdata_ext_fifo_mem_wen;
             assign rdata_cmd_vld_p2 = (new_burst_start & (~is_write_burst)) | (~rdata_ext_fifo_item_cnt[0]);
             
-            // ¶ÁÊı¾İ¹ãÒåfifoÊı¾İÆ¬Ğ´¼ÆÊıÆ÷
+            // è¯»æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡å†™è®¡æ•°å™¨
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -336,7 +360,7 @@ module sdram_data_agent #(
                     rdata_ext_fifo_item_cnt <= {rdata_ext_fifo_item_cnt[burst_len-2:0], rdata_ext_fifo_item_cnt[burst_len-1]};
             end
             
-            // ¶ÁÊı¾İ¹ãÒåfifoµÄMEMĞ´µØÖ·
+            // è¯»æ•°æ®å¹¿ä¹‰fifoçš„MEMå†™åœ°å€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -345,7 +369,7 @@ module sdram_data_agent #(
                     rdata_ext_fifo_mem_waddr_regs <= rdata_ext_fifo_mem_waddr_regs + 1;
             end
             
-            // ¶ÁÊı¾İ¹ãÒåfifoĞ´Ê¹ÄÜ
+            // è¯»æ•°æ®å¹¿ä¹‰fifoå†™ä½¿èƒ½
             ram_based_shift_regs #(
                 .data_width(1),
                 .delay_n(sdram_burst_rd_latency),
@@ -362,7 +386,7 @@ module sdram_data_agent #(
                 .ce(1'b1),
                 .shift_out(rdata_ext_fifo_wen)
             );
-            // ¶ÁÊı¾İ¹ãÒåfifoµÄMEMĞ´Ê¹ÄÜ
+            // è¯»æ•°æ®å¹¿ä¹‰fifoçš„MEMå†™ä½¿èƒ½
             ram_based_shift_regs #(
                 .data_width(1),
                 .delay_n(sdram_burst_rd_latency),
@@ -380,23 +404,23 @@ module sdram_data_agent #(
                 .shift_out(rdata_ext_fifo_mem_wen)
             );
         end
-        else // burst_len == -1, È«Ò³Í»·¢
+        else // burst_len == -1, å…¨é¡µçªå‘
         begin
-            reg[7:0] burst_len_latched; // Ëø´æµÄ(Í»·¢³¤¶È - 1)
-            reg rd_burst_transmitting; // ¶ÁÍ»·¢½øĞĞÖĞ(±êÖ¾)
-            reg[7:0] rdata_ext_fifo_item_cnt; // ¶ÁÊı¾İ¹ãÒåfifoÊı¾İÆ¬Ğ´¼ÆÊıÆ÷
+            reg[7:0] burst_len_latched; // é”å­˜çš„(çªå‘é•¿åº¦ - 1)
+            reg rd_burst_transmitting; // è¯»çªå‘è¿›è¡Œä¸­(æ ‡å¿—)
+            reg[7:0] rdata_ext_fifo_item_cnt; // è¯»æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡å†™è®¡æ•°å™¨
             
             assign rdata_ext_fifo_st_data = rdata_ext_fifo_wen | rdata_ext_fifo_mem_wen;
             assign rdata_cmd_vld_p2 = (new_burst_start & (~is_write_burst)) | rd_burst_transmitting;
             
-            // Ëø´æµÄ(Í»·¢³¤¶È - 1)
+            // é”å­˜çš„(çªå‘é•¿åº¦ - 1)
             always @(posedge clk)
             begin
                 if(new_burst_start & (~is_write_burst))
                     burst_len_latched <= new_burst_len;
             end
             
-            // ¶ÁÍ»·¢½øĞĞÖĞ(±êÖ¾)
+            // è¯»çªå‘è¿›è¡Œä¸­(æ ‡å¿—)
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -405,16 +429,16 @@ module sdram_data_agent #(
                     rd_burst_transmitting <= rd_burst_transmitting ? (rdata_ext_fifo_item_cnt != burst_len_latched):(new_burst_start & (~is_write_burst) & (new_burst_len != 8'd0));
             end
             
-            // ¶ÁÊı¾İ¹ãÒåfifoÊı¾İÆ¬Ğ´¼ÆÊıÆ÷
+            // è¯»æ•°æ®å¹¿ä¹‰fifoæ•°æ®ç‰‡å†™è®¡æ•°å™¨
             always @(posedge clk)
             begin
                 if(new_burst_start & (~is_write_burst))
-                    rdata_ext_fifo_item_cnt <= 8'd1; // ¶ÁÍ»·¢¿ªÊ¼Ê±¾ÍÒÑÔ¤´æ1¸öÊı¾İ, Òò´ËÊı¾İÆ¬Ğ´¼ÆÊıÆ÷³õÊ¼Ê±Ó¦ÔØÈë1
+                    rdata_ext_fifo_item_cnt <= 8'd1; // è¯»çªå‘å¼€å§‹æ—¶å°±å·²é¢„å­˜1ä¸ªæ•°æ®, å› æ­¤æ•°æ®ç‰‡å†™è®¡æ•°å™¨åˆå§‹æ—¶åº”è½½å…¥1
                 else if(rd_burst_transmitting)
                     rdata_ext_fifo_item_cnt <= rdata_ext_fifo_item_cnt + 8'd1;
             end
             
-            // ¶ÁÊı¾İ¹ãÒåfifoµÄMEMĞ´µØÖ·
+            // è¯»æ•°æ®å¹¿ä¹‰fifoçš„MEMå†™åœ°å€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -432,7 +456,7 @@ module sdram_data_agent #(
                     rdata_ext_fifo_mem_waddr_regs[7:0] <= rdata_ext_fifo_mem_waddr_regs[7:0] + 8'd1;
             end
             
-            // ¶ÁÊı¾İ¹ãÒåfifoĞ´Ê¹ÄÜ
+            // è¯»æ•°æ®å¹¿ä¹‰fifoå†™ä½¿èƒ½
             ram_based_shift_regs #(
                 .data_width(1),
                 .delay_n(sdram_burst_rd_latency),
@@ -451,7 +475,7 @@ module sdram_data_agent #(
                 .ce(1'b1),
                 .shift_out(rdata_ext_fifo_wen)
             );
-            // ¶ÁÊı¾İ¹ãÒåfifoµÄMEMĞ´Ê¹ÄÜ
+            // è¯»æ•°æ®å¹¿ä¹‰fifoçš„MEMå†™ä½¿èƒ½
             ram_based_shift_regs #(
                 .data_width(1),
                 .delay_n(sdram_burst_rd_latency),
@@ -471,14 +495,14 @@ module sdram_data_agent #(
         end
     endgenerate
     
-    // Òì³£Ö¸Ê¾
-    reg ld_when_wdata_ext_fifo_empty_err_reg; // ÔÚĞ´Êı¾İ¹ãÒåfifo¿ÕÊ±È¡Êı¾İ(Òì³£Ö¸Ê¾)
-    reg st_when_rdata_ext_fifo_full_err_reg; // ÔÚ¶ÁÊı¾İ¹ãÒåfifoÂúÊ±´æÊı¾İ(Òì³£Ö¸Ê¾)
+    // å¼‚å¸¸æŒ‡ç¤º
+    reg ld_when_wdata_ext_fifo_empty_err_reg; // åœ¨å†™æ•°æ®å¹¿ä¹‰fifoç©ºæ—¶å–æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
+    reg st_when_rdata_ext_fifo_full_err_reg; // åœ¨è¯»æ•°æ®å¹¿ä¹‰fifoæ»¡æ—¶å­˜æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
     
     assign ld_when_wdata_ext_fifo_empty_err = (en_expt_tip == "true") ? ld_when_wdata_ext_fifo_empty_err_reg:1'b0;
     assign st_when_rdata_ext_fifo_full_err = (en_expt_tip == "true") ? st_when_rdata_ext_fifo_full_err_reg:1'b0;
     
-    // ÔÚĞ´Êı¾İ¹ãÒåfifo¿ÕÊ±È¡Êı¾İ(Òì³£Ö¸Ê¾)
+    // åœ¨å†™æ•°æ®å¹¿ä¹‰fifoç©ºæ—¶å–æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -486,7 +510,7 @@ module sdram_data_agent #(
         else
             ld_when_wdata_ext_fifo_empty_err_reg <= wdata_ext_fifo_ld_data & (~wdata_ext_fifo_empty_n);
     end
-    // ÔÚ¶ÁÊı¾İ¹ãÒåfifoÂúÊ±´æÊı¾İ(Òì³£Ö¸Ê¾)
+    // åœ¨è¯»æ•°æ®å¹¿ä¹‰fifoæ»¡æ—¶å­˜æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

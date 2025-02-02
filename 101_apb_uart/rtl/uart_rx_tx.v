@@ -1,30 +1,54 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: UART¿ØÖÆÆ÷
+æœ¬æ¨¡å—: UARTæ§åˆ¶å™¨
 
-ÃèÊö: 
-Ê¹ÓÃ·¢ËÍ/½ÓÊÕfifoµÄUART¿ØÖÆÆ÷
-¿ÉÑ¡AXIS½Ó¿Ú»òFIFO½Ó¿Ú
+æè¿°: 
+ä½¿ç”¨å‘é€/æ¥æ”¶fifoçš„UARTæ§åˆ¶å™¨
+å¯é€‰AXISæ¥å£æˆ–FIFOæ¥å£
 
-×¢Òâ£º
-µ±Ê¹ÓÃFIFO½Ó¿ÚÊ±, UART·¢ËÍFIFOÇëÊ¹ÓÃ±ê×¼FIFO
-UART½ÓÊÕ¿ÉÄÜÒç³ö
+æ³¨æ„ï¼š
+å½“ä½¿ç”¨FIFOæ¥å£æ—¶, UARTå‘é€FIFOè¯·ä½¿ç”¨æ ‡å‡†FIFO
+UARTæ¥æ”¶å¯èƒ½æº¢å‡º
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 FIFO READ/WRITE
 UART
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/08
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/08
 ********************************************************************/
 
 
 module uart_rx_tx #(
-    parameter integer clk_frequency_MHz = 200, // Ê±ÖÓÆµÂÊ
-    parameter integer baud_rate = 115200, // ²¨ÌØÂÊ
-    parameter interface = "fifo", // ½Ó¿ÚĞ­Òé(axis|fifo)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer clk_frequency_MHz = 200, // æ—¶é’Ÿé¢‘ç‡
+    parameter integer baud_rate = 115200, // æ³¢ç‰¹ç‡
+    parameter interface = "fifo", // æ¥å£åè®®(axis|fifo)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
     input wire clk,
     input wire resetn,
@@ -57,7 +81,7 @@ module uart_rx_tx #(
     output wire rx_start
 );
     
-    // ¼ì²é½ÓÊÕ»º³åÇøÊÇ·ñÒç³ö
+    // æ£€æŸ¥æ¥æ”¶ç¼“å†²åŒºæ˜¯å¦æº¢å‡º
     reg rx_err_reg;
     
     assign rx_err = rx_err_reg;
@@ -70,7 +94,7 @@ module uart_rx_tx #(
             # simulation_delay rx_err_reg <= (interface == "axis") ? (m_axis_rx_byte_valid & (~m_axis_rx_byte_ready)):(rx_buf_fifo_wen & rx_buf_fifo_full);
     end
     
-    /** uartÊÕ·¢ **/
+    /** uartæ”¶å‘ **/
     localparam integer clk_frequency = clk_frequency_MHz * 1000000;
     
     assign rx_buf_fifo_din = m_axis_rx_byte_data;

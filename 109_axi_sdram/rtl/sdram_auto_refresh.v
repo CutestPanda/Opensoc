@@ -1,52 +1,76 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: sdram×Ô¶¯Ë¢ĞÂ¿ØÖÆÆ÷
+æœ¬æ¨¡å—: sdramè‡ªåŠ¨åˆ·æ–°æ§åˆ¶å™¨
 
-ÃèÊö:
-¸ù¾İÒªÇóµÄË¢ĞÂ¼ä¸ô, ²úÉú×Ô¶¯Ë¢ĞÂÃüÁîÁ÷
+æè¿°:
+æ ¹æ®è¦æ±‚çš„åˆ·æ–°é—´éš”, äº§ç”Ÿè‡ªåŠ¨åˆ·æ–°å‘½ä»¤æµ
 
-×Ô¶¯Ë¢ĞÂÔ¤¾¯ÓĞĞ§Ê±, µÈ´ıËùÓĞbank¿ÕÏĞÊ±²ÅË¢ĞÂ
-Ç¿ÖÆ×Ô¶¯Ë¢ĞÂÊ±, ²»ÔÙµÈ´ıËùÓĞbank¿ÕÏĞÊ±²ÅË¢ĞÂ, µ«ÔÚË¢ĞÂ½áÊøºó»áÖØĞÂ¼¤»îÖ®Ç°µÄĞĞ
+è‡ªåŠ¨åˆ·æ–°é¢„è­¦æœ‰æ•ˆæ—¶, ç­‰å¾…æ‰€æœ‰bankç©ºé—²æ—¶æ‰åˆ·æ–°
+å¼ºåˆ¶è‡ªåŠ¨åˆ·æ–°æ—¶, ä¸å†ç­‰å¾…æ‰€æœ‰bankç©ºé—²æ—¶æ‰åˆ·æ–°, ä½†åœ¨åˆ·æ–°ç»“æŸåä¼šé‡æ–°æ¿€æ´»ä¹‹å‰çš„è¡Œ
 
-×¢Òâ£º
-Ç¿ÖÆË¢ĞÂ¼ä¸ô±ØĞë>Ë¢ĞÂ¼ä¸ô
+æ³¨æ„ï¼š
+å¼ºåˆ¶åˆ·æ–°é—´éš”å¿…é¡»>åˆ·æ–°é—´éš”
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/17
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/17
 ********************************************************************/
 
 
 module sdram_auto_refresh #(
-    parameter real clk_period = 7.0, // Ê±ÖÓÖÜÆÚ
-    parameter real refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.8, // Ë¢ĞÂ¼ä¸ô(ÒÔns¼Æ)
-    parameter real forced_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.9, // Ç¿ÖÆË¢ĞÂ¼ä¸ô(ÒÔns¼Æ)
-    parameter integer burst_len = -1, // Í»·¢³¤¶È(-1 -> È«Ò³; 1 | 2 | 4 | 8)
-    parameter allow_auto_precharge = "true" // ÊÇ·ñÔÊĞí×Ô¶¯Ô¤³äµç
+    parameter real clk_period = 7.0, // æ—¶é’Ÿå‘¨æœŸ
+    parameter real refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.8, // åˆ·æ–°é—´éš”(ä»¥nsè®¡)
+    parameter real forced_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.9, // å¼ºåˆ¶åˆ·æ–°é—´éš”(ä»¥nsè®¡)
+    parameter integer burst_len = -1, // çªå‘é•¿åº¦(-1 -> å…¨é¡µ; 1 | 2 | 4 | 8)
+    parameter allow_auto_precharge = "true" // æ˜¯å¦å…è®¸è‡ªåŠ¨é¢„å……ç”µ
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ×Ô¶¯Ë¢ĞÂ¶¨Ê±¿ªÊ¼(Ö¸Ê¾)
+    // è‡ªåŠ¨åˆ·æ–°å®šæ—¶å¼€å§‹(æŒ‡ç¤º)
     input wire start_rfs_timing,
-    // Ë¢ĞÂ¿ØÖÆÆ÷ÔËĞĞÖĞ
+    // åˆ·æ–°æ§åˆ¶å™¨è¿è¡Œä¸­
     output wire rfs_ctrler_running,
     
-    // sdramÃüÁî´úÀíÊäÈë¼à²â
-    input wire[15:0] s_axis_cmd_agent_monitor_data, // {BS(2bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
+    // sdramå‘½ä»¤ä»£ç†è¾“å…¥ç›‘æµ‹
+    input wire[15:0] s_axis_cmd_agent_monitor_data, // {BS(2bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
     input wire s_axis_cmd_agent_monitor_valid,
     input wire s_axis_cmd_agent_monitor_ready,
     
-    // ×Ô¶¯Ë¢ĞÂÃüÁîÁ÷AXIS
-    output wire[15:0] m_axis_rfs_data, // {BS(2bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
+    // è‡ªåŠ¨åˆ·æ–°å‘½ä»¤æµAXIS
+    output wire[15:0] m_axis_rfs_data, // {BS(2bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
     output wire m_axis_rfs_valid,
     input wire m_axis_rfs_ready
 );
 
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -56,60 +80,60 @@ module sdram_auto_refresh #(
     end
     endfunction
 
-    /** ³£Á¿ **/
-    localparam integer refresh_itv_p = $floor(refresh_itv / clk_period); // Ë¢ĞÂ¼ä¸ôÖÜÆÚÊı
-    localparam integer forced_refresh_itv_p = $floor(forced_refresh_itv / clk_period); // Ç¿ÖÆË¢ĞÂ¼ä¸ôÖÜÆÚÊı
-    localparam rw_data_with_auto_precharge = (burst_len == -1) ? "false":allow_auto_precharge; // Ê¹ÄÜ¶ÁĞ´Êı¾İÃüÁîµÄ×Ô¶¯Ô¤³äµç
-    // ÃüÁîµÄÂß¼­±àÂë
-    localparam CMD_LOGI_BANK_ACTIVE = 3'b000; // ÃüÁî:¼¤»îbank
-    localparam CMD_LOGI_BANK_PRECHARGE = 3'b001; // ÃüÁî:Ô¤³äµçbank
-    localparam CMD_LOGI_WT_DATA = 3'b010; // ÃüÁî:Ğ´Êı¾İ
-    localparam CMD_LOGI_RD_DATA = 3'b011; // ÃüÁî:¶ÁÊı¾İ
-    localparam CMD_LOGI_AUTO_REFRESH = 3'b101; // ÃüÁî:×Ô¶¯Ë¢ĞÂ
-    // ×Ô¶¯Ë¢ĞÂ×´Ì¬
-    localparam RFS_NOT_START = 2'b00; // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
-    localparam RFS_CMD_PRECHARGE_ALL = 2'b01; // ×´Ì¬:·¢ËÍ"Ô¤³äµç"ÃüÁî
-    localparam RFS_CMD_REFRESH = 2'b10; // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
-    localparam RFS_CMD_ACTIVE = 2'b11; // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
-    // ÊµÏÖ·½Ê½(1 | 2)
-    // ·½Ê½1 -> Ğ§ÂÊ¸ß, Ê±Ğò²î, ×ÊÔ´¶à; ·½Ê½2 -> Ğ§ÂÊµÍ, Ê±ĞòºÃ, ×ÊÔ´ÉÙ
+    /** å¸¸é‡ **/
+    localparam integer refresh_itv_p = $floor(refresh_itv / clk_period); // åˆ·æ–°é—´éš”å‘¨æœŸæ•°
+    localparam integer forced_refresh_itv_p = $floor(forced_refresh_itv / clk_period); // å¼ºåˆ¶åˆ·æ–°é—´éš”å‘¨æœŸæ•°
+    localparam rw_data_with_auto_precharge = (burst_len == -1) ? "false":allow_auto_precharge; // ä½¿èƒ½è¯»å†™æ•°æ®å‘½ä»¤çš„è‡ªåŠ¨é¢„å……ç”µ
+    // å‘½ä»¤çš„é€»è¾‘ç¼–ç 
+    localparam CMD_LOGI_BANK_ACTIVE = 3'b000; // å‘½ä»¤:æ¿€æ´»bank
+    localparam CMD_LOGI_BANK_PRECHARGE = 3'b001; // å‘½ä»¤:é¢„å……ç”µbank
+    localparam CMD_LOGI_WT_DATA = 3'b010; // å‘½ä»¤:å†™æ•°æ®
+    localparam CMD_LOGI_RD_DATA = 3'b011; // å‘½ä»¤:è¯»æ•°æ®
+    localparam CMD_LOGI_AUTO_REFRESH = 3'b101; // å‘½ä»¤:è‡ªåŠ¨åˆ·æ–°
+    // è‡ªåŠ¨åˆ·æ–°çŠ¶æ€
+    localparam RFS_NOT_START = 2'b00; // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
+    localparam RFS_CMD_PRECHARGE_ALL = 2'b01; // çŠ¶æ€:å‘é€"é¢„å……ç”µ"å‘½ä»¤
+    localparam RFS_CMD_REFRESH = 2'b10; // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
+    localparam RFS_CMD_ACTIVE = 2'b11; // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
+    // å®ç°æ–¹å¼(1 | 2)
+    // æ–¹å¼1 -> æ•ˆç‡é«˜, æ—¶åºå·®, èµ„æºå¤š; æ–¹å¼2 -> æ•ˆç‡ä½, æ—¶åºå¥½, èµ„æºå°‘
     localparam integer impl_method = 2;
     
     /**
-    bank¿ÕÏĞÓë¼¤»î×´Ì¬ÅĞ¶¨
+    bankç©ºé—²ä¸æ¿€æ´»çŠ¶æ€åˆ¤å®š
     
-    ÕâÀï¶ÔÆëµ½sdramÃüÁî´úÀíµÄÃüÁîAXISÊäÈë, ²¢·ÇÕæÊµµÄbank¿ÕÏĞÓë¼¤»î×´Ì¬
+    è¿™é‡Œå¯¹é½åˆ°sdramå‘½ä»¤ä»£ç†çš„å‘½ä»¤AXISè¾“å…¥, å¹¶éçœŸå®çš„bankç©ºé—²ä¸æ¿€æ´»çŠ¶æ€
     **/
-    wire rfs_launched; // Æô¶¯×Ô¶¯Ë¢ĞÂ
-    reg[3:0] is_spec_bank_idle; // ¸÷¸öbankÊÇ·ñidle
-    wire next_all_bank_idle; // ÏÂ1clkµÄÃ¿¸öbank¾ùidle
-    wire[3:0] ba_onehot; // ¶ÀÈÈÂëµÄbankµØÖ·
-    reg[10:0] bank_active_row[3:0]; // bank±»¼¤»îµÄĞĞ
-    reg rfs_launched_d; // ÑÓ³Ù1clkµÄÆô¶¯×Ô¶¯Ë¢ĞÂ
-    reg all_bank_idle_lateched; // Ëø´æµÄÃ¿¸öbank¾ùidle
-    reg[3:0] is_spec_bank_active_lateched; // Ëø´æµÄ¸÷¸öbankÊÇ·ñactive
-    reg[2:0] bank_active_n; // Ëø´æµÄ¼¤»îbankµÄ¸öÊı
-    reg[10:0] bank_active_row_lateched[3:0]; // Ëø´æµÄbank±»¼¤»îµÄĞĞ
-    reg[1:0] bank_active_id_latched[3:0]; // Ëø´æµÄ¼¤»îbank±àºÅ
+    wire rfs_launched; // å¯åŠ¨è‡ªåŠ¨åˆ·æ–°
+    reg[3:0] is_spec_bank_idle; // å„ä¸ªbankæ˜¯å¦idle
+    wire next_all_bank_idle; // ä¸‹1clkçš„æ¯ä¸ªbankå‡idle
+    wire[3:0] ba_onehot; // ç‹¬çƒ­ç çš„bankåœ°å€
+    reg[10:0] bank_active_row[3:0]; // bankè¢«æ¿€æ´»çš„è¡Œ
+    reg rfs_launched_d; // å»¶è¿Ÿ1clkçš„å¯åŠ¨è‡ªåŠ¨åˆ·æ–°
+    reg all_bank_idle_lateched; // é”å­˜çš„æ¯ä¸ªbankå‡idle
+    reg[3:0] is_spec_bank_active_lateched; // é”å­˜çš„å„ä¸ªbankæ˜¯å¦active
+    reg[2:0] bank_active_n; // é”å­˜çš„æ¿€æ´»bankçš„ä¸ªæ•°
+    reg[10:0] bank_active_row_lateched[3:0]; // é”å­˜çš„bankè¢«æ¿€æ´»çš„è¡Œ
+    reg[1:0] bank_active_id_latched[3:0]; // é”å­˜çš„æ¿€æ´»bankç¼–å·
     
     assign ba_onehot = (s_axis_cmd_agent_monitor_data[15:14] == 2'b00) ? 4'b0001:
         (s_axis_cmd_agent_monitor_data[15:14] == 2'b01) ? 4'b0010:
         (s_axis_cmd_agent_monitor_data[15:14] == 2'b10) ? 4'b0100:
                                                           4'b1000;
     assign next_all_bank_idle = (s_axis_cmd_agent_monitor_valid & s_axis_cmd_agent_monitor_ready) ?
-        ((s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_BANK_ACTIVE) ? 1'b0: // ¼¤»î
-            (s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_BANK_PRECHARGE) ? (s_axis_cmd_agent_monitor_data[13] | (&(is_spec_bank_idle | ba_onehot))): // Ô¤³äµç
+        ((s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_BANK_ACTIVE) ? 1'b0: // æ¿€æ´»
+            (s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_BANK_PRECHARGE) ? (s_axis_cmd_agent_monitor_data[13] | (&(is_spec_bank_idle | ba_onehot))): // é¢„å……ç”µ
             (((s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_WT_DATA) | (s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_RD_DATA)) & 
-                s_axis_cmd_agent_monitor_data[13] & (rw_data_with_auto_precharge == "true")) ? (&(is_spec_bank_idle | ba_onehot)): // ´ø×Ô¶¯Ô¤³äµçµÄ¶ÁĞ´
+                s_axis_cmd_agent_monitor_data[13] & (rw_data_with_auto_precharge == "true")) ? (&(is_spec_bank_idle | ba_onehot)): // å¸¦è‡ªåŠ¨é¢„å……ç”µçš„è¯»å†™
             (&is_spec_bank_idle)):
         (&is_spec_bank_idle);
     
-    // ¸÷¸öbankÊÇ·ñidle
-    // bank±»¼¤»îµÄĞĞ
+    // å„ä¸ªbankæ˜¯å¦idle
+    // bankè¢«æ¿€æ´»çš„è¡Œ
     genvar is_spec_bank_idle_i;
     genvar bank_active_row_i;
     generate
-        // ¸÷¸öbankÊÇ·ñidle
+        // å„ä¸ªbankæ˜¯å¦idle
         for(is_spec_bank_idle_i = 0;is_spec_bank_idle_i < 4;is_spec_bank_idle_i = is_spec_bank_idle_i + 1)
         begin
             always @(posedge clk or negedge rst_n)
@@ -117,16 +141,16 @@ module sdram_auto_refresh #(
                 if(~rst_n)
                     is_spec_bank_idle[is_spec_bank_idle_i] <= 1'b1;
                 else if((s_axis_cmd_agent_monitor_valid & s_axis_cmd_agent_monitor_ready) & 
-                    (((s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_BANK_ACTIVE) & (s_axis_cmd_agent_monitor_data[15:14] == is_spec_bank_idle_i)) | // ¼¤»î
+                    (((s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_BANK_ACTIVE) & (s_axis_cmd_agent_monitor_data[15:14] == is_spec_bank_idle_i)) | // æ¿€æ´»
                         ((s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_BANK_PRECHARGE) & 
-                        ((s_axis_cmd_agent_monitor_data[15:14] == is_spec_bank_idle_i) | s_axis_cmd_agent_monitor_data[13])) | // Ô¤³äµç
+                        ((s_axis_cmd_agent_monitor_data[15:14] == is_spec_bank_idle_i) | s_axis_cmd_agent_monitor_data[13])) | // é¢„å……ç”µ
                         (((s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_WT_DATA) | (s_axis_cmd_agent_monitor_data[2:0] == CMD_LOGI_RD_DATA)) & 
-                            s_axis_cmd_agent_monitor_data[13] & (s_axis_cmd_agent_monitor_data[15:14] == is_spec_bank_idle_i) & (rw_data_with_auto_precharge == "true")))) // ´ø×Ô¶¯Ô¤³äµçµÄ¶ÁĞ´
+                            s_axis_cmd_agent_monitor_data[13] & (s_axis_cmd_agent_monitor_data[15:14] == is_spec_bank_idle_i) & (rw_data_with_auto_precharge == "true")))) // å¸¦è‡ªåŠ¨é¢„å……ç”µçš„è¯»å†™
                     is_spec_bank_idle[is_spec_bank_idle_i] <= s_axis_cmd_agent_monitor_data[2:0] != CMD_LOGI_BANK_ACTIVE;
             end
         end
         
-        // bank±»¼¤»îµÄĞĞ
+        // bankè¢«æ¿€æ´»çš„è¡Œ
         for(bank_active_row_i = 0;bank_active_row_i < 4;bank_active_row_i = bank_active_row_i + 1)
         begin
             always @(posedge clk)
@@ -138,14 +162,14 @@ module sdram_auto_refresh #(
         end
     endgenerate
     
-    // Ëø´æµÄÃ¿¸öbank¾ùidle
+    // é”å­˜çš„æ¯ä¸ªbankå‡idle
     always @(posedge clk)
     begin
         if(rfs_launched)
             all_bank_idle_lateched <= next_all_bank_idle;
     end
     
-    // ÑÓ³Ù1clkµÄÆô¶¯×Ô¶¯Ë¢ĞÂ
+    // å»¶è¿Ÿ1clkçš„å¯åŠ¨è‡ªåŠ¨åˆ·æ–°
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -154,14 +178,14 @@ module sdram_auto_refresh #(
             rfs_launched_d <= rfs_launched;
     end
     
-    // Ëø´æµÄ¸÷¸öbankÊÇ·ñactive
+    // é”å­˜çš„å„ä¸ªbankæ˜¯å¦active
     always @(posedge clk)
     begin
         if(rfs_launched_d)
             is_spec_bank_active_lateched <= ~is_spec_bank_idle;
     end
     
-    // Ëø´æµÄ¼¤»îbankµÄ¸öÊı
+    // é”å­˜çš„æ¿€æ´»bankçš„ä¸ªæ•°
     always @(posedge clk)
     begin
         if(rfs_launched_d)
@@ -171,7 +195,7 @@ module sdram_auto_refresh #(
         end
     end
     
-    // Ëø´æµÄbank±»¼¤»îµÄĞĞ
+    // é”å­˜çš„bankè¢«æ¿€æ´»çš„è¡Œ
     generate
         if(impl_method == 1)
         begin
@@ -229,7 +253,7 @@ module sdram_auto_refresh #(
         end
     endgenerate
     
-    // Ëø´æµÄ¼¤»îbank±àºÅ
+    // é”å­˜çš„æ¿€æ´»bankç¼–å·
     always @(posedge clk)
     begin
         if(rfs_launched_d)
@@ -273,15 +297,15 @@ module sdram_auto_refresh #(
         end
     end
     
-    /** ×Ô¶¯Ë¢ĞÂ¼ÆÊıÆ÷ **/
-    reg rfs_cnt_en; // ×Ô¶¯Ë¢ĞÂ¼ÆÊıÆ÷Ê¹ÄÜ
-    reg[clogb2(forced_refresh_itv_p-1):0] rfs_cnt; // ×Ô¶¯Ë¢ĞÂ¼ÆÊıÆ÷
-    reg rfs_alarm; // ×Ô¶¯Ë¢ĞÂÔ¤¾¯(±êÖ¾)
-    reg forced_rfs_start; // ¿ªÊ¼Ç¿ÖÆ×Ô¶¯Ë¢ĞÂ(Ö¸Ê¾)
+    /** è‡ªåŠ¨åˆ·æ–°è®¡æ•°å™¨ **/
+    reg rfs_cnt_en; // è‡ªåŠ¨åˆ·æ–°è®¡æ•°å™¨ä½¿èƒ½
+    reg[clogb2(forced_refresh_itv_p-1):0] rfs_cnt; // è‡ªåŠ¨åˆ·æ–°è®¡æ•°å™¨
+    reg rfs_alarm; // è‡ªåŠ¨åˆ·æ–°é¢„è­¦(æ ‡å¿—)
+    reg forced_rfs_start; // å¼€å§‹å¼ºåˆ¶è‡ªåŠ¨åˆ·æ–°(æŒ‡ç¤º)
     
     assign rfs_launched = (rfs_alarm & next_all_bank_idle) | forced_rfs_start;
     
-    // ×Ô¶¯Ë¢ĞÂ¼ÆÊıÆ÷Ê¹ÄÜ
+    // è‡ªåŠ¨åˆ·æ–°è®¡æ•°å™¨ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -289,17 +313,17 @@ module sdram_auto_refresh #(
         else if(~rfs_cnt_en)
             rfs_cnt_en <= start_rfs_timing;
     end
-    // ×Ô¶¯Ë¢ĞÂ¼ÆÊıÆ÷
+    // è‡ªåŠ¨åˆ·æ–°è®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
             rfs_cnt <= 0;
-        else if(rfs_launched_d) // ´ò1ÅÄÔÙÇåÁãÒ²ÎŞËùÎ½
+        else if(rfs_launched_d) // æ‰“1æ‹å†æ¸…é›¶ä¹Ÿæ— æ‰€è°“
             rfs_cnt <= 0;
         else if(rfs_cnt_en)
             rfs_cnt <= (rfs_cnt == (forced_refresh_itv_p - 1)) ? 0:(rfs_cnt + 1);
     end
-    // ×Ô¶¯Ë¢ĞÂÔ¤¾¯(±êÖ¾)
+    // è‡ªåŠ¨åˆ·æ–°é¢„è­¦(æ ‡å¿—)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -309,7 +333,7 @@ module sdram_auto_refresh #(
         else if(~rfs_alarm)
             rfs_alarm <= rfs_cnt == (refresh_itv_p - 1);
     end
-    // ¿ªÊ¼Ç¿ÖÆ×Ô¶¯Ë¢ĞÂ(Ö¸Ê¾)
+    // å¼€å§‹å¼ºåˆ¶è‡ªåŠ¨åˆ·æ–°(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -318,21 +342,21 @@ module sdram_auto_refresh #(
             forced_rfs_start <= rfs_cnt == (forced_refresh_itv_p - 1);
     end
     
-    /** ×Ô¶¯Ë¢ĞÂÁ÷³Ì¿ØÖÆ **/
-    reg[1:0] rfs_sts; // ×Ô¶¯Ë¢ĞÂµÄµ±Ç°×´Ì¬
-    reg[2:0] active_cnt; // ¼¤»îbank¼ÆÊıÆ÷
-    reg[2:0] active_cnt_add1; // ¼¤»îbank¼ÆÊıÆ÷ + 1
-    reg rfs_ctrler_running_reg; // Ë¢ĞÂ¿ØÖÆÆ÷ÔËĞĞÖĞ
+    /** è‡ªåŠ¨åˆ·æ–°æµç¨‹æ§åˆ¶ **/
+    reg[1:0] rfs_sts; // è‡ªåŠ¨åˆ·æ–°çš„å½“å‰çŠ¶æ€
+    reg[2:0] active_cnt; // æ¿€æ´»bankè®¡æ•°å™¨
+    reg[2:0] active_cnt_add1; // æ¿€æ´»bankè®¡æ•°å™¨ + 1
+    reg rfs_ctrler_running_reg; // åˆ·æ–°æ§åˆ¶å™¨è¿è¡Œä¸­
     
     assign rfs_ctrler_running = rfs_ctrler_running_reg;
     
-    // ×Ô¶¯Ë¢ĞÂµÄµ±Ç°×´Ì¬
-    // ¼¤»îbank¼ÆÊıÆ÷
-    // Ë¢ĞÂ¿ØÖÆÆ÷ÔËĞĞÖĞ
+    // è‡ªåŠ¨åˆ·æ–°çš„å½“å‰çŠ¶æ€
+    // æ¿€æ´»bankè®¡æ•°å™¨
+    // åˆ·æ–°æ§åˆ¶å™¨è¿è¡Œä¸­
     generate
         if(impl_method == 1)
         begin
-            // ×Ô¶¯Ë¢ĞÂµÄµ±Ç°×´Ì¬
+            // è‡ªåŠ¨åˆ·æ–°çš„å½“å‰çŠ¶æ€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -340,27 +364,27 @@ module sdram_auto_refresh #(
                 else
                 begin
                     case(rfs_sts)
-                        RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                        RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                             if(rfs_launched)
-                                rfs_sts <= next_all_bank_idle ? RFS_CMD_REFRESH: // -> ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
-                                    RFS_CMD_PRECHARGE_ALL; // -> ×´Ì¬:·¢ËÍ"Ô¤³äµç"ÃüÁî
-                        RFS_CMD_PRECHARGE_ALL: // ×´Ì¬:·¢ËÍ"Ô¤³äµç"ÃüÁî
+                                rfs_sts <= next_all_bank_idle ? RFS_CMD_REFRESH: // -> çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
+                                    RFS_CMD_PRECHARGE_ALL; // -> çŠ¶æ€:å‘é€"é¢„å……ç”µ"å‘½ä»¤
+                        RFS_CMD_PRECHARGE_ALL: // çŠ¶æ€:å‘é€"é¢„å……ç”µ"å‘½ä»¤
                             if(m_axis_rfs_ready)
-                                rfs_sts <= RFS_CMD_REFRESH; // -> ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
-                        RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                                rfs_sts <= RFS_CMD_REFRESH; // -> çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
+                        RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                             if(m_axis_rfs_ready)
-                                rfs_sts <= all_bank_idle_lateched ? RFS_NOT_START: // -> ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
-                                    RFS_CMD_ACTIVE; // -> ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
-                        RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                                rfs_sts <= all_bank_idle_lateched ? RFS_NOT_START: // -> çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
+                                    RFS_CMD_ACTIVE; // -> çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
+                        RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                             if(m_axis_rfs_ready & (active_cnt == bank_active_n))
-                                rfs_sts <= RFS_NOT_START; // -> ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                                rfs_sts <= RFS_NOT_START; // -> çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                         default:
                             rfs_sts <= RFS_NOT_START;
                     endcase
                 end
             end
             
-            // ¼¤»îbank¼ÆÊıÆ÷
+            // æ¿€æ´»bankè®¡æ•°å™¨
             always @(posedge clk)
             begin
                 if((rfs_sts == RFS_CMD_REFRESH) & m_axis_rfs_ready & (~all_bank_idle_lateched))
@@ -369,7 +393,7 @@ module sdram_auto_refresh #(
                     active_cnt <= active_cnt + 3'd1;
             end
             
-            // Ë¢ĞÂ¿ØÖÆÆ÷ÔËĞĞÖĞ
+            // åˆ·æ–°æ§åˆ¶å™¨è¿è¡Œä¸­
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -377,11 +401,11 @@ module sdram_auto_refresh #(
                 else
                 begin
                     case(rfs_sts)
-                        RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                        RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                             rfs_ctrler_running_reg <= rfs_launched;
-                        RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                        RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                             rfs_ctrler_running_reg <= ~(m_axis_rfs_ready & all_bank_idle_lateched);
-                        RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                        RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                             rfs_ctrler_running_reg <= ~(m_axis_rfs_ready & (active_cnt == bank_active_n));
                         default:
                             rfs_ctrler_running_reg <= rfs_ctrler_running_reg;
@@ -391,7 +415,7 @@ module sdram_auto_refresh #(
         end
         else
         begin
-            // ×Ô¶¯Ë¢ĞÂµÄµ±Ç°×´Ì¬
+            // è‡ªåŠ¨åˆ·æ–°çš„å½“å‰çŠ¶æ€
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -399,27 +423,27 @@ module sdram_auto_refresh #(
                 else
                 begin
                     case(rfs_sts)
-                        RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                        RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                             if(rfs_launched)
-                                rfs_sts <= next_all_bank_idle ? RFS_CMD_REFRESH: // -> ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
-                                    RFS_CMD_PRECHARGE_ALL; // -> ×´Ì¬:·¢ËÍ"Ô¤³äµç"ÃüÁî
-                        RFS_CMD_PRECHARGE_ALL: // ×´Ì¬:·¢ËÍ"Ô¤³äµç"ÃüÁî
+                                rfs_sts <= next_all_bank_idle ? RFS_CMD_REFRESH: // -> çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
+                                    RFS_CMD_PRECHARGE_ALL; // -> çŠ¶æ€:å‘é€"é¢„å……ç”µ"å‘½ä»¤
+                        RFS_CMD_PRECHARGE_ALL: // çŠ¶æ€:å‘é€"é¢„å……ç”µ"å‘½ä»¤
                             if(m_axis_rfs_ready)
-                                rfs_sts <= RFS_CMD_REFRESH; // -> ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
-                        RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                                rfs_sts <= RFS_CMD_REFRESH; // -> çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
+                        RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                             if(m_axis_rfs_ready)
-                                rfs_sts <= all_bank_idle_lateched ? RFS_NOT_START: // -> ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
-                                    RFS_CMD_ACTIVE; // -> ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
-                        RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                                rfs_sts <= all_bank_idle_lateched ? RFS_NOT_START: // -> çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
+                                    RFS_CMD_ACTIVE; // -> çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
+                        RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                             if(active_cnt[2])
-                                rfs_sts <= RFS_NOT_START; // -> ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                                rfs_sts <= RFS_NOT_START; // -> çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                         default:
                             rfs_sts <= RFS_NOT_START;
                     endcase
                 end
             end
             
-            // ¼¤»îbank¼ÆÊıÆ÷
+            // æ¿€æ´»bankè®¡æ•°å™¨
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -427,7 +451,7 @@ module sdram_auto_refresh #(
                 else if((rfs_sts == RFS_CMD_ACTIVE) & (((~is_spec_bank_active_lateched[active_cnt]) | m_axis_rfs_ready) | active_cnt[2]))
                     active_cnt <= active_cnt[2] ? 3'd0:(active_cnt + 3'd1);
             end
-            // ¼¤»îbank¼ÆÊıÆ÷ + 1
+            // æ¿€æ´»bankè®¡æ•°å™¨ + 1
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -436,7 +460,7 @@ module sdram_auto_refresh #(
                     active_cnt_add1 <= active_cnt[2] ? 3'd1:(active_cnt_add1 + 3'd1);
             end
             
-            // Ë¢ĞÂ¿ØÖÆÆ÷ÔËĞĞÖĞ
+            // åˆ·æ–°æ§åˆ¶å™¨è¿è¡Œä¸­
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -444,11 +468,11 @@ module sdram_auto_refresh #(
                 else
                 begin
                     case(rfs_sts)
-                        RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                        RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                             rfs_ctrler_running_reg <= rfs_launched;
-                        RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                        RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                             rfs_ctrler_running_reg <= ~(m_axis_rfs_ready & all_bank_idle_lateched);
-                        RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                        RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                             rfs_ctrler_running_reg <= ~active_cnt[2];
                         default:
                             rfs_ctrler_running_reg <= rfs_ctrler_running_reg;
@@ -458,40 +482,40 @@ module sdram_auto_refresh #(
         end
     endgenerate
     
-    /** ×Ô¶¯Ë¢ĞÂÃüÁîÁ÷AXIS **/
-    reg[15:0] now_cmd; // µ±Ç°ÃüÁî
-    reg cmd_valid; // ÃüÁîÓĞĞ§
+    /** è‡ªåŠ¨åˆ·æ–°å‘½ä»¤æµAXIS **/
+    reg[15:0] now_cmd; // å½“å‰å‘½ä»¤
+    reg cmd_valid; // å‘½ä»¤æœ‰æ•ˆ
     
     assign m_axis_rfs_data = now_cmd;
     assign m_axis_rfs_valid = cmd_valid;
     
-    // µ±Ç°ÃüÁî
-    // ÃüÁîÓĞĞ§
+    // å½“å‰å‘½ä»¤
+    // å‘½ä»¤æœ‰æ•ˆ
     generate
         if(impl_method == 1)
         begin
-            // µ±Ç°ÃüÁî
+            // å½“å‰å‘½ä»¤
             always @(posedge clk)
             begin
                 case(rfs_sts)
-                    RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                    RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                         now_cmd <= next_all_bank_idle ? {2'bxx, 11'bx_xxxxx_xxxxx, CMD_LOGI_AUTO_REFRESH}:
                             {2'bxx, 11'b1_xxxxx_xxxxx, CMD_LOGI_BANK_PRECHARGE};
-                    RFS_CMD_PRECHARGE_ALL: // ×´Ì¬:·¢ËÍ"Ô¤³äµç"ÃüÁî
+                    RFS_CMD_PRECHARGE_ALL: // çŠ¶æ€:å‘é€"é¢„å……ç”µ"å‘½ä»¤
                         if(m_axis_rfs_ready)
                             now_cmd <= {2'bxx, 11'bx_xxxxx_xxxxx, CMD_LOGI_AUTO_REFRESH};
-                    RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                    RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                         if(m_axis_rfs_ready)
                             now_cmd <= all_bank_idle_lateched ? 16'dx:
                                 {2'b00, bank_active_row_lateched[0], CMD_LOGI_BANK_ACTIVE};
-                    RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                    RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                         if(m_axis_rfs_ready)
                             now_cmd <= {bank_active_id_latched[active_cnt[1:0]], bank_active_row_lateched[active_cnt[1:0]], CMD_LOGI_BANK_ACTIVE};
                     default:
                         now_cmd <= now_cmd;
                 endcase
             end
-            // ÃüÁîÓĞĞ§
+            // å‘½ä»¤æœ‰æ•ˆ
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -499,12 +523,12 @@ module sdram_auto_refresh #(
                 else
                 begin
                     case(rfs_sts)
-                        RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                        RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                             cmd_valid <= rfs_launched;
-                        RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                        RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                             if(m_axis_rfs_ready)
                                 cmd_valid <= ~all_bank_idle_lateched;
-                        RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                        RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                             if(m_axis_rfs_ready)
                                 cmd_valid <= active_cnt != bank_active_n;
                         default:
@@ -515,21 +539,21 @@ module sdram_auto_refresh #(
         end
         else
         begin
-            // µ±Ç°ÃüÁî
+            // å½“å‰å‘½ä»¤
             always @(posedge clk)
             begin
                 case(rfs_sts)
-                    RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                    RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                         now_cmd <= next_all_bank_idle ? {2'bxx, 11'bx_xxxxx_xxxxx, CMD_LOGI_AUTO_REFRESH}:
                             {2'bxx, 11'b1_xxxxx_xxxxx, CMD_LOGI_BANK_PRECHARGE};
-                    RFS_CMD_PRECHARGE_ALL: // ×´Ì¬:·¢ËÍ"Ô¤³äµç"ÃüÁî
+                    RFS_CMD_PRECHARGE_ALL: // çŠ¶æ€:å‘é€"é¢„å……ç”µ"å‘½ä»¤
                         if(m_axis_rfs_ready)
                             now_cmd <= {2'bxx, 11'bx_xxxxx_xxxxx, CMD_LOGI_AUTO_REFRESH};
-                    RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                    RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                         if(m_axis_rfs_ready)
                             now_cmd <= all_bank_idle_lateched ? 16'dx:
                                 {2'b00, bank_active_row_lateched[0], CMD_LOGI_BANK_ACTIVE};
-                    RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                    RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                         if(active_cnt[2])
                             now_cmd <= 16'dx;
                         else if((~is_spec_bank_active_lateched[active_cnt]) | m_axis_rfs_ready)
@@ -538,7 +562,7 @@ module sdram_auto_refresh #(
                         now_cmd <= now_cmd;
                 endcase
             end
-            // ÃüÁîÓĞĞ§
+            // å‘½ä»¤æœ‰æ•ˆ
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -546,12 +570,12 @@ module sdram_auto_refresh #(
                 else
                 begin
                     case(rfs_sts)
-                        RFS_NOT_START: // ×´Ì¬:Ë¢ĞÂÎ´¿ªÊ¼
+                        RFS_NOT_START: // çŠ¶æ€:åˆ·æ–°æœªå¼€å§‹
                             cmd_valid <= rfs_launched;
-                        RFS_CMD_REFRESH: // ×´Ì¬:·¢ËÍ"Ë¢ĞÂ"ÃüÁî
+                        RFS_CMD_REFRESH: // çŠ¶æ€:å‘é€"åˆ·æ–°"å‘½ä»¤
                             if(m_axis_rfs_ready)
                                 cmd_valid <= all_bank_idle_lateched ? 1'b0:is_spec_bank_active_lateched[0];
-                        RFS_CMD_ACTIVE: // ×´Ì¬:·¢ËÍ"¼¤»î"ÃüÁî
+                        RFS_CMD_ACTIVE: // çŠ¶æ€:å‘é€"æ¿€æ´»"å‘½ä»¤
                             if(active_cnt[2])
                                 cmd_valid <= 1'b0;
                             else if((~is_spec_bank_active_lateched[active_cnt]) | m_axis_rfs_ready)

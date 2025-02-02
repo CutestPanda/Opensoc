@@ -1,29 +1,53 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: UART·¢ËÍ¿ØÖÆÆ÷
+æœ¬æ¨¡å—: UARTå‘é€æ§åˆ¶å™¨
 
-ÃèÊö: 
-UART·¢ËÍ¿ØÖÆÆ÷
-¿ÉÑ¡AXIS½Ó¿Ú»òFIFO½Ó¿Ú
+æè¿°: 
+UARTå‘é€æ§åˆ¶å™¨
+å¯é€‰AXISæ¥å£æˆ–FIFOæ¥å£
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS SLAVE
 FIFO READ
 UART
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/08
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/08
 ********************************************************************/
 
 
 module uart_tx #(
-    parameter integer clk_frequency = 200000000, // Ê±ÖÓÆµÂÊ
-    parameter integer baud_rate = 115200, // ²¨ÌØÂÊ
-    parameter interface = "axis", // ½Ó¿ÚĞ­Òé(axis|fifo)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer clk_frequency = 200000000, // æ—¶é’Ÿé¢‘ç‡
+    parameter integer baud_rate = 115200, // æ³¢ç‰¹ç‡
+    parameter interface = "axis", // æ¥å£åè®®(axis|fifo)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
     input wire clk,
     input wire rst_n,
@@ -42,7 +66,7 @@ module uart_tx #(
     output wire tx_done
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -54,7 +78,7 @@ module uart_tx #(
     
     localparam integer div_n = clk_frequency / baud_rate;
     
-    /** ·¢ËÍfifo¶Á¶Ë¿Ú **/
+    /** å‘é€fifoè¯»ç«¯å£ **/
     wire[7:0] tx_fifo_data_out;
     wire tx_fifo_empty_n;
     
@@ -66,7 +90,7 @@ module uart_tx #(
     
     assign tx_fifo_ren = ready_reg;
     
-    /** ·ÖÆµ¼ÆÊıÆ÷ **/
+    /** åˆ†é¢‘è®¡æ•°å™¨ **/
     reg[clogb2(div_n-1):0] cnt;
     reg cnt_last_flag;
     
@@ -90,19 +114,19 @@ module uart_tx #(
         end
     end
     
-    /** Êı¾İ·¢ËÍ×´Ì¬»ú **/
-    localparam status_idle = 2'b00; // ×´Ì¬:¿ÕÏĞ
-    localparam status_start = 2'b01; // ×´Ì¬:ÆğÊ¼Î»
-    localparam status_data = 2'b10; // ×´Ì¬:Êı¾İÎ»
-    localparam status_stop = 2'b11; // ×´Ì¬:Í£Ö¹Î»
+    /** æ•°æ®å‘é€çŠ¶æ€æœº **/
+    localparam status_idle = 2'b00; // çŠ¶æ€:ç©ºé—²
+    localparam status_start = 2'b01; // çŠ¶æ€:èµ·å§‹ä½
+    localparam status_data = 2'b10; // çŠ¶æ€:æ•°æ®ä½
+    localparam status_stop = 2'b11; // çŠ¶æ€:åœæ­¢ä½
     
-    reg[1:0] now_status; // µ±Ç°×´Ì¬
-    reg[7:0] now_byte; // ´ı·¢ËÍ×Ö½Ú
-    reg tx_reg; // UARTµÄtx¶Ë
-    reg[7:0] now_byte_i; // µ±Ç°·¢ËÍ×Ö½ÚµÄÎ»±àºÅ(¶ÀÒ»Âë)
-    reg byte_loaded; // ÒÑ¼ÓÔØ´ı·¢ËÍ×Ö½Ú(±êÖ¾)
-    reg tx_idle_reg; // UART¿ØÖÆÆ÷·¢ËÍ¿ÕÏĞ(±êÖ¾)
-    reg tx_done_reg; // UART¿ØÖÆÆ÷·¢ËÍÍê³É(±êÖ¾)
+    reg[1:0] now_status; // å½“å‰çŠ¶æ€
+    reg[7:0] now_byte; // å¾…å‘é€å­—èŠ‚
+    reg tx_reg; // UARTçš„txç«¯
+    reg[7:0] now_byte_i; // å½“å‰å‘é€å­—èŠ‚çš„ä½ç¼–å·(ç‹¬ä¸€ç )
+    reg byte_loaded; // å·²åŠ è½½å¾…å‘é€å­—èŠ‚(æ ‡å¿—)
+    reg tx_idle_reg; // UARTæ§åˆ¶å™¨å‘é€ç©ºé—²(æ ‡å¿—)
+    reg tx_done_reg; // UARTæ§åˆ¶å™¨å‘é€å®Œæˆ(æ ‡å¿—)
     
     assign tx = tx_reg;
     assign tx_idle = tx_idle_reg;
@@ -128,7 +152,7 @@ module uart_tx #(
             tx_done_reg <= 1'b0;
             
             case(now_status)
-                status_idle: // ×´Ì¬:¿ÕÏĞ
+                status_idle: // çŠ¶æ€:ç©ºé—²
                 begin
                     if(byte_loaded)
                         now_status <= status_start;
@@ -136,39 +160,39 @@ module uart_tx #(
                     byte_loaded <= tx_fifo_empty_n & ready_reg;
                     tx_reg <= 1'b1;
                     ready_reg <= (~byte_loaded) & (~(tx_fifo_empty_n & ready_reg));
-                    tx_idle_reg <= ~(byte_loaded | tx_fifo_empty_n); // Ö±½ÓÅĞ¶Ï~tx_fifo_empty_nÒ²¿ÉÒÔ???
+                    tx_idle_reg <= ~(byte_loaded | tx_fifo_empty_n); // ç›´æ¥åˆ¤æ–­~tx_fifo_empty_nä¹Ÿå¯ä»¥???
                 end
-                status_start: // ×´Ì¬:ÆğÊ¼Î»
+                status_start: // çŠ¶æ€:èµ·å§‹ä½
                 begin
                     if(cnt_last_flag)
                     begin
                         now_status <= status_data;
-                        tx_reg <= 1'b0; // ²úÉúÏÂ½µÑØ -> ÆğÊ¼Î»
+                        tx_reg <= 1'b0; // äº§ç”Ÿä¸‹é™æ²¿ -> èµ·å§‹ä½
                     end
                     
                     byte_loaded <= 1'b0;
                     tx_idle_reg <= 1'b0;
                 end
-                status_data: // ×´Ì¬:Êı¾İÎ»
+                status_data: // çŠ¶æ€:æ•°æ®ä½
                 begin
                     if(cnt_last_flag)
                     begin
                         if(now_byte_i[7])
                             now_status <= status_stop;
                         
-                        now_byte_i <= {now_byte_i[6:0], now_byte_i[7]}; // ¶Ôµ±Ç°·¢ËÍ×Ö½ÚµÄÎ»±àºÅ(¶ÀÒ»Âë)×öÑ­»·×óÒÆ
-                        tx_reg <= now_byte[0]; // ·¢ËÍÏÂÒ»Êı¾İÎ»
+                        now_byte_i <= {now_byte_i[6:0], now_byte_i[7]}; // å¯¹å½“å‰å‘é€å­—èŠ‚çš„ä½ç¼–å·(ç‹¬ä¸€ç )åšå¾ªç¯å·¦ç§»
+                        tx_reg <= now_byte[0]; // å‘é€ä¸‹ä¸€æ•°æ®ä½
                     end
                     
                     byte_loaded <= 1'b0;
                     tx_idle_reg <= 1'b0;
                 end
-                status_stop: // ×´Ì¬:Í£Ö¹Î»
+                status_stop: // çŠ¶æ€:åœæ­¢ä½
                 begin
                     if(cnt_last_flag)
                     begin
                         now_status <= status_idle;
-                        tx_reg <= 1'b1; // ²úÉúÍ£Ö¹Î»
+                        tx_reg <= 1'b1; // äº§ç”Ÿåœæ­¢ä½
                         tx_done_reg <= 1'b1;
                     end
                     
@@ -187,15 +211,15 @@ module uart_tx #(
         end
     end
     
-    // ´ı·¢ËÍ×Ö½Ú
+    // å¾…å‘é€å­—èŠ‚
     always @(posedge clk)
     begin
         # simulation_delay;
         
         if((now_status == status_idle) &
-            ((interface == "axis") ? (tx_fifo_empty_n & ready_reg):byte_loaded)) // ÔØÈë
+            ((interface == "axis") ? (tx_fifo_empty_n & ready_reg):byte_loaded)) // è½½å…¥
             now_byte <= tx_fifo_data_out;
-        else if((now_status == status_data) & cnt_last_flag) // ÓÒÒÆ
+        else if((now_status == status_data) & cnt_last_flag) // å³ç§»
             now_byte <= {1'bx, now_byte[7:1]};
     end
 

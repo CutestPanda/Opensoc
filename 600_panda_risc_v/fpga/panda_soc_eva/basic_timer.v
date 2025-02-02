@@ -1,65 +1,89 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: »ù±¾¶¨Ê±Æ÷
+æœ¬æ¨¡å—: åŸºæœ¬å®šæ—¶å™¨
 
-ÃèÊö: 
-´øÔ¤·ÖÆµºÍ×Ô¶¯×°ÔØ¹¦ÄÜ
-8~32Î»»ù±¾¶¨Ê±Æ÷
+æè¿°: 
+å¸¦é¢„åˆ†é¢‘å’Œè‡ªåŠ¨è£…è½½åŠŸèƒ½
+8~32ä½åŸºæœ¬å®šæ—¶å™¨
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/10
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/10
 ********************************************************************/
 
 
 module basic_timer #(
-    parameter integer timer_width = 16, // ¶¨Ê±Æ÷Î»¿í(8~32)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer timer_width = 16, // å®šæ—¶å™¨ä½å®½(8~32)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // Ô¤·ÖÆµÏµÊı - 1
+    // é¢„åˆ†é¢‘ç³»æ•° - 1
     input wire[timer_width-1:0] prescale,
-    // ×Ô¶¯×°ÔØÖµ - 1
+    // è‡ªåŠ¨è£…è½½å€¼ - 1
     input wire[timer_width-1:0] autoload,
     
-    // ¶¨Ê±Æ÷¼ÆÊıÖµ
+    // å®šæ—¶å™¨è®¡æ•°å€¼
     input wire timer_cnt_to_set,
     input wire[timer_width-1:0] timer_cnt_set_v,
     output wire[timer_width-1:0] timer_cnt_now_v,
     
-    // ÊÇ·ñÆô¶¯¶¨Ê±Æ÷
+    // æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨
     input wire timer_started,
     
-    // ¶¨Ê±Æ÷¼ÆÊıÒç³ö(Ö¸Ê¾)
+    // å®šæ—¶å™¨è®¡æ•°æº¢å‡º(æŒ‡ç¤º)
     output wire timer_expired,
     
-    // ¼ÆÊıÒç³öÖĞ¶ÏÇëÇó
+    // è®¡æ•°æº¢å‡ºä¸­æ–­è¯·æ±‚
     output wire timer_expired_itr_req
 );
     
-    /** Ô¤·ÖÆµ¼ÆÊıÆ÷ **/
-    reg[timer_width-1:0] prescale_shadow; // Ô¤·ÖÆµÏµÊı - 1(Ó°×Ó¼Ä´æÆ÷)
-    wire prescale_cnt_rst; // Ô¤·ÖÆµ¼ÆÊıÆ÷(»ØÁãÖ¸Ê¾)
-    reg[timer_width-1:0] prescale_cnt; // Ô¤·ÖÆµ¼ÆÊıÆ÷
+    /** é¢„åˆ†é¢‘è®¡æ•°å™¨ **/
+    reg[timer_width-1:0] prescale_shadow; // é¢„åˆ†é¢‘ç³»æ•° - 1(å½±å­å¯„å­˜å™¨)
+    wire prescale_cnt_rst; // é¢„åˆ†é¢‘è®¡æ•°å™¨(å›é›¶æŒ‡ç¤º)
+    reg[timer_width-1:0] prescale_cnt; // é¢„åˆ†é¢‘è®¡æ•°å™¨
     
     assign prescale_cnt_rst = prescale_cnt == prescale_shadow;
     
-    // Ô¤·ÖÆµÏµÊı - 1(Ó°×Ó¼Ä´æÆ÷)
+    // é¢„åˆ†é¢‘ç³»æ•° - 1(å½±å­å¯„å­˜å™¨)
     always @(posedge clk)
     begin
         if((~timer_started) | prescale_cnt_rst)
             # simulation_delay prescale_shadow <= prescale;
     end
     
-    // Ô¤·ÖÆµ¼ÆÊıÆ÷
+    // é¢„åˆ†é¢‘è®¡æ•°å™¨
     always @(posedge clk)
     begin
         if(~timer_started)
@@ -68,16 +92,16 @@ module basic_timer #(
             # simulation_delay prescale_cnt <= prescale_cnt_rst ? 0:(prescale_cnt + 1);
     end
     
-    /** ¶¨Ê±¼ÆÊıÆ÷ **/
-    reg[timer_width-1:0] timer_cnt; // ¶¨Ê±¼ÆÊıÆ÷
-    reg timer_expired_d; // ÑÓ³Ù1clkµÄ¶¨Ê±Æ÷¼ÆÊıÒç³ö(Ö¸Ê¾)
+    /** å®šæ—¶è®¡æ•°å™¨ **/
+    reg[timer_width-1:0] timer_cnt; // å®šæ—¶è®¡æ•°å™¨
+    reg timer_expired_d; // å»¶è¿Ÿ1clkçš„å®šæ—¶å™¨è®¡æ•°æº¢å‡º(æŒ‡ç¤º)
     
     assign timer_cnt_now_v = timer_cnt;
     assign timer_expired = timer_started & prescale_cnt_rst & (timer_cnt == 0);
     
     assign timer_expired_itr_req = timer_expired_d;
     
-    // ¶¨Ê±¼ÆÊıÆ÷
+    // å®šæ—¶è®¡æ•°å™¨
     always @(posedge clk)
     begin
         if(timer_cnt_to_set)
@@ -86,7 +110,7 @@ module basic_timer #(
             # simulation_delay timer_cnt <= (timer_cnt == 0) ? autoload:(timer_cnt - 1);
     end
     
-    // ÑÓ³Ù1clkµÄ¶¨Ê±Æ÷¼ÆÊıÒç³ö(Ö¸Ê¾)
+    // å»¶è¿Ÿ1clkçš„å®šæ—¶å™¨è®¡æ•°æº¢å‡º(æŒ‡ç¤º)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)

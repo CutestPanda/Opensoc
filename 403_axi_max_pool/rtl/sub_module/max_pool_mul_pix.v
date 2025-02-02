@@ -1,26 +1,50 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ×î´ó³Ø»¯´¦Àíµ¥Ôª(¶àÏñËØ/clk)
+æœ¬æ¨¡å—: æœ€å¤§æ± åŒ–å¤„ç†å•å…ƒ(å¤šåƒç´ /clk)
 
-ÃèÊö:
-ÊµÏÖÉñ¾­ÍøÂçÖĞµÄ×î´ó³Ø»¯´¦Àí(max pool)
-¶àÏñËØ/clk
-Á÷¿ØÖÆÄ£Ê½¹Ì¶¨Îª×èÈû
-³Ø»¯´°¿Ú´óĞ¡Îª2x2
-Ö§³Ö²½³¤Îª1»ò2
-Ö§³Öµ±²½³¤Îª1Ê±ÏòÉÏ/ÏÂ/×ó/ÓÒÌî³ä
+æè¿°:
+å®ç°ç¥ç»ç½‘ç»œä¸­çš„æœ€å¤§æ± åŒ–å¤„ç†(max pool)
+å¤šåƒç´ /clk
+æµæ§åˆ¶æ¨¡å¼å›ºå®šä¸ºé˜»å¡
+æ± åŒ–çª—å£å¤§å°ä¸º2x2
+æ”¯æŒæ­¥é•¿ä¸º1æˆ–2
+æ”¯æŒå½“æ­¥é•¿ä¸º1æ—¶å‘ä¸Š/ä¸‹/å·¦/å³å¡«å……
 
-ÌØÕ÷×éÌáÈ¡Æ÷(»º´æ¼Ä´æÆ÷Çø1clk, [AXIS¼Ä´æÆ÷Æ¬1clk]) -> 
-	ĞĞÌî³ä´¦Àíµ¥Ôª([AXIS¼Ä´æÆ÷Æ¬1clk]) -> 
-	2¼¶Á÷Ë®Ïß(ĞĞ»º´æMEM¶ÁÑÓ³Ù1clk, ROI¼Ä´æÆ÷1clk) -> 
-	2¼¶Á÷Ë®Ïß(×î´ó³Ø»¯¼ÆËã2clk) -> 
-	Êä³öÌØÕ÷ÏîÕûÀíµ¥Ôª([AXIS¼Ä´æÆ÷Æ¬1clk]) -> 
-	Êä³öÌØÕ÷Êı¾İÊÕ¼¯µ¥Ôª(¼Ä´æÆ÷»º´æÇø1clk) -> 
-	[Êä³ö¼Ä´æÆ÷Æ¬1clk]
+ç‰¹å¾ç»„æå–å™¨(ç¼“å­˜å¯„å­˜å™¨åŒº1clk, [AXISå¯„å­˜å™¨ç‰‡1clk]) -> 
+	è¡Œå¡«å……å¤„ç†å•å…ƒ([AXISå¯„å­˜å™¨ç‰‡1clk]) -> 
+	2çº§æµæ°´çº¿(è¡Œç¼“å­˜MEMè¯»å»¶è¿Ÿ1clk, ROIå¯„å­˜å™¨1clk) -> 
+	2çº§æµæ°´çº¿(æœ€å¤§æ± åŒ–è®¡ç®—2clk) -> 
+	è¾“å‡ºç‰¹å¾é¡¹æ•´ç†å•å…ƒ([AXISå¯„å­˜å™¨ç‰‡1clk]) -> 
+	è¾“å‡ºç‰¹å¾æ•°æ®æ”¶é›†å•å…ƒ(å¯„å­˜å™¨ç¼“å­˜åŒº1clk) -> 
+	[è¾“å‡ºå¯„å­˜å™¨ç‰‡1clk]
 
-´¦ÀíËÙ¶È = 1ÌØÕ÷×é/clk
+å¤„ç†é€Ÿåº¦ = 1ç‰¹å¾ç»„/clk
 
-²½³¤       ÊäÈë     Êä³ö
+æ­¥é•¿       è¾“å…¥     è¾“å‡º
   1      1 1 2 2  [1  1  2  2  2]
          3 4 3 1  [3] 4  4  3 [2]
          1 1 0 0  [3] 4  4  3 [1]
@@ -31,10 +55,10 @@
          1 1 0 0
          7 8 0 1      8     1
 
-×¢Òâ£º
-ÊäÈëÌØÕ÷Í¼µÄ¿í¶È/¸ß¶È/Í¨µÀÊı±ØĞë<=×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È/¸ß¶È/Í¨µÀÊı
+æ³¨æ„ï¼š
+è¾“å…¥ç‰¹å¾å›¾çš„å®½åº¦/é«˜åº¦/é€šé“æ•°å¿…é¡»<=æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦/é«˜åº¦/é€šé“æ•°
 
-ÊäÈë/Êä³öÌØÕ÷Í¼Êı¾İÁ÷ ->
+è¾“å…¥/è¾“å‡ºç‰¹å¾å›¾æ•°æ®æµ ->
 	[x1, y1, c1] ... [xn, y1, c1]
 				  .
 				  .
@@ -49,56 +73,56 @@
 				  .
 	[x1, yn, cn] ... [x1, yn, cn]
 
-Ğ­Òé:
+åè®®:
 BLK CTRL
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/11
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/11
 ********************************************************************/
 
 
 module max_pool_mul_pix #(
-    parameter integer feature_n_per_clk = 4, // Ã¿¸öclkÊäÈëµÄÌØÕ÷µãÊıÁ¿(2 | 4 | 8 | 16 | ...)
-	parameter integer feature_data_width = 8, // ÌØÕ÷µãÎ»¿í(±ØĞëÄÜ±»8Õû³ı, ÇÒ>0)
-	parameter integer max_feature_chn_n = 128, // ×î´óµÄÌØÕ÷Í¼Í¨µÀÊı
-	parameter integer max_feature_w = 128, // ×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È
-	parameter integer max_feature_h = 128, // ×î´óµÄÊäÈëÌØÕ÷Í¼¸ß¶È
-	parameter en_out_reg_slice = "true", // ÊÇ·ñÊ¹ÓÃÊä³ö¼Ä´æÆ÷Æ¬
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer feature_n_per_clk = 4, // æ¯ä¸ªclkè¾“å…¥çš„ç‰¹å¾ç‚¹æ•°é‡(2 | 4 | 8 | 16 | ...)
+	parameter integer feature_data_width = 8, // ç‰¹å¾ç‚¹ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤, ä¸”>0)
+	parameter integer max_feature_chn_n = 128, // æœ€å¤§çš„ç‰¹å¾å›¾é€šé“æ•°
+	parameter integer max_feature_w = 128, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦
+	parameter integer max_feature_h = 128, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾é«˜åº¦
+	parameter en_out_reg_slice = "true", // æ˜¯å¦ä½¿ç”¨è¾“å‡ºå¯„å­˜å™¨ç‰‡
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ¿é¼¶¿ØÖÆ
+	// å—çº§æ§åˆ¶
 	input wire blk_start,
 	output wire blk_idle,
 	output wire blk_done,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire step_type, // ²½³¤ÀàĞÍ(1'b0 -> ²½³¤Îª1, 1'b1 -> ²½³¤Îª2)
-	input wire[3:0] padding_vec, // ÍâÍØÌî³äÏòÁ¿(½öµ±²½³¤Îª1Ê±¿ÉÓÃ, {ÉÏ, ÏÂ, ×ó, ÓÒ})
-	input wire[15:0] feature_map_chn_n, // ÌØÕ÷Í¼Í¨µÀÊı - 1
-	input wire[15:0] feature_map_w, // ÌØÕ÷Í¼¿í¶È - 1
-	input wire[15:0] feature_map_h, // ÌØÕ÷Í¼¸ß¶È - 1
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire step_type, // æ­¥é•¿ç±»å‹(1'b0 -> æ­¥é•¿ä¸º1, 1'b1 -> æ­¥é•¿ä¸º2)
+	input wire[3:0] padding_vec, // å¤–æ‹“å¡«å……å‘é‡(ä»…å½“æ­¥é•¿ä¸º1æ—¶å¯ç”¨, {ä¸Š, ä¸‹, å·¦, å³})
+	input wire[15:0] feature_map_chn_n, // ç‰¹å¾å›¾é€šé“æ•° - 1
+	input wire[15:0] feature_map_w, // ç‰¹å¾å›¾å®½åº¦ - 1
+	input wire[15:0] feature_map_h, // ç‰¹å¾å›¾é«˜åº¦ - 1
 	
-	// ´ı´¦ÀíÌØÕ÷Í¼ÏñËØÁ÷ÊäÈë
+	// å¾…å¤„ç†ç‰¹å¾å›¾åƒç´ æµè¾“å…¥
 	input wire[feature_n_per_clk*feature_data_width-1:0] s_axis_data,
 	input wire[feature_n_per_clk*feature_data_width/8-1:0] s_axis_keep,
-	input wire s_axis_last, // Ö¸Ê¾ÌØÕ÷Í¼½áÊø
+	input wire s_axis_last, // æŒ‡ç¤ºç‰¹å¾å›¾ç»“æŸ
 	input wire s_axis_valid,
 	output wire s_axis_ready,
 	
-	// ´¦ÀíºóÌØÕ÷Í¼ÏñËØÁ÷Êä³ö
+	// å¤„ç†åç‰¹å¾å›¾åƒç´ æµè¾“å‡º
 	output wire[feature_n_per_clk*feature_data_width-1:0] m_axis_data,
 	output wire[feature_n_per_clk*feature_data_width/8-1:0] m_axis_keep,
-	output wire m_axis_last, // ÌØÕ÷Í¼×îºó1µã
+	output wire m_axis_last, // ç‰¹å¾å›¾æœ€å1ç‚¹
 	output wire m_axis_valid,
 	input wire m_axis_ready
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
         for(clogb2 = -1;bit_depth > 0;clogb2 = clogb2 + 1)
@@ -106,23 +130,23 @@ module max_pool_mul_pix #(
     end
     endfunction
 	
-	/** ÄÚ²¿ÅäÖÃ **/
-	localparam en_reg_slice_at_feature_row_realign = "false"; // ÊÇ·ñÔÚÌØÕ÷×éÌáÈ¡Æ÷µÄÊä³ö²åÈëAXIS¼Ä´æÆ÷Æ¬
-	localparam en_reg_slice_at_row_padding = "false"; // ÊÇ·ñÔÚĞĞÌî³ä´¦Àíµ¥ÔªµÄÊä³ö²åÈëAXIS¼Ä´æÆ÷Æ¬
-	localparam en_reg_slice_at_item_formator = "true"; // ÊÇ·ñÔÚÊä³öÌØÕ÷ÏîÕûÀíµ¥ÔªµÄÊä³ö²åÈëAXIS¼Ä´æÆ÷Æ¬
+	/** å†…éƒ¨é…ç½® **/
+	localparam en_reg_slice_at_feature_row_realign = "false"; // æ˜¯å¦åœ¨ç‰¹å¾ç»„æå–å™¨çš„è¾“å‡ºæ’å…¥AXISå¯„å­˜å™¨ç‰‡
+	localparam en_reg_slice_at_row_padding = "false"; // æ˜¯å¦åœ¨è¡Œå¡«å……å¤„ç†å•å…ƒçš„è¾“å‡ºæ’å…¥AXISå¯„å­˜å™¨ç‰‡
+	localparam en_reg_slice_at_item_formator = "true"; // æ˜¯å¦åœ¨è¾“å‡ºç‰¹å¾é¡¹æ•´ç†å•å…ƒçš„è¾“å‡ºæ’å…¥AXISå¯„å­˜å™¨ç‰‡
 	
-	/** ³£Á¿ **/
-	localparam integer in_stream_data_width = feature_n_per_clk*feature_data_width; // ÊäÈëÏñËØÁ÷Î»¿í
-	localparam integer out_stream_data_width = (feature_n_per_clk+1)*feature_data_width; // Êä³öÏñËØÁ÷Î»¿í
+	/** å¸¸é‡ **/
+	localparam integer in_stream_data_width = feature_n_per_clk*feature_data_width; // è¾“å…¥åƒç´ æµä½å®½
+	localparam integer out_stream_data_width = (feature_n_per_clk+1)*feature_data_width; // è¾“å‡ºåƒç´ æµä½å®½
 	
-	/** Êä³ö¼Ä´æÆ÷Æ¬ **/
-	// AXIS´Ó»ú
+	/** è¾“å‡ºå¯„å­˜å™¨ç‰‡ **/
+	// AXISä»æœº
 	wire[feature_n_per_clk*feature_data_width-1:0] s_axis_reg_slice_data;
     wire[feature_n_per_clk*feature_data_width/8-1:0] s_axis_reg_slice_keep;
     wire s_axis_reg_slice_last;
     wire s_axis_reg_slice_valid;
     wire s_axis_reg_slice_ready;
-	// AXISÖ÷»ú
+	// AXISä¸»æœº
 	wire[feature_n_per_clk*feature_data_width-1:0] m_axis_reg_slice_data;
     wire[feature_n_per_clk*feature_data_width/8-1:0] m_axis_reg_slice_keep;
     wire m_axis_reg_slice_last;
@@ -161,7 +185,7 @@ module max_pool_mul_pix #(
 		.m_axis_ready(m_axis_reg_slice_ready)
 	);
 	
-	/** ¿é¼¶¿ØÖÆ **/
+	/** å—çº§æ§åˆ¶ **/
 	wire row_padding_start;
 	wire row_padding_idle;
 	wire row_padding_done;
@@ -176,7 +200,7 @@ module max_pool_mul_pix #(
 	assign max_pool_start = blk_start;
 	assign max_pool_done = m_axis_valid & m_axis_ready & m_axis_last;
 	
-	// ×î´ó³Ø»¯µ¥Ôª¿ÕÏĞ±êÖ¾
+	// æœ€å¤§æ± åŒ–å•å…ƒç©ºé—²æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -185,12 +209,12 @@ module max_pool_mul_pix #(
 			max_pool_idle <= # simulation_delay max_pool_idle ? (~max_pool_start):max_pool_done;
 	end
 	
-	/** ÌØÕ÷×éÌáÈ¡Æ÷ **/
-	// ÌØÕ÷×éÊä³ö
+	/** ç‰¹å¾ç»„æå–å™¨ **/
+	// ç‰¹å¾ç»„è¾“å‡º
 	wire[in_stream_data_width-1:0] m_axis_ft_gp_data;
-	wire[2:0] m_axis_ft_gp_user; // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
+	wire[2:0] m_axis_ft_gp_user; // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
 	wire[in_stream_data_width/8-1:0] m_axis_ft_gp_keep;
-	wire m_axis_ft_gp_last; // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	wire m_axis_ft_gp_last; // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	wire m_axis_ft_gp_valid;
 	wire m_axis_ft_gp_ready;
 	
@@ -226,19 +250,19 @@ module max_pool_mul_pix #(
 		.m_axis_ready(m_axis_ft_gp_ready)
 	);
 	
-	/** ĞĞÌî³ä´¦Àíµ¥Ôª **/
-	// ĞĞÌî³äÊäÈë
+	/** è¡Œå¡«å……å¤„ç†å•å…ƒ **/
+	// è¡Œå¡«å……è¾“å…¥
 	wire[in_stream_data_width-1:0] s_axis_row_padding_data;
-	wire[2:0] s_axis_row_padding_user; // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
+	wire[2:0] s_axis_row_padding_user; // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
 	wire[in_stream_data_width/8-1:0] s_axis_row_padding_keep;
-	wire s_axis_row_padding_last; // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	wire s_axis_row_padding_last; // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	wire s_axis_row_padding_valid;
 	wire s_axis_row_padding_ready;
-	// ĞĞÌî³äÊä³ö
+	// è¡Œå¡«å……è¾“å‡º
 	wire[in_stream_data_width-1:0] m_axis_row_padding_data;
-	wire[2:0] m_axis_row_padding_user; // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
+	wire[2:0] m_axis_row_padding_user; // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
 	wire[in_stream_data_width/8-1:0] m_axis_row_padding_keep;
-	wire m_axis_row_padding_last; // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	wire m_axis_row_padding_last; // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	wire m_axis_row_padding_valid;
 	wire m_axis_row_padding_ready;
 	
@@ -284,17 +308,17 @@ module max_pool_mul_pix #(
 		.m_axis_ready(m_axis_row_padding_ready)
 	);
 	
-	/** ĞĞ»º´æÇø **/
-	// ÌØÕ÷×éÑÚÂë
-	wire[feature_n_per_clk-1:0] feature_in_keep; // ÌØÕ÷ÏîÑÚÂë
-	wire[in_stream_data_width-1:0] feature_in_data_mask; // ÌØÕ÷Êı¾İÑÚÂë
-	// ĞĞ»º´æMEMĞ´¶Ë¿Ú
+	/** è¡Œç¼“å­˜åŒº **/
+	// ç‰¹å¾ç»„æ©ç 
+	wire[feature_n_per_clk-1:0] feature_in_keep; // ç‰¹å¾é¡¹æ©ç 
+	wire[in_stream_data_width-1:0] feature_in_data_mask; // ç‰¹å¾æ•°æ®æ©ç 
+	// è¡Œç¼“å­˜MEMå†™ç«¯å£
 	wire line_buf_mem_wen_a;
 	reg[clogb2(max_feature_w/feature_n_per_clk-1):0] line_buf_mem_addr;
-	wire[in_stream_data_width-1:0] line_buf_mem_din_a; // ÌØÕ÷×éÊı¾İ
-	// ĞĞ»º´æMEM¶Á¶Ë¿Ú
+	wire[in_stream_data_width-1:0] line_buf_mem_din_a; // ç‰¹å¾ç»„æ•°æ®
+	// è¡Œç¼“å­˜MEMè¯»ç«¯å£
 	wire line_buf_mem_ren_b;
-	wire[in_stream_data_width-1:0] line_buf_mem_dout_b; // ÌØÕ÷×éÊı¾İ
+	wire[in_stream_data_width-1:0] line_buf_mem_dout_b; // ç‰¹å¾ç»„æ•°æ®
 	
 	genvar feature_in_keep_i;
 	generate
@@ -314,7 +338,7 @@ module max_pool_mul_pix #(
 	
 	assign line_buf_mem_ren_b = m_axis_row_padding_valid & m_axis_row_padding_ready;
 	
-	// ĞĞ»º´æMEM¶ÁĞ´µØÖ·
+	// è¡Œç¼“å­˜MEMè¯»å†™åœ°å€
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -323,7 +347,7 @@ module max_pool_mul_pix #(
 			line_buf_mem_addr <= # simulation_delay m_axis_row_padding_user[0] ? 0:(line_buf_mem_addr + 1);
 	end
 	
-	// ĞĞ»º´æMEM
+	// è¡Œç¼“å­˜MEM
 	bram_simple_dual_port #(
 		.style("LOW_LATENCY"),
 		.mem_width(in_stream_data_width),
@@ -342,16 +366,16 @@ module max_pool_mul_pix #(
 		.dout_b(line_buf_mem_dout_b)
 	);
 	
-	/** ³Ø»¯Î»ÖÃ¼ÆÊıÆ÷ **/
-	wire[clogb2(max_feature_w-1):0] pool_x; // ³Ø»¯x×ø±ê(not used!)
-	reg pool_x_eq0; // ³Ø»¯x×ø±ê == 0(±êÖ¾)
-	reg[clogb2(max_feature_h+1):0] pool_y; // ³Ø»¯y×ø±ê
-	reg pool_y_eq0; // ³Ø»¯y×ø±ê == 0(±êÖ¾)
+	/** æ± åŒ–ä½ç½®è®¡æ•°å™¨ **/
+	wire[clogb2(max_feature_w-1):0] pool_x; // æ± åŒ–xåæ ‡(not used!)
+	reg pool_x_eq0; // æ± åŒ–xåæ ‡ == 0(æ ‡å¿—)
+	reg[clogb2(max_feature_h+1):0] pool_y; // æ± åŒ–yåæ ‡
+	reg pool_y_eq0; // æ± åŒ–yåæ ‡ == 0(æ ‡å¿—)
 	
-	// feature_n_per_clkÎª2^x, ½ö×ö×óÒÆ¼ÆËã
+	// feature_n_per_clkä¸º2^x, ä»…åšå·¦ç§»è®¡ç®—
 	assign pool_x = line_buf_mem_addr * feature_n_per_clk;
 	
-	// ³Ø»¯x×ø±ê == 0(±êÖ¾)
+	// æ± åŒ–xåæ ‡ == 0(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -360,7 +384,7 @@ module max_pool_mul_pix #(
 			pool_x_eq0 <= # simulation_delay m_axis_row_padding_user[0];
 	end
 	
-	// ³Ø»¯y×ø±ê
+	// æ± åŒ–yåæ ‡
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -369,7 +393,7 @@ module max_pool_mul_pix #(
 			pool_y <= # simulation_delay m_axis_row_padding_user[1] ? 0:(pool_y + 1);
 	end
 	
-	// ³Ø»¯y×ø±ê == 0(±êÖ¾)
+	// æ± åŒ–yåæ ‡ == 0(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -378,16 +402,16 @@ module max_pool_mul_pix #(
 			pool_y_eq0 <= # simulation_delay m_axis_row_padding_user[1];
 	end
 	
-	/** ³Ø»¯ROIÉú³ÉÁ÷Ë®Ïß¿ØÖÆ **/
-	reg feature_in_vld_d; // ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷×éÓĞĞ§Ö¸Ê¾
+	/** æ± åŒ–ROIç”Ÿæˆæµæ°´çº¿æ§åˆ¶ **/
+	reg feature_in_vld_d; // å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾ç»„æœ‰æ•ˆæŒ‡ç¤º
 	wire pool_roi_gen_stage1_ready;
-	reg pool_roi_vld; // ³Ø»¯ROIÓĞĞ§Ö¸Ê¾
+	reg pool_roi_vld; // æ± åŒ–ROIæœ‰æ•ˆæŒ‡ç¤º
 	wire pool_roi_gen_stage2_ready;
 	
 	assign m_axis_row_padding_ready = (~feature_in_vld_d) | pool_roi_gen_stage1_ready;
 	assign pool_roi_gen_stage1_ready = (~pool_roi_vld) | pool_roi_gen_stage2_ready;
 	
-	// ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷×éÓĞĞ§Ö¸Ê¾
+	// å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾ç»„æœ‰æ•ˆæŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -397,106 +421,106 @@ module max_pool_mul_pix #(
 	end
 	
 	/**
-	³Ø»¯ROI
+	æ± åŒ–ROI
 	
-	Êı¾İ -> 
+	æ•°æ® -> 
 		[pool_left_buf_r1] pool_roi_r1
 		[pool_left_buf_r2] pool_roi_r2
 	
-	ÌØÕ÷ÏîÊ¹ÄÜÑÚÂë -> 
+	ç‰¹å¾é¡¹ä½¿èƒ½æ©ç  -> 
 		pool_roi_keep
 	**/
-	reg[in_stream_data_width-1:0] feature_in_d; // ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷×é
-	reg[feature_n_per_clk-1:0] feature_in_keep_d; // ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷ÏîÊ¹ÄÜÑÚÂë
-	reg pool_x_eq0_d; // ÑÓ³Ù1clkµÄ³Ø»¯x×ø±ê == 0(±êÖ¾)
-	reg[clogb2(max_feature_h-1):0] pool_y_d; // ÑÓ³Ù1clkµÄ³Ø»¯y×ø±ê
-	reg pool_y_eq0_d; // ÑÓ³Ù1clkµÄ³Ø»¯y×ø±ê == 0(±êÖ¾)
-	reg[3:0] pool_roi_user_last_d; // ÑÓ³Ù1clkµÄÊä³öÏñËØÁ÷µÄÎ»ÖÃ±êÖ¾({1ast(1bit), user(3bit)})
-	reg pool_x_eq0_d2; // ÑÓ³Ù2clkµÄ³Ø»¯x×ø±ê == 0(±êÖ¾)
-	reg[in_stream_data_width-1:0] pool_roi_r1; // ³Ø»¯ROIµÚ1ĞĞ
-	reg[in_stream_data_width-1:0] pool_roi_r2; // ³Ø»¯ROIµÚ2ĞĞ
-	reg[feature_n_per_clk-1:0] pool_roi_keep; // ³Ø»¯ROIÌØÕ÷ÏîÊ¹ÄÜÑÚÂë
-	reg[feature_data_width-1:0] pool_left_buf_r1; // ³Ø»¯ROIµÚ1ĞĞÊ£Óà»º´æ
-	reg[feature_data_width-1:0] pool_left_buf_r2; // ³Ø»¯ROIµÚ2ĞĞÊ£Óà»º´æ
-	reg[3:0] pool_roi_user_last_d2; // ÑÓ³Ù2clkµÄÊä³öÏñËØÁ÷µÄÎ»ÖÃ±êÖ¾({1ast(1bit), user(3bit)})
+	reg[in_stream_data_width-1:0] feature_in_d; // å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾ç»„
+	reg[feature_n_per_clk-1:0] feature_in_keep_d; // å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾é¡¹ä½¿èƒ½æ©ç 
+	reg pool_x_eq0_d; // å»¶è¿Ÿ1clkçš„æ± åŒ–xåæ ‡ == 0(æ ‡å¿—)
+	reg[clogb2(max_feature_h-1):0] pool_y_d; // å»¶è¿Ÿ1clkçš„æ± åŒ–yåæ ‡
+	reg pool_y_eq0_d; // å»¶è¿Ÿ1clkçš„æ± åŒ–yåæ ‡ == 0(æ ‡å¿—)
+	reg[3:0] pool_roi_user_last_d; // å»¶è¿Ÿ1clkçš„è¾“å‡ºåƒç´ æµçš„ä½ç½®æ ‡å¿—({1ast(1bit), user(3bit)})
+	reg pool_x_eq0_d2; // å»¶è¿Ÿ2clkçš„æ± åŒ–xåæ ‡ == 0(æ ‡å¿—)
+	reg[in_stream_data_width-1:0] pool_roi_r1; // æ± åŒ–ROIç¬¬1è¡Œ
+	reg[in_stream_data_width-1:0] pool_roi_r2; // æ± åŒ–ROIç¬¬2è¡Œ
+	reg[feature_n_per_clk-1:0] pool_roi_keep; // æ± åŒ–ROIç‰¹å¾é¡¹ä½¿èƒ½æ©ç 
+	reg[feature_data_width-1:0] pool_left_buf_r1; // æ± åŒ–ROIç¬¬1è¡Œå‰©ä½™ç¼“å­˜
+	reg[feature_data_width-1:0] pool_left_buf_r2; // æ± åŒ–ROIç¬¬2è¡Œå‰©ä½™ç¼“å­˜
+	reg[3:0] pool_roi_user_last_d2; // å»¶è¿Ÿ2clkçš„è¾“å‡ºåƒç´ æµçš„ä½ç½®æ ‡å¿—({1ast(1bit), user(3bit)})
 	
-	// ³Ø»¯ROIÓĞĞ§Ö¸Ê¾
+	// æ± åŒ–ROIæœ‰æ•ˆæŒ‡ç¤º
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
 			pool_roi_vld <= 1'b0;
 		else if(pool_roi_gen_stage1_ready)
 			pool_roi_vld <= # simulation_delay feature_in_vld_d & 
-				(~pool_y_eq0_d) & // ³Ø»¯y×ø±ê >= 1
+				(~pool_y_eq0_d) & // æ± åŒ–yåæ ‡ >= 1
 				((~step_type) | pool_y_d[0]); // step_type ? pool_y_d[0]:1'b1
 	end
 	
-	// ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷×é
+	// å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾ç»„
 	always @(posedge clk)
 	begin
 		if(m_axis_row_padding_valid & m_axis_row_padding_ready)
 			feature_in_d <= # simulation_delay m_axis_row_padding_data & feature_in_data_mask;
 	end
-	// ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷ÏîÊ¹ÄÜÑÚÂë
+	// å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾é¡¹ä½¿èƒ½æ©ç 
 	always @(posedge clk)
 	begin
 		if(m_axis_row_padding_valid & m_axis_row_padding_ready)
 			feature_in_keep_d <= # simulation_delay feature_in_keep;
 	end
 	
-	// ÑÓ³Ù1clkµÄ³Ø»¯x×ø±ê == 0(±êÖ¾)
+	// å»¶è¿Ÿ1clkçš„æ± åŒ–xåæ ‡ == 0(æ ‡å¿—)
 	always @(posedge clk)
 	begin
 		if(m_axis_row_padding_valid & m_axis_row_padding_ready)
 			pool_x_eq0_d <= # simulation_delay pool_x_eq0;
 	end
-	// ÑÓ³Ù1clkµÄ³Ø»¯y×ø±ê
+	// å»¶è¿Ÿ1clkçš„æ± åŒ–yåæ ‡
 	always @(posedge clk)
 	begin
 		if(m_axis_row_padding_valid & m_axis_row_padding_ready)
 			pool_y_d <= # simulation_delay pool_y;
 	end
-	// ÑÓ³Ù1clkµÄ³Ø»¯y×ø±ê == 0(±êÖ¾)
+	// å»¶è¿Ÿ1clkçš„æ± åŒ–yåæ ‡ == 0(æ ‡å¿—)
 	always @(posedge clk)
 	begin
 		if(m_axis_row_padding_valid & m_axis_row_padding_ready)
 			pool_y_eq0_d <= # simulation_delay pool_y_eq0;
 	end
 	
-	// ÑÓ³Ù2clkµÄ³Ø»¯x×ø±ê == 0(±êÖ¾)
+	// å»¶è¿Ÿ2clkçš„æ± åŒ–xåæ ‡ == 0(æ ‡å¿—)
 	always @(posedge clk)
 	begin
 		if(feature_in_vld_d & pool_roi_gen_stage1_ready)
 			pool_x_eq0_d2 <= # simulation_delay pool_x_eq0_d;
 	end
 	
-	// ³Ø»¯ROIµÚ1ĞĞ
+	// æ± åŒ–ROIç¬¬1è¡Œ
 	always @(posedge clk)
 	begin
 		if(feature_in_vld_d & pool_roi_gen_stage1_ready)
 			pool_roi_r1 <= # simulation_delay line_buf_mem_dout_b;
 	end
-	// ³Ø»¯ROIµÚ2ĞĞ
+	// æ± åŒ–ROIç¬¬2è¡Œ
 	always @(posedge clk)
 	begin
 		if(feature_in_vld_d & pool_roi_gen_stage1_ready)
 			pool_roi_r2 <= # simulation_delay feature_in_d;
 	end
-	// ³Ø»¯ROIÌØÕ÷ÏîÊ¹ÄÜÑÚÂë
+	// æ± åŒ–ROIç‰¹å¾é¡¹ä½¿èƒ½æ©ç 
 	always @(posedge clk)
 	begin
 		if(feature_in_vld_d & pool_roi_gen_stage1_ready)
 			pool_roi_keep <= # simulation_delay feature_in_keep_d;
 	end
 	
-	// ³Ø»¯ROIµÚ1ĞĞÊ£Óà»º´æ
+	// æ± åŒ–ROIç¬¬1è¡Œå‰©ä½™ç¼“å­˜
 	always @(posedge clk)
 	begin
 		if(feature_in_vld_d & pool_roi_gen_stage1_ready)
 			pool_left_buf_r1 <= # simulation_delay pool_x_eq0_d ? 
 				{feature_data_width{1'b0}}:pool_roi_r1[in_stream_data_width-1:in_stream_data_width-feature_data_width];
 	end
-	// ³Ø»¯ROIµÚ2ĞĞÊ£Óà»º´æ
+	// æ± åŒ–ROIç¬¬2è¡Œå‰©ä½™ç¼“å­˜
 	always @(posedge clk)
 	begin
 		if(feature_in_vld_d & pool_roi_gen_stage1_ready)
@@ -504,36 +528,36 @@ module max_pool_mul_pix #(
 				{feature_data_width{1'b0}}:pool_roi_r2[in_stream_data_width-1:in_stream_data_width-feature_data_width];
 	end
 	
-	// ÑÓ³Ù1clkµÄÊä³öÏñËØÁ÷µÄÎ»ÖÃ±êÖ¾({1ast(1bit), user(3bit)})
+	// å»¶è¿Ÿ1clkçš„è¾“å‡ºåƒç´ æµçš„ä½ç½®æ ‡å¿—({1ast(1bit), user(3bit)})
 	always @(posedge clk)
 	begin
 		if(m_axis_row_padding_valid & m_axis_row_padding_ready)
 			pool_roi_user_last_d <= # simulation_delay {m_axis_row_padding_last, m_axis_row_padding_user};
 	end
-	// ÑÓ³Ù2clkµÄÊä³öÏñËØÁ÷µÄÎ»ÖÃ±êÖ¾({1ast(1bit), user(3bit)})
+	// å»¶è¿Ÿ2clkçš„è¾“å‡ºåƒç´ æµçš„ä½ç½®æ ‡å¿—({1ast(1bit), user(3bit)})
 	always @(posedge clk)
 	begin
 		if(feature_in_vld_d & pool_roi_gen_stage1_ready)
 			pool_roi_user_last_d2 <= # simulation_delay pool_roi_user_last_d;
 	end
 	
-	/** ³Ø»¯¼ÆËã **/
-	// ³Ø»¯ROIÊäÈë
-	wire[in_stream_data_width-1:0] cal_unit_pool_roi_r1; // ³Ø»¯ROIµÚ1ĞĞ
-	wire[in_stream_data_width-1:0] cal_unit_pool_roi_r2; // ³Ø»¯ROIµÚ2ĞĞ
-	wire[feature_n_per_clk-1:0] cal_unit_pool_roi_keep; // ³Ø»¯ROIÌØÕ÷ÏîÊ¹ÄÜÑÚÂë
-	wire[feature_data_width-1:0] cal_unit_pool_left_buf_r1; // ³Ø»¯ROIµÚ1ĞĞÊ£Óà»º´æ
-	wire[feature_data_width-1:0] cal_unit_pool_left_buf_r2; // ³Ø»¯ROIµÚ2ĞĞÊ£Óà»º´æ
-	wire cal_unit_pool_x_eq0; // ³Ø»¯x×ø±ê == 0(±êÖ¾)
-	wire[2:0] cal_unit_pool_roi_user; // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
-	wire cal_unit_pool_roi_last; // ÌØÕ÷Í¼×îºó1µã
+	/** æ± åŒ–è®¡ç®— **/
+	// æ± åŒ–ROIè¾“å…¥
+	wire[in_stream_data_width-1:0] cal_unit_pool_roi_r1; // æ± åŒ–ROIç¬¬1è¡Œ
+	wire[in_stream_data_width-1:0] cal_unit_pool_roi_r2; // æ± åŒ–ROIç¬¬2è¡Œ
+	wire[feature_n_per_clk-1:0] cal_unit_pool_roi_keep; // æ± åŒ–ROIç‰¹å¾é¡¹ä½¿èƒ½æ©ç 
+	wire[feature_data_width-1:0] cal_unit_pool_left_buf_r1; // æ± åŒ–ROIç¬¬1è¡Œå‰©ä½™ç¼“å­˜
+	wire[feature_data_width-1:0] cal_unit_pool_left_buf_r2; // æ± åŒ–ROIç¬¬2è¡Œå‰©ä½™ç¼“å­˜
+	wire cal_unit_pool_x_eq0; // æ± åŒ–xåæ ‡ == 0(æ ‡å¿—)
+	wire[2:0] cal_unit_pool_roi_user; // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
+	wire cal_unit_pool_roi_last; // ç‰¹å¾å›¾æœ€å1ç‚¹
 	wire cal_unit_pool_roi_valid;
 	wire cal_unit_pool_roi_ready;
-	// ¼ÆËã½á¹ûÊä³ö
+	// è®¡ç®—ç»“æœè¾“å‡º
 	wire[out_stream_data_width-1:0] cal_unit_pool_res;
 	wire[out_stream_data_width/8-1:0] cal_unit_pool_res_keep;
-	wire[2:0] cal_unit_pool_res_user; // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
-	wire cal_unit_pool_res_last; // ÌØÕ÷Í¼×îºó1µã
+	wire[2:0] cal_unit_pool_res_user; // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
+	wire cal_unit_pool_res_last; // ç‰¹å¾å›¾æœ€å1ç‚¹
 	wire cal_unit_pool_res_valid;
 	wire cal_unit_pool_res_ready;
 	
@@ -548,7 +572,7 @@ module max_pool_mul_pix #(
 	assign cal_unit_pool_roi_valid = pool_roi_vld;
 	assign pool_roi_gen_stage2_ready = cal_unit_pool_roi_ready;
 	
-	// ×î´ó³Ø»¯¼ÆËãµ¥Ôª
+	// æœ€å¤§æ± åŒ–è®¡ç®—å•å…ƒ
 	max_pool_cal_mul_pix #(
 		.feature_n_per_clk(feature_n_per_clk),
 		.feature_data_width(feature_data_width),
@@ -579,19 +603,19 @@ module max_pool_mul_pix #(
 		.pool_res_ready(cal_unit_pool_res_ready)
 	);
 	
-	/** Êä³öÌØÕ÷ÏîÕûÀíµ¥Ôª **/
-	// ÕûÀíµ¥ÔªÊäÈë
+	/** è¾“å‡ºç‰¹å¾é¡¹æ•´ç†å•å…ƒ **/
+	// æ•´ç†å•å…ƒè¾“å…¥
 	wire[out_stream_data_width-1:0] s_axis_reorg_data;
-	wire[2:0] s_axis_reorg_user; // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
+	wire[2:0] s_axis_reorg_user; // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
 	wire[out_stream_data_width/8-1:0] s_axis_reorg_keep;
-	wire s_axis_reorg_last; // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	wire s_axis_reorg_last; // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	wire s_axis_reorg_valid;
 	wire s_axis_reorg_ready;
-	// ÕûÀíµ¥ÔªÊä³ö
+	// æ•´ç†å•å…ƒè¾“å‡º
 	wire[out_stream_data_width-1:0] m_axis_reorg_data;
-	wire[2:0] m_axis_reorg_user; // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
+	wire[2:0] m_axis_reorg_user; // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
 	wire[out_stream_data_width/8-1:0] m_axis_reorg_keep;
-	wire m_axis_reorg_last; // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	wire m_axis_reorg_last; // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	wire m_axis_reorg_valid;
 	wire m_axis_reorg_ready;
 	
@@ -628,17 +652,17 @@ module max_pool_mul_pix #(
 		.m_axis_ready(m_axis_reorg_ready)
 	);
 	
-	/** Êä³öÌØÕ÷Êı¾İÊÕ¼¯µ¥Ôª **/
-	// Êı¾İÊÕ¼¯µ¥ÔªÊäÈë
+	/** è¾“å‡ºç‰¹å¾æ•°æ®æ”¶é›†å•å…ƒ **/
+	// æ•°æ®æ”¶é›†å•å…ƒè¾“å…¥
 	wire[out_stream_data_width-1:0] s_axis_collector_data;
 	wire[out_stream_data_width/8-1:0] s_axis_collector_keep;
-	wire s_axis_collector_last; // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	wire s_axis_collector_last; // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	wire s_axis_collector_valid;
 	wire s_axis_collector_ready;
-	// Êı¾İÊÕ¼¯µ¥ÔªÊä³ö
+	// æ•°æ®æ”¶é›†å•å…ƒè¾“å‡º
 	wire[feature_n_per_clk*feature_data_width-1:0] m_axis_collector_data;
 	wire[feature_n_per_clk*feature_data_width/8-1:0] m_axis_collector_keep;
-	wire m_axis_collector_last; // Ö¸Ê¾Êä³öÌØÕ÷Í¼µÄ×îºó1×éÊı¾İ
+	wire m_axis_collector_last; // æŒ‡ç¤ºè¾“å‡ºç‰¹å¾å›¾çš„æœ€å1ç»„æ•°æ®
 	wire m_axis_collector_valid;
 	wire m_axis_collector_ready;
 	

@@ -1,14 +1,38 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ÉÏ²ÉÑù´¦Àíµ¥Ôª
+æœ¬æ¨¡å—: ä¸Šé‡‡æ ·å¤„ç†å•å…ƒ
 
-ÃèÊö:
-ÊµÏÖÉñ¾­ÍøÂçÖĞµÄÉÏ²ÉÑù´¦Àí(upsample)
-¶àÏñËØ/clk
-1x1µ½2x2ÉÏ²ÉÑù
-2¼¶Á÷Ë®Ïß(ĞĞ»º´æMEM¶ÁÑÓ³Ù1clk, Êä³ö¼Ä´æÆ÷1clk)
-ÊäÈëÍÌÍÂÂÊ£º(feature_n_per_clk*feature_n_per_clk/2)/clk
-Êä³öÍÌÍÂÂÊ£º(feature_n_per_clk*feature_n_per_clk*2)/clk
+æè¿°:
+å®ç°ç¥ç»ç½‘ç»œä¸­çš„ä¸Šé‡‡æ ·å¤„ç†(upsample)
+å¤šåƒç´ /clk
+1x1åˆ°2x2ä¸Šé‡‡æ ·
+2çº§æµæ°´çº¿(è¡Œç¼“å­˜MEMè¯»å»¶è¿Ÿ1clk, è¾“å‡ºå¯„å­˜å™¨1clk)
+è¾“å…¥ååç‡ï¼š(feature_n_per_clk*feature_n_per_clk/2)/clk
+è¾“å‡ºååç‡ï¼š(feature_n_per_clk*feature_n_per_clk*2)/clk
 
          1 1 2 2
 1 2      1 1 2 2
@@ -17,10 +41,10 @@
          5 5 6 6
          5 5 6 6
 
-×¢Òâ£º
-ÊäÈëÌØÕ÷Í¼µÄ¿í¶È±ØĞëÄÜ±»Ã¿¸öclkÊäÈëµÄÌØÕ÷µãÊıÁ¿*2(feature_n_per_clk*2)Õû³ı
-ÊäÈëÌØÕ÷Í¼µÄ¿í¶È/¸ß¶È/Í¨µÀÊı±ØĞë<=×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È/¸ß¶È/Í¨µÀÊı
-ÊäÈë/Êä³öÌØÕ÷Í¼Êı¾İÁ÷ ->
+æ³¨æ„ï¼š
+è¾“å…¥ç‰¹å¾å›¾çš„å®½åº¦å¿…é¡»èƒ½è¢«æ¯ä¸ªclkè¾“å…¥çš„ç‰¹å¾ç‚¹æ•°é‡*2(feature_n_per_clk*2)æ•´é™¤
+è¾“å…¥ç‰¹å¾å›¾çš„å®½åº¦/é«˜åº¦/é€šé“æ•°å¿…é¡»<=æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦/é«˜åº¦/é€šé“æ•°
+è¾“å…¥/è¾“å‡ºç‰¹å¾å›¾æ•°æ®æµ ->
 	[x1, y1, c1] ... [xn, y1, c1]
 				  .
 				  .
@@ -35,45 +59,45 @@
 				  .
 	[x1, yn, cn] ... [x1, yn, cn]
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/09/14
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/09/14
 ********************************************************************/
 
 
 module upsample #(
-    parameter integer feature_n_per_clk = 8, // Ã¿¸öclkÊäÈëµÄÌØÕ÷µãÊıÁ¿(1 | 2 | 4 | 8 | 16 | ...)
-	parameter integer feature_data_width = 8, // ÌØÕ÷µãÎ»¿í(±ØĞëÄÜ±»8Õû³ı, ÇÒ>0)
-	parameter integer max_feature_w = 128, // ×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È
-	parameter integer max_feature_h = 128, // ×î´óµÄÊäÈëÌØÕ÷Í¼¸ß¶È
-	parameter integer max_feature_chn_n = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼Í¨µÀÊı
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer feature_n_per_clk = 8, // æ¯ä¸ªclkè¾“å…¥çš„ç‰¹å¾ç‚¹æ•°é‡(1 | 2 | 4 | 8 | 16 | ...)
+	parameter integer feature_data_width = 8, // ç‰¹å¾ç‚¹ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤, ä¸”>0)
+	parameter integer max_feature_w = 128, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦
+	parameter integer max_feature_h = 128, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾é«˜åº¦
+	parameter integer max_feature_chn_n = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾é€šé“æ•°
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire[15:0] feature_w, // ÊäÈëÌØÕ÷Í¼¿í¶È - 1
-	input wire[15:0] feature_h, // ÊäÈëÌØÕ÷Í¼¸ß¶È - 1
-	input wire[15:0] feature_chn_n, // ÊäÈëÌØÕ÷Í¼Í¨µÀÊı - 1
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire[15:0] feature_w, // è¾“å…¥ç‰¹å¾å›¾å®½åº¦ - 1
+	input wire[15:0] feature_h, // è¾“å…¥ç‰¹å¾å›¾é«˜åº¦ - 1
+	input wire[15:0] feature_chn_n, // è¾“å…¥ç‰¹å¾å›¾é€šé“æ•° - 1
 	
-	// ÊäÈëÏñËØÁ÷
+	// è¾“å…¥åƒç´ æµ
 	input wire[feature_n_per_clk*feature_data_width-1:0] s_axis_data,
 	input wire s_axis_valid,
 	output wire s_axis_ready,
 	
-	// Êä³öÏñËØÁ÷
+	// è¾“å‡ºåƒç´ æµ
 	output wire[feature_n_per_clk*feature_data_width*2-1:0] m_axis_data,
-	output wire[2:0] m_axis_user, // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
-	output wire m_axis_last, // ÌØÕ÷Í¼×îºó1µã
+	output wire[2:0] m_axis_user, // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
+	output wire m_axis_last, // ç‰¹å¾å›¾æœ€å1ç‚¹
 	output wire m_axis_valid,
 	input wire m_axis_ready
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -86,17 +110,17 @@ module upsample #(
     end
     endfunction
 	
-	/** ĞĞ»º´æÇø **/
-	// ĞĞ»º´æÇøMEMĞ´¶Ë¿Ú
+	/** è¡Œç¼“å­˜åŒº **/
+	// è¡Œç¼“å­˜åŒºMEMå†™ç«¯å£
     wire line_buf_wen_a;
     wire[clogb2(max_feature_w/feature_n_per_clk-1):0] line_buf_addr_a;
     wire[feature_n_per_clk*feature_data_width-1:0] line_buf_din_a;
-    // ĞĞ»º´æÇøMEM¶Á¶Ë¿Ú
+    // è¡Œç¼“å­˜åŒºMEMè¯»ç«¯å£
     wire line_buf_ren_b;
     wire[clogb2(max_feature_w/feature_n_per_clk-1):0] line_buf_addr_b;
     wire[feature_n_per_clk*feature_data_width-1:0] line_buf_dout_b;
 	
-	// ĞĞ»º´æÇøMEM
+	// è¡Œç¼“å­˜åŒºMEM
 	bram_simple_dual_port #(
 		.style("LOW_LATENCY"),
 		.mem_width(feature_n_per_clk*feature_data_width),
@@ -115,7 +139,7 @@ module upsample #(
 		.dout_b(line_buf_dout_b)
 	);
 	
-	/** Á÷Ë®Ïß¿ØÖÆ **/
+	/** æµæ°´çº¿æ§åˆ¶ **/
 	wire valid_stage0;
 	wire ready_stage0;
 	reg valid_stage1;
@@ -123,27 +147,27 @@ module upsample #(
 	reg valid_stage2;
 	wire ready_stage2;
 	
-	// ÎÕÊÖÌõ¼ş£ºvalid_stage0 & ((~valid_stage1) | ready_stage1)
+	// æ¡æ‰‹æ¡ä»¶ï¼švalid_stage0 & ((~valid_stage1) | ready_stage1)
 	assign ready_stage0 = (~valid_stage1) | ready_stage1;
 	
-	// ÎÕÊÖÌõ¼ş£ºvalid_stage1 & ((~valid_stage2) | ready_stage2)
+	// æ¡æ‰‹æ¡ä»¶ï¼švalid_stage1 & ((~valid_stage2) | ready_stage2)
 	assign ready_stage1 = (~valid_stage2) | ready_stage2;
 	
-	// ÎÕÊÖÌõ¼ş£ºvalid_stage2 & m_axis_ready
+	// æ¡æ‰‹æ¡ä»¶ï¼švalid_stage2 & m_axis_ready
 	assign m_axis_valid = valid_stage2;
 	assign ready_stage2 = m_axis_ready;
 	
-    /** ÉÏ²ÉÑùÎ»ÖÃ¼ÆÊıÆ÷ **/
-	reg is_at_row_stuff_stage; // ÊÇ·ñ´¦ÓÚĞĞÌî³ä½×¶Î(±êÖ¾)
-	reg[1:0] row_stuff_pos; // ĞĞÌî³äÎ»ÖÃ±êÖ¾({µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ})
-	reg[clogb2(max_feature_w/feature_n_per_clk-1):0] upsample_x_cnt; // ÉÏ²ÉÑùxÎ»ÖÃ¼ÆÊıÆ÷
-	wire upsample_x_cnt_at_last; // ÉÏ²ÉÑùxÎ»ÖÃ¼ÆÊıÆ÷µÖ´ïÄ©Î²(±êÖ¾)
-	reg[clogb2(max_feature_h-1):0] in_ft_map_y_cnt; // ÊäÈëÌØÕ÷Í¼yÎ»ÖÃ¼ÆÊıÆ÷
-	wire in_ft_map_y_cnt_at_last; // ÊäÈëÌØÕ÷Í¼yÎ»ÖÃ¼ÆÊıÆ÷µÖ´ïÄ©Î²(±êÖ¾)
-	reg[clogb2(max_feature_chn_n-1):0] in_ft_map_chn_id_cnt; // ÊäÈëÌØÕ÷Í¼Í¨µÀºÅ¼ÆÊıÆ÷
-	wire in_ft_map_chn_id_cnt_at_last; // ÊäÈëÌØÕ÷Í¼Í¨µÀºÅ¼ÆÊıÆ÷µÖ´ïÄ©Î²(±êÖ¾)
+    /** ä¸Šé‡‡æ ·ä½ç½®è®¡æ•°å™¨ **/
+	reg is_at_row_stuff_stage; // æ˜¯å¦å¤„äºè¡Œå¡«å……é˜¶æ®µ(æ ‡å¿—)
+	reg[1:0] row_stuff_pos; // è¡Œå¡«å……ä½ç½®æ ‡å¿—({å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ})
+	reg[clogb2(max_feature_w/feature_n_per_clk-1):0] upsample_x_cnt; // ä¸Šé‡‡æ ·xä½ç½®è®¡æ•°å™¨
+	wire upsample_x_cnt_at_last; // ä¸Šé‡‡æ ·xä½ç½®è®¡æ•°å™¨æŠµè¾¾æœ«å°¾(æ ‡å¿—)
+	reg[clogb2(max_feature_h-1):0] in_ft_map_y_cnt; // è¾“å…¥ç‰¹å¾å›¾yä½ç½®è®¡æ•°å™¨
+	wire in_ft_map_y_cnt_at_last; // è¾“å…¥ç‰¹å¾å›¾yä½ç½®è®¡æ•°å™¨æŠµè¾¾æœ«å°¾(æ ‡å¿—)
+	reg[clogb2(max_feature_chn_n-1):0] in_ft_map_chn_id_cnt; // è¾“å…¥ç‰¹å¾å›¾é€šé“å·è®¡æ•°å™¨
+	wire in_ft_map_chn_id_cnt_at_last; // è¾“å…¥ç‰¹å¾å›¾é€šé“å·è®¡æ•°å™¨æŠµè¾¾æœ«å°¾(æ ‡å¿—)
 	
-	// ÎÕÊÖÌõ¼ş£ºs_axis_valid & (~is_at_row_stuff_stage) & ready_stage0
+	// æ¡æ‰‹æ¡ä»¶ï¼šs_axis_valid & (~is_at_row_stuff_stage) & ready_stage0
 	assign s_axis_ready = (~is_at_row_stuff_stage) & ready_stage0;
 	
 	assign line_buf_wen_a = s_axis_valid & (~is_at_row_stuff_stage) & ((~valid_stage1) | ready_stage1);
@@ -161,7 +185,7 @@ module upsample #(
 	assign in_ft_map_y_cnt_at_last = in_ft_map_y_cnt == feature_h[clogb2(max_feature_h-1):0];
 	assign in_ft_map_chn_id_cnt_at_last = in_ft_map_chn_id_cnt == feature_chn_n[clogb2(max_feature_chn_n-1):0];
 	
-	// ÊÇ·ñ´¦ÓÚĞĞÌî³ä½×¶Î(±êÖ¾)
+	// æ˜¯å¦å¤„äºè¡Œå¡«å……é˜¶æ®µ(æ ‡å¿—)
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -170,14 +194,14 @@ module upsample #(
 			is_at_row_stuff_stage <= # simulation_delay ~is_at_row_stuff_stage;
 	end
 	
-	// ĞĞÌî³äÎ»ÖÃ±êÖ¾
+	// è¡Œå¡«å……ä½ç½®æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(s_axis_valid & s_axis_ready & upsample_x_cnt_at_last)
 			row_stuff_pos <= # simulation_delay {in_ft_map_chn_id_cnt_at_last, in_ft_map_y_cnt_at_last};
 	end
 	
-	// ÉÏ²ÉÑùxÎ»ÖÃ¼ÆÊıÆ÷
+	// ä¸Šé‡‡æ ·xä½ç½®è®¡æ•°å™¨
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -187,7 +211,7 @@ module upsample #(
 			upsample_x_cnt <= # simulation_delay 
 				{(clogb2(max_feature_w/feature_n_per_clk-1)+1){~upsample_x_cnt_at_last}} & (upsample_x_cnt + 1);
 	end
-	// ÊäÈëÌØÕ÷Í¼yÎ»ÖÃ¼ÆÊıÆ÷
+	// è¾“å…¥ç‰¹å¾å›¾yä½ç½®è®¡æ•°å™¨
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -197,7 +221,7 @@ module upsample #(
 			in_ft_map_y_cnt <= # simulation_delay 
 				{(clogb2(max_feature_h-1)+1){~in_ft_map_y_cnt_at_last}} & (in_ft_map_y_cnt + 1);
 	end
-	// ÊäÈëÌØÕ÷Í¼Í¨µÀºÅ¼ÆÊıÆ÷
+	// è¾“å…¥ç‰¹å¾å›¾é€šé“å·è®¡æ•°å™¨
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -208,10 +232,10 @@ module upsample #(
 				{(clogb2(max_feature_chn_n-1)+1){~in_ft_map_chn_id_cnt_at_last}} & (in_ft_map_chn_id_cnt + 1);
 	end
 	
-	/** ÁĞÌî³ä **/
-	reg[feature_n_per_clk*feature_data_width-1:0] features_d; // ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷µã
-	reg is_at_row_stuff_stage_d; // ÑÓ³Ù1clkµÄÊÇ·ñ´¦ÓÚĞĞÌî³ä½×¶Î(±êÖ¾)
-	reg[feature_n_per_clk*feature_data_width-1:0] col_stuff_feature_d; // ÑÓ³Ù1clkµÄÁĞÌî³äÌØÕ÷µã
+	/** åˆ—å¡«å…… **/
+	reg[feature_n_per_clk*feature_data_width-1:0] features_d; // å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾ç‚¹
+	reg is_at_row_stuff_stage_d; // å»¶è¿Ÿ1clkçš„æ˜¯å¦å¤„äºè¡Œå¡«å……é˜¶æ®µ(æ ‡å¿—)
+	reg[feature_n_per_clk*feature_data_width-1:0] col_stuff_feature_d; // å»¶è¿Ÿ1clkçš„åˆ—å¡«å……ç‰¹å¾ç‚¹
 	
 	genvar col_stuff_i;
 	generate
@@ -222,7 +246,7 @@ module upsample #(
 		end
 	endgenerate
 	
-	// Á÷Ë®ÏßµÚ1¼¶Êı¾İÓĞĞ§
+	// æµæ°´çº¿ç¬¬1çº§æ•°æ®æœ‰æ•ˆ
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -231,21 +255,21 @@ module upsample #(
 			valid_stage1 <= # simulation_delay valid_stage0;
 	end
 	
-	// ÑÓ³Ù1clkµÄÊäÈëÌØÕ÷µã
+	// å»¶è¿Ÿ1clkçš„è¾“å…¥ç‰¹å¾ç‚¹
 	always @(posedge clk)
 	begin
 		if(valid_stage0 & ready_stage0)
 			features_d <= # simulation_delay s_axis_data;
 	end
 	
-	// ÑÓ³Ù1clkµÄÊÇ·ñ´¦ÓÚĞĞÌî³ä½×¶Î(±êÖ¾)
+	// å»¶è¿Ÿ1clkçš„æ˜¯å¦å¤„äºè¡Œå¡«å……é˜¶æ®µ(æ ‡å¿—)
 	always @(posedge clk)
 	begin
 		if(valid_stage0 & ready_stage0)
 			is_at_row_stuff_stage_d <= # simulation_delay is_at_row_stuff_stage;
 	end
 	
-	// Á÷Ë®ÏßµÚ2¼¶Êı¾İÓĞĞ§
+	// æµæ°´çº¿ç¬¬2çº§æ•°æ®æœ‰æ•ˆ
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -254,63 +278,63 @@ module upsample #(
 			valid_stage2 <= # simulation_delay valid_stage1;
 	end
 	
-	// ÑÓ³Ù1clkµÄÁĞÌî³äÌØÕ÷µã
+	// å»¶è¿Ÿ1clkçš„åˆ—å¡«å……ç‰¹å¾ç‚¹
 	always @(posedge clk)
 	begin
 		if(valid_stage1 & ready_stage1)
 			col_stuff_feature_d <= # simulation_delay is_at_row_stuff_stage_d ? line_buf_dout_b:features_d;
 	end
 	
-	/** ÌØÕ÷µãÎ»ÖÃ±êÖ¾ **/
-	reg feature_col_last_d; // ÑÓ³Ù1clkµÄ×îºó1ÁĞ±êÖ¾
-	reg feature_row_last_d; // ÑÓ³Ù1clkµÄ×îºó1ĞĞ±êÖ¾
-	reg feature_chn_last_d; // ÑÓ³Ù1clkµÄ×îºó1Í¨µÀ±êÖ¾
-	reg feature_col_last_d2; // ÑÓ³Ù2clkµÄ×îºó1ÁĞ±êÖ¾
-	reg feature_row_last_d2; // ÑÓ³Ù2clkµÄ×îºó1ĞĞ±êÖ¾
-	reg feature_chn_last_d2; // ÑÓ³Ù2clkµÄ×îºó1Í¨µÀ±êÖ¾
-	reg feature_last_d2; // ÑÓ³Ù2clkµÄ×îºó1¸öÌØÕ÷µã±êÖ¾
+	/** ç‰¹å¾ç‚¹ä½ç½®æ ‡å¿— **/
+	reg feature_col_last_d; // å»¶è¿Ÿ1clkçš„æœ€å1åˆ—æ ‡å¿—
+	reg feature_row_last_d; // å»¶è¿Ÿ1clkçš„æœ€å1è¡Œæ ‡å¿—
+	reg feature_chn_last_d; // å»¶è¿Ÿ1clkçš„æœ€å1é€šé“æ ‡å¿—
+	reg feature_col_last_d2; // å»¶è¿Ÿ2clkçš„æœ€å1åˆ—æ ‡å¿—
+	reg feature_row_last_d2; // å»¶è¿Ÿ2clkçš„æœ€å1è¡Œæ ‡å¿—
+	reg feature_chn_last_d2; // å»¶è¿Ÿ2clkçš„æœ€å1é€šé“æ ‡å¿—
+	reg feature_last_d2; // å»¶è¿Ÿ2clkçš„æœ€å1ä¸ªç‰¹å¾ç‚¹æ ‡å¿—
 	
 	assign m_axis_user = {feature_chn_last_d2, feature_row_last_d2, feature_col_last_d2};
 	assign m_axis_last = feature_last_d2;
 	
-	// ÑÓ³Ù1clkµÄ×îºó1ÁĞ±êÖ¾
+	// å»¶è¿Ÿ1clkçš„æœ€å1åˆ—æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(valid_stage0 & ready_stage0)
 			feature_col_last_d <= # simulation_delay upsample_x_cnt_at_last;
 	end
-	// ÑÓ³Ù1clkµÄ×îºó1ĞĞ±êÖ¾
+	// å»¶è¿Ÿ1clkçš„æœ€å1è¡Œæ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(valid_stage0 & ready_stage0)
 			feature_row_last_d <= # simulation_delay is_at_row_stuff_stage & row_stuff_pos[0];
 	end
-	// ÑÓ³Ù1clkµÄ×îºó1Í¨µÀ±êÖ¾
+	// å»¶è¿Ÿ1clkçš„æœ€å1é€šé“æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(valid_stage0 & ready_stage0)
 			feature_chn_last_d <= # simulation_delay is_at_row_stuff_stage ? row_stuff_pos[1]:in_ft_map_chn_id_cnt_at_last;
 	end
 	
-	// ÑÓ³Ù2clkµÄ×îºó1ÁĞ±êÖ¾
+	// å»¶è¿Ÿ2clkçš„æœ€å1åˆ—æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(valid_stage1 & ready_stage1)
 			feature_col_last_d2 <= # simulation_delay feature_col_last_d;
 	end
-	// ÑÓ³Ù2clkµÄ×îºó1ĞĞ±êÖ¾
+	// å»¶è¿Ÿ2clkçš„æœ€å1è¡Œæ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(valid_stage1 & ready_stage1)
 			feature_row_last_d2 <= # simulation_delay feature_row_last_d;
 	end
-	// ÑÓ³Ù2clkµÄ×îºó1Í¨µÀ±êÖ¾
+	// å»¶è¿Ÿ2clkçš„æœ€å1é€šé“æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(valid_stage1 & ready_stage1)
 			feature_chn_last_d2 <= # simulation_delay feature_chn_last_d;
 	end
-	// ÑÓ³Ù2clkµÄ×îºó1¸öÌØÕ÷µã±êÖ¾
+	// å»¶è¿Ÿ2clkçš„æœ€å1ä¸ªç‰¹å¾ç‚¹æ ‡å¿—
 	always @(posedge clk)
 	begin
 		if(valid_stage1 & ready_stage1)

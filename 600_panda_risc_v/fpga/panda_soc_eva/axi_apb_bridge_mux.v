@@ -1,23 +1,47 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIµ½APBÇÅµÄÊı¾İMUX
+æœ¬æ¨¡å—: AXIåˆ°APBæ¡¥çš„æ•°æ®MUX
 
-ÃèÊö: 
-Ö§³Ö¶à´ï16¸öAPB´Ó»úµÄÊı¾İMUX
+æè¿°: 
+æ”¯æŒå¤šè¾¾16ä¸ªAPBä»æœºçš„æ•°æ®MUX
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/12/11
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/12/11
 ********************************************************************/
 
 
 module axi_apb_bridge_mux #(
-    parameter integer apb_slave_n = 4 // APB´Ó»ú¸öÊı(1~16)
+    parameter integer apb_slave_n = 4 // APBä»æœºä¸ªæ•°(1~16)
 )(
     input wire[3:0] apb_muxsel,
     

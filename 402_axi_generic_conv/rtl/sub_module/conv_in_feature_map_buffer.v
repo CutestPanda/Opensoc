@@ -1,52 +1,76 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ¾í»ıµ¥ÔªµÄÊäÈëÌØÕ÷Í¼»º´æÇø
+æœ¬æ¨¡å—: å·ç§¯å•å…ƒçš„è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒº
 
-ÃèÊö:
-ĞĞ»º´æMEM: 3×é * (max_feature_map_w * feature_data_width / 64)Éî¶È * (64 + 64 / feature_data_width)Î»¿í
-¶ÁÊ±ÑÓ = 2clk
+æè¿°:
+è¡Œç¼“å­˜MEM: 3ç»„ * (max_feature_map_w * feature_data_width / 64)æ·±åº¦ * (64 + 64 / feature_data_width)ä½å®½
+è¯»æ—¶å»¶ = 2clk
 
-Ğ´»º´æÇøÊ±ÒÔ64Î»Êı¾İÎªµ¥Î», ¿ÉÑ¡ÔñĞ´Ä³Ğ©ĞĞ; ¶Á»º´æÇøÊ±ÒÔÌØÕ÷µãÎªµ¥Î», Ö»ÄÜ½«3ĞĞÍ¬Ê±¶Á³ö
+å†™ç¼“å­˜åŒºæ—¶ä»¥64ä½æ•°æ®ä¸ºå•ä½, å¯é€‰æ‹©å†™æŸäº›è¡Œ; è¯»ç¼“å­˜åŒºæ—¶ä»¥ç‰¹å¾ç‚¹ä¸ºå•ä½, åªèƒ½å°†3è¡ŒåŒæ—¶è¯»å‡º
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 MEM READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/18
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/18
 ********************************************************************/
 
 
 module conv_in_feature_map_buffer #(
-	parameter integer feature_data_width = 16, // ÌØÕ÷µãÎ»¿í(8 | 16 | 32 | 64)
-	parameter integer max_feature_map_w = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È
-	parameter line_buffer_mem_type = "bram", // ĞĞ»º´æMEMÀàĞÍ("bram" | "lutram" | "auto")
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer feature_data_width = 16, // ç‰¹å¾ç‚¹ä½å®½(8 | 16 | 32 | 64)
+	parameter integer max_feature_map_w = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦
+	parameter line_buffer_mem_type = "bram", // è¡Œç¼“å­˜MEMç±»å‹("bram" | "lutram" | "auto")
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓ
+    // æ—¶é’Ÿ
 	input wire clk,
 	
-	// »º´æÇøĞ´¶Ë¿Ú
+	// ç¼“å­˜åŒºå†™ç«¯å£
 	input wire[2:0] buffer_wen,
-	input wire[15:0] buffer_waddr, // Ã¿¸öĞ´µØÖ·¶ÔÓ¦64Î»Êı¾İ
-	input wire[63:0] buffer_din, // 64Î»Êı¾İ
-	input wire[64/feature_data_width-1:0] buffer_din_last, // ĞĞÎ²±êÖ¾
+	input wire[15:0] buffer_waddr, // æ¯ä¸ªå†™åœ°å€å¯¹åº”64ä½æ•°æ®
+	input wire[63:0] buffer_din, // 64ä½æ•°æ®
+	input wire[64/feature_data_width-1:0] buffer_din_last, // è¡Œå°¾æ ‡å¿—
 	
-	// »º´æÇø¶Á¶Ë¿Ú
+	// ç¼“å­˜åŒºè¯»ç«¯å£
 	input wire buffer_ren_s0,
 	input wire buffer_ren_s1,
-	input wire[15:0] buffer_raddr, // Ã¿¸ö¶ÁµØÖ·¶ÔÓ¦1¸öÌØÕ÷µã
-	output wire[feature_data_width-1:0] buffer_dout_r0, // ĞĞ#0ÌØÕ÷µã
-	output wire[feature_data_width-1:0] buffer_dout_r1, // ĞĞ#1ÌØÕ÷µã
-	output wire[feature_data_width-1:0] buffer_dout_r2, // ĞĞ#2ÌØÕ÷µã
-	output wire buffer_dout_last_r0, // ĞĞ#0ĞĞÎ²±êÖ¾
-	output wire buffer_dout_last_r1, // ĞĞ#1ĞĞÎ²±êÖ¾
-	output wire buffer_dout_last_r2 // ĞĞ#2ĞĞÎ²±êÖ¾
+	input wire[15:0] buffer_raddr, // æ¯ä¸ªè¯»åœ°å€å¯¹åº”1ä¸ªç‰¹å¾ç‚¹
+	output wire[feature_data_width-1:0] buffer_dout_r0, // è¡Œ#0ç‰¹å¾ç‚¹
+	output wire[feature_data_width-1:0] buffer_dout_r1, // è¡Œ#1ç‰¹å¾ç‚¹
+	output wire[feature_data_width-1:0] buffer_dout_r2, // è¡Œ#2ç‰¹å¾ç‚¹
+	output wire buffer_dout_last_r0, // è¡Œ#0è¡Œå°¾æ ‡å¿—
+	output wire buffer_dout_last_r1, // è¡Œ#1è¡Œå°¾æ ‡å¿—
+	output wire buffer_dout_last_r2 // è¡Œ#2è¡Œå°¾æ ‡å¿—
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -59,22 +83,22 @@ module conv_in_feature_map_buffer #(
     end
     endfunction
 	
-	/** ³£Á¿ **/
-	localparam integer line_buffer_mem_data_width = 64 + 64 / feature_data_width; // ĞĞ»º´æMEMÎ»¿í
-	localparam integer line_buffer_mem_depth = max_feature_map_w * feature_data_width / 64; // ĞĞ»º´æMEMÉî¶È
+	/** å¸¸é‡ **/
+	localparam integer line_buffer_mem_data_width = 64 + 64 / feature_data_width; // è¡Œç¼“å­˜MEMä½å®½
+	localparam integer line_buffer_mem_depth = max_feature_map_w * feature_data_width / 64; // è¡Œç¼“å­˜MEMæ·±åº¦
 	localparam line_buffer_mem_type_confirmed = (line_buffer_mem_type == "auto") ? 
-		((line_buffer_mem_depth <= 64) ? "lutram":"bram"):line_buffer_mem_type; // È·¶¨Ê¹ÓÃµÄĞĞ»º´æMEMÀàĞÍ
+		((line_buffer_mem_depth <= 64) ? "lutram":"bram"):line_buffer_mem_type; // ç¡®å®šä½¿ç”¨çš„è¡Œç¼“å­˜MEMç±»å‹
 	
-	/** ĞĞ»º´æMEM **/
-	// MEMĞ´¶Ë¿Ú
+	/** è¡Œç¼“å­˜MEM **/
+	// MEMå†™ç«¯å£
     wire[2:0] line_buffer_mem_wen_a;
     wire[clogb2(line_buffer_mem_depth-1):0] line_buffer_mem_addr_a[2:0];
-    wire[line_buffer_mem_data_width-1:0] line_buffer_mem_din_a[2:0]; // {ĞĞÎ²±êÖ¾, 64Î»Êı¾İ}
-    // MEM¶Á¶Ë¿Ú
+    wire[line_buffer_mem_data_width-1:0] line_buffer_mem_din_a[2:0]; // {è¡Œå°¾æ ‡å¿—, 64ä½æ•°æ®}
+    // MEMè¯»ç«¯å£
 	wire[clogb2(line_buffer_mem_depth-1):0] line_buffer_mem_raddr;
     wire[2:0] line_buffer_mem_ren_b;
     wire[clogb2(line_buffer_mem_depth-1):0] line_buffer_mem_addr_b[2:0];
-    wire[line_buffer_mem_data_width-1:0] line_buffer_mem_dout_b[2:0]; // {ĞĞÎ²±êÖ¾, 64Î»Êı¾İ}
+    wire[line_buffer_mem_data_width-1:0] line_buffer_mem_dout_b[2:0]; // {è¡Œå°¾æ ‡å¿—, 64ä½æ•°æ®}
 	
 	assign line_buffer_mem_wen_a = buffer_wen;
 	assign line_buffer_mem_addr_a[2] = buffer_waddr[clogb2(line_buffer_mem_depth-1):0];
@@ -92,7 +116,7 @@ module conv_in_feature_map_buffer #(
 	assign line_buffer_mem_raddr = buffer_raddr[clogb2(max_feature_map_w-1):
 		((feature_data_width == 64) ? 0:(clogb2(64/feature_data_width-1)+1))];
 	
-	// ¼òµ¥Ë«¿ÚRAM
+	// ç®€å•åŒå£RAM
 	genvar line_buffer_mem_i;
 	
 	generate
@@ -130,7 +154,7 @@ module conv_in_feature_map_buffer #(
 					.simulation_delay(simulation_delay)
 				)line_buffer_mem(
 					.clk(clk),
-					.rst_n(1'b1), // ²»±Ø¸´Î»Êä³ö¼Ä´æÆ÷
+					.rst_n(1'b1), // ä¸å¿…å¤ä½è¾“å‡ºå¯„å­˜å™¨
 					
 					.wen_a(line_buffer_mem_wen_a[line_buffer_mem_i]),
 					.addr_a(line_buffer_mem_addr_a[line_buffer_mem_i]),
@@ -145,27 +169,27 @@ module conv_in_feature_map_buffer #(
 		end
 	endgenerate
 	
-	/** ´¦Àí¶ÁÊı¾İ **/
-	reg[clogb2(max_feature_map_w-1):0] buffer_raddr_d; // ÑÓ³Ù1clkµÄĞĞ»º´æÇø¶ÁµØÖ·
-	reg[feature_data_width:0] buffer_dout_regs[2:0]; // ĞĞ»º´æÇø¶ÁÊı¾İ¼Ä´æÆ÷({ĞĞÎ²±êÖ¾, ÌØÕ÷µã})
+	/** å¤„ç†è¯»æ•°æ® **/
+	reg[clogb2(max_feature_map_w-1):0] buffer_raddr_d; // å»¶è¿Ÿ1clkçš„è¡Œç¼“å­˜åŒºè¯»åœ°å€
+	reg[feature_data_width:0] buffer_dout_regs[2:0]; // è¡Œç¼“å­˜åŒºè¯»æ•°æ®å¯„å­˜å™¨({è¡Œå°¾æ ‡å¿—, ç‰¹å¾ç‚¹})
 	
 	assign {buffer_dout_last_r2, buffer_dout_r2} = buffer_dout_regs[2];
 	assign {buffer_dout_last_r1, buffer_dout_r1} = buffer_dout_regs[1];
 	assign {buffer_dout_last_r0, buffer_dout_r0} = buffer_dout_regs[0];
 	
-	// ÑÓ³Ù1clkµÄĞĞ»º´æÇø¶ÁµØÖ·
+	// å»¶è¿Ÿ1clkçš„è¡Œç¼“å­˜åŒºè¯»åœ°å€
 	always @(posedge clk)
 	begin
 		if(buffer_ren_s0)
 			buffer_raddr_d <= # simulation_delay buffer_raddr[clogb2(max_feature_map_w-1):0];
 	end
 	
-	// ĞĞ»º´æÇø¶ÁÊı¾İ¼Ä´æÆ÷
+	// è¡Œç¼“å­˜åŒºè¯»æ•°æ®å¯„å­˜å™¨
 	genvar buffer_dout_i;
 	generate
 		for(buffer_dout_i = 0;buffer_dout_i < 3;buffer_dout_i = buffer_dout_i + 1)
 		begin
-			// ÌØÕ÷µã
+			// ç‰¹å¾ç‚¹
 			always @(posedge clk)
 			begin
 				if(buffer_ren_s1)
@@ -173,7 +197,7 @@ module conv_in_feature_map_buffer #(
 						line_buffer_mem_dout_b[buffer_dout_i][63:0] >> 
 							(buffer_raddr_d[clogb2(64/feature_data_width-1):0] * feature_data_width * (feature_data_width != 64));
 			end
-			// ĞĞÎ²±êÖ¾
+			// è¡Œå°¾æ ‡å¿—
 			always @(posedge clk)
 			begin
 				if(buffer_ren_s1)

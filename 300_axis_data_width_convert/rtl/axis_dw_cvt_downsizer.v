@@ -1,32 +1,56 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXISÎ»¿í±¶ËõÆ÷
+æœ¬æ¨¡å—: AXISä½å®½å€ç¼©å™¨
 
-ÃèÊö: 
-½«axis´Ó»úµÄÊı¾İÎ»¿í±¶ËõÕûÊı±¶
-¿ÉÑ¡µÄÊä³ö¸ôÀë
-¸ù¾İËõ¼õÏµÊıÑ¡Ôñmux»òÕßload/shiftÄ£Ê½
+æè¿°: 
+å°†axisä»æœºçš„æ•°æ®ä½å®½å€ç¼©æ•´æ•°å€
+å¯é€‰çš„è¾“å‡ºéš”ç¦»
+æ ¹æ®ç¼©å‡ç³»æ•°é€‰æ‹©muxæˆ–è€…load/shiftæ¨¡å¼
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/02
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/02
 ********************************************************************/
 
 
 module axis_dw_cvt_downsizer #(
-    parameter integer slave_data_width = 32, // ´Ó»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı, ÇÒÎªÖ÷»úÊı¾İÎ»¿íÕûÊı±¶)
-    parameter integer slave_user_width_foreach_byte = 1, // ´Ó»úÃ¿¸öÊı¾İ×Ö½ÚµÄuserÎ»¿í(±ØĞë>=1, ²»ÓÃÊ±Ğü¿Õ¼´¿É)
-    parameter integer master_data_width = 8, // Ö÷»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter en_keep = "true", // ÊÇ·ñÊ¹ÓÃkeepĞÅºÅ
-    parameter en_out_isolation = "true", // ÊÇ·ñÆôÓÃÊä³ö¸ôÀë
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer slave_data_width = 32, // ä»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤, ä¸”ä¸ºä¸»æœºæ•°æ®ä½å®½æ•´æ•°å€)
+    parameter integer slave_user_width_foreach_byte = 1, // ä»æœºæ¯ä¸ªæ•°æ®å­—èŠ‚çš„userä½å®½(å¿…é¡»>=1, ä¸ç”¨æ—¶æ‚¬ç©ºå³å¯)
+    parameter integer master_data_width = 8, // ä¸»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter en_keep = "true", // æ˜¯å¦ä½¿ç”¨keepä¿¡å·
+    parameter en_out_isolation = "true", // æ˜¯å¦å¯ç”¨è¾“å‡ºéš”ç¦»
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
@@ -47,7 +71,7 @@ module axis_dw_cvt_downsizer #(
     input wire m_axis_ready
 );
 
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)             
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)             
     function integer clogb2 (input integer bit_depth);              
     begin                                                           
         for(clogb2=-1; bit_depth>0; clogb2=clogb2+1)                   
@@ -55,11 +79,11 @@ module axis_dw_cvt_downsizer #(
     end                                        
     endfunction
     
-    /** ²ÎÊı **/
-    localparam integer downsize_scale = slave_data_width/master_data_width; // Î»¿í±¶ËõÏµÊı
-    localparam integer use_shift_load_th = 4; // Ê¹ÓÃ¼ÓÔØÒÆÎ»Ä£Ê½Ê±µÄÎ»¿í±¶ËõÏµÊıãĞÖµ(>thÊ±Ê¹ÓÃ)
+    /** å‚æ•° **/
+    localparam integer downsize_scale = slave_data_width/master_data_width; // ä½å®½å€ç¼©ç³»æ•°
+    localparam integer use_shift_load_th = 4; // ä½¿ç”¨åŠ è½½ç§»ä½æ¨¡å¼æ—¶çš„ä½å®½å€ç¼©ç³»æ•°é˜ˆå€¼(>thæ—¶ä½¿ç”¨)
     
-    /** Êä³ö¸ôÀë **/
+    /** è¾“å‡ºéš”ç¦» **/
     wire[master_data_width-1:0] out_axis_data;
     wire[master_data_width/8-1:0] out_axis_keep;
     wire[master_data_width/8*slave_user_width_foreach_byte-1:0] out_axis_user;
@@ -105,14 +129,14 @@ module axis_dw_cvt_downsizer #(
         end
     endgenerate
 
-    /** Î»¿í±¶Ëõ **/
-    wire downsize_last_flag; // µ±Ç°±¶ËõÂÖ´Î½áÊø(±êÖ¾)
-    reg[clogb2(downsize_scale-1):0] downsize_cnt; // ±¶Ëõ¼ÆÊıÆ÷
-    reg[downsize_scale-1:0] downsize_onehot; // ±¶Ëõ¶ÀÒ»Âë¼ÆÊıÆ÷
-    reg[master_data_width-1:0] data_load_shift_buf[downsize_scale-1:1]; // dataÔØÈë/ÒÆÎ»»º³åÇø
-    reg[master_data_width/8-1:0] keep_load_shift_buf[downsize_scale-1:1]; // keepÔØÈë/ÒÆÎ»»º³åÇø
-    reg[master_data_width/8*slave_user_width_foreach_byte-1:0] user_load_shift_buf[downsize_scale-1:1]; // userÔØÈë/ÒÆÎ»»º³åÇø
-    wire downsize_upd; // ±¶ËõÊä³ö¸üĞÂÊ¹ÄÜ
+    /** ä½å®½å€ç¼© **/
+    wire downsize_last_flag; // å½“å‰å€ç¼©è½®æ¬¡ç»“æŸ(æ ‡å¿—)
+    reg[clogb2(downsize_scale-1):0] downsize_cnt; // å€ç¼©è®¡æ•°å™¨
+    reg[downsize_scale-1:0] downsize_onehot; // å€ç¼©ç‹¬ä¸€ç è®¡æ•°å™¨
+    reg[master_data_width-1:0] data_load_shift_buf[downsize_scale-1:1]; // dataè½½å…¥/ç§»ä½ç¼“å†²åŒº
+    reg[master_data_width/8-1:0] keep_load_shift_buf[downsize_scale-1:1]; // keepè½½å…¥/ç§»ä½ç¼“å†²åŒº
+    reg[master_data_width/8*slave_user_width_foreach_byte-1:0] user_load_shift_buf[downsize_scale-1:1]; // userè½½å…¥/ç§»ä½ç¼“å†²åŒº
+    wire downsize_upd; // å€ç¼©è¾“å‡ºæ›´æ–°ä½¿èƒ½
     
     assign downsize_upd = (en_keep == "false") ? (out_axis_valid & out_axis_ready):((~(|s_axis_keep)) | (out_axis_valid & out_axis_ready));
     
@@ -185,7 +209,7 @@ module axis_dw_cvt_downsizer #(
                     if(downsize_onehot[0])
                     begin
                         # simulation_delay;
-                        // ÔØÈë
+                        // è½½å…¥
                         data_load_shift_buf[load_shift_buf_i] <= s_axis_data[master_data_width*load_shift_buf_i+master_data_width-1:master_data_width*load_shift_buf_i];
                         keep_load_shift_buf[load_shift_buf_i] <= s_axis_keep[(master_data_width/8)*load_shift_buf_i+(master_data_width/8)-1:(master_data_width/8)*load_shift_buf_i];
                         user_load_shift_buf[load_shift_buf_i] <= 
@@ -195,7 +219,7 @@ module axis_dw_cvt_downsizer #(
                     else
                     begin
                         # simulation_delay;
-                        // ÒÆÎ»
+                        // ç§»ä½
                         data_load_shift_buf[load_shift_buf_i] <= data_load_shift_buf[load_shift_buf_i+1];
                         keep_load_shift_buf[load_shift_buf_i] <= keep_load_shift_buf[load_shift_buf_i+1];
                         user_load_shift_buf[load_shift_buf_i] <= user_load_shift_buf[load_shift_buf_i+1];
@@ -205,7 +229,7 @@ module axis_dw_cvt_downsizer #(
         end
     endgenerate
     
-    /** Î»¿í±ä»»Êä³ö **/
+    /** ä½å®½å˜æ¢è¾“å‡º **/
     assign s_axis_ready = out_axis_ready & downsize_last_flag;
     
     genvar s_axis_data_user_i;

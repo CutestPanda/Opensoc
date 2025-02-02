@@ -1,45 +1,69 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ¾í»ıµ¥ÔªµÄ¾í»ıºË²ÎÊı»º´æÇø
+æœ¬æ¨¡å—: å·ç§¯å•å…ƒçš„å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒº
 
-ÃèÊö:
-ÓÃÓÚ»º´æ¾í»ıºË²ÎÊı
-¿É´æ´¢1¸ö¶àÍ¨µÀ¾í»ıºË
+æè¿°:
+ç”¨äºç¼“å­˜å·ç§¯æ ¸å‚æ•°
+å¯å­˜å‚¨1ä¸ªå¤šé€šé“å·ç§¯æ ¸
 
-¾í»ıºË²ÎÊı»º´æMEM: max_feature_map_chn_nÉî¶È * (9*kernal_param_data_width)Î»¿í
-¶ÁÊ±ÑÓ = 1clk
+å·ç§¯æ ¸å‚æ•°ç¼“å­˜MEM: max_feature_map_chn_næ·±åº¦ * (9*kernal_param_data_width)ä½å®½
+è¯»æ—¶å»¶ = 1clk
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 MEM READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/22
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/22
 ********************************************************************/
 
 
 module kernal_params_buffer #(
-	parameter integer kernal_param_data_width = 16, // ¾í»ıºË²ÎÊıÎ»¿í(8 | 16 | 32 | 64)
-	parameter integer max_feature_map_chn_n = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼Í¨µÀÊı
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer kernal_param_data_width = 16, // å·ç§¯æ ¸å‚æ•°ä½å®½(8 | 16 | 32 | 64)
+	parameter integer max_feature_map_chn_n = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾é€šé“æ•°
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓ
+    // æ—¶é’Ÿ
 	input wire clk,
 	
-	// ¾í»ıºË²ÎÊı»º´æÇøĞ´¶Ë¿Ú
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºå†™ç«¯å£
 	input wire buffer_wen,
-	input wire[15:0] buffer_waddr, // Ã¿¸öĞ´µØÖ·¶ÔÓ¦1¸öµ¥Í¨µÀ¾í»ıºË
+	input wire[15:0] buffer_waddr, // æ¯ä¸ªå†™åœ°å€å¯¹åº”1ä¸ªå•é€šé“å·ç§¯æ ¸
 	input wire[kernal_param_data_width*9-1:0] buffer_din,
 	
-	// ¾í»ıºË²ÎÊı»º´æÇø¶Á¶Ë¿Ú
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºè¯»ç«¯å£
 	input wire buffer_ren,
-	input wire[15:0] buffer_raddr, // Ã¿¸ö¶ÁµØÖ·¶ÔÓ¦1¸öµ¥Í¨µÀ¾í»ıºË
-	output wire[kernal_param_data_width*9-1:0] buffer_dout // ¾í»ıºË²ÎÊı»º´æÇø¶ÁÊı¾İ
+	input wire[15:0] buffer_raddr, // æ¯ä¸ªè¯»åœ°å€å¯¹åº”1ä¸ªå•é€šé“å·ç§¯æ ¸
+	output wire[kernal_param_data_width*9-1:0] buffer_dout // å·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒºè¯»æ•°æ®
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -52,15 +76,15 @@ module kernal_params_buffer #(
     end
     endfunction
 	
-	/** ÄÚ²¿ÅäÖÃ **/
-	localparam sim_mode = "false"; // ÊÇ·ñ´¦ÓÚ·ÂÕæÄ£Ê½
+	/** å†…éƒ¨é…ç½® **/
+	localparam sim_mode = "false"; // æ˜¯å¦å¤„äºä»¿çœŸæ¨¡å¼
 	
-	/** ¾í»ıºË²ÎÊı»º´æMEM **/
-	wire[kernal_param_data_width*9-1:0] kernal_pars_buffer_mem_dout; // ¾í»ıºË²ÎÊı»º´æMEM¶ÁÊı¾İ
+	/** å·ç§¯æ ¸å‚æ•°ç¼“å­˜MEM **/
+	wire[kernal_param_data_width*9-1:0] kernal_pars_buffer_mem_dout; // å·ç§¯æ ¸å‚æ•°ç¼“å­˜MEMè¯»æ•°æ®
 	
 	assign buffer_dout = kernal_pars_buffer_mem_dout;
 	
-	// ¼òµ¥Ë«¿ÚRAM
+	// ç®€å•åŒå£RAM
 	bram_simple_dual_port #(
 		.style("LOW_LATENCY"),
 		.mem_width(9*kernal_param_data_width),

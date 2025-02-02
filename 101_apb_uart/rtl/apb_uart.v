@@ -1,58 +1,82 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ·ûºÏAPBĞ­ÒéµÄUART¿ØÖÆÆ÷
+æœ¬æ¨¡å—: ç¬¦åˆAPBåè®®çš„UARTæ§åˆ¶å™¨
 
-ÃèÊö: 
-APB-UART¿ØÖÆÆ÷
-Ö§³ÖUART·¢ËÍ/½ÓÊÕÖĞ¶Ï
+æè¿°: 
+APB-UARTæ§åˆ¶å™¨
+æ”¯æŒUARTå‘é€/æ¥æ”¶ä¸­æ–­
 
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ    |        ±¸×¢
-    0x00    0:·¢ËÍfifoÊÇ·ñÂú                    R
-            1:·¢ËÍfifoĞ´Ê¹ÄÜ                    W         ·¢ËÍfifoĞ´Ê¹ÄÜÈ¡ÉÏÉıÑØ
-            9~2:·¢ËÍfifoĞ´Êı¾İ                  W
-            10:½ÓÊÕfifoÊÇ·ñ¿Õ                   R
-            11:½ÓÊÕfifo¶ÁÊ¹ÄÜ                   W         ½ÓÊÕfifo¶ÁÊ¹ÄÜÈ¡ÉÏÉıÑØ
-            19~12:½ÓÊÕfifo¶ÁÊı¾İ                R
-    0x04    0:UARTÈ«¾ÖÖĞ¶ÏÊ¹ÄÜ                  W
-            1:UART·¢ËÍ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ     W
-            2:UART·¢ËÍIDLEÖĞ¶ÏÊ¹ÄÜ              W
-            3:UART½ÓÊÕ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ     W
-            4:UART½ÓÊÕIDLEÖĞ¶ÏÊ¹ÄÜ              W
-            5:UART½ÓÊÕFIFOÒç³öÖĞ¶ÏÊ¹ÄÜ          W
-            16:UARTÖĞ¶Ï±êÖ¾                    RWC      ÇëÔÚÖĞ¶Ï·şÎñº¯ÊıÖĞÇå³ıÖĞ¶Ï±êÖ¾
-            21~17:UARTÖĞ¶Ï×´Ì¬                  R
-    0x08    15~0:UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ         W               ×¢ÒâÒª¼õ1
-            31~16:UART·¢ËÍÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ    W               ×¢ÒâÒª¼õ2
-    0x0C    15~0:UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ         W               ×¢ÒâÒª¼õ1
-            31~16:UART½ÓÊÕÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ    W               ×¢ÒâÒª¼õ2
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§    |        å¤‡æ³¨
+    0x00    0:å‘é€fifoæ˜¯å¦æ»¡                    R
+            1:å‘é€fifoå†™ä½¿èƒ½                    W         å‘é€fifoå†™ä½¿èƒ½å–ä¸Šå‡æ²¿
+            9~2:å‘é€fifoå†™æ•°æ®                  W
+            10:æ¥æ”¶fifoæ˜¯å¦ç©º                   R
+            11:æ¥æ”¶fifoè¯»ä½¿èƒ½                   W         æ¥æ”¶fifoè¯»ä½¿èƒ½å–ä¸Šå‡æ²¿
+            19~12:æ¥æ”¶fifoè¯»æ•°æ®                R
+    0x04    0:UARTå…¨å±€ä¸­æ–­ä½¿èƒ½                  W
+            1:UARTå‘é€è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½     W
+            2:UARTå‘é€IDLEä¸­æ–­ä½¿èƒ½              W
+            3:UARTæ¥æ”¶è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½     W
+            4:UARTæ¥æ”¶IDLEä¸­æ–­ä½¿èƒ½              W
+            5:UARTæ¥æ”¶FIFOæº¢å‡ºä¸­æ–­ä½¿èƒ½          W
+            16:UARTä¸­æ–­æ ‡å¿—                    RWC      è¯·åœ¨ä¸­æ–­æœåŠ¡å‡½æ•°ä¸­æ¸…é™¤ä¸­æ–­æ ‡å¿—
+            21~17:UARTä¸­æ–­çŠ¶æ€                  R
+    0x08    15~0:UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼         W               æ³¨æ„è¦å‡1
+            31~16:UARTå‘é€ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼    W               æ³¨æ„è¦å‡2
+    0x0C    15~0:UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼         W               æ³¨æ„è¦å‡1
+            31~16:UARTæ¥æ”¶ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼    W               æ³¨æ„è¦å‡2
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 APB SLAVE
 UART
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/07
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/07
 ********************************************************************/
 
 
 module apb_uart #(
-    parameter integer clk_frequency_MHz = 50, // Ê±ÖÓÆµÂÊ
-    parameter integer baud_rate = 115200, // ²¨ÌØÂÊ
-    parameter tx_rx_fifo_ram_type = "bram", // ·¢ËÍ½ÓÊÕfifoµÄRAMÀàĞÍ(lutram|bram)
-    parameter integer tx_fifo_depth = 1024, // ·¢ËÍfifoÉî¶È(32|64|128|...|2048)
-    parameter integer rx_fifo_depth = 1024, // ½ÓÊÕfifoÉî¶È(32|64|128|...|2048)
-    parameter en_itr = "false", // ÊÇ·ñÊ¹ÄÜUARTÖĞ¶Ï
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer clk_frequency_MHz = 50, // æ—¶é’Ÿé¢‘ç‡
+    parameter integer baud_rate = 115200, // æ³¢ç‰¹ç‡
+    parameter tx_rx_fifo_ram_type = "bram", // å‘é€æ¥æ”¶fifoçš„RAMç±»å‹(lutram|bram)
+    parameter integer tx_fifo_depth = 1024, // å‘é€fifoæ·±åº¦(32|64|128|...|2048)
+    parameter integer rx_fifo_depth = 1024, // æ¥æ”¶fifoæ·±åº¦(32|64|128|...|2048)
+    parameter en_itr = "false", // æ˜¯å¦ä½¿èƒ½UARTä¸­æ–­
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // APB´Ó»ú½Ó¿Ú
+    // APBä»æœºæ¥å£
     input wire[31:0] paddr,
     input wire psel,
     input wire penable,
@@ -66,29 +90,29 @@ module apb_uart #(
     output wire uart_tx,
     input wire uart_rx,
     
-    // ÖĞ¶Ï
+    // ä¸­æ–­
     output wire uart_itr
 );
 
-    /* UART·¢ËÍºÍ½ÓÊÕfifo */
-    // ·¢ËÍfifoĞ´¶Ë¿Ú
+    /* UARTå‘é€å’Œæ¥æ”¶fifo */
+    // å‘é€fifoå†™ç«¯å£
     wire tx_fifo_wen;
     wire tx_fifo_full;
     wire[7:0] tx_fifo_din;
-    // ·¢ËÍfifo¶Á¶Ë¿Ú
+    // å‘é€fifoè¯»ç«¯å£
     wire tx_fifo_ren;
     wire tx_fifo_empty;
     wire[7:0] tx_fifo_dout;
-    // ½ÓÊÕfifoĞ´¶Ë¿Ú
+    // æ¥æ”¶fifoå†™ç«¯å£
     wire rx_fifo_wen;
     wire rx_fifo_full;
     wire[7:0] rx_fifo_din;
-    // ½ÓÊÕfifo¶Á¶Ë¿Ú
+    // æ¥æ”¶fifoè¯»ç«¯å£
     wire rx_fifo_ren;
     wire rx_fifo_empty;
     wire[7:0] rx_fifo_dout;
     
-    // ·¢ËÍfifo
+    // å‘é€fifo
     ram_fifo_wrapper #(
         .fwft_mode("false"),
         .ram_type(tx_rx_fifo_ram_type),
@@ -114,7 +138,7 @@ module apb_uart #(
         .fifo_empty(tx_fifo_empty)
     );
     
-    // ½ÓÊÕfifo
+    // æ¥æ”¶fifo
     ram_fifo_wrapper #(
         .fwft_mode("false"),
         .ram_type(tx_rx_fifo_ram_type),
@@ -140,37 +164,37 @@ module apb_uart #(
         .fifo_empty(rx_fifo_empty)
     );
     
-    /** UARTÖĞ¶Ï **/
-    wire uart_org_itr_pulse; // Ô­Ê¼µÄUARTÖĞ¶ÏÂö³å
-    wire uart_org_itr_pulse_d; // ÑÓ³Ù1clkµÄÔ­Ê¼µÄUARTÖĞ¶ÏÂö³å
-    wire uart_itr_flag; // UART×ÜÖĞ¶Ï±êÖ¾
-    wire[4:0] uart_itr_mask; // UART×ÓÖĞ¶Ï±êÖ¾ÏòÁ¿(UART½ÓÊÕFIFOÒç³öÖĞ¶ÏÊ¹ÄÜ, UART½ÓÊÕIDLEÖĞ¶ÏÊ¹ÄÜ, UART½ÓÊÕ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ, UART·¢ËÍIDLEÖĞ¶ÏÊ¹ÄÜ, UART·¢ËÍ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ)
-    wire[4:0] uart_itr_mask_d; // ÑÓ³Ù1clkµÄUART×ÓÖĞ¶Ï±êÖ¾ÏòÁ¿
-    wire uart_global_itr_en; // UARTÈ«¾ÖÖĞ¶ÏÊ¹ÄÜ
-    wire[4:0] uart_itr_en; // UARTÖĞ¶ÏÊ¹ÄÜ(UART½ÓÊÕFIFOÒç³öÖĞ¶ÏÊ¹ÄÜ, UART½ÓÊÕIDLEÖĞ¶ÏÊ¹ÄÜ, UART½ÓÊÕ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ, UART·¢ËÍIDLEÖĞ¶ÏÊ¹ÄÜ, UART·¢ËÍ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ)
+    /** UARTä¸­æ–­ **/
+    wire uart_org_itr_pulse; // åŸå§‹çš„UARTä¸­æ–­è„‰å†²
+    wire uart_org_itr_pulse_d; // å»¶è¿Ÿ1clkçš„åŸå§‹çš„UARTä¸­æ–­è„‰å†²
+    wire uart_itr_flag; // UARTæ€»ä¸­æ–­æ ‡å¿—
+    wire[4:0] uart_itr_mask; // UARTå­ä¸­æ–­æ ‡å¿—å‘é‡(UARTæ¥æ”¶FIFOæº¢å‡ºä¸­æ–­ä½¿èƒ½, UARTæ¥æ”¶IDLEä¸­æ–­ä½¿èƒ½, UARTæ¥æ”¶è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½, UARTå‘é€IDLEä¸­æ–­ä½¿èƒ½, UARTå‘é€è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½)
+    wire[4:0] uart_itr_mask_d; // å»¶è¿Ÿ1clkçš„UARTå­ä¸­æ–­æ ‡å¿—å‘é‡
+    wire uart_global_itr_en; // UARTå…¨å±€ä¸­æ–­ä½¿èƒ½
+    wire[4:0] uart_itr_en; // UARTä¸­æ–­ä½¿èƒ½(UARTæ¥æ”¶FIFOæº¢å‡ºä¸­æ–­ä½¿èƒ½, UARTæ¥æ”¶IDLEä¸­æ–­ä½¿èƒ½, UARTæ¥æ”¶è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½, UARTå‘é€IDLEä¸­æ–­ä½¿èƒ½, UARTå‘é€è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½)
     
-    wire[15:0] tx_bytes_n_th; // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-    wire[15:0] tx_bytes_n_th_sub1; // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ-1
-    wire tx_bytes_n_th_eq0; // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµµÈÓÚ0(±êÖ¾)
-    wire[15:0] tx_idle_n_th; // UART·¢ËÍÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ
-    wire[15:0] rx_bytes_n_th; // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-    wire[15:0] rx_bytes_n_th_sub1; // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ-1
-    wire rx_bytes_n_th_eq0; // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµµÈÓÚ0(±êÖ¾)
-    wire[15:0] rx_idle_n_th; // UART½ÓÊÕÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ
+    wire[15:0] tx_bytes_n_th; // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+    wire[15:0] tx_bytes_n_th_sub1; // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼-1
+    wire tx_bytes_n_th_eq0; // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼ç­‰äº0(æ ‡å¿—)
+    wire[15:0] tx_idle_n_th; // UARTå‘é€ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼
+    wire[15:0] rx_bytes_n_th; // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+    wire[15:0] rx_bytes_n_th_sub1; // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼-1
+    wire rx_bytes_n_th_eq0; // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼ç­‰äº0(æ ‡å¿—)
+    wire[15:0] rx_idle_n_th; // UARTæ¥æ”¶ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼
     
-    wire rx_err; // ½ÓÊÕÒç³ö(Âö³å)
-    wire tx_idle; // ·¢ËÍ¿ÕÏĞ(±êÖ¾)
-    wire rx_idle; // ½ÓÊÕ¿ÕÏĞ(±êÖ¾)
-    wire tx_done; // ·¢ËÍÍê³É(Âö³å)
-    wire rx_done; // ½ÓÊÕÍê³É(Âö³å)
-    wire rx_start; // ½ÓÊÕ¿ªÊ¼(Âö³å)
+    wire rx_err; // æ¥æ”¶æº¢å‡º(è„‰å†²)
+    wire tx_idle; // å‘é€ç©ºé—²(æ ‡å¿—)
+    wire rx_idle; // æ¥æ”¶ç©ºé—²(æ ‡å¿—)
+    wire tx_done; // å‘é€å®Œæˆ(è„‰å†²)
+    wire rx_done; // æ¥æ”¶å®Œæˆ(è„‰å†²)
+    wire rx_start; // æ¥æ”¶å¼€å§‹(è„‰å†²)
     
     generate
         if(en_itr == "true")
         begin
-            reg[15:0] uart_tx_finished_bytes_n_cnt; // ÒÑ·¢ËÍ×Ö½ÚÊı(¼ÆÊıÆ÷)
-            reg uart_tx_finished_bytes_n_cnt_eq_th_sub1; // ÒÑ·¢ËÍ×Ö½ÚÊı == UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ-1(±êÖ¾)
-            reg uart_tx_finished_bytes_n_itr_pulse; // UART·¢ËÍ´ïµ½¹æ¶¨×Ö½ÚÊı(Ô­Ê¼ÖĞ¶ÏÂö³å)
+            reg[15:0] uart_tx_finished_bytes_n_cnt; // å·²å‘é€å­—èŠ‚æ•°(è®¡æ•°å™¨)
+            reg uart_tx_finished_bytes_n_cnt_eq_th_sub1; // å·²å‘é€å­—èŠ‚æ•° == UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼-1(æ ‡å¿—)
+            reg uart_tx_finished_bytes_n_itr_pulse; // UARTå‘é€è¾¾åˆ°è§„å®šå­—èŠ‚æ•°(åŸå§‹ä¸­æ–­è„‰å†²)
             
             always @(posedge clk or negedge resetn)
             begin
@@ -204,10 +228,10 @@ module apb_uart #(
                         (uart_tx_finished_bytes_n_cnt_eq_th_sub1 | tx_bytes_n_th_eq0) & tx_done;
             end
             
-            reg is_waiting_for_uart_tx_done; // ÊÇ·ñÕıÔÚµÈ´ıUART·¢ËÍÍê³ÉÂö³å
-            reg[15:0] uart_tx_idle_cnt; // UART·¢ËÍ¿ÕÏĞÖÜÆÚÊı(¼ÆÊıÆ÷)
-            reg uart_tx_idle_cnt_eq_th_sub1; // UART·¢ËÍ¿ÕÏĞÖÜÆÚÊı == UART·¢ËÍÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ
-            reg uart_tx_idle_itr_pulse; // UART·¢ËÍ¿ÕÏĞ(Ô­Ê¼ÖĞ¶ÏÂö³å)
+            reg is_waiting_for_uart_tx_done; // æ˜¯å¦æ­£åœ¨ç­‰å¾…UARTå‘é€å®Œæˆè„‰å†²
+            reg[15:0] uart_tx_idle_cnt; // UARTå‘é€ç©ºé—²å‘¨æœŸæ•°(è®¡æ•°å™¨)
+            reg uart_tx_idle_cnt_eq_th_sub1; // UARTå‘é€ç©ºé—²å‘¨æœŸæ•° == UARTå‘é€ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼
+            reg uart_tx_idle_itr_pulse; // UARTå‘é€ç©ºé—²(åŸå§‹ä¸­æ–­è„‰å†²)
             
             always @(posedge clk or negedge resetn)
             begin
@@ -395,7 +419,7 @@ module apb_uart #(
         end
     endgenerate
     
-    /** UART¿ØÖÆÆ÷ **/
+    /** UARTæ§åˆ¶å™¨ **/
     uart_rx_tx #(
         .clk_frequency_MHz(clk_frequency_MHz),
         .baud_rate(),
@@ -427,44 +451,44 @@ module apb_uart #(
     );
 
     /*
-    ¼Ä´æÆ÷Çø->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ    |        ±¸×¢
-    0x00    0:·¢ËÍfifoÊÇ·ñÂú                    R
-            1:·¢ËÍfifoĞ´Ê¹ÄÜ                    W         ·¢ËÍfifoĞ´Ê¹ÄÜÈ¡ÉÏÉıÑØ
-            9~2:·¢ËÍfifoĞ´Êı¾İ                  W
-            10:½ÓÊÕfifoÊÇ·ñ¿Õ                   R
-            11:½ÓÊÕfifo¶ÁÊ¹ÄÜ                   W         ½ÓÊÕfifo¶ÁÊ¹ÄÜÈ¡ÉÏÉıÑØ
-            19~12:½ÓÊÕfifo¶ÁÊı¾İ                R
-    0x04    0:UARTÈ«¾ÖÖĞ¶ÏÊ¹ÄÜ                  W
-            1:UART·¢ËÍ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ     W
-            2:UART·¢ËÍIDLEÖĞ¶ÏÊ¹ÄÜ              W
-            3:UART½ÓÊÕ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ     W
-            4:UART½ÓÊÕIDLEÖĞ¶ÏÊ¹ÄÜ              W
-            5:UART½ÓÊÕFIFOÒç³öÖĞ¶ÏÊ¹ÄÜ          W
-            16:UARTÖĞ¶Ï±êÖ¾                    RWC      ÇëÔÚÖĞ¶Ï·şÎñº¯ÊıÖĞÇå³ıÖĞ¶Ï±êÖ¾
-            21~17:UARTÖĞ¶Ï×´Ì¬                  R
-    0x08    15~0:UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ         W               ×¢ÒâÒª¼õ1
-            31~16:UART·¢ËÍÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ    W               ×¢ÒâÒª¼õ2
-    0x0A    15~0:UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ         W               ×¢ÒâÒª¼õ1
-            31~16:UART½ÓÊÕÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ    W               ×¢ÒâÒª¼õ2
+    å¯„å­˜å™¨åŒº->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§    |        å¤‡æ³¨
+    0x00    0:å‘é€fifoæ˜¯å¦æ»¡                    R
+            1:å‘é€fifoå†™ä½¿èƒ½                    W         å‘é€fifoå†™ä½¿èƒ½å–ä¸Šå‡æ²¿
+            9~2:å‘é€fifoå†™æ•°æ®                  W
+            10:æ¥æ”¶fifoæ˜¯å¦ç©º                   R
+            11:æ¥æ”¶fifoè¯»ä½¿èƒ½                   W         æ¥æ”¶fifoè¯»ä½¿èƒ½å–ä¸Šå‡æ²¿
+            19~12:æ¥æ”¶fifoè¯»æ•°æ®                R
+    0x04    0:UARTå…¨å±€ä¸­æ–­ä½¿èƒ½                  W
+            1:UARTå‘é€è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½     W
+            2:UARTå‘é€IDLEä¸­æ–­ä½¿èƒ½              W
+            3:UARTæ¥æ”¶è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½     W
+            4:UARTæ¥æ”¶IDLEä¸­æ–­ä½¿èƒ½              W
+            5:UARTæ¥æ”¶FIFOæº¢å‡ºä¸­æ–­ä½¿èƒ½          W
+            16:UARTä¸­æ–­æ ‡å¿—                    RWC      è¯·åœ¨ä¸­æ–­æœåŠ¡å‡½æ•°ä¸­æ¸…é™¤ä¸­æ–­æ ‡å¿—
+            21~17:UARTä¸­æ–­çŠ¶æ€                  R
+    0x08    15~0:UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼         W               æ³¨æ„è¦å‡1
+            31~16:UARTå‘é€ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼    W               æ³¨æ„è¦å‡2
+    0x0A    15~0:UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼         W               æ³¨æ„è¦å‡1
+            31~16:UARTæ¥æ”¶ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼    W               æ³¨æ„è¦å‡2
     */
-    // ¿ØÖÆ/×´Ì¬¼Ä´æÆ÷
+    // æ§åˆ¶/çŠ¶æ€å¯„å­˜å™¨
     reg[31:0] uart_fifo_cs;
     reg[31:0] uart_itr_status_en;
     reg[31:0] uart_tx_itr_th;
     reg[31:0] uart_rx_itr_th;
     
-    reg[15:0] tx_bytes_n_th_sub1_regs; // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ-1
-    reg[15:0] rx_bytes_n_th_sub1_regs; // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ-1
-    reg tx_bytes_n_th_eq0_reg; // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµµÈÓÚ0(±êÖ¾)
-    reg rx_bytes_n_th_eq0_reg; // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµµÈÓÚ0(±êÖ¾)
+    reg[15:0] tx_bytes_n_th_sub1_regs; // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼-1
+    reg[15:0] rx_bytes_n_th_sub1_regs; // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼-1
+    reg tx_bytes_n_th_eq0_reg; // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼ç­‰äº0(æ ‡å¿—)
+    reg rx_bytes_n_th_eq0_reg; // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼ç­‰äº0(æ ‡å¿—)
     
     reg tx_fifo_wen_d;
     reg rx_fifo_ren_d;
     
-    assign tx_fifo_wen = uart_fifo_cs[1] & (~tx_fifo_wen_d); // ·¢ËÍfifoĞ´Ê¹ÄÜÈ¡ÉÏÉıÑØ
+    assign tx_fifo_wen = uart_fifo_cs[1] & (~tx_fifo_wen_d); // å‘é€fifoå†™ä½¿èƒ½å–ä¸Šå‡æ²¿
     assign tx_fifo_din = uart_fifo_cs[9:2];
-    assign rx_fifo_ren = uart_fifo_cs[11] & (~rx_fifo_ren_d); // ½ÓÊÕfifo¶ÁÊ¹ÄÜÈ¡ÉÏÉıÑØ
+    assign rx_fifo_ren = uart_fifo_cs[11] & (~rx_fifo_ren_d); // æ¥æ”¶fifoè¯»ä½¿èƒ½å–ä¸Šå‡æ²¿
     
     assign {uart_itr_en, uart_global_itr_en} = uart_itr_status_en[5:0];
     assign uart_itr_flag = uart_itr_status_en[16];
@@ -482,7 +506,7 @@ module apb_uart #(
             # simulation_delay {tx_fifo_wen_d, rx_fifo_ren_d} <= {uart_fifo_cs[1], uart_fifo_cs[11]};
     end
     
-    // APBĞ´¼Ä´æÆ÷
+    // APBå†™å¯„å­˜å™¨
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -497,10 +521,10 @@ module apb_uart #(
             # simulation_delay;
             
             case(paddr[3:2])
-                2'd0: {uart_fifo_cs[11], uart_fifo_cs[9:1]} <= {pwdata[11], pwdata[9:1]}; // ½ÓÊÕfifo¶ÁÊ¹ÄÜ, ·¢ËÍfifoĞ´Êı¾İ, ·¢ËÍfifoĞ´Ê¹ÄÜ
-                2'd1: {uart_itr_status_en[16], uart_itr_status_en[5:0]} <= {1'b0, pwdata[5:0]}; // UART×ÜÖĞ¶Ï±êÖ¾, UARTÖĞ¶ÏÊ¹ÄÜ
-                2'd2: uart_tx_itr_th <= pwdata; // UART·¢ËÍÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ, UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-                2'd3: uart_rx_itr_th <= pwdata; // UART½ÓÊÕÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ, UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ
+                2'd0: {uart_fifo_cs[11], uart_fifo_cs[9:1]} <= {pwdata[11], pwdata[9:1]}; // æ¥æ”¶fifoè¯»ä½¿èƒ½, å‘é€fifoå†™æ•°æ®, å‘é€fifoå†™ä½¿èƒ½
+                2'd1: {uart_itr_status_en[16], uart_itr_status_en[5:0]} <= {1'b0, pwdata[5:0]}; // UARTæ€»ä¸­æ–­æ ‡å¿—, UARTä¸­æ–­ä½¿èƒ½
+                2'd2: uart_tx_itr_th <= pwdata; // UARTå‘é€ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼, UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+                2'd3: uart_rx_itr_th <= pwdata; // UARTæ¥æ”¶ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼, UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
             endcase
         end
         else
@@ -508,14 +532,14 @@ module apb_uart #(
             # simulation_delay;
             
             if(~uart_itr_status_en[16])
-                uart_itr_status_en[16] <= uart_org_itr_pulse; // UART×ÜÖĞ¶Ï±êÖ¾
+                uart_itr_status_en[16] <= uart_org_itr_pulse; // UARTæ€»ä¸­æ–­æ ‡å¿—
         end
     end
     
-    // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ-1
-    // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ-1
-    // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµµÈÓÚ0(±êÖ¾)
-    // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµµÈÓÚ0(±êÖ¾)
+    // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼-1
+    // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼-1
+    // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼ç­‰äº0(æ ‡å¿—)
+    // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼ç­‰äº0(æ ‡å¿—)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -543,14 +567,14 @@ module apb_uart #(
         end
     end
     
-    // ×ÓÖĞ¶Ï±êÖ¾ÏòÁ¿
+    // å­ä¸­æ–­æ ‡å¿—å‘é‡
     always @(posedge clk)
     begin
         if(uart_org_itr_pulse_d)
-            # simulation_delay uart_itr_status_en[21:17] <= uart_itr_mask_d; // UART×ÓÖĞ¶Ï±êÖ¾
+            # simulation_delay uart_itr_status_en[21:17] <= uart_itr_mask_d; // UARTå­ä¸­æ–­æ ‡å¿—
     end
     
-    // APB¶Á¼Ä´æÆ÷
+    // APBè¯»å¯„å­˜å™¨
     reg[31:0] prdata_out_regs;
     
     always @(posedge clk)
@@ -562,9 +586,9 @@ module apb_uart #(
             case(paddr[3:2])
                 2'd0:
                 begin
-                    prdata_out_regs[0] <= tx_fifo_full; // ·¢ËÍfifoÊÇ·ñÂú
-                    prdata_out_regs[10] <= rx_fifo_empty; // ½ÓÊÕfifoÊÇ·ñ¿Õ
-                    prdata_out_regs[19:12] <= rx_fifo_dout; // ½ÓÊÕfifo¶ÁÊı¾İ
+                    prdata_out_regs[0] <= tx_fifo_full; // å‘é€fifoæ˜¯å¦æ»¡
+                    prdata_out_regs[10] <= rx_fifo_empty; // æ¥æ”¶fifoæ˜¯å¦ç©º
+                    prdata_out_regs[19:12] <= rx_fifo_dout; // æ¥æ”¶fifoè¯»æ•°æ®
                     {prdata_out_regs[31:20], prdata_out_regs[11], prdata_out_regs[9:1]} <= 22'dx;
                 end
                 2'd1:
@@ -577,7 +601,7 @@ module apb_uart #(
         end
     end
     
-    /** APB´Ó»ú½Ó¿Ú **/
+    /** APBä»æœºæ¥å£ **/
     assign pready_out = 1'b1;
     assign prdata_out = prdata_out_regs;
     assign pslverr_out = 1'b0;

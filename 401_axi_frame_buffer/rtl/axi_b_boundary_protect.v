@@ -1,62 +1,86 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIĞ´ÏìÓ¦Í¨µÀµÄ±ß½ç±£»¤
+æœ¬æ¨¡å—: AXIå†™å“åº”é€šé“çš„è¾¹ç•Œä¿æŠ¤
 
-ÃèÊö: 
-¶ÔAXI´Ó»úµÄBÍ¨µÀ½øĞĞ±ß½ç±£»¤
-32Î»µØÖ·/Êı¾İ×ÜÏß
+æè¿°: 
+å¯¹AXIä»æœºçš„Bé€šé“è¿›è¡Œè¾¹ç•Œä¿æŠ¤
+32ä½åœ°å€/æ•°æ®æ€»çº¿
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
 
-ÒÔÏÂ·Ç¼Ä´æÆ÷Êä³ö ->
-    AXI´Ó»úBÍ¨µÀ: m_axis_b_valid
-    AXIÖ÷»úBÍ¨µÀ: m_axi_bready
+ä»¥ä¸‹éå¯„å­˜å™¨è¾“å‡º ->
+    AXIä»æœºBé€šé“: m_axis_b_valid
+    AXIä¸»æœºBé€šé“: m_axi_bready
 
-Ğ­Òé:
+åè®®:
 AXI MASTER(ONLY B)
 AXIS MASTER
 FIFO READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/02
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/02
 ********************************************************************/
 
 
 module axi_b_boundary_protect #(
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»úµÄB
-    output wire[7:0] m_axis_b_data, // {±£Áô(6bit), bresp(2bit)}
+    // AXIä»æœºçš„B
+    output wire[7:0] m_axis_b_data, // {ä¿ç•™(6bit), bresp(2bit)}
     output wire m_axis_b_valid,
     input wire m_axis_b_ready,
     
-    // AXIÖ÷»úµÄB
+    // AXIä¸»æœºçš„B
     input wire[1:0] m_axi_bresp,
     input wire m_axi_bvalid,
     output wire m_axi_bready,
     
-    // Ğ´¿ç½ç±êÖ¾fifoĞ´¶Ë¿Ú
+    // å†™è·¨ç•Œæ ‡å¿—fifoå†™ç«¯å£
     output wire wt_across_boundary_fifo_ren,
     input wire wt_across_boundary_fifo_dout,
     input wire wt_across_boundary_fifo_empty_n
 );
 
-    reg bresp_merged; // Ğ´ÏìÓ¦ºÏ²¢
+    reg bresp_merged; // å†™å“åº”åˆå¹¶
 
     assign m_axis_b_data = {6'dx, m_axi_bresp};
-    // ÎÕÊÖÌõ¼ş: wt_across_boundary_fifo_empty_n & m_axi_bvalid & ((~wt_across_boundary_fifo_dout) | bresp_merged) & m_axis_b_ready
+    // æ¡æ‰‹æ¡ä»¶: wt_across_boundary_fifo_empty_n & m_axi_bvalid & ((~wt_across_boundary_fifo_dout) | bresp_merged) & m_axis_b_ready
     assign m_axis_b_valid = wt_across_boundary_fifo_empty_n & m_axi_bvalid & ((~wt_across_boundary_fifo_dout) | bresp_merged);
-    // ÎÕÊÖÌõ¼ş: m_axi_bvalid & wt_across_boundary_fifo_empty_n & m_axis_b_ready
+    // æ¡æ‰‹æ¡ä»¶: m_axi_bvalid & wt_across_boundary_fifo_empty_n & m_axis_b_ready
     assign m_axi_bready = wt_across_boundary_fifo_empty_n & m_axis_b_ready;
     
     assign wt_across_boundary_fifo_ren = m_axi_bvalid & ((~wt_across_boundary_fifo_dout) | bresp_merged) & m_axis_b_ready;
     
-    // Ğ´ÏìÓ¦ºÏ²¢
+    // å†™å“åº”åˆå¹¶
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

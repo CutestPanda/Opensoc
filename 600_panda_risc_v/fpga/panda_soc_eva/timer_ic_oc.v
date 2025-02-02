@@ -1,87 +1,111 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: Í¨ÓÃ¶¨Ê±Æ÷µÄÊäÈë²¶»ñ/Êä³ö±È½ÏÍ¨µÀ
+æœ¬æ¨¡å—: é€šç”¨å®šæ—¶å™¨çš„è¾“å…¥æ•è·/è¾“å‡ºæ¯”è¾ƒé€šé“
 
-ÃèÊö: 
-ÊäÈë²¶»ñ/Êä³ö±È½Ï
+æè¿°: 
+è¾“å…¥æ•è·/è¾“å‡ºæ¯”è¾ƒ
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/10
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/10
 ********************************************************************/
 
 
 module timer_ic_oc #(
-    parameter integer timer_width = 16, // ¶¨Ê±Æ÷Î»¿í(8~32)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer timer_width = 16, // å®šæ—¶å™¨ä½å®½(8~32)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // ²¶»ñ/±È½Ï
-    input wire cap_in, // ²¶»ñÊäÈë
-    output wire cmp_out, // ±È½ÏÊä³ö
+    // æ•è·/æ¯”è¾ƒ
+    input wire cap_in, // æ•è·è¾“å…¥
+    output wire cmp_out, // æ¯”è¾ƒè¾“å‡º
     
-    // ¶¨Ê±Æ÷¼ÆÊıÖµ
+    // å®šæ—¶å™¨è®¡æ•°å€¼
     input wire[timer_width-1:0] timer_cnt_now_v,
-    // ÊÇ·ñÆô¶¯¶¨Ê±Æ÷
+    // æ˜¯å¦å¯åŠ¨å®šæ—¶å™¨
     input wire timer_started,
     
-    // ¶¨Ê±Æ÷¼ÆÊıÒç³ö(Ö¸Ê¾)
+    // å®šæ—¶å™¨è®¡æ•°æº¢å‡º(æŒ‡ç¤º)
     input wire timer_expired,
     
-    // ²¶»ñ/±È½ÏÑ¡Ôñ
-    // 1'b0 -> ²¶»ñ, 1'b1 -> ±È½Ï
+    // æ•è·/æ¯”è¾ƒé€‰æ‹©
+    // 1'b0 -> æ•è·, 1'b1 -> æ¯”è¾ƒ
     input wire cap_cmp_sel,
-    // ²¶»ñ/±È½ÏÖµ
+    // æ•è·/æ¯”è¾ƒå€¼
     input wire[timer_width-1:0] timer_cmp,
     output wire[timer_width-1:0] timer_cap_cmp_o,
     
-    // ÊäÈëÂË²¨ãĞÖµ
+    // è¾“å…¥æ»¤æ³¢é˜ˆå€¼
     input wire[7:0] timer_cap_filter_th,
-    // ±ßÑØ¼ì²âÀàĞÍ
-    // 2'b00 -> ÉÏÉıÑØ, 2'b01 -> ÏÂ½µÑØ, 2'b10 -> ÉÏÉı/ÏÂ½µÑØ, 2'b11 -> ±£Áô
+    // è¾¹æ²¿æ£€æµ‹ç±»å‹
+    // 2'b00 -> ä¸Šå‡æ²¿, 2'b01 -> ä¸‹é™æ²¿, 2'b10 -> ä¸Šå‡/ä¸‹é™æ²¿, 2'b11 -> ä¿ç•™
     input wire[1:0] timer_cap_edge,
     
-    // ÊäÈë²¶»ñÖĞ¶ÏÇëÇó
+    // è¾“å…¥æ•è·ä¸­æ–­è¯·æ±‚
     output wire timer_cap_itr_req
 );
 
-    /** ³£Á¿ **/
-    // ÊäÈë²¶»ñ±ßÑØÀàĞÍ
-    localparam IN_CAP_EDGE_POS = 2'b00; // ±ßÑØÀàĞÍ:ÉÏÉıÑØ
-    localparam IN_CAP_EDGE_NEG = 2'b01; // ±ßÑØÀàĞÍ:ÏÂ½µÑØ
-    localparam IN_CAP_EDGE_BOTH = 2'b10; // ±ßÑØÀàĞÍ:ÉÏÉı/ÏÂ½µÑØ
-    // ÊäÈë²¶»ñ×´Ì¬³£Á¿
-    localparam IN_CAP_STS_IDLE = 2'b00; // ×´Ì¬:¿ÕÏĞ
-    localparam IN_CAP_STS_DELAY = 2'b01; // ×´Ì¬:ÑÓ³Ù
-    localparam IN_CAP_STS_COMFIRM = 2'b10; // ×´Ì¬:È·ÈÏ
-    localparam IN_CAP_STS_CAP = 2'b11; // ×´Ì¬:²¶»ñ
+    /** å¸¸é‡ **/
+    // è¾“å…¥æ•è·è¾¹æ²¿ç±»å‹
+    localparam IN_CAP_EDGE_POS = 2'b00; // è¾¹æ²¿ç±»å‹:ä¸Šå‡æ²¿
+    localparam IN_CAP_EDGE_NEG = 2'b01; // è¾¹æ²¿ç±»å‹:ä¸‹é™æ²¿
+    localparam IN_CAP_EDGE_BOTH = 2'b10; // è¾¹æ²¿ç±»å‹:ä¸Šå‡/ä¸‹é™æ²¿
+    // è¾“å…¥æ•è·çŠ¶æ€å¸¸é‡
+    localparam IN_CAP_STS_IDLE = 2'b00; // çŠ¶æ€:ç©ºé—²
+    localparam IN_CAP_STS_DELAY = 2'b01; // çŠ¶æ€:å»¶è¿Ÿ
+    localparam IN_CAP_STS_COMFIRM = 2'b10; // çŠ¶æ€:ç¡®è®¤
+    localparam IN_CAP_STS_CAP = 2'b11; // çŠ¶æ€:æ•è·
     
-    /** ²¶»ñ/±È½Ï¼Ä´æÆ÷ **/
-    wire to_in_cap; // ÊäÈë²¶»ñ(Ö¸Ê¾)
-    reg to_in_cap_d; // ÑÓ³Ù1clkµÄÊäÈë²¶»ñ(Ö¸Ê¾)
-    reg[timer_width-1:0] timer_cap_v_latched; // Ëø´æµÄ²¶»ñÖµ
-    reg[timer_width-1:0] timer_cap_cmp; // ²¶»ñ/±È½Ï¼Ä´æÆ÷
+    /** æ•è·/æ¯”è¾ƒå¯„å­˜å™¨ **/
+    wire to_in_cap; // è¾“å…¥æ•è·(æŒ‡ç¤º)
+    reg to_in_cap_d; // å»¶è¿Ÿ1clkçš„è¾“å…¥æ•è·(æŒ‡ç¤º)
+    reg[timer_width-1:0] timer_cap_v_latched; // é”å­˜çš„æ•è·å€¼
+    reg[timer_width-1:0] timer_cap_cmp; // æ•è·/æ¯”è¾ƒå¯„å­˜å™¨
     
     assign timer_cap_cmp_o = timer_cap_cmp;
     assign timer_cap_itr_req = to_in_cap_d;
     
-    // ²¶»ñ/±È½Ï¼Ä´æÆ÷
-    // Èç¹ûµ±Ç°Ä£Ê½ÊÇ±È½ÏÄ£Ê½, Ôò±£Ö¤²¶»ñ/±È½Ï¼Ä´æÆ÷½öÔÚ¶¨Ê±Æ÷Î´Æô¶¯»ò¶¨Ê±Æ÷¼ÆÊıÒç³öÊ±ÔØÈëÉèÖÃÖµ!
+    // æ•è·/æ¯”è¾ƒå¯„å­˜å™¨
+    // å¦‚æœå½“å‰æ¨¡å¼æ˜¯æ¯”è¾ƒæ¨¡å¼, åˆ™ä¿è¯æ•è·/æ¯”è¾ƒå¯„å­˜å™¨ä»…åœ¨å®šæ—¶å™¨æœªå¯åŠ¨æˆ–å®šæ—¶å™¨è®¡æ•°æº¢å‡ºæ—¶è½½å…¥è®¾ç½®å€¼!
     always @(posedge clk)
     begin
         if(cap_cmp_sel ? ((~timer_started) | timer_expired):to_in_cap)
             # simulation_delay timer_cap_cmp <= cap_cmp_sel ? timer_cmp:timer_cap_v_latched;
     end
     
-    // ÑÓ³Ù1clkµÄÊäÈë²¶»ñ(Ö¸Ê¾)
+    // å»¶è¿Ÿ1clkçš„è¾“å…¥æ•è·(æŒ‡ç¤º)
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -90,16 +114,16 @@ module timer_ic_oc #(
             # simulation_delay to_in_cap_d <= to_in_cap;
     end
     
-    /** ÊäÈë²¶»ñ **/
-    reg[2:0] cap_in_d1_to_d3; // ÑÓ³Ù1~3clkµÄ²¶»ñÊäÈë
-    wire cap_in_posedge_detected; // ²¶»ñÊäÈë¼ì²âµ½ÉÏÉıÑØ
-    wire cap_in_negedge_detected; // ²¶»ñÊäÈë¼ì²âµ½ÏÂ½µÑØ
-    wire cap_vld_edge; // ¼ì²âµ½ÓĞĞ§±ßÑØ(Ö¸Ê¾)
-    reg cap_in_edge_type_latched; // Ëø´æµÄ²¶»ñÊäÈë±ßÑØÀàĞÍ(1'b0 -> ÏÂ½µÑØ, 1'b1 -> ÉÏÉıÑØ)
-    reg[7:0] cap_in_filter_th_latched; // Ëø´æµÄÊäÈëÂË²¨ãĞÖµ
-    reg[7:0] cap_in_filter_cnt; // ÊäÈëÂË²¨¼ÆÊıÆ÷
-    wire cap_in_filter_done; // ÊäÈëÂË²¨Íê³É(Ö¸Ê¾)
-    reg[1:0] in_cap_sts; // ÊäÈë²¶»ñ×´Ì¬
+    /** è¾“å…¥æ•è· **/
+    reg[2:0] cap_in_d1_to_d3; // å»¶è¿Ÿ1~3clkçš„æ•è·è¾“å…¥
+    wire cap_in_posedge_detected; // æ•è·è¾“å…¥æ£€æµ‹åˆ°ä¸Šå‡æ²¿
+    wire cap_in_negedge_detected; // æ•è·è¾“å…¥æ£€æµ‹åˆ°ä¸‹é™æ²¿
+    wire cap_vld_edge; // æ£€æµ‹åˆ°æœ‰æ•ˆè¾¹æ²¿(æŒ‡ç¤º)
+    reg cap_in_edge_type_latched; // é”å­˜çš„æ•è·è¾“å…¥è¾¹æ²¿ç±»å‹(1'b0 -> ä¸‹é™æ²¿, 1'b1 -> ä¸Šå‡æ²¿)
+    reg[7:0] cap_in_filter_th_latched; // é”å­˜çš„è¾“å…¥æ»¤æ³¢é˜ˆå€¼
+    reg[7:0] cap_in_filter_cnt; // è¾“å…¥æ»¤æ³¢è®¡æ•°å™¨
+    wire cap_in_filter_done; // è¾“å…¥æ»¤æ³¢å®Œæˆ(æŒ‡ç¤º)
+    reg[1:0] in_cap_sts; // è¾“å…¥æ•è·çŠ¶æ€
     
     assign to_in_cap = in_cap_sts == IN_CAP_STS_CAP;
     
@@ -111,7 +135,7 @@ module timer_ic_oc #(
             & timer_started & (~cap_cmp_sel);
     assign cap_in_filter_done = cap_in_filter_cnt == cap_in_filter_th_latched;
     
-    // ÑÓ³Ù1~3clkµÄ²¶»ñÊäÈë
+    // å»¶è¿Ÿ1~3clkçš„æ•è·è¾“å…¥
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -120,26 +144,26 @@ module timer_ic_oc #(
             # simulation_delay cap_in_d1_to_d3 <= {cap_in_d1_to_d3[1:0], cap_in};
     end
     
-    // Ëø´æµÄ²¶»ñÖµ
+    // é”å­˜çš„æ•è·å€¼
     always @(posedge clk)
     begin
         if((in_cap_sts == IN_CAP_STS_IDLE) & cap_vld_edge)
             # simulation_delay timer_cap_v_latched <= timer_cnt_now_v;
     end
-    // Ëø´æµÄ²¶»ñÊäÈë±ßÑØÀàĞÍ
+    // é”å­˜çš„æ•è·è¾“å…¥è¾¹æ²¿ç±»å‹
     always @(posedge clk)
     begin
         if((in_cap_sts == IN_CAP_STS_IDLE) & cap_vld_edge)
             # simulation_delay cap_in_edge_type_latched <= cap_in_posedge_detected;
     end
-    // Ëø´æµÄÊäÈëÂË²¨ãĞÖµ
+    // é”å­˜çš„è¾“å…¥æ»¤æ³¢é˜ˆå€¼
     always @(posedge clk)
     begin
         if((in_cap_sts == IN_CAP_STS_IDLE) & cap_vld_edge)
             # simulation_delay cap_in_filter_th_latched <= timer_cap_filter_th;
     end
     
-    // ÊäÈëÂË²¨¼ÆÊıÆ÷
+    // è¾“å…¥æ»¤æ³¢è®¡æ•°å™¨
     always @(posedge clk)
     begin
         if(in_cap_sts == IN_CAP_STS_IDLE)
@@ -148,7 +172,7 @@ module timer_ic_oc #(
             # simulation_delay cap_in_filter_cnt <= cap_in_filter_cnt + 8'd1;
     end
     
-    // ÊäÈë²¶»ñ×´Ì¬
+    // è¾“å…¥æ•è·çŠ¶æ€
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -158,34 +182,34 @@ module timer_ic_oc #(
             # simulation_delay;
             
             case(in_cap_sts)
-                IN_CAP_STS_IDLE: // ×´Ì¬:¿ÕÏĞ
+                IN_CAP_STS_IDLE: // çŠ¶æ€:ç©ºé—²
                     if(cap_vld_edge)
-                        in_cap_sts <= IN_CAP_STS_DELAY; // -> ×´Ì¬:ÑÓ³Ù
-                IN_CAP_STS_DELAY: // ×´Ì¬:ÑÓ³Ù
+                        in_cap_sts <= IN_CAP_STS_DELAY; // -> çŠ¶æ€:å»¶è¿Ÿ
+                IN_CAP_STS_DELAY: // çŠ¶æ€:å»¶è¿Ÿ
                     if(cap_in_filter_done)
-                        in_cap_sts <= IN_CAP_STS_COMFIRM; // -> ×´Ì¬:È·ÈÏ
-                IN_CAP_STS_COMFIRM: // ×´Ì¬:È·ÈÏ
+                        in_cap_sts <= IN_CAP_STS_COMFIRM; // -> çŠ¶æ€:ç¡®è®¤
+                IN_CAP_STS_COMFIRM: // çŠ¶æ€:ç¡®è®¤
                     if(cap_in_d1_to_d3[1] == cap_in_edge_type_latched)
-                        in_cap_sts <= IN_CAP_STS_CAP; // -> ×´Ì¬:²¶»ñ
+                        in_cap_sts <= IN_CAP_STS_CAP; // -> çŠ¶æ€:æ•è·
                     else
-                        in_cap_sts <= IN_CAP_STS_IDLE; // -> ×´Ì¬:¿ÕÏĞ
-                IN_CAP_STS_CAP: // ×´Ì¬:²¶»ñ
-                    in_cap_sts <= IN_CAP_STS_IDLE; // -> ×´Ì¬:¿ÕÏĞ
+                        in_cap_sts <= IN_CAP_STS_IDLE; // -> çŠ¶æ€:ç©ºé—²
+                IN_CAP_STS_CAP: // çŠ¶æ€:æ•è·
+                    in_cap_sts <= IN_CAP_STS_IDLE; // -> çŠ¶æ€:ç©ºé—²
                 default:
                     in_cap_sts <= IN_CAP_STS_IDLE;
             endcase
         end
     end
     
-    /** Êä³ö±È½Ï **/
-    wire cmp_o; // Êä³ö±È½ÏÖµ
-    reg cmp_o_d; // ÑÓ³Ù1clkµÄÊä³ö±È½ÏÖµ
+    /** è¾“å‡ºæ¯”è¾ƒ **/
+    wire cmp_o; // è¾“å‡ºæ¯”è¾ƒå€¼
+    reg cmp_o_d; // å»¶è¿Ÿ1clkçš„è¾“å‡ºæ¯”è¾ƒå€¼
     
     assign cmp_out = cmp_o_d;
     
     assign cmp_o = timer_started & cap_cmp_sel & (timer_cnt_now_v >= timer_cap_cmp);
     
-    // ÑÓ³Ù1clkµÄÊä³ö±È½ÏÖµ
+    // å»¶è¿Ÿ1clkçš„è¾“å‡ºæ¯”è¾ƒå€¼
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)

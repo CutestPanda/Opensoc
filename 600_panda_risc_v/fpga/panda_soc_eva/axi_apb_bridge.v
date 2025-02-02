@@ -1,86 +1,110 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIµ½APBÇÅ
+æœ¬æ¨¡å—: AXIåˆ°APBæ¡¥
 
-ÃèÊö: 
-AXIµ½APBÇÅ(AXI-APBÇÅÊÇAPB×ÜÏßÉÏÎ¨Ò»µÄÖ÷Éè±¸)
-¿ÉÑ¡APB´Ó»ú¸öÊıÎª1~16
+æè¿°: 
+AXIåˆ°APBæ¡¥(AXI-APBæ¡¥æ˜¯APBæ€»çº¿ä¸Šå”¯ä¸€çš„ä¸»è®¾å¤‡)
+å¯é€‰APBä»æœºä¸ªæ•°ä¸º1~16
 
-×¢Òâ£º
-Ã¿¸ö´Ó»úµÄµØÖ·Çø¼ä³¤¶È±ØĞë >= 4096(4KB)
+æ³¨æ„ï¼š
+æ¯ä¸ªä»æœºçš„åœ°å€åŒºé—´é•¿åº¦å¿…é¡» >= 4096(4KB)
 
-Ğ­Òé:
+åè®®:
 AXI-Lite SLAVE
 APB MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/12/10
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/12/10
 ********************************************************************/
 
 
 module axi_apb_bridge #(
-    parameter integer apb_slave_n = 5, // APB´Ó»ú¸öÊı(1~16)
-    parameter integer apb_s0_baseaddr = 0, // 0ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s0_range = 4096, // 0ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s1_baseaddr = 4096, // 1ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s1_range = 4096, // 1ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s2_baseaddr = 8192, // 2ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s2_range = 4096, // 2ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s3_baseaddr = 12288, // 3ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s3_range = 4096, // 3ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s4_baseaddr = 16384, // 4ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s4_range = 4096, // 4ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s5_baseaddr = 20480, // 5ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s5_range = 4096, // 5ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s6_baseaddr = 24576, // 6ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s6_range = 4096, // 6ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s7_baseaddr = 28672, // 7ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s7_range = 4096, // 7ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s8_baseaddr = 32768, // 8ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s8_range = 4096, // 8ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s9_baseaddr = 36864, // 9ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s9_range = 4096, // 9ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s10_baseaddr = 40960, // 10ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s10_range = 4096, // 10ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s11_baseaddr = 45056, // 11ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s11_range = 4096, // 11ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s12_baseaddr = 49152, // 12ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s12_range = 4096, // 12ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s13_baseaddr = 53248, // 13ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s13_range = 4096, // 13ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s14_baseaddr = 57344, // 14ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s14_range = 4096, // 14ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s15_baseaddr = 61440, // 15ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s15_range = 4096, // 15ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer apb_slave_n = 5, // APBä»æœºä¸ªæ•°(1~16)
+    parameter integer apb_s0_baseaddr = 0, // 0å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s0_range = 4096, // 0å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s1_baseaddr = 4096, // 1å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s1_range = 4096, // 1å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s2_baseaddr = 8192, // 2å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s2_range = 4096, // 2å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s3_baseaddr = 12288, // 3å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s3_range = 4096, // 3å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s4_baseaddr = 16384, // 4å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s4_range = 4096, // 4å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s5_baseaddr = 20480, // 5å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s5_range = 4096, // 5å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s6_baseaddr = 24576, // 6å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s6_range = 4096, // 6å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s7_baseaddr = 28672, // 7å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s7_range = 4096, // 7å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s8_baseaddr = 32768, // 8å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s8_range = 4096, // 8å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s9_baseaddr = 36864, // 9å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s9_range = 4096, // 9å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s10_baseaddr = 40960, // 10å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s10_range = 4096, // 10å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s11_baseaddr = 45056, // 11å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s11_range = 4096, // 11å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s12_baseaddr = 49152, // 12å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s12_range = 4096, // 12å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s13_baseaddr = 53248, // 13å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s13_range = 4096, // 13å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s14_baseaddr = 57344, // 14å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s14_range = 4096, // 14å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s15_baseaddr = 61440, // 15å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s15_range = 4096, // 15å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
     // AXI-Lite SLAVE
-    // ¶ÁµØÖ·Í¨µÀ
+    // è¯»åœ°å€é€šé“
     input wire[31:0] s_axi_araddr,
     input wire[2:0] s_axi_arprot,
     input wire s_axi_arvalid,
     output wire s_axi_arready,
-    // Ğ´µØÖ·Í¨µÀ
+    // å†™åœ°å€é€šé“
     input wire[31:0] s_axi_awaddr,
     input wire[2:0] s_axi_awprot,
     input wire s_axi_awvalid,
     output wire s_axi_awready,
-    // Ğ´ÏìÓ¦Í¨µÀ
+    // å†™å“åº”é€šé“
     // 2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR
     output wire[1:0] s_axi_bresp,
     output wire s_axi_bvalid,
     input wire s_axi_bready,
-    // ¶ÁÊı¾İÍ¨µÀ
+    // è¯»æ•°æ®é€šé“
     output wire[31:0] s_axi_rdata,
     // 2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR
     output wire[1:0] s_axi_rresp,
     output wire s_axi_rvalid,
     input wire s_axi_rready,
-    // Ğ´Êı¾İÍ¨µÀ
+    // å†™æ•°æ®é€šé“
     input wire[31:0] s_axi_wdata,
     input wire[3:0] s_axi_wstrb,
     input wire s_axi_wvalid,
@@ -98,30 +122,30 @@ module axi_apb_bridge #(
     input wire m_apb_pslverr, // 1'b0 -> OKAY; 1'b1 -> ERROR
     input wire[31:0] m_apb_prdata,
     
-    // APB MUXÑ¡ÔñĞÅºÅ
+    // APB MUXé€‰æ‹©ä¿¡å·
     output wire[3:0] apb_muxsel
 );
 
-    /** ³£Á¿ **/
-    // ÏìÓ¦ÀàĞÍ
+    /** å¸¸é‡ **/
+    // å“åº”ç±»å‹
     localparam RESP_OKAY = 2'b00;
     localparam RESP_EXOKAY = 2'b01;
     localparam RESP_SLVERR = 2'b10;
     localparam RESP_DECERR = 2'b11;
-    // APBÖ÷½Ó¿Ú×´Ì¬³£Á¿
-    localparam APB_STATUS_IDLE = 2'b00; // ¿ÕÏĞ
-    localparam APB_STATUS_READY = 2'b01; // ¾ÍĞ÷
-    localparam APB_STATUS_TRANS = 2'b10; // µÈ´ıAPB´Ó»úÍê³É´«Êä
-    localparam APB_STATUS_WAIT = 2'b11; // µÈ´ıAXIÖ÷»úÍê³ÉÍê³É
+    // APBä¸»æ¥å£çŠ¶æ€å¸¸é‡
+    localparam APB_STATUS_IDLE = 2'b00; // ç©ºé—²
+    localparam APB_STATUS_READY = 2'b01; // å°±ç»ª
+    localparam APB_STATUS_TRANS = 2'b10; // ç­‰å¾…APBä»æœºå®Œæˆä¼ è¾“
+    localparam APB_STATUS_WAIT = 2'b11; // ç­‰å¾…AXIä¸»æœºå®Œæˆå®Œæˆ
 
-    /** AXI-Lite´Ó½Ó¿Ú **/
-    // ¶ÁµØÖ·Í¨µÀ(AR)
+    /** AXI-Liteä»æ¥å£ **/
+    // è¯»åœ°å€é€šé“(AR)
     reg s_axi_arready_reg;
-    reg[31:0] s_axi_araddr_latched; // Ëø´æµÄaxi¶ÁµØÖ·
-    reg[2:0] s_axi_arprot_latched; // Ëø´æµÄaxi¶Á±£»¤ÀàĞÍ
-    reg s_axi_ar_decerr; // axi¶ÁµØÖ·ÒëÂë´íÎó(±êÖ¾)
-    reg[apb_slave_n-1:0] s_axi_ar_decsel; // axi¶ÁµØÖ·ÒëÂëÆ¬Ñ¡Êä³ö
-    reg[3:0] s_axi_ar_decmuxsel; // axi¶ÁµØÖ·ÒëÂëMUXÑ¡ÔñĞÅºÅÊä³ö
+    reg[31:0] s_axi_araddr_latched; // é”å­˜çš„axiè¯»åœ°å€
+    reg[2:0] s_axi_arprot_latched; // é”å­˜çš„axiè¯»ä¿æŠ¤ç±»å‹
+    reg s_axi_ar_decerr; // axiè¯»åœ°å€è¯‘ç é”™è¯¯(æ ‡å¿—)
+    reg[apb_slave_n-1:0] s_axi_ar_decsel; // axiè¯»åœ°å€è¯‘ç ç‰‡é€‰è¾“å‡º
+    reg[3:0] s_axi_ar_decmuxsel; // axiè¯»åœ°å€è¯‘ç MUXé€‰æ‹©ä¿¡å·è¾“å‡º
     
     wire[15:0] s_axi_ar_decsel_w;
     wire[3:0] s_axi_ar_decmuxsel_w;
@@ -140,7 +164,7 @@ module axi_apb_bridge #(
     begin
         # simulation_delay;
         
-        if(s_axi_arvalid & s_axi_arready) // Ëø´æ
+        if(s_axi_arvalid & s_axi_arready) // é”å­˜
         begin
             s_axi_araddr_latched <= s_axi_araddr;
             s_axi_arprot_latched <= s_axi_arprot;
@@ -199,7 +223,7 @@ module axi_apb_bridge #(
         .apb_muxsel(s_axi_ar_decmuxsel_w)
     );
     
-    // ¶ÁÊı¾İÍ¨µÀ(R)
+    // è¯»æ•°æ®é€šé“(R)
     reg[31:0] s_axi_rdata_regs;
     reg[1:0] s_axi_rresp_regs;
     reg s_axi_rvalid_reg;
@@ -237,13 +261,13 @@ module axi_apb_bridge #(
         end
     end
     
-    // Ğ´µØÖ·Í¨µÀ(AW)
+    // å†™åœ°å€é€šé“(AW)
     reg s_axi_awready_reg;
-    reg[31:0] s_axi_awaddr_latched; // Ëø´æµÄaxiĞ´µØÖ·
-    reg[2:0] s_axi_awprot_latched; // Ëø´æµÄaxiĞ´±£»¤ÀàĞÍ
-    reg s_axi_aw_decerr; // axiĞ´µØÖ·ÒëÂë´íÎó(±êÖ¾)
-    reg[apb_slave_n-1:0] s_axi_aw_decsel; // axiĞ´µØÖ·ÒëÂëÆ¬Ñ¡Êä³ö
-    reg[3:0] s_axi_aw_decmuxsel; // axiĞ´µØÖ·ÒëÂëMUXÑ¡ÔñĞÅºÅÊä³ö
+    reg[31:0] s_axi_awaddr_latched; // é”å­˜çš„axiå†™åœ°å€
+    reg[2:0] s_axi_awprot_latched; // é”å­˜çš„axiå†™ä¿æŠ¤ç±»å‹
+    reg s_axi_aw_decerr; // axiå†™åœ°å€è¯‘ç é”™è¯¯(æ ‡å¿—)
+    reg[apb_slave_n-1:0] s_axi_aw_decsel; // axiå†™åœ°å€è¯‘ç ç‰‡é€‰è¾“å‡º
+    reg[3:0] s_axi_aw_decmuxsel; // axiå†™åœ°å€è¯‘ç MUXé€‰æ‹©ä¿¡å·è¾“å‡º
     
     wire[15:0] s_axi_aw_decsel_w;
     wire[3:0] s_axi_aw_decmuxsel_w;
@@ -262,7 +286,7 @@ module axi_apb_bridge #(
     begin
         # simulation_delay;
         
-        if(s_axi_awvalid & s_axi_awready) // Ëø´æ
+        if(s_axi_awvalid & s_axi_awready) // é”å­˜
         begin
             s_axi_awaddr_latched <= s_axi_awaddr;
             s_axi_awprot_latched <= s_axi_awprot;
@@ -273,7 +297,7 @@ module axi_apb_bridge #(
     begin
         # simulation_delay;
     
-        if(s_axi_awvalid & s_axi_awready) // Ğ´µØÖ·ÒëÂë
+        if(s_axi_awvalid & s_axi_awready) // å†™åœ°å€è¯‘ç 
         begin
             s_axi_aw_decerr <= s_axi_aw_decsel_w[apb_slave_n-1:0] == {apb_slave_n{1'b0}};
             s_axi_aw_decsel <= s_axi_aw_decsel_w;
@@ -321,10 +345,10 @@ module axi_apb_bridge #(
         .apb_muxsel(s_axi_aw_decmuxsel_w)
     );
     
-    // Ğ´Êı¾İÍ¨µÀ(W)
+    // å†™æ•°æ®é€šé“(W)
     reg s_axi_wready_reg;
-    reg[31:0] s_axi_wdata_latched; // Ëø´æµÄaxiĞ´Êı¾İ
-    reg[3:0] s_axi_wstrb_latched; // Ëø´æµÄaxiĞ´×Ö½ÚÑ¡Í¨ÀàĞÍ
+    reg[31:0] s_axi_wdata_latched; // é”å­˜çš„axiå†™æ•°æ®
+    reg[3:0] s_axi_wstrb_latched; // é”å­˜çš„axiå†™å­—èŠ‚é€‰é€šç±»å‹
     
     assign s_axi_wready = s_axi_wready_reg;
     
@@ -340,14 +364,14 @@ module axi_apb_bridge #(
     begin
         # simulation_delay;
         
-        if(s_axi_wvalid & s_axi_wready) // Ëø´æ
+        if(s_axi_wvalid & s_axi_wready) // é”å­˜
         begin
             s_axi_wdata_latched <= s_axi_wdata;
             s_axi_wstrb_latched <= s_axi_wstrb;
         end
     end
     
-    // Ğ´ÏìÓ¦Í¨µÀ(B)
+    // å†™å“åº”é€šé“(B)
     reg[1:0] s_axi_bresp_regs;
     reg s_axi_bvalid_reg;
     
@@ -382,12 +406,12 @@ module axi_apb_bridge #(
         end
     end
 	
-	/** APB¶ÁĞ´ÖÙ²Ã **/
-	wire rd_req; // ¶ÁÇëÇó
-	wire wt_req; // Ğ´ÇëÇó
-    wire rd_grant; // ¶ÁÊÚÈ¨
-    wire wt_grant; // Ğ´ÊÚÈ¨
-    wire arb_valid; // ÖÙ²Ã½á¹ûÓĞĞ§
+	/** APBè¯»å†™ä»²è£ **/
+	wire rd_req; // è¯»è¯·æ±‚
+	wire wt_req; // å†™è¯·æ±‚
+    wire rd_grant; // è¯»æˆæƒ
+    wire wt_grant; // å†™æˆæƒ
+    wire arb_valid; // ä»²è£ç»“æœæœ‰æ•ˆ
 	
 	round_robin_arbitrator #(
 		.chn_n(2),
@@ -402,7 +426,7 @@ module axi_apb_bridge #(
 		.arb_valid(arb_valid)
 	);
     
-    /** APBÖ÷½Ó¿Ú **/
+    /** APBä¸»æ¥å£ **/
     reg[31:0] m_apb_paddr_regs;
     reg m_apb_penable_reg;
     reg m_apb_pwrite_reg;
@@ -412,7 +436,7 @@ module axi_apb_bridge #(
     reg[31:0] m_apb_pwdata_regs;
     reg[3:0] apb_muxsel_regs;
     
-    reg[1:0] m_apb_status; // APBÖ÷½Ó¿Ú×´Ì¬
+    reg[1:0] m_apb_status; // APBä¸»æ¥å£çŠ¶æ€
     
     assign m_apb_paddr = m_apb_paddr_regs;
     assign m_apb_penable = m_apb_penable_reg;
@@ -439,7 +463,7 @@ module axi_apb_bridge #(
             # simulation_delay;
             
             case(m_apb_status)
-                APB_STATUS_IDLE: // ¿ÕÏĞ
+                APB_STATUS_IDLE: // ç©ºé—²
                 begin
                     m_apb_penable_reg <= 1'b0;
                     
@@ -454,13 +478,13 @@ module axi_apb_bridge #(
                         m_apb_status <= APB_STATUS_IDLE; // hold
                     end
                 end
-                APB_STATUS_READY: // ¾ÍĞ÷
+                APB_STATUS_READY: // å°±ç»ª
                 begin
                     m_apb_penable_reg <= 1'b1;
                     m_apb_psel_regs <= m_apb_psel_regs; // hold
                     m_apb_status <= APB_STATUS_TRANS;
                 end
-                APB_STATUS_TRANS: // µÈ´ıAPB´Ó»úÍê³É´«Êä
+                APB_STATUS_TRANS: // ç­‰å¾…APBä»æœºå®Œæˆä¼ è¾“
                 begin
                     if(m_apb_pready)
                     begin
@@ -475,12 +499,12 @@ module axi_apb_bridge #(
                         m_apb_status <= APB_STATUS_TRANS; // hold
                     end
                 end
-                APB_STATUS_WAIT: // µÈ´ıAXIÖ÷»úÍê³É
+                APB_STATUS_WAIT: // ç­‰å¾…AXIä¸»æœºå®Œæˆ
                 begin
                     m_apb_penable_reg <= 1'b0;
                     m_apb_psel_regs <= {apb_slave_n{1'b0}};
                     
-                    if(~m_apb_pwrite_reg) // ¶Á´«Êä
+                    if(~m_apb_pwrite_reg) // è¯»ä¼ è¾“
                     begin
                         if(s_axi_rvalid & s_axi_rready)
                             m_apb_status <= APB_STATUS_IDLE;

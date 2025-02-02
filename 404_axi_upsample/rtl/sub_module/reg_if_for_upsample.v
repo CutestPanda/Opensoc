@@ -1,96 +1,120 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ×î´ó³Ø»¯µ¥ÔªµÄ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú
+æœ¬æ¨¡å—: æœ€å¤§æ± åŒ–å•å…ƒçš„å¯„å­˜å™¨é…ç½®æ¥å£
 
-ÃèÊö:
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                        |   ¶ÁĞ´ÌØĞÔ    |        ±¸×¢
-    0x00    0:Æô¶¯DMAµÄ¶ÁÍ¨µÀ                      WO        Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±Ö´ĞĞÆô¶¯
-	        1:Æô¶¯DMAµÄĞ´Í¨µÀ                      WO        Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±Ö´ĞĞÆô¶¯
-			8:DMA¶ÁÍ¨µÀ¿ÕÏĞ±êÖ¾                    RO
-			9:DMAĞ´Í¨µÀ¿ÕÏĞ±êÖ¾                    RO
-	0x04    31~0:ÊäÈëÌØÕ÷Í¼»º´æÇø»ùµØÖ·            RW
-	0x08    31~0:ÊäÈëÌØÕ÷Í¼»º´æÇø³¤¶È - 1          RW        ÒÔ×Ö½Ú¼Æ
-	0x0C    31~0:Êä³öÌØÕ÷Í¼»º´æÇø»ùµØÖ·            RW
-	0x10    31~0:Êä³öÌØÕ÷Í¼»º´æÇø³¤¶È - 1          RW        ÒÔ×Ö½Ú¼Æ
-	0x14    0:È«¾ÖÖĞ¶ÏÊ¹ÄÜ                         RW
-			8:DMA¶ÁÍê³ÉÖĞ¶ÏÊ¹ÄÜ                    RW
-	        9:DMAĞ´Íê³ÉÖĞ¶ÏÊ¹ÄÜ                    RW
-	0x18    0:È«¾ÖÖĞ¶Ï±êÖ¾                         WC
-			8:DMA¶ÁÍê³ÉÖĞ¶Ï±êÖ¾                    RO
-	        9:DMAĞ´Íê³ÉÖĞ¶Ï±êÖ¾                    RO
-	0x1C    15~0:ÌØÕ÷Í¼Í¨µÀÊı - 1                  RW
-			31~16:ÌØÕ÷Í¼¿í¶È - 1                   RW
-	0x20    15~0:ÌØÕ÷Í¼¸ß¶È - 1                    RW
+æè¿°:
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                        |   è¯»å†™ç‰¹æ€§    |        å¤‡æ³¨
+    0x00    0:å¯åŠ¨DMAçš„è¯»é€šé“                      WO        å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶æ‰§è¡Œå¯åŠ¨
+	        1:å¯åŠ¨DMAçš„å†™é€šé“                      WO        å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶æ‰§è¡Œå¯åŠ¨
+			8:DMAè¯»é€šé“ç©ºé—²æ ‡å¿—                    RO
+			9:DMAå†™é€šé“ç©ºé—²æ ‡å¿—                    RO
+	0x04    31~0:è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€            RW
+	0x08    31~0:è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1          RW        ä»¥å­—èŠ‚è®¡
+	0x0C    31~0:è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€            RW
+	0x10    31~0:è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1          RW        ä»¥å­—èŠ‚è®¡
+	0x14    0:å…¨å±€ä¸­æ–­ä½¿èƒ½                         RW
+			8:DMAè¯»å®Œæˆä¸­æ–­ä½¿èƒ½                    RW
+	        9:DMAå†™å®Œæˆä¸­æ–­ä½¿èƒ½                    RW
+	0x18    0:å…¨å±€ä¸­æ–­æ ‡å¿—                         WC
+			8:DMAè¯»å®Œæˆä¸­æ–­æ ‡å¿—                    RO
+	        9:DMAå†™å®Œæˆä¸­æ–­æ ‡å¿—                    RO
+	0x1C    15~0:ç‰¹å¾å›¾é€šé“æ•° - 1                  RW
+			31~16:ç‰¹å¾å›¾å®½åº¦ - 1                   RW
+	0x20    15~0:ç‰¹å¾å›¾é«˜åº¦ - 1                    RW
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXI-Lite SLAVE
 BLK CTRL
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/28
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/28
 ********************************************************************/
 
 
 module reg_if_for_upsample #(
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
 	
-	// ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú(AXI-Lite´Ó»ú)
-    // ¶ÁµØÖ·Í¨µÀ
+	// å¯„å­˜å™¨é…ç½®æ¥å£(AXI-Liteä»æœº)
+    // è¯»åœ°å€é€šé“
     input wire[31:0] s_axi_lite_araddr,
 	input wire[2:0] s_axi_lite_arprot, // ignored
     input wire s_axi_lite_arvalid,
     output wire s_axi_lite_arready,
-    // Ğ´µØÖ·Í¨µÀ
+    // å†™åœ°å€é€šé“
     input wire[31:0] s_axi_lite_awaddr,
 	input wire[2:0] s_axi_lite_awprot, // ignored
     input wire s_axi_lite_awvalid,
     output wire s_axi_lite_awready,
-    // Ğ´ÏìÓ¦Í¨µÀ
+    // å†™å“åº”é€šé“
     output wire[1:0] s_axi_lite_bresp, // const -> 2'b00(OKAY)
     output wire s_axi_lite_bvalid,
     input wire s_axi_lite_bready,
-    // ¶ÁÊı¾İÍ¨µÀ
+    // è¯»æ•°æ®é€šé“
     output wire[31:0] s_axi_lite_rdata,
     output wire[1:0] s_axi_lite_rresp, // const -> 2'b00(OKAY)
     output wire s_axi_lite_rvalid,
     input wire s_axi_lite_rready,
-    // Ğ´Êı¾İÍ¨µÀ
+    // å†™æ•°æ®é€šé“
     input wire[31:0] s_axi_lite_wdata,
 	input wire[3:0] s_axi_lite_wstrb,
     input wire s_axi_lite_wvalid,
     output wire s_axi_lite_wready,
 	
-	// DMA¶ÁÍ¨µÀ¿ØÖÆ
+	// DMAè¯»é€šé“æ§åˆ¶
 	output wire dma_mm2s_start,
 	input wire dma_mm2s_idle,
 	input wire dma_mm2s_done,
-	// DMAĞ´Í¨µÀ¿ØÖÆ
+	// DMAå†™é€šé“æ§åˆ¶
 	output wire dma_s2mm_start,
 	input wire dma_s2mm_idle,
 	input wire dma_s2mm_done,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	output wire[31:0] in_ft_map_buf_baseaddr, // ÊäÈëÌØÕ÷Í¼»º´æÇø»ùµØÖ·
-	output wire[31:0] in_ft_map_buf_len, // ÊäÈëÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
-	output wire[31:0] out_ft_map_buf_baseaddr, // Êä³öÌØÕ÷Í¼»º´æÇø»ùµØÖ·
-	output wire[31:0] out_ft_map_buf_len, // Êä³öÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
-	output wire[15:0] feature_map_chn_n, // ÌØÕ÷Í¼Í¨µÀÊı - 1
-	output wire[15:0] feature_map_w, // ÌØÕ÷Í¼¿í¶È - 1
-	output wire[15:0] feature_map_h, // ÌØÕ÷Í¼¸ß¶È - 1
+	// è¿è¡Œæ—¶å‚æ•°
+	output wire[31:0] in_ft_map_buf_baseaddr, // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
+	output wire[31:0] in_ft_map_buf_len, // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
+	output wire[31:0] out_ft_map_buf_baseaddr, // è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
+	output wire[31:0] out_ft_map_buf_len, // è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
+	output wire[15:0] feature_map_chn_n, // ç‰¹å¾å›¾é€šé“æ•° - 1
+	output wire[15:0] feature_map_w, // ç‰¹å¾å›¾å®½åº¦ - 1
+	output wire[15:0] feature_map_h, // ç‰¹å¾å›¾é«˜åº¦ - 1
 	
-	// ÖĞ¶ÏĞÅºÅ
+	// ä¸­æ–­ä¿¡å·
 	output wire itr
 );
 	
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -103,29 +127,29 @@ module reg_if_for_upsample #(
     end
     endfunction
 	
-	/** ÄÚ²¿ÅäÖÃ **/
-	localparam integer REGS_N = 9; // ¼Ä´æÆ÷×ÜÊı
+	/** å†…éƒ¨é…ç½® **/
+	localparam integer REGS_N = 9; // å¯„å­˜å™¨æ€»æ•°
 	
-	/** ³£Á¿ **/
-	// ¼Ä´æÆ÷ÅäÖÃ×´Ì¬¶ÀÈÈÂë±àºÅ
-	localparam integer REG_CFG_STS_ADDR = 0; // ×´Ì¬:µØÖ·½×¶Î
-	localparam integer REG_CFG_STS_RW_REG = 1; // ×´Ì¬:¶Á/Ğ´¼Ä´æÆ÷
-	localparam integer REG_CFG_STS_RW_RESP = 2; // ×´Ì¬:¶Á/Ğ´ÏìÓ¦
+	/** å¸¸é‡ **/
+	// å¯„å­˜å™¨é…ç½®çŠ¶æ€ç‹¬çƒ­ç ç¼–å·
+	localparam integer REG_CFG_STS_ADDR = 0; // çŠ¶æ€:åœ°å€é˜¶æ®µ
+	localparam integer REG_CFG_STS_RW_REG = 1; // çŠ¶æ€:è¯»/å†™å¯„å­˜å™¨
+	localparam integer REG_CFG_STS_RW_RESP = 2; // çŠ¶æ€:è¯»/å†™å“åº”
 	
-	/** ¼Ä´æÆ÷ÅäÖÃ¿ØÖÆ **/
-	reg[2:0] reg_cfg_sts; // ¼Ä´æÆ÷ÅäÖÃ×´Ì¬
-	wire[1:0] rw_grant; // ¶ÁĞ´Ğí¿É({Ğ´Ğí¿É, ¶ÁĞí¿É})
-	reg[1:0] addr_ready; // µØÖ·Í¨µÀµÄreadyĞÅºÅ({aw_ready, ar_ready})
-	reg is_write; // ÊÇ·ñĞ´¼Ä´æÆ÷
-	reg[clogb2(REGS_N-1):0] ofs_addr; // ¶ÁĞ´¼Ä´æÆ÷µÄÆ«ÒÆµØÖ·
-	reg wready; // Ğ´Êı¾İÍ¨µÀµÄreadyĞÅºÅ
-	reg bvalid; // Ğ´ÏìÓ¦Í¨µÀµÄvalidĞÅºÅ
-	reg rvalid; // ¶ÁÊı¾İÍ¨µÀµÄvalidĞÅºÅ
-	wire regs_en; // ¼Ä´æÆ÷·ÃÎÊÊ¹ÄÜ
-	wire[3:0] regs_wen; // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
-	wire[clogb2(REGS_N-1):0] regs_addr; // ¼Ä´æÆ÷·ÃÎÊµØÖ·
-	wire[31:0] regs_din; // ¼Ä´æÆ÷Ğ´Êı¾İ
-	wire[31:0] regs_dout; // ¼Ä´æÆ÷¶ÁÊı¾İ
+	/** å¯„å­˜å™¨é…ç½®æ§åˆ¶ **/
+	reg[2:0] reg_cfg_sts; // å¯„å­˜å™¨é…ç½®çŠ¶æ€
+	wire[1:0] rw_grant; // è¯»å†™è®¸å¯({å†™è®¸å¯, è¯»è®¸å¯})
+	reg[1:0] addr_ready; // åœ°å€é€šé“çš„readyä¿¡å·({aw_ready, ar_ready})
+	reg is_write; // æ˜¯å¦å†™å¯„å­˜å™¨
+	reg[clogb2(REGS_N-1):0] ofs_addr; // è¯»å†™å¯„å­˜å™¨çš„åç§»åœ°å€
+	reg wready; // å†™æ•°æ®é€šé“çš„readyä¿¡å·
+	reg bvalid; // å†™å“åº”é€šé“çš„validä¿¡å·
+	reg rvalid; // è¯»æ•°æ®é€šé“çš„validä¿¡å·
+	wire regs_en; // å¯„å­˜å™¨è®¿é—®ä½¿èƒ½
+	wire[3:0] regs_wen; // å¯„å­˜å™¨å†™ä½¿èƒ½
+	wire[clogb2(REGS_N-1):0] regs_addr; // å¯„å­˜å™¨è®¿é—®åœ°å€
+	wire[31:0] regs_din; // å¯„å­˜å™¨å†™æ•°æ®
+	wire[31:0] regs_dout; // å¯„å­˜å™¨è¯»æ•°æ®
 	
 	assign {s_axi_lite_awready, s_axi_lite_arready} = addr_ready;
 	assign s_axi_lite_bresp = 2'b00;
@@ -135,14 +159,14 @@ module reg_if_for_upsample #(
 	assign s_axi_lite_rvalid = rvalid;
 	assign s_axi_lite_wready = wready;
 	
-	assign rw_grant = {s_axi_lite_awvalid, (~s_axi_lite_awvalid) & s_axi_lite_arvalid}; // Ğ´ÓÅÏÈ
+	assign rw_grant = {s_axi_lite_awvalid, (~s_axi_lite_awvalid) & s_axi_lite_arvalid}; // å†™ä¼˜å…ˆ
 	
 	assign regs_en = reg_cfg_sts[REG_CFG_STS_RW_REG] & ((~is_write) | s_axi_lite_wvalid);
 	assign regs_wen = {4{is_write}} & s_axi_lite_wstrb;
 	assign regs_addr = ofs_addr;
 	assign regs_din = s_axi_lite_wdata;
 	
-	// ¼Ä´æÆ÷ÅäÖÃ×´Ì¬
+	// å¯„å­˜å™¨é…ç½®çŠ¶æ€
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -153,7 +177,7 @@ module reg_if_for_upsample #(
 			reg_cfg_sts <= # simulation_delay {reg_cfg_sts[1:0], reg_cfg_sts[2]};
 	end
 	
-	// µØÖ·Í¨µÀµÄreadyĞÅºÅ
+	// åœ°å€é€šé“çš„readyä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -162,14 +186,14 @@ module reg_if_for_upsample #(
 			addr_ready <= # simulation_delay {2{reg_cfg_sts[REG_CFG_STS_ADDR]}} & rw_grant;
 	end
 	
-	// ÊÇ·ñĞ´¼Ä´æÆ÷
+	// æ˜¯å¦å†™å¯„å­˜å™¨
 	always @(posedge clk)
 	begin
 		if(reg_cfg_sts[REG_CFG_STS_ADDR] & (s_axi_lite_awvalid | s_axi_lite_arvalid))
 			is_write <= # simulation_delay s_axi_lite_awvalid;
 	end
 	
-	// ¶ÁĞ´¼Ä´æÆ÷µÄÆ«ÒÆµØÖ·
+	// è¯»å†™å¯„å­˜å™¨çš„åç§»åœ°å€
 	always @(posedge clk)
 	begin
 		if(reg_cfg_sts[REG_CFG_STS_ADDR] & (s_axi_lite_awvalid | s_axi_lite_arvalid))
@@ -177,7 +201,7 @@ module reg_if_for_upsample #(
 				s_axi_lite_awaddr[2+clogb2(REGS_N-1):2]:s_axi_lite_araddr[2+clogb2(REGS_N-1):2];
 	end
 	
-	// Ğ´Êı¾İÍ¨µÀµÄreadyĞÅºÅ
+	// å†™æ•°æ®é€šé“çš„readyä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -187,7 +211,7 @@ module reg_if_for_upsample #(
 				(~s_axi_lite_wvalid):(reg_cfg_sts[REG_CFG_STS_ADDR] & s_axi_lite_awvalid);
 	end
 	
-	// Ğ´ÏìÓ¦Í¨µÀµÄvalidĞÅºÅ
+	// å†™å“åº”é€šé“çš„validä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -197,7 +221,7 @@ module reg_if_for_upsample #(
 				(~s_axi_lite_bready):(s_axi_lite_wvalid & s_axi_lite_wready);
 	end
 	
-	// ¶ÁÊı¾İÍ¨µÀµÄvalidĞÅºÅ
+	// è¯»æ•°æ®é€šé“çš„validä¿¡å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -207,17 +231,17 @@ module reg_if_for_upsample #(
 				(~s_axi_lite_rready):(reg_cfg_sts[REG_CFG_STS_RW_REG] & (~is_write));
 	end
 	
-	/** ÖĞ¶Ï¿ØÖÆ **/
-	wire global_itr_req; // È«¾ÖÖĞ¶ÏÇëÇó
-	wire global_itr_en; // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-	wire global_itr_flag; // È«¾ÖÖĞ¶Ï±êÖ¾
-	wire[1:0] itr_en_vec; // ÖĞ¶ÏÊ¹ÄÜÏòÁ¿({DMAĞ´Íê³ÉÖĞ¶ÏÊ¹ÄÜ, DMA¶ÁÍê³ÉÖĞ¶ÏÊ¹ÄÜ})
-	wire[1:0] itr_req_vec; // ÖĞ¶ÏÇëÇóÏòÁ¿({DMAĞ´Íê³ÉÖĞ¶ÏÇëÇó, DMA¶ÁÍê³ÉÖĞ¶ÏÇëÇó})
+	/** ä¸­æ–­æ§åˆ¶ **/
+	wire global_itr_req; // å…¨å±€ä¸­æ–­è¯·æ±‚
+	wire global_itr_en; // å…¨å±€ä¸­æ–­ä½¿èƒ½
+	wire global_itr_flag; // å…¨å±€ä¸­æ–­æ ‡å¿—
+	wire[1:0] itr_en_vec; // ä¸­æ–­ä½¿èƒ½å‘é‡({DMAå†™å®Œæˆä¸­æ–­ä½¿èƒ½, DMAè¯»å®Œæˆä¸­æ–­ä½¿èƒ½})
+	wire[1:0] itr_req_vec; // ä¸­æ–­è¯·æ±‚å‘é‡({DMAå†™å®Œæˆä¸­æ–­è¯·æ±‚, DMAè¯»å®Œæˆä¸­æ–­è¯·æ±‚})
 	
 	assign global_itr_req = (|(itr_req_vec & itr_en_vec)) & global_itr_en & (~global_itr_flag);
 	assign itr_req_vec = {dma_s2mm_done, dma_mm2s_done};
 	
-	// ÖĞ¶Ï·¢ÉúÆ÷
+	// ä¸­æ–­å‘ç”Ÿå™¨
     itr_generator #(
         .pulse_w(10),
         .simulation_delay(simulation_delay)
@@ -230,36 +254,36 @@ module reg_if_for_upsample #(
         .itr(itr)
     );
 	
-	/** ¼Ä´æÆ÷Çø **/
-	// ¼Ä´æÆ÷Çø¶ÁÊı¾İ
+	/** å¯„å­˜å™¨åŒº **/
+	// å¯„å­˜å™¨åŒºè¯»æ•°æ®
 	wire[31:0] regs_region_rd_out_nxt;
 	reg[31:0] regs_region_rd_out;
 	// 0x00
-	reg dma_mm2s_start_reg; // Æô¶¯DMAµÄ¶ÁÍ¨µÀ
-	reg dma_s2mm_start_reg; // Æô¶¯DMAµÄĞ´Í¨µÀ
-	reg dma_mm2s_idle_reg; // DMA¶ÁÍ¨µÀ¿ÕÏĞ±êÖ¾
-	reg dma_s2mm_idle_reg; // DMAĞ´Í¨µÀ¿ÕÏĞ±êÖ¾
+	reg dma_mm2s_start_reg; // å¯åŠ¨DMAçš„è¯»é€šé“
+	reg dma_s2mm_start_reg; // å¯åŠ¨DMAçš„å†™é€šé“
+	reg dma_mm2s_idle_reg; // DMAè¯»é€šé“ç©ºé—²æ ‡å¿—
+	reg dma_s2mm_idle_reg; // DMAå†™é€šé“ç©ºé—²æ ‡å¿—
 	// 0x04
-	reg[31:0] in_ft_map_buf_baseaddr_regs; // ÊäÈëÌØÕ÷Í¼»º´æÇø»ùµØÖ·
+	reg[31:0] in_ft_map_buf_baseaddr_regs; // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
 	// 0x08
-	reg[31:0] in_ft_map_buf_len_regs; // ÊäÈëÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
+	reg[31:0] in_ft_map_buf_len_regs; // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
 	// 0x0C
-	reg[31:0] out_ft_map_buf_baseaddr_regs; // Êä³öÌØÕ÷Í¼»º´æÇø»ùµØÖ·
+	reg[31:0] out_ft_map_buf_baseaddr_regs; // è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
 	// 0x10
-	reg[31:0] out_ft_map_buf_len_regs; // Êä³öÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
+	reg[31:0] out_ft_map_buf_len_regs; // è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
 	// 0x14
-	reg global_itr_en_reg; // È«¾ÖÖĞ¶ÏÊ¹ÄÜ
-	reg dma_mm2s_done_itr_en_reg; // DMA¶ÁÍê³ÉÖĞ¶ÏÊ¹ÄÜ
-	reg dma_s2mm_done_itr_en_reg; // DMAĞ´Íê³ÉÖĞ¶ÏÊ¹ÄÜ
+	reg global_itr_en_reg; // å…¨å±€ä¸­æ–­ä½¿èƒ½
+	reg dma_mm2s_done_itr_en_reg; // DMAè¯»å®Œæˆä¸­æ–­ä½¿èƒ½
+	reg dma_s2mm_done_itr_en_reg; // DMAå†™å®Œæˆä¸­æ–­ä½¿èƒ½
 	// 0x18
-	reg global_itr_flag_reg; // È«¾ÖÖĞ¶Ï±êÖ¾
-	reg dma_mm2s_done_itr_flag_reg; // DMA¶ÁÍê³ÉÖĞ¶Ï±êÖ¾
-	reg dma_s2mm_done_itr_flag_reg; // DMAĞ´Íê³ÉÖĞ¶Ï±êÖ¾
+	reg global_itr_flag_reg; // å…¨å±€ä¸­æ–­æ ‡å¿—
+	reg dma_mm2s_done_itr_flag_reg; // DMAè¯»å®Œæˆä¸­æ–­æ ‡å¿—
+	reg dma_s2mm_done_itr_flag_reg; // DMAå†™å®Œæˆä¸­æ–­æ ‡å¿—
 	// 0x1C
-	reg[15:0] feature_map_chn_n_regs; // ÌØÕ÷Í¼Í¨µÀÊı - 1
-	reg[15:0] feature_map_w_regs; // ÌØÕ÷Í¼¿í¶È - 1
+	reg[15:0] feature_map_chn_n_regs; // ç‰¹å¾å›¾é€šé“æ•° - 1
+	reg[15:0] feature_map_w_regs; // ç‰¹å¾å›¾å®½åº¦ - 1
 	// 0x20
-	reg[15:0] feature_map_h_regs; // ÌØÕ÷Í¼¸ß¶È - 1
+	reg[15:0] feature_map_h_regs; // ç‰¹å¾å›¾é«˜åº¦ - 1
 	
 	assign dma_mm2s_start = dma_mm2s_start_reg;
 	assign dma_s2mm_start = dma_s2mm_start_reg;
@@ -318,14 +342,14 @@ module reg_if_for_upsample #(
 			feature_map_h_regs
 		});
 	
-	// ¼Ä´æÆ÷Çø¶ÁÊı¾İ
+	// å¯„å­˜å™¨åŒºè¯»æ•°æ®
 	always @(posedge clk)
 	begin
 		if(regs_en & (~is_write))
 			regs_region_rd_out <= # simulation_delay regs_region_rd_out_nxt;
 	end
 	
-	// Æô¶¯DMAµÄ¶ÁÍ¨µÀ, Æô¶¯DMAµÄĞ´Í¨µÀ
+	// å¯åŠ¨DMAçš„è¯»é€šé“, å¯åŠ¨DMAçš„å†™é€šé“
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -334,14 +358,14 @@ module reg_if_for_upsample #(
 			{dma_s2mm_start_reg, dma_mm2s_start_reg} <= # simulation_delay 
 				{2{regs_en & regs_wen[0] & (regs_addr == 0)}} & regs_din[1:0];
 	end
-	// DMA¶ÁÍ¨µÀ¿ÕÏĞ±êÖ¾, DMAĞ´Í¨µÀ¿ÕÏĞ±êÖ¾
+	// DMAè¯»é€šé“ç©ºé—²æ ‡å¿—, DMAå†™é€šé“ç©ºé—²æ ‡å¿—
 	always @(posedge clk)
 	begin
 		{dma_s2mm_idle_reg, dma_mm2s_idle_reg} <= # simulation_delay 
 			{dma_s2mm_idle, dma_mm2s_idle};
 	end
 	
-	// ÊäÈëÌØÕ÷Í¼»º´æÇø»ùµØÖ·
+	// è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
 	always @(posedge clk)
 	begin
 		if(regs_en & regs_wen[0] & (regs_addr == 1))
@@ -363,7 +387,7 @@ module reg_if_for_upsample #(
 			in_ft_map_buf_baseaddr_regs[31:24] <= # simulation_delay regs_din[31:24];
 	end
 	
-	// ÊäÈëÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
+	// è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
 	always @(posedge clk)
 	begin
 		if(regs_en & regs_wen[0] & (regs_addr == 2))
@@ -385,7 +409,7 @@ module reg_if_for_upsample #(
 			in_ft_map_buf_len_regs[31:24] <= # simulation_delay regs_din[31:24];
 	end
 	
-	// Êä³öÌØÕ÷Í¼»º´æÇø»ùµØÖ·
+	// è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºåŸºåœ°å€
 	always @(posedge clk)
 	begin
 		if(regs_en & regs_wen[0] & (regs_addr == 3))
@@ -407,7 +431,7 @@ module reg_if_for_upsample #(
 			out_ft_map_buf_baseaddr_regs[31:24] <= # simulation_delay regs_din[31:24];
 	end
 	
-	// Êä³öÌØÕ÷Í¼»º´æÇø³¤¶È - 1(ÒÔ×Ö½Ú¼Æ)
+	// è¾“å‡ºç‰¹å¾å›¾ç¼“å­˜åŒºé•¿åº¦ - 1(ä»¥å­—èŠ‚è®¡)
 	always @(posedge clk)
 	begin
 		if(regs_en & regs_wen[0] & (regs_addr == 4))
@@ -429,7 +453,7 @@ module reg_if_for_upsample #(
 			out_ft_map_buf_len_regs[31:24] <= # simulation_delay regs_din[31:24];
 	end
 	
-	// È«¾ÖÖĞ¶ÏÊ¹ÄÜ
+	// å…¨å±€ä¸­æ–­ä½¿èƒ½
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -437,7 +461,7 @@ module reg_if_for_upsample #(
 		else if(regs_en & regs_wen[0] & (regs_addr == 5))
 			global_itr_en_reg <= # simulation_delay regs_din[0];
 	end
-	// DMA¶ÁÍê³ÉÖĞ¶ÏÊ¹ÄÜ, DMAĞ´Íê³ÉÖĞ¶ÏÊ¹ÄÜ
+	// DMAè¯»å®Œæˆä¸­æ–­ä½¿èƒ½, DMAå†™å®Œæˆä¸­æ–­ä½¿èƒ½
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -447,17 +471,17 @@ module reg_if_for_upsample #(
 				regs_din[9:8];
 	end
 	
-	// È«¾ÖÖĞ¶Ï±êÖ¾
+	// å…¨å±€ä¸­æ–­æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
 			global_itr_flag_reg <= 1'b0;
 		else if((regs_en & regs_wen[0] & (regs_addr == 6)) | (~global_itr_flag_reg))
 			global_itr_flag_reg <= # simulation_delay 
-				(~(regs_en & regs_wen[0] & (regs_addr == 6))) & // ÇåÁãÈ«¾ÖÖĞ¶Ï±êÖ¾
+				(~(regs_en & regs_wen[0] & (regs_addr == 6))) & // æ¸…é›¶å…¨å±€ä¸­æ–­æ ‡å¿—
 				((|(itr_req_vec & itr_en_vec)) & global_itr_en);
 	end
-	// DMA¶ÁÍê³ÉÖĞ¶Ï±êÖ¾, DMAĞ´Íê³ÉÖĞ¶Ï±êÖ¾
+	// DMAè¯»å®Œæˆä¸­æ–­æ ‡å¿—, DMAå†™å®Œæˆä¸­æ–­æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -467,7 +491,7 @@ module reg_if_for_upsample #(
 				itr_req_vec & itr_en_vec;
 	end
 	
-	// ÌØÕ÷Í¼Í¨µÀÊı - 1
+	// ç‰¹å¾å›¾é€šé“æ•° - 1
 	always @(posedge clk)
 	begin
 		if(regs_en & regs_wen[0] & (regs_addr == 7))
@@ -478,7 +502,7 @@ module reg_if_for_upsample #(
 		if(regs_en & regs_wen[1] & (regs_addr == 7))
 			feature_map_chn_n_regs[15:8] <= # simulation_delay regs_din[15:8];
 	end
-	// ÌØÕ÷Í¼¿í¶È - 1
+	// ç‰¹å¾å›¾å®½åº¦ - 1
 	always @(posedge clk)
 	begin
 		if(regs_en & regs_wen[2] & (regs_addr == 7))
@@ -490,7 +514,7 @@ module reg_if_for_upsample #(
 			feature_map_w_regs[15:8] <= # simulation_delay regs_din[31:24];
 	end
 	
-	// ÌØÕ÷Í¼¸ß¶È - 1
+	// ç‰¹å¾å›¾é«˜åº¦ - 1
 	always @(posedge clk)
 	begin
 		if(regs_en & regs_wen[0] & (regs_addr == 8))

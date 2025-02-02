@@ -1,64 +1,88 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ×î´ó³Ø»¯ĞĞÌî³ä´¦Àíµ¥Ôª
+æœ¬æ¨¡å—: æœ€å¤§æ± åŒ–è¡Œå¡«å……å¤„ç†å•å…ƒ
 
-ÃèÊö:
-µ±²½³¤Îª1Ê±, ¶ÔÊäÈëÌØÕ÷Í¼½øĞĞ¿ÉÑ¡µÄÉÏ/ÏÂ±ß½çÌî³ä
-Ìî³äÉÏ±ß½ç -> ÓĞĞ§ÌØÕ÷Í¼ -> Ìî³äÏÂ±ß½ç
+æè¿°:
+å½“æ­¥é•¿ä¸º1æ—¶, å¯¹è¾“å…¥ç‰¹å¾å›¾è¿›è¡Œå¯é€‰çš„ä¸Š/ä¸‹è¾¹ç•Œå¡«å……
+å¡«å……ä¸Šè¾¹ç•Œ -> æœ‰æ•ˆç‰¹å¾å›¾ -> å¡«å……ä¸‹è¾¹ç•Œ
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 BLK CTRL
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/11
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/11
 ********************************************************************/
 
 
 module max_pool_row_padding #(
-    parameter integer feature_n_per_clk = 4, // Ã¿¸öclkÊäÈëµÄÌØÕ÷µãÊıÁ¿(2 | 4 | 8 | 16 | ...)
-	parameter integer feature_data_width = 8, // ÌØÕ÷µãÎ»¿í(±ØĞëÄÜ±»8Õû³ı, ÇÒ>0)
-	parameter integer max_feature_chn_n = 128, // ×î´óµÄÌØÕ÷Í¼Í¨µÀÊı
-	parameter integer max_feature_w = 128, // ×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È
-	parameter en_out_reg_slice = "true", // ÊÇ·ñÊ¹ÓÃÊä³ö¼Ä´æÆ÷Æ¬
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer feature_n_per_clk = 4, // æ¯ä¸ªclkè¾“å…¥çš„ç‰¹å¾ç‚¹æ•°é‡(2 | 4 | 8 | 16 | ...)
+	parameter integer feature_data_width = 8, // ç‰¹å¾ç‚¹ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤, ä¸”>0)
+	parameter integer max_feature_chn_n = 128, // æœ€å¤§çš„ç‰¹å¾å›¾é€šé“æ•°
+	parameter integer max_feature_w = 128, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦
+	parameter en_out_reg_slice = "true", // æ˜¯å¦ä½¿ç”¨è¾“å‡ºå¯„å­˜å™¨ç‰‡
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ¿é¼¶¿ØÖÆ
+	// å—çº§æ§åˆ¶
 	input wire blk_start,
 	output wire blk_idle,
 	output wire blk_done,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire step_type, // ²½³¤ÀàĞÍ(1'b0 -> ²½³¤Îª1, 1'b1 -> ²½³¤Îª2)
-	input wire[1:0] padding_vec, // ÍâÍØÌî³äÏòÁ¿(½öµ±²½³¤Îª1Ê±¿ÉÓÃ, {ÉÏ, ÏÂ})
-	input wire[15:0] feature_map_chn_n, // ÌØÕ÷Í¼Í¨µÀÊı - 1
-	input wire[15:0] feature_map_w, // ÌØÕ÷Í¼¿í¶È - 1
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire step_type, // æ­¥é•¿ç±»å‹(1'b0 -> æ­¥é•¿ä¸º1, 1'b1 -> æ­¥é•¿ä¸º2)
+	input wire[1:0] padding_vec, // å¤–æ‹“å¡«å……å‘é‡(ä»…å½“æ­¥é•¿ä¸º1æ—¶å¯ç”¨, {ä¸Š, ä¸‹})
+	input wire[15:0] feature_map_chn_n, // ç‰¹å¾å›¾é€šé“æ•° - 1
+	input wire[15:0] feature_map_w, // ç‰¹å¾å›¾å®½åº¦ - 1
 	
-	// ĞĞÌî³äÊäÈë
+	// è¡Œå¡«å……è¾“å…¥
 	input wire[feature_n_per_clk*feature_data_width-1:0] s_axis_data,
-	input wire[2:0] s_axis_user, // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
+	input wire[2:0] s_axis_user, // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
 	input wire[feature_n_per_clk*feature_data_width/8-1:0] s_axis_keep,
-	input wire s_axis_last, // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	input wire s_axis_last, // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	input wire s_axis_valid,
 	output wire s_axis_ready,
 	
-	// ĞĞÌî³äÊä³ö
+	// è¡Œå¡«å……è¾“å‡º
 	output wire[feature_n_per_clk*feature_data_width-1:0] m_axis_data,
-	output wire[2:0] m_axis_user, // {µ±Ç°´¦ÓÚ×îºó1¸öÍ¨µÀ, µ±Ç°´¦ÓÚ×îºó1ĞĞ, µ±Ç°´¦ÓÚ×îºó1ÁĞ}
+	output wire[2:0] m_axis_user, // {å½“å‰å¤„äºæœ€å1ä¸ªé€šé“, å½“å‰å¤„äºæœ€å1è¡Œ, å½“å‰å¤„äºæœ€å1åˆ—}
 	output wire[feature_n_per_clk*feature_data_width/8-1:0] m_axis_keep,
-	output wire m_axis_last, // Ö¸Ê¾×îºó1¸öÌØÕ÷×é
+	output wire m_axis_last, // æŒ‡ç¤ºæœ€å1ä¸ªç‰¹å¾ç»„
 	output wire m_axis_valid,
 	input wire m_axis_ready
 );
     
-	// ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+	// è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
         for(clogb2 = -1;bit_depth > 0;clogb2 = clogb2 + 1)
@@ -66,18 +90,18 @@ module max_pool_row_padding #(
     end
     endfunction
 	
-	/** ³£Á¿ **/
-	localparam integer stream_data_width = feature_n_per_clk*feature_data_width; // ÏñËØÁ÷Î»¿í
+	/** å¸¸é‡ **/
+	localparam integer stream_data_width = feature_n_per_clk*feature_data_width; // åƒç´ æµä½å®½
 	
-	/** Êä³ö¼Ä´æÆ÷Æ¬ **/
-	// AXIS´Ó»ú
+	/** è¾“å‡ºå¯„å­˜å™¨ç‰‡ **/
+	// AXISä»æœº
 	wire[stream_data_width-1:0] s_axis_reg_slice_data;
     wire[stream_data_width/8-1:0] s_axis_reg_slice_keep;
     wire[2:0] s_axis_reg_slice_user;
     wire s_axis_reg_slice_last;
     wire s_axis_reg_slice_valid;
     wire s_axis_reg_slice_ready;
-	// AXISÖ÷»ú
+	// AXISä¸»æœº
 	wire[stream_data_width-1:0] m_axis_reg_slice_data;
     wire[stream_data_width/8-1:0] m_axis_reg_slice_keep;
     wire[2:0] m_axis_reg_slice_user;
@@ -118,12 +142,12 @@ module max_pool_row_padding #(
 		.m_axis_ready(m_axis_reg_slice_ready)
 	);
 	
-	/** ¿é¼¶¿ØÖÆ **/
+	/** å—çº§æ§åˆ¶ **/
 	reg blk_idle_reg;
 	
 	assign blk_idle = blk_idle_reg;
 	
-	// ĞĞÌî³äÆ÷¿ÕÏĞ±êÖ¾
+	// è¡Œå¡«å……å™¨ç©ºé—²æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -132,13 +156,13 @@ module max_pool_row_padding #(
 			blk_idle_reg <= # simulation_delay blk_idle ? (~blk_start):blk_done;
 	end
 	
-	/** ĞĞÌî³ä **/
-	reg[2:0] row_padding_sts; // ĞĞÌî³ä×´Ì¬(3'b001 -> Ìî³äÉÏ±ß½ç, 3'b010 -> ÓĞĞ§ÌØÕ÷Í¼, 3'b100 -> Ìî³äÏÂ±ß½ç)
-	reg[clogb2(max_feature_w/feature_n_per_clk-1):0] padding_col_id_cnt; // ĞĞÌî³äÁĞºÅ¼ÆÊıÆ÷
-	wire padding_last_col; // Ìî³ä×îºó1ÁĞ(±êÖ¾)
-	reg[clogb2(max_feature_chn_n-1):0] chn_id_cnt; // Í¨µÀºÅ¼ÆÊıÆ÷
-	wire last_chn; // ×îºó1Í¨µÀ(±êÖ¾)
-	wire[stream_data_width/8-1:0] padding_keep; // Ìî³äÊ±µÄ×Ö½ÚÓĞĞ§±êÖ¾
+	/** è¡Œå¡«å…… **/
+	reg[2:0] row_padding_sts; // è¡Œå¡«å……çŠ¶æ€(3'b001 -> å¡«å……ä¸Šè¾¹ç•Œ, 3'b010 -> æœ‰æ•ˆç‰¹å¾å›¾, 3'b100 -> å¡«å……ä¸‹è¾¹ç•Œ)
+	reg[clogb2(max_feature_w/feature_n_per_clk-1):0] padding_col_id_cnt; // è¡Œå¡«å……åˆ—å·è®¡æ•°å™¨
+	wire padding_last_col; // å¡«å……æœ€å1åˆ—(æ ‡å¿—)
+	reg[clogb2(max_feature_chn_n-1):0] chn_id_cnt; // é€šé“å·è®¡æ•°å™¨
+	wire last_chn; // æœ€å1é€šé“(æ ‡å¿—)
+	wire[stream_data_width/8-1:0] padding_keep; // å¡«å……æ—¶çš„å­—èŠ‚æœ‰æ•ˆæ ‡å¿—
 	
 	assign blk_done = (~blk_idle) & 
 		row_padding_sts[2] & (step_type | (~padding_vec[0]) | (s_axis_reg_slice_ready & padding_last_col)) & last_chn;
@@ -162,7 +186,7 @@ module max_pool_row_padding #(
 	assign padding_last_col = padding_col_id_cnt == feature_map_w[15:clogb2(feature_n_per_clk)];
 	assign last_chn = chn_id_cnt == feature_map_chn_n;
 	
-	// Ìî³äÊ±µÄ×Ö½ÚÓĞĞ§±êÖ¾
+	// å¡«å……æ—¶çš„å­—èŠ‚æœ‰æ•ˆæ ‡å¿—
 	genvar padding_keep_i;
 	generate
 		for(padding_keep_i = 0;padding_keep_i < feature_n_per_clk;padding_keep_i = padding_keep_i + 1)
@@ -172,7 +196,7 @@ module max_pool_row_padding #(
 		end
 	endgenerate
 	
-	// ĞĞÌî³ä×´Ì¬
+	// è¡Œå¡«å……çŠ¶æ€
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -184,7 +208,7 @@ module max_pool_row_padding #(
 			row_padding_sts <= # simulation_delay {row_padding_sts[1:0], row_padding_sts[2]};
 	end
 	
-	// ĞĞÌî³äÁĞºÅ¼ÆÊıÆ÷
+	// è¡Œå¡«å……åˆ—å·è®¡æ•°å™¨
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -196,7 +220,7 @@ module max_pool_row_padding #(
 			padding_col_id_cnt <= # simulation_delay padding_last_col ? 0:(padding_col_id_cnt + 1);
 	end
 	
-	// Í¨µÀºÅ¼ÆÊıÆ÷
+	// é€šé“å·è®¡æ•°å™¨
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)

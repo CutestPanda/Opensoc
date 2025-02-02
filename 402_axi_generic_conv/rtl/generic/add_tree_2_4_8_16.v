@@ -1,48 +1,72 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ¼Ó·¨Ê÷
+æœ¬æ¨¡å—: åŠ æ³•æ ‘
 
-ÃèÊö:
+æè¿°:
 
-   ¼Ó·¨ÊäÈëÊıÁ¿   Á÷Ë®Ïß¼¶Êı
+   åŠ æ³•è¾“å…¥æ•°é‡   æµæ°´çº¿çº§æ•°
 -------------------------------
         2             1
 		4             2
 		8             3
 		16            4
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/30
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/30
 ********************************************************************/
 
 
 module add_tree_2_4_8_16 #(
-    parameter integer add_input_n = 4, // ¼Ó·¨ÊäÈëÊıÁ¿
-	parameter integer add_width = 16, // ¼Ó·¨Î»¿í
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer add_input_n = 4, // åŠ æ³•è¾“å…¥æ•°é‡
+	parameter integer add_width = 16, // åŠ æ³•ä½å®½
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ¼Ó·¨ÊäÈë
+	// åŠ æ³•è¾“å…¥
 	input wire[add_input_n*add_width-1:0] add_in,
 	input wire add_in_vld,
 	input wire add_in_last,
 	
-	// ¼Ó·¨Êä³ö
+	// åŠ æ³•è¾“å‡º
 	output wire[add_width-1:0] add_out,
 	output wire add_out_vld,
 	output wire add_out_last
 );
     
-    /** µÚ1¼¶Á÷Ë®Ïß **/
+    /** ç¬¬1çº§æµæ°´çº¿ **/
 	wire[add_width-1:0] add_s0_in[0:15];
 	wire add_s0_in_vld;
 	wire add_s0_in_last;
@@ -76,7 +100,7 @@ module add_tree_2_4_8_16 #(
 			add_s0_out_last <= # simulation_delay add_s0_in_last;
 	end
 	
-	/** µÚ2¼¶Á÷Ë®Ïß **/
+	/** ç¬¬2çº§æµæ°´çº¿ **/
 	wire[add_width-1:0] add_s1_in[0:7];
 	wire add_s1_in_vld;
 	wire add_s1_in_last;
@@ -110,7 +134,7 @@ module add_tree_2_4_8_16 #(
 			add_s1_out_last <= # simulation_delay add_s1_in_last;
 	end
 	
-	/** µÚ3¼¶Á÷Ë®Ïß **/
+	/** ç¬¬3çº§æµæ°´çº¿ **/
 	wire[add_width-1:0] add_s2_in[0:3];
 	wire add_s2_in_vld;
 	wire add_s2_in_last;
@@ -144,7 +168,7 @@ module add_tree_2_4_8_16 #(
 			add_s2_out_last <= # simulation_delay add_s2_in_last;
 	end
 	
-	/** µÚ4¼¶Á÷Ë®Ïß **/
+	/** ç¬¬4çº§æµæ°´çº¿ **/
 	wire[add_width-1:0] add_s3_in[0:1];
 	wire add_s3_in_vld;
 	wire add_s3_in_last;
@@ -176,7 +200,7 @@ module add_tree_2_4_8_16 #(
 			add_s3_out_last <= # simulation_delay add_s3_in_last;
 	end
 	
-	/** ¼Ó·¨Ê÷ÊäÈë **/
+	/** åŠ æ³•æ ‘è¾“å…¥ **/
 	genvar add_s0_in_i;
 	generate
 		for(add_s0_in_i = 0;add_s0_in_i < 16;add_s0_in_i = add_s0_in_i + 1)

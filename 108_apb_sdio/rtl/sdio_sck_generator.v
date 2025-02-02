@@ -1,57 +1,81 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: SDIOÊ±ÖÓ·¢ÉúÆ÷
+æœ¬æ¨¡å—: SDIOæ—¶é’Ÿå‘ç”Ÿå™¨
 
-ÃèÊö:
-¿É¶¯Ì¬ÅäÖÃ·ÖÆµÊı
-Ö§³ÖÈÎÒâÕûÊı±¶·ÖÆµ
-Ê¹ÓÃODDRÊä³ö
+æè¿°:
+å¯åŠ¨æ€é…ç½®åˆ†é¢‘æ•°
+æ”¯æŒä»»æ„æ•´æ•°å€åˆ†é¢‘
+ä½¿ç”¨ODDRè¾“å‡º
 
-×¢Òâ£º
-·ÖÆµÊıºÍ·ÖÆµ¼ÆÊıÆ÷Ê¹ÄÜÖ»ÄÜÔÚ¹Ø±ÕSDIOÊ±ÖÓ»òÕß·ÖÆµ¼ÆÊıÆ÷Òç³öÊ±¸Ä±ä
+æ³¨æ„ï¼š
+åˆ†é¢‘æ•°å’Œåˆ†é¢‘è®¡æ•°å™¨ä½¿èƒ½åªèƒ½åœ¨å…³é—­SDIOæ—¶é’Ÿæˆ–è€…åˆ†é¢‘è®¡æ•°å™¨æº¢å‡ºæ—¶æ”¹å˜
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/07/30
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/07/30
 ********************************************************************/
 
 
 module sdio_sck_generator #(
-    parameter integer div_cnt_width = 10, // ·ÖÆµ¼ÆÊıÆ÷Î»¿í
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer div_cnt_width = 10, // åˆ†é¢‘è®¡æ•°å™¨ä½å®½
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // ÔËĞĞÊ±²ÎÊı
-    input wire en_sdio_clk, // ÆôÓÃSDIOÊ±ÖÓ(¸´Î»Ê±±ØĞëÎª0)
-    input wire[div_cnt_width-1:0] div_rate, // ·ÖÆµÊı - 1
+    // è¿è¡Œæ—¶å‚æ•°
+    input wire en_sdio_clk, // å¯ç”¨SDIOæ—¶é’Ÿ(å¤ä½æ—¶å¿…é¡»ä¸º0)
+    input wire[div_cnt_width-1:0] div_rate, // åˆ†é¢‘æ•° - 1
     
-    // ·ÖÆµ¼ÆÊıÆ÷Ê¹ÄÜ
+    // åˆ†é¢‘è®¡æ•°å™¨ä½¿èƒ½
     input wire div_cnt_en,
 	
-	// SDIOÊäÈë²ÉÑùÖ¸Ê¾
+	// SDIOè¾“å…¥é‡‡æ ·æŒ‡ç¤º
 	output wire sdio_in_sample,
-	// SDIOÊä³ö¸üĞÂÖ¸Ê¾
+	// SDIOè¾“å‡ºæ›´æ–°æŒ‡ç¤º
 	output wire sdio_out_upd,
     
-    // SDIOÊ±ÖÓ
+    // SDIOæ—¶é’Ÿ
     output wire sdio_clk
 );
 	
-	/** ÄÚ²¿ÅäÖÃ **/
-	localparam en_oddr_in_reg = "false"; // ÊÇ·ñÊ¹ÓÃODDRÊäÈë¼Ä´æÆ÷
+	/** å†…éƒ¨é…ç½® **/
+	localparam en_oddr_in_reg = "false"; // æ˜¯å¦ä½¿ç”¨ODDRè¾“å…¥å¯„å­˜å™¨
 	
     /** ODDR **/
-	wire oddr_posedge_in_w; // ODDRÉÏÉıÑØÊı¾İÊäÈë
-	wire oddr_negedge_in_w; // ODDRÏÂ½µÑØÊı¾İÊäÈë
-	reg oddr_posedge_in; // ODDRÉÏÉıÑØÊı¾İÊäÈë¼Ä´æÆ÷
-	reg oddr_negedge_in; // ODDRÏÂ½µÑØÊı¾İÊäÈë¼Ä´æÆ÷
+	wire oddr_posedge_in_w; // ODDRä¸Šå‡æ²¿æ•°æ®è¾“å…¥
+	wire oddr_negedge_in_w; // ODDRä¸‹é™æ²¿æ•°æ®è¾“å…¥
+	reg oddr_posedge_in; // ODDRä¸Šå‡æ²¿æ•°æ®è¾“å…¥å¯„å­˜å™¨
+	reg oddr_negedge_in; // ODDRä¸‹é™æ²¿æ•°æ®è¾“å…¥å¯„å­˜å™¨
 	
-	// ODDRÉÏÉıÑØÊı¾İÊäÈë¼Ä´æÆ÷
+	// ODDRä¸Šå‡æ²¿æ•°æ®è¾“å…¥å¯„å­˜å™¨
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
@@ -59,7 +83,7 @@ module sdio_sck_generator #(
 		else
 			# simulation_delay oddr_posedge_in <= oddr_posedge_in_w;
 	end
-	// ODDRÏÂ½µÑØÊı¾İÊäÈë¼Ä´æÆ÷
+	// ODDRä¸‹é™æ²¿æ•°æ®è¾“å…¥å¯„å­˜å™¨
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
@@ -82,13 +106,13 @@ module sdio_sck_generator #(
 		.rst(~resetn)
 	);
 	
-	/** SDIOÊ±ÖÓ·ÖÆµ **/
-	reg div_cnt_en_shadow; // ·ÖÆµ¼ÆÊıÆ÷Ê¹ÄÜ(Ó°×Ó¼Ä´æÆ÷)
-	reg[div_cnt_width-1:0] div_rate_shadow; // ·ÖÆµÊı(Ó°×Ó¼Ä´æÆ÷)
-	wire to_turn_off_sdio_clk; // ¹Ø±ÕSDIOÊ±ÖÓ(±êÖ¾)
-	wire on_div_cnt_rst; // ·ÖÆµ¼ÆÊıÆ÷»ØÁã(Ö¸Ê¾)
-	wire div_cnt_eq_div_rate_shadow_rsh1; // ·ÖÆµ¼ÆÊıÆ÷ == (·ÖÆµÊı(Ó°×Ó¼Ä´æÆ÷) >> 1)
-	reg[div_cnt_width-1:0] div_cnt; // ·ÖÆµ¼ÆÊıÆ÷
+	/** SDIOæ—¶é’Ÿåˆ†é¢‘ **/
+	reg div_cnt_en_shadow; // åˆ†é¢‘è®¡æ•°å™¨ä½¿èƒ½(å½±å­å¯„å­˜å™¨)
+	reg[div_cnt_width-1:0] div_rate_shadow; // åˆ†é¢‘æ•°(å½±å­å¯„å­˜å™¨)
+	wire to_turn_off_sdio_clk; // å…³é—­SDIOæ—¶é’Ÿ(æ ‡å¿—)
+	wire on_div_cnt_rst; // åˆ†é¢‘è®¡æ•°å™¨å›é›¶(æŒ‡ç¤º)
+	wire div_cnt_eq_div_rate_shadow_rsh1; // åˆ†é¢‘è®¡æ•°å™¨ == (åˆ†é¢‘æ•°(å½±å­å¯„å­˜å™¨) >> 1)
+	reg[div_cnt_width-1:0] div_cnt; // åˆ†é¢‘è®¡æ•°å™¨
 	
 	assign oddr_posedge_in_w = (div_cnt > div_rate_shadow[div_cnt_width-1:1]) & (~to_turn_off_sdio_clk);
 	assign oddr_negedge_in_w = ((div_cnt > div_rate_shadow[div_cnt_width-1:1]) | 
@@ -98,71 +122,71 @@ module sdio_sck_generator #(
 	assign on_div_cnt_rst = div_cnt == div_rate_shadow;
 	assign div_cnt_eq_div_rate_shadow_rsh1 = div_cnt == div_rate_shadow[div_cnt_width-1:1];
 	
-	// ·ÖÆµ¼ÆÊıÆ÷Ê¹ÄÜ(Ó°×Ó¼Ä´æÆ÷)
+	// åˆ†é¢‘è®¡æ•°å™¨ä½¿èƒ½(å½±å­å¯„å­˜å™¨)
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
 			div_cnt_en_shadow <= 1'b0;
-		else if(to_turn_off_sdio_clk | on_div_cnt_rst) // ÔØÈë
+		else if(to_turn_off_sdio_clk | on_div_cnt_rst) // è½½å…¥
 			# simulation_delay div_cnt_en_shadow <= div_cnt_en;
 	end
-	// ·ÖÆµÊı(Ó°×Ó¼Ä´æÆ÷)
+	// åˆ†é¢‘æ•°(å½±å­å¯„å­˜å™¨)
 	always @(posedge clk)
 	begin
-		if(to_turn_off_sdio_clk | on_div_cnt_rst) // ÔØÈë
+		if(to_turn_off_sdio_clk | on_div_cnt_rst) // è½½å…¥
 			# simulation_delay div_rate_shadow <= div_rate;
 	end
 	
-	// ·ÖÆµ¼ÆÊıÆ÷
+	// åˆ†é¢‘è®¡æ•°å™¨
 	always @(posedge clk)
 	begin
-		if(to_turn_off_sdio_clk | on_div_cnt_rst) // ÇåÁã
+		if(to_turn_off_sdio_clk | on_div_cnt_rst) // æ¸…é›¶
 			# simulation_delay div_cnt <= 0;
-		else // ¸üĞÂ
+		else // æ›´æ–°
 			# simulation_delay div_cnt <= div_cnt + 1;
 	end
 	
-	/** SDIOÊäÈë²ÉÑùºÍÊä³ö¸üĞÂÖ¸Ê¾ **/
-	reg sdio_in_sample_reg; // SDIOÊäÈë²ÉÑùÖ¸Ê¾
-	reg sdio_in_sample_reg_d; // ÑÓ³Ù1clkµÄSDIOÊäÈë²ÉÑùÖ¸Ê¾
-	reg sdio_out_upd_reg; // SDIOÊä³ö¸üĞÂÖ¸Ê¾
-	reg sdio_out_upd_reg_d; // ÑÓ³Ù1clkµÄSDIOÊä³ö¸üĞÂÖ¸Ê¾
+	/** SDIOè¾“å…¥é‡‡æ ·å’Œè¾“å‡ºæ›´æ–°æŒ‡ç¤º **/
+	reg sdio_in_sample_reg; // SDIOè¾“å…¥é‡‡æ ·æŒ‡ç¤º
+	reg sdio_in_sample_reg_d; // å»¶è¿Ÿ1clkçš„SDIOè¾“å…¥é‡‡æ ·æŒ‡ç¤º
+	reg sdio_out_upd_reg; // SDIOè¾“å‡ºæ›´æ–°æŒ‡ç¤º
+	reg sdio_out_upd_reg_d; // å»¶è¿Ÿ1clkçš„SDIOè¾“å‡ºæ›´æ–°æŒ‡ç¤º
 	
 	assign sdio_in_sample = (en_oddr_in_reg == "true") ? sdio_in_sample_reg_d:sdio_in_sample_reg;
 	assign sdio_out_upd = (en_oddr_in_reg == "true") ? sdio_out_upd_reg_d:sdio_out_upd_reg;
 	
-	// SDIOÊäÈë²ÉÑùÖ¸Ê¾
+	// SDIOè¾“å…¥é‡‡æ ·æŒ‡ç¤º
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
 			sdio_in_sample_reg <= 1'b0;
-		else // Éú³ÉÂö³å
+		else // ç”Ÿæˆè„‰å†²
 			# simulation_delay sdio_in_sample_reg <= (~to_turn_off_sdio_clk) & 
 				(div_cnt == (div_rate_shadow[div_cnt_width-1:1] + div_rate_shadow[0]));
 	end
-	// SDIOÊä³ö¸üĞÂÖ¸Ê¾
+	// SDIOè¾“å‡ºæ›´æ–°æŒ‡ç¤º
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
 			sdio_out_upd_reg <= 1'b0;
-		else // Éú³ÉÂö³å
+		else // ç”Ÿæˆè„‰å†²
 			# simulation_delay sdio_out_upd_reg <= (~to_turn_off_sdio_clk) & on_div_cnt_rst;
 	end
 	
-	// ÑÓ³Ù1clkµÄSDIOÊäÈë²ÉÑùÖ¸Ê¾
+	// å»¶è¿Ÿ1clkçš„SDIOè¾“å…¥é‡‡æ ·æŒ‡ç¤º
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
 			sdio_in_sample_reg_d <= 1'b0;
-		else // ÑÓ³Ù
+		else // å»¶è¿Ÿ
 			# simulation_delay sdio_in_sample_reg_d <= sdio_in_sample_reg;
 	end
-	// ÑÓ³Ù1clkµÄSDIOÊä³ö¸üĞÂÖ¸Ê¾
+	// å»¶è¿Ÿ1clkçš„SDIOè¾“å‡ºæ›´æ–°æŒ‡ç¤º
 	always @(posedge clk or negedge resetn)
 	begin
 		if(~resetn)
 			sdio_out_upd_reg_d <= 1'b0;
-		else // ÑÓ³Ù
+		else // å»¶è¿Ÿ
 			# simulation_delay sdio_out_upd_reg_d <= sdio_out_upd_reg;
 	end
 	

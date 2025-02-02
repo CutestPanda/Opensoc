@@ -1,40 +1,64 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: »ùÓÚramµÄ±ê×¼Í¬²½fifo¿ØÖÆÆ÷
+æœ¬æ¨¡å—: åŸºäºramçš„æ ‡å‡†åŒæ­¥fifoæ§åˆ¶å™¨
 
-ÃèÊö: 
-È«Á÷Ë®µÄ¸ßĞÔÄÜÍ¬²½fifo¿ØÖÆÆ÷
-»ùÓÚram
-±ê×¼fifo(READ LA = 1|2)
-¿ÉÑ¡µÄ¹Ì¶¨ãĞÖµ½«Âú/½«¿ÕĞÅºÅ
+æè¿°: 
+å…¨æµæ°´çš„é«˜æ€§èƒ½åŒæ­¥fifoæ§åˆ¶å™¨
+åŸºäºram
+æ ‡å‡†fifo(READ LA = 1|2)
+å¯é€‰çš„å›ºå®šé˜ˆå€¼å°†æ»¡/å°†ç©ºä¿¡å·
 
-×¢Òâ£º
-½«ÂúĞÅºÅµ±´æ´¢¼ÆÊı >= almost_full_thÊ±ÓĞĞ§
-½«¿ÕĞÅºÅµ±´æ´¢¼ÆÊı <= almost_empty_thÊ±ÓĞĞ§
-almost_full_thºÍalmost_empty_th±ØĞëÔÚ[1, fifo_depth-1]·¶Î§ÄÚ
-ÒªÇóramµÄ¶ÁÑÓ³Ù=1clk
+æ³¨æ„ï¼š
+å°†æ»¡ä¿¡å·å½“å­˜å‚¨è®¡æ•° >= almost_full_thæ—¶æœ‰æ•ˆ
+å°†ç©ºä¿¡å·å½“å­˜å‚¨è®¡æ•° <= almost_empty_thæ—¶æœ‰æ•ˆ
+almost_full_thå’Œalmost_empty_thå¿…é¡»åœ¨[1, fifo_depth-1]èŒƒå›´å†…
+è¦æ±‚ramçš„è¯»å»¶è¿Ÿ=1clk
 
-Ğ­Òé:
+åè®®:
 FIFO WRITE/READ
 MEM WRITE/READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/10/29
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/10/29
 ********************************************************************/
 
 
 module fifo_based_on_ram_std #(
-    parameter integer fifo_depth = 32, // fifoÉî¶È(±ØĞëÎª2|4|8|16|...)
-    parameter integer fifo_data_width = 32, // fifoÎ»¿í
-    parameter integer almost_full_th = 20, // fifo½«ÂúãĞÖµ
-    parameter integer almost_empty_th = 5, // fifo½«¿ÕãĞÖµ
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer fifo_depth = 32, // fifoæ·±åº¦(å¿…é¡»ä¸º2|4|8|16|...)
+    parameter integer fifo_data_width = 32, // fifoä½å®½
+    parameter integer almost_full_th = 20, // fifoå°†æ»¡é˜ˆå€¼
+    parameter integer almost_empty_th = 5, // fifoå°†ç©ºé˜ˆå€¼
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // FIFO WRITE(fifoĞ´¶Ë¿Ú)
+    // FIFO WRITE(fifoå†™ç«¯å£)
     input wire fifo_wen,
     input wire[fifo_data_width-1:0] fifo_din,
     output wire fifo_full,
@@ -42,7 +66,7 @@ module fifo_based_on_ram_std #(
     output wire fifo_almost_full,
     output wire fifo_almost_full_n,
     
-    // FIFO READ(fifo¶Á¶Ë¿Ú)
+    // FIFO READ(fifoè¯»ç«¯å£)
     input wire fifo_ren,
     output wire[fifo_data_width-1:0] fifo_dout,
     output wire fifo_empty,
@@ -50,21 +74,21 @@ module fifo_based_on_ram_std #(
     output wire fifo_almost_empty,
     output wire fifo_almost_empty_n,
     
-    // MEM WRITE(ramĞ´¶Ë¿Ú)
+    // MEM WRITE(ramå†™ç«¯å£)
     output wire ram_wen,
     output wire[clogb2(fifo_depth-1):0] ram_w_addr,
     output wire[fifo_data_width-1:0] ram_din,
     
-    // MEM RAD(ram¶Á¶Ë¿Ú)
+    // MEM RAD(ramè¯»ç«¯å£)
     output wire ram_ren,
     output wire[clogb2(fifo_depth-1):0] ram_r_addr,
     input wire[fifo_data_width-1:0] ram_dout,
     
-    // ´æ´¢¼ÆÊı
+    // å­˜å‚¨è®¡æ•°
     output wire[clogb2(fifo_depth):0] data_cnt
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -74,10 +98,10 @@ module fifo_based_on_ram_std #(
     end                                        
     endfunction
     
-    /** ²ÎÊı **/
+    /** å‚æ•° **/
     localparam integer use_cnt_th = 8;
     
-    /** ¿ÕÂú±êÖ¾ºÍ´æ´¢¼ÆÊı **/
+    /** ç©ºæ»¡æ ‡å¿—å’Œå­˜å‚¨è®¡æ•° **/
     reg fifo_empty_reg;
     reg fifo_full_reg;
     reg fifo_almost_empty_reg;
@@ -117,7 +141,7 @@ module fifo_based_on_ram_std #(
 			
             if(fifo_wen & fifo_full_n_reg)
             begin
-                // fifoÊı¾İÔö¼Ó1¸ö
+                // fifoæ•°æ®å¢åŠ 1ä¸ª
                 fifo_empty_reg <= 1'b0;
                 fifo_empty_n_reg <= 1'b1;
                 fifo_full_reg <= (fifo_depth >= use_cnt_th) ? data_cnt_regs == fifo_depth - 1:data_cnt_onehot_regs[fifo_depth-1];
@@ -128,11 +152,11 @@ module fifo_based_on_ram_std #(
                 fifo_almost_full_n_reg <= ~(data_cnt_regs >= almost_full_th - 1);
                 
                 data_cnt_regs <= data_cnt_regs + 1;
-                data_cnt_onehot_regs <= {data_cnt_onehot_regs[fifo_depth-1:0], 1'b0}; // ×óÒÆ
+                data_cnt_onehot_regs <= {data_cnt_onehot_regs[fifo_depth-1:0], 1'b0}; // å·¦ç§»
             end
             else
             begin
-                // fifoÊı¾İ¼õÉÙ1¸ö
+                // fifoæ•°æ®å‡å°‘1ä¸ª
                 fifo_empty_reg <= (fifo_depth >= use_cnt_th) ? data_cnt_regs == 1:data_cnt_onehot_regs[1];
                 fifo_empty_n_reg <= (fifo_depth >= use_cnt_th) ? data_cnt_regs != 1:(~data_cnt_onehot_regs[1]);
                 fifo_full_reg <= 1'b0;
@@ -143,12 +167,12 @@ module fifo_based_on_ram_std #(
                 fifo_almost_full_n_reg <= ~(data_cnt_regs >= almost_full_th + 1);
                 
                 data_cnt_regs <= data_cnt_regs - 1;
-                data_cnt_onehot_regs <= {1'b0, data_cnt_onehot_regs[fifo_depth:1]}; // ÓÒÒÆ
+                data_cnt_onehot_regs <= {1'b0, data_cnt_onehot_regs[fifo_depth:1]}; // å³ç§»
             end
         end
     end
     
-    /** ¶ÁĞ´Ö¸Õë **/
+    /** è¯»å†™æŒ‡é’ˆ **/
     reg[clogb2(fifo_depth-1):0] fifo_rptr;
     reg[clogb2(fifo_depth-1):0] fifo_rptr_add1;
     reg[clogb2(fifo_depth-1):0] fifo_wptr;
@@ -183,10 +207,10 @@ module fifo_based_on_ram_std #(
         if(~rst_n)
             fifo_wptr_onehot <= 1;
         else if(fifo_wen & fifo_full_n_reg)
-            #simulation_delay fifo_wptr_onehot <= {fifo_wptr_onehot[fifo_depth-2:0], fifo_wptr_onehot[fifo_depth-1]}; // Ñ­»·×óÒÆ
+            #simulation_delay fifo_wptr_onehot <= {fifo_wptr_onehot[fifo_depth-2:0], fifo_wptr_onehot[fifo_depth-1]}; // å¾ªç¯å·¦ç§»
     end
     
-    /** ¶ÁĞ´Êı¾İ **/
+    /** è¯»å†™æ•°æ® **/
     assign ram_wen = fifo_wen & fifo_full_n_reg;
     assign ram_w_addr = fifo_wptr;
     assign ram_din = fifo_din;

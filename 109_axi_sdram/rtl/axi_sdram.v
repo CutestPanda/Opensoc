@@ -1,58 +1,82 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI-SDRAM
+æœ¬æ¨¡å—: AXI-SDRAM
 
-ÃèÊö: 
-32Î»µØÖ·/Êı¾İ×ÜÏß
-Ö§³Ö·Ç¶ÔÆë´«Êä
+æè¿°: 
+32ä½åœ°å€/æ•°æ®æ€»çº¿
+æ”¯æŒéå¯¹é½ä¼ è¾“
 
-143MHz(Ê±ÖÓÖÜÆÚ7ns)ÏÂ´ø¿íÎª483.13MB/s, ´ø¿íÀûÓÃÂÊÎª84.55%
+143MHz(æ—¶é’Ÿå‘¨æœŸ7ns)ä¸‹å¸¦å®½ä¸º483.13MB/s, å¸¦å®½åˆ©ç”¨ç‡ä¸º84.55%
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
-²»Ö§³ÖÕ­´ø´«Êä
-sdramÍ»·¢ÀàĞÍ¹Ì¶¨ÎªÈ«Ò³
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
+ä¸æ”¯æŒçª„å¸¦ä¼ è¾“
+sdramçªå‘ç±»å‹å›ºå®šä¸ºå…¨é¡µ
 
-ÒÔÏÂ·Ç¼Ä´æÆ÷Êä³ö ->
-    AXI´Ó»úµÄ¶ÁÊı¾İÍ¨µÀ: s_axi_rlast, s_axi_rvalid
-    AXI´Ó»úµÄĞ´Êı¾İÍ¨µÀ: s_axi_wready
-    AXI´Ó»úµÄĞ´ÏìÓ¦Í¨µÀ: s_axi_bvalid
+ä»¥ä¸‹éå¯„å­˜å™¨è¾“å‡º ->
+    AXIä»æœºçš„è¯»æ•°æ®é€šé“: s_axi_rlast, s_axi_rvalid
+    AXIä»æœºçš„å†™æ•°æ®é€šé“: s_axi_wready
+    AXIä»æœºçš„å†™å“åº”é€šé“: s_axi_bvalid
 
-Ğ­Òé:
+åè®®:
 AXI SLAVE
 SDRAM MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module axi_sdram #(
-    parameter arb_algorithm = "round-robin", // ¶ÁĞ´ÖÙ²ÃËã·¨("round-robin" | "fixed-r" | "fixed-w")
-    parameter en_unaligned_transfer = "false", // ÊÇ·ñÔÊĞí·Ç¶ÔÆë´«Êä
-    parameter real clk_period = 7.0, // Ê±ÖÓÖÜÆÚ
-    parameter real refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.8, // Ë¢ĞÂ¼ä¸ô(ÒÔns¼Æ)
-    parameter real forced_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.9, // Ç¿ÖÆË¢ĞÂ¼ä¸ô(ÒÔns¼Æ)
-    parameter real max_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0, // ×î´óË¢ĞÂ¼ä¸ô(ÒÔns¼Æ)
-    parameter real tRC = 70.0, // (¼¤»îÄ³¸öbank -> ¼¤»îÍ¬Ò»bank)ºÍ(Ë¢ĞÂÍê³ÉÊ±¼ä)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRRD = 14.0, // (¼¤»îÄ³¸öbank -> ¼¤»î²»Í¬bank)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRCD = 21.0, // (¼¤»îÄ³¸öbank -> ¶ÁĞ´Õâ¸öbank)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRP = 21.0, // (Ô¤³äµçÄ³¸öbank -> Ë¢ĞÂ/¼¤»îÍ¬Ò»bank/ÉèÖÃÄ£Ê½¼Ä´æÆ÷)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRAS_min = 49.0, // (¼¤»îÄ³¸öbank -> Ô¤³äµçÍ¬Ò»bank)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter real tRAS_max = 100000.0, // (¼¤»îÄ³¸öbank -> Ô¤³äµçÍ¬Ò»bank)µÄ×î´óÊ±¼äÒªÇó
-    parameter real tWR = 2.0, // (Ğ´Í»·¢½áÊø -> Ô¤³äµç)µÄ×îĞ¡Ê±¼äÒªÇó
-    parameter integer rw_data_buffer_depth = 512, // ¶ÁĞ´Êı¾İbufferÉî¶È(512 | 1024 | 2048 | 4096)
-    parameter integer cas_latency = 2, // sdram¶ÁÇ±·üÆÚÊ±ÑÓ(2 | 3)
-    parameter en_cmd_s2_axis_reg_slice = "true", // ÊÇ·ñÊ¹ÄÜµÚ2¼¶ÃüÁîAXIS¼Ä´æÆ÷Æ¬
-    parameter en_cmd_s3_axis_reg_slice = "true", // ÊÇ·ñÊ¹ÄÜµÚ3¼¶ÃüÁîAXIS¼Ä´æÆ÷Æ¬
-    parameter en_expt_tip = "false", // ÊÇ·ñÊ¹ÄÜÒì³£Ö¸Ê¾
-    parameter real sdram_if_signal_delay = 2.5 // sdram½Ó¿ÚĞÅºÅÑÓ³Ù(½öÓÃÓÚ·ÂÕæ)
+    parameter arb_algorithm = "round-robin", // è¯»å†™ä»²è£ç®—æ³•("round-robin" | "fixed-r" | "fixed-w")
+    parameter en_unaligned_transfer = "false", // æ˜¯å¦å…è®¸éå¯¹é½ä¼ è¾“
+    parameter real clk_period = 7.0, // æ—¶é’Ÿå‘¨æœŸ
+    parameter real refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.8, // åˆ·æ–°é—´éš”(ä»¥nsè®¡)
+    parameter real forced_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.9, // å¼ºåˆ¶åˆ·æ–°é—´éš”(ä»¥nsè®¡)
+    parameter real max_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0, // æœ€å¤§åˆ·æ–°é—´éš”(ä»¥nsè®¡)
+    parameter real tRC = 70.0, // (æ¿€æ´»æŸä¸ªbank -> æ¿€æ´»åŒä¸€bank)å’Œ(åˆ·æ–°å®Œæˆæ—¶é—´)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRRD = 14.0, // (æ¿€æ´»æŸä¸ªbank -> æ¿€æ´»ä¸åŒbank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRCD = 21.0, // (æ¿€æ´»æŸä¸ªbank -> è¯»å†™è¿™ä¸ªbank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRP = 21.0, // (é¢„å……ç”µæŸä¸ªbank -> åˆ·æ–°/æ¿€æ´»åŒä¸€bank/è®¾ç½®æ¨¡å¼å¯„å­˜å™¨)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRAS_min = 49.0, // (æ¿€æ´»æŸä¸ªbank -> é¢„å……ç”µåŒä¸€bank)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter real tRAS_max = 100000.0, // (æ¿€æ´»æŸä¸ªbank -> é¢„å……ç”µåŒä¸€bank)çš„æœ€å¤§æ—¶é—´è¦æ±‚
+    parameter real tWR = 2.0, // (å†™çªå‘ç»“æŸ -> é¢„å……ç”µ)çš„æœ€å°æ—¶é—´è¦æ±‚
+    parameter integer rw_data_buffer_depth = 512, // è¯»å†™æ•°æ®bufferæ·±åº¦(512 | 1024 | 2048 | 4096)
+    parameter integer cas_latency = 2, // sdramè¯»æ½œä¼æœŸæ—¶å»¶(2 | 3)
+    parameter en_cmd_s2_axis_reg_slice = "true", // æ˜¯å¦ä½¿èƒ½ç¬¬2çº§å‘½ä»¤AXISå¯„å­˜å™¨ç‰‡
+    parameter en_cmd_s3_axis_reg_slice = "true", // æ˜¯å¦ä½¿èƒ½ç¬¬3çº§å‘½ä»¤AXISå¯„å­˜å™¨ç‰‡
+    parameter en_expt_tip = "false", // æ˜¯å¦ä½¿èƒ½å¼‚å¸¸æŒ‡ç¤º
+    parameter real sdram_if_signal_delay = 2.5 // sdramæ¥å£ä¿¡å·å»¶è¿Ÿ(ä»…ç”¨äºä»¿çœŸ)
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»ú
+    // AXIä»æœº
     // AR
     input wire[31:0] s_axi_araddr,
     input wire[7:0] s_axi_arlen,
@@ -82,47 +106,47 @@ module axi_sdram #(
     output wire s_axi_bvalid,
     input wire s_axi_bready,
     
-    // sdramÊ±ÖÓÏß
+    // sdramæ—¶é’Ÿçº¿
     output wire sdram_clk,
     output wire sdram_cke, // const -> 1'b1
-    // sdramÃüÁîÏß
+    // sdramå‘½ä»¤çº¿
     output wire sdram_cs_n,
     output wire sdram_ras_n,
     output wire sdram_cas_n,
     output wire sdram_we_n,
     output wire[1:0] sdram_ba,
     output wire[10:0] sdram_addr,
-    // sdramÊı¾İÏß
+    // sdramæ•°æ®çº¿
     output wire[3:0] sdram_dqm, // 1'b0 -> data write/output enable; 1'b1 -> data mask/output disable
     input wire[31:0] sdram_dq_i,
 	output wire[31:0] sdram_dq_o,
-	output wire[31:0] sdram_dq_t, // 1ÎªÊäÈë, 0ÎªÊä³ö
+	output wire[31:0] sdram_dq_t, // 1ä¸ºè¾“å…¥, 0ä¸ºè¾“å‡º
     
-    // Òì³£Ö¸Ê¾
-    output wire pcg_spcf_idle_bank_err, // Ô¤³äµç¿ÕÏĞµÄÌØ¶¨bank(Òì³£Ö¸Ê¾)
-    output wire pcg_spcf_bank_tot_err, // Ô¤³äµçÌØ¶¨bank³¬Ê±(Òì³£Ö¸Ê¾)
-    output wire rw_idle_bank_err, // ¶ÁĞ´¿ÕÏĞµÄbank(Òì³£Ö¸Ê¾)
-    output wire rfs_with_act_banks_err, // Ë¢ĞÂÊ±´øÓĞÒÑ¼¤»îµÄbank(Òì³£Ö¸Ê¾)
-    output wire illegal_logic_cmd_err, // ·Ç·¨µÄÂß¼­ÃüÁî±àÂë(Òì³£Ö¸Ê¾)
-    output wire rw_cross_line_err, // ¿çĞĞµÄ¶ÁĞ´ÃüÁî(Òì³£Ö¸Ê¾)
-    output wire ld_when_wdata_ext_fifo_empty_err, // ÔÚĞ´Êı¾İ¹ãÒåfifo¿ÕÊ±È¡Êı¾İ(Òì³£Ö¸Ê¾)
-    output wire st_when_rdata_ext_fifo_full_err, // ÔÚ¶ÁÊı¾İ¹ãÒåfifoÂúÊ±´æÊı¾İ(Òì³£Ö¸Ê¾)
-    output wire rfs_timeout // Ë¢ĞÂ³¬Ê±
+    // å¼‚å¸¸æŒ‡ç¤º
+    output wire pcg_spcf_idle_bank_err, // é¢„å……ç”µç©ºé—²çš„ç‰¹å®šbank(å¼‚å¸¸æŒ‡ç¤º)
+    output wire pcg_spcf_bank_tot_err, // é¢„å……ç”µç‰¹å®šbankè¶…æ—¶(å¼‚å¸¸æŒ‡ç¤º)
+    output wire rw_idle_bank_err, // è¯»å†™ç©ºé—²çš„bank(å¼‚å¸¸æŒ‡ç¤º)
+    output wire rfs_with_act_banks_err, // åˆ·æ–°æ—¶å¸¦æœ‰å·²æ¿€æ´»çš„bank(å¼‚å¸¸æŒ‡ç¤º)
+    output wire illegal_logic_cmd_err, // éæ³•çš„é€»è¾‘å‘½ä»¤ç¼–ç (å¼‚å¸¸æŒ‡ç¤º)
+    output wire rw_cross_line_err, // è·¨è¡Œçš„è¯»å†™å‘½ä»¤(å¼‚å¸¸æŒ‡ç¤º)
+    output wire ld_when_wdata_ext_fifo_empty_err, // åœ¨å†™æ•°æ®å¹¿ä¹‰fifoç©ºæ—¶å–æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
+    output wire st_when_rdata_ext_fifo_full_err, // åœ¨è¯»æ•°æ®å¹¿ä¹‰fifoæ»¡æ—¶å­˜æ•°æ®(å¼‚å¸¸æŒ‡ç¤º)
+    output wire rfs_timeout // åˆ·æ–°è¶…æ—¶
 );
     
-    /** AXI´Ó½Ó¿Ú **/
-    // SDRAMÓÃ»§ÃüÁîAXIS
-    wire[31:0] m_axis_usr_cmd_data; // {±£Áô(5bit), ba(2bit), ĞĞµØÖ·(11bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    wire[8:0] m_axis_usr_cmd_user; // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}
+    /** AXIä»æ¥å£ **/
+    // SDRAMç”¨æˆ·å‘½ä»¤AXIS
+    wire[31:0] m_axis_usr_cmd_data; // {ä¿ç•™(5bit), ba(2bit), è¡Œåœ°å€(11bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    wire[8:0] m_axis_usr_cmd_user; // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}
     wire m_axis_usr_cmd_valid;
     wire m_axis_usr_cmd_ready;
-    // SDRAMĞ´Êı¾İAXIS
+    // SDRAMå†™æ•°æ®AXIS
     wire[31:0] m_axis_wt_data;
     wire[3:0] m_axis_wt_keep;
     wire m_axis_wt_last;
     wire m_axis_wt_valid;
     wire m_axis_wt_ready;
-    // SDRAM¶ÁÊı¾İAXIS
+    // SDRAMè¯»æ•°æ®AXIS
     wire[31:0] s_axis_rd_data;
     wire s_axis_rd_last;
     wire s_axis_rd_valid;
@@ -175,7 +199,7 @@ module axi_sdram #(
     );
     
     /** SDRAM PHY **/
-    // sdramÍ»·¢ÀàĞÍ¹Ì¶¨ÎªÈ«Ò³, ²»Ê¹ÄÜÊµÊ±Í³¼ÆĞ´Í»·¢³¤¶È, Ê¹ÄÜµÚ1¼¶ÃüÁîAXIS¼Ä´æÆ÷Æ¬
+    // sdramçªå‘ç±»å‹å›ºå®šä¸ºå…¨é¡µ, ä¸ä½¿èƒ½å®æ—¶ç»Ÿè®¡å†™çªå‘é•¿åº¦, ä½¿èƒ½ç¬¬1çº§å‘½ä»¤AXISå¯„å­˜å™¨ç‰‡
     sdram_phy #(
         .clk_period(clk_period),
         .refresh_itv(refresh_itv),

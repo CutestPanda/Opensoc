@@ -1,28 +1,52 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// ÏîÄ¿: ¼òµ¥Ë«¶Ë¿ÚDram
+// é¡¹ç›®: ç®€å•åŒç«¯å£Dram
 /* 
-ÃèÊö: 
-¿ÉÑ¡µÄÊä³ö¼Ä´æÆ÷
+æè¿°: 
+å¯é€‰çš„è¾“å‡ºå¯„å­˜å™¨
 */
 /*
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 */
-// ×÷Õß: ³Â¼ÒÒ«
-// ÈÕÆÚ: 2022/1/13
+// ä½œè€…: é™ˆå®¶è€€
+// æ—¥æœŸ: 2022/1/13
 //////////////////////////////////////////////////////////////////////////////////
 
 
 module dram_simple_dual_port #(
-    parameter integer mem_width = 24, // ´æ´¢Æ÷Î»¿í
-    parameter integer mem_depth = 32, // ´æ´¢Æ÷Éî¶È
-    parameter INIT_FILE = "no_init", // ³õÊ¼»¯ÎÄ¼şÂ·¾¶
-    parameter use_output_register = "true", // ÊÇ·ñÊ¹ÓÃÊä³ö¼Ä´æÆ÷
-    parameter output_register_init_v = 0, // Êä³ö¼Ä´æÆ÷¸´Î»Öµ
-    parameter real simulation_delay = 10 // ·ÂÕæÊ±ÓÃµÄÑÓÊ±
+    parameter integer mem_width = 24, // å­˜å‚¨å™¨ä½å®½
+    parameter integer mem_depth = 32, // å­˜å‚¨å™¨æ·±åº¦
+    parameter INIT_FILE = "no_init", // åˆå§‹åŒ–æ–‡ä»¶è·¯å¾„
+    parameter use_output_register = "true", // æ˜¯å¦ä½¿ç”¨è¾“å‡ºå¯„å­˜å™¨
+    parameter output_register_init_v = 0, // è¾“å‡ºå¯„å­˜å™¨å¤ä½å€¼
+    parameter real simulation_delay = 10 // ä»¿çœŸæ—¶ç”¨çš„å»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
@@ -37,7 +61,7 @@ module dram_simple_dual_port #(
     output wire[mem_width-1:0] dout_b
 );
 
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -47,7 +71,7 @@ module dram_simple_dual_port #(
         end                                        
     endfunction
     
-    (* ram_style="distributed" *) reg[mem_width-1:0] mem[mem_depth-1:0]; // ´æ´¢Æ÷
+    (* ram_style="distributed" *) reg[mem_width-1:0] mem[mem_depth-1:0]; // å­˜å‚¨å™¨
     
     generate
     if (INIT_FILE != "")
@@ -67,7 +91,7 @@ module dram_simple_dual_port #(
     end
     endgenerate
     
-    // ¶ÁĞ´¿ØÖÆÂß¼­
+    // è¯»å†™æ§åˆ¶é€»è¾‘
     generate
         if(use_output_register == "true")
         begin

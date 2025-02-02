@@ -1,60 +1,84 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AHBµ½APBÇÅ
+æœ¬æ¨¡å—: AHBåˆ°APBæ¡¥
 
-ÃèÊö: 
-AHBµ½APBÇÅ(AHB-APBÇÅÊÇAPB×ÜÏßÉÏÎ¨Ò»µÄÖ÷Éè±¸)
-¿ÉÑ¡APB´Ó»ú¸öÊıÎª1~16
+æè¿°: 
+AHBåˆ°APBæ¡¥(AHB-APBæ¡¥æ˜¯APBæ€»çº¿ä¸Šå”¯ä¸€çš„ä¸»è®¾å¤‡)
+å¯é€‰APBä»æœºä¸ªæ•°ä¸º1~16
 
-×¢Òâ£º
-Ã¿¸ö´Ó»úµÄµØÖ·Çø¼ä³¤¶È±ØĞë >= 4096(4KB)
+æ³¨æ„ï¼š
+æ¯ä¸ªä»æœºçš„åœ°å€åŒºé—´é•¿åº¦å¿…é¡» >= 4096(4KB)
 
-Ğ­Òé:
+åè®®:
 AHB-Lite SLAVE
 APB MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/20
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/20
 ********************************************************************/
 
 
 module ahb_apb_bridge #(
-    parameter integer apb_slave_n = 5, // APB´Ó»ú¸öÊı(1~16)
-    parameter integer apb_s0_baseaddr = 0, // 0ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s0_range = 4096, // 0ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s1_baseaddr = 4096, // 1ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s1_range = 4096, // 1ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s2_baseaddr = 8192, // 2ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s2_range = 4096, // 2ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s3_baseaddr = 12288, // 3ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s3_range = 4096, // 3ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s4_baseaddr = 16384, // 4ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s4_range = 4096, // 4ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s5_baseaddr = 20480, // 5ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s5_range = 4096, // 5ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s6_baseaddr = 24576, // 6ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s6_range = 4096, // 6ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s7_baseaddr = 28672, // 7ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s7_range = 4096, // 7ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s8_baseaddr = 32768, // 8ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s8_range = 4096, // 8ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s9_baseaddr = 36864, // 9ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s9_range = 4096, // 9ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s10_baseaddr = 40960, // 10ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s10_range = 4096, // 10ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s11_baseaddr = 45056, // 11ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s11_range = 4096, // 11ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s12_baseaddr = 49152, // 12ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s12_range = 4096, // 12ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s13_baseaddr = 53248, // 13ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s13_range = 4096, // 13ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s14_baseaddr = 57344, // 14ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s14_range = 4096, // 14ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter integer apb_s15_baseaddr = 61440, // 15ºÅ´Ó»ú»ùµØÖ·
-    parameter integer apb_s15_range = 4096, // 15ºÅ´Ó»úµØÖ·Çø¼ä³¤¶È
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer apb_slave_n = 5, // APBä»æœºä¸ªæ•°(1~16)
+    parameter integer apb_s0_baseaddr = 0, // 0å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s0_range = 4096, // 0å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s1_baseaddr = 4096, // 1å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s1_range = 4096, // 1å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s2_baseaddr = 8192, // 2å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s2_range = 4096, // 2å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s3_baseaddr = 12288, // 3å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s3_range = 4096, // 3å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s4_baseaddr = 16384, // 4å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s4_range = 4096, // 4å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s5_baseaddr = 20480, // 5å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s5_range = 4096, // 5å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s6_baseaddr = 24576, // 6å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s6_range = 4096, // 6å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s7_baseaddr = 28672, // 7å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s7_range = 4096, // 7å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s8_baseaddr = 32768, // 8å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s8_range = 4096, // 8å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s9_baseaddr = 36864, // 9å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s9_range = 4096, // 9å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s10_baseaddr = 40960, // 10å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s10_range = 4096, // 10å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s11_baseaddr = 45056, // 11å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s11_range = 4096, // 11å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s12_baseaddr = 49152, // 12å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s12_range = 4096, // 12å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s13_baseaddr = 53248, // 13å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s13_range = 4096, // 13å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s14_baseaddr = 57344, // 14å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s14_range = 4096, // 14å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter integer apb_s15_baseaddr = 61440, // 15å·ä»æœºåŸºåœ°å€
+    parameter integer apb_s15_range = 4096, // 15å·ä»æœºåœ°å€åŒºé—´é•¿åº¦
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
@@ -85,18 +109,18 @@ module ahb_apb_bridge #(
     input wire m_apb_pslverr, // 1'b0 -> OKAY; 1'b1 -> ERROR
     input wire[31:0] m_apb_prdata,
     
-    // APB MUXÑ¡ÔñĞÅºÅ
+    // APB MUXé€‰æ‹©ä¿¡å·
     output wire[3:0] apb_muxsel
 );
 
-    /** ³£Á¿ **/
-    // AHB´«ÊäÀàĞÍ
+    /** å¸¸é‡ **/
+    // AHBä¼ è¾“ç±»å‹
     localparam AHB_TRANS_IDLE = 2'b00;
     localparam AHB_TRANS_BUSY = 2'b01;
     localparam AHB_TRANS_NONSEQ = 2'b10;
     localparam AHB_TRANS_SEQ = 2'b11;
     
-    /** µØÖ·ÒëÂëÆ÷ **/
+    /** åœ°å€è¯‘ç å™¨ **/
     wire[15:0] m_apb_psel_w;
     wire[3:0] apb_muxsel_w;
     
@@ -140,15 +164,15 @@ module ahb_apb_bridge #(
         .apb_muxsel(apb_muxsel_w)
     );
     
-    /** AHB´Ó½Ó¿Ú **/
-    reg[3:0] apb_slave_muxsel; // APB´Ó»ú·µ»ØÊı¾İÑ¡Ôñ
-    reg[31:0] ahb_haddr_latched; // Ëø´æµÄAHB´«ÊäµØÖ·
-    reg ahb_hwrite_latched; // Ëø´æµÄAHB¶ÁĞ´ÀàĞÍ
-    reg[2:0] ahb_hprot_latched; // Ëø´æµÄAHB±£»¤ÀàĞÍ
-    reg apb_transmitting; // APB´«Êä½øĞĞÖĞ(±êÖ¾)
-    reg ahb_hready; // APB´«ÊäÍê³É
-    reg[31:0] apb_rdata_d; // ÑÓ³Ù1clkµÄAPB¶ÁÊı¾İ·µ»Ø
-    reg ahb_hresp; // AHB´«ÊäÏìÓ¦
+    /** AHBä»æ¥å£ **/
+    reg[3:0] apb_slave_muxsel; // APBä»æœºè¿”å›æ•°æ®é€‰æ‹©
+    reg[31:0] ahb_haddr_latched; // é”å­˜çš„AHBä¼ è¾“åœ°å€
+    reg ahb_hwrite_latched; // é”å­˜çš„AHBè¯»å†™ç±»å‹
+    reg[2:0] ahb_hprot_latched; // é”å­˜çš„AHBä¿æŠ¤ç±»å‹
+    reg apb_transmitting; // APBä¼ è¾“è¿›è¡Œä¸­(æ ‡å¿—)
+    reg ahb_hready; // APBä¼ è¾“å®Œæˆ
+    reg[31:0] apb_rdata_d; // å»¶è¿Ÿ1clkçš„APBè¯»æ•°æ®è¿”å›
+    reg ahb_hresp; // AHBä¼ è¾“å“åº”
     
     assign s_ahb_hready_out = ahb_hready;
     assign s_ahb_hrdata = apb_rdata_d;
@@ -156,7 +180,7 @@ module ahb_apb_bridge #(
     
     assign apb_muxsel = apb_slave_muxsel;
     
-    // AHB-APBÒëÂë´íÎó, APB´Ó»ú·µ»ØÊı¾İÑ¡Ôñ, Ëø´æµÄAHB´«ÊäµØÖ·, Ëø´æµÄAHB¶ÁĞ´ÀàĞÍ, Ëø´æµÄAHB±£»¤ÀàĞÍ
+    // AHB-APBè¯‘ç é”™è¯¯, APBä»æœºè¿”å›æ•°æ®é€‰æ‹©, é”å­˜çš„AHBä¼ è¾“åœ°å€, é”å­˜çš„AHBè¯»å†™ç±»å‹, é”å­˜çš„AHBä¿æŠ¤ç±»å‹
     always @(posedge clk)
     begin
         if(s_ahb_hsel & s_ahb_hready_in & (s_ahb_htrans == AHB_TRANS_NONSEQ))
@@ -169,7 +193,7 @@ module ahb_apb_bridge #(
         end
     end
     
-    // APB´«ÊäÍê³É
+    // APBä¼ è¾“å®Œæˆ
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -180,17 +204,17 @@ module ahb_apb_bridge #(
                 ahb_hready <= # simulation_delay ~(s_ahb_hsel & s_ahb_hready_in & (s_ahb_htrans == AHB_TRANS_NONSEQ));
             else
             begin
-                ahb_hready <= # simulation_delay ahb_hresp | // ÒëÂë´íÎó»ò´Ó»ú´íÎó
-                    (m_apb_penable & m_apb_pready & (~m_apb_pslverr)); // Õı³£´«Êä
+                ahb_hready <= # simulation_delay ahb_hresp | // è¯‘ç é”™è¯¯æˆ–ä»æœºé”™è¯¯
+                    (m_apb_penable & m_apb_pready & (~m_apb_pslverr)); // æ­£å¸¸ä¼ è¾“
             end
         end
     end
     
-    // ÑÓ³Ù1clkµÄAPB¶ÁÊı¾İ·µ»Ø
+    // å»¶è¿Ÿ1clkçš„APBè¯»æ•°æ®è¿”å›
     always @(posedge clk)
         apb_rdata_d <= # simulation_delay m_apb_prdata;
     
-    // AHB´«ÊäÏìÓ¦
+    // AHBä¼ è¾“å“åº”
     always @(posedge clk)
     begin
         if(apb_transmitting)
@@ -205,10 +229,10 @@ module ahb_apb_bridge #(
         end
     end
     
-    /** APBÖ÷½Ó¿Ú **/
-    reg[apb_slave_n-1:0] apb_pselx; // APB´Ó»úÑ¡Ôñ
-    reg apb_valid_trans_start_d; // ÑÓ³Ù1clkµÄÓĞĞ§APB´«Êä¿ªÊ¼(Ö¸Ê¾)
-    reg apb_penable; // APB´«ÊäÊ¹ÄÜ
+    /** APBä¸»æ¥å£ **/
+    reg[apb_slave_n-1:0] apb_pselx; // APBä»æœºé€‰æ‹©
+    reg apb_valid_trans_start_d; // å»¶è¿Ÿ1clkçš„æœ‰æ•ˆAPBä¼ è¾“å¼€å§‹(æŒ‡ç¤º)
+    reg apb_penable; // APBä¼ è¾“ä½¿èƒ½
     
     assign m_apb_paddr = ahb_haddr_latched;
     assign m_apb_penable = apb_penable;
@@ -218,7 +242,7 @@ module ahb_apb_bridge #(
     assign m_apb_pstrb = s_ahb_hwstrb;
     assign m_apb_pwdata = s_ahb_hwdata;
     
-    // APB´«Êä½øĞĞÖĞ(±êÖ¾)
+    // APBä¼ è¾“è¿›è¡Œä¸­(æ ‡å¿—)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -227,7 +251,7 @@ module ahb_apb_bridge #(
             apb_transmitting <= # simulation_delay apb_transmitting ? (~(m_apb_penable & m_apb_pready)):(s_ahb_hsel & s_ahb_hready_in & (s_ahb_htrans == AHB_TRANS_NONSEQ));
     end
     
-    // APB´Ó»úÑ¡Ôñ
+    // APBä»æœºé€‰æ‹©
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -247,7 +271,7 @@ module ahb_apb_bridge #(
         end
     end
     
-    // ÑÓ³Ù1clkµÄÓĞĞ§APB´«Êä¿ªÊ¼(Ö¸Ê¾)
+    // å»¶è¿Ÿ1clkçš„æœ‰æ•ˆAPBä¼ è¾“å¼€å§‹(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -257,7 +281,7 @@ module ahb_apb_bridge #(
                 (m_apb_psel_w[apb_slave_n-1:0] != {apb_slave_n{1'b0}});
     end
     
-    // APB´«ÊäÊ¹ÄÜ
+    // APBä¼ è¾“ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

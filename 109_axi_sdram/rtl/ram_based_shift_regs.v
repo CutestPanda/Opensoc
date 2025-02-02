@@ -1,44 +1,68 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: »ùÓÚramµÄÒÆÎ»¼Ä´æÆ÷
+æœ¬æ¨¡å—: åŸºäºramçš„ç§»ä½å¯„å­˜å™¨
 
-ÃèÊö: 
-¹Ì¶¨µÄÑÓ³ÙÖÜÆÚÊı
-Ö§³ÖÊ¹ÓÃramºÍffÀ´¹¹ÔìÒÆÎ»¼Ä´æÆ÷
-ÀûÓÃ´í¿ªµÄram¶ÁĞ´µØÖ·¿ÉÊµÏÖÉîÑÓ³Ù(Í¨³£´óÓÚ4ÅÄ)
+æè¿°: 
+å›ºå®šçš„å»¶è¿Ÿå‘¨æœŸæ•°
+æ”¯æŒä½¿ç”¨ramå’Œffæ¥æ„é€ ç§»ä½å¯„å­˜å™¨
+åˆ©ç”¨é”™å¼€çš„ramè¯»å†™åœ°å€å¯å®ç°æ·±å»¶è¿Ÿ(é€šå¸¸å¤§äº4æ‹)
 
-×¢Òâ£º
-ramµÄ¶ÁÑÓ³ÙÖ»ÄÜÊÇ1(Çë¸Ä½ø, ÒÔÖ§³Öram¶ÁÑÓ³ÙÎª2!!!!!!!!)
+æ³¨æ„ï¼š
+ramçš„è¯»å»¶è¿Ÿåªèƒ½æ˜¯1(è¯·æ”¹è¿›, ä»¥æ”¯æŒramè¯»å»¶è¿Ÿä¸º2!!!!!!!!)
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/01/18
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/01/18
 ********************************************************************/
 
 
 module ram_based_shift_regs #(
-    parameter integer data_width = 8, // Êı¾İÎ»¿í
-    parameter integer delay_n = 16, // ÑÓ³ÙÖÜÆÚÊı
-    parameter shift_type = "ram", // ÒÆÎ»¼Ä´æÆ÷ÀàĞÍ(ram | ff)
-    parameter ram_type = "lutram", // ramÀàĞÍ(lutram | bram)
-    parameter INIT_FILE = "no_init", // RAM³õÊ¼»¯ÎÄ¼şÂ·¾¶
-    parameter en_output_register_init = "true", // Êä³ö¼Ä´æÆ÷ÊÇ·ñĞèÒª¸´Î»
-    parameter output_register_init_v = 0, // Êä³ö¼Ä´æÆ÷¸´Î»Öµ
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer data_width = 8, // æ•°æ®ä½å®½
+    parameter integer delay_n = 16, // å»¶è¿Ÿå‘¨æœŸæ•°
+    parameter shift_type = "ram", // ç§»ä½å¯„å­˜å™¨ç±»å‹(ram | ff)
+    parameter ram_type = "lutram", // ramç±»å‹(lutram | bram)
+    parameter INIT_FILE = "no_init", // RAMåˆå§‹åŒ–æ–‡ä»¶è·¯å¾„
+    parameter en_output_register_init = "true", // è¾“å‡ºå¯„å­˜å™¨æ˜¯å¦éœ€è¦å¤ä½
+    parameter output_register_init_v = 0, // è¾“å‡ºå¯„å­˜å™¨å¤ä½å€¼
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // ÒÆÎ»¼Ä´æÆ÷
+    // ç§»ä½å¯„å­˜å™¨
     input wire[data_width-1:0] shift_in,
     input wire ce,
     output wire[data_width-1:0] shift_out
 );
 
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)             
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)             
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -48,7 +72,7 @@ module ram_based_shift_regs #(
     end
     endfunction
     
-    /** »ùÓÚFFµÄÒÆÎ»¼Ä´æÆ÷ **/
+    /** åŸºäºFFçš„ç§»ä½å¯„å­˜å™¨ **/
     reg[data_width-1:0] shift_ffs[delay_n-1:0];
     
     genvar shift_ffs_i;
@@ -78,12 +102,12 @@ module ram_based_shift_regs #(
         end
     endgenerate
 
-    /** »ùÓÚramµÄÒÆÎ»¼Ä´æÆ÷ **/
-    // Ğ´¶Ë¿Ú
+    /** åŸºäºramçš„ç§»ä½å¯„å­˜å™¨ **/
+    // å†™ç«¯å£
     wire wen_a;
     reg[clogb2(delay_n-1):0] addr_a;
     wire[data_width-1:0] din_a;
-    // ¶Á¶Ë¿Ú
+    // è¯»ç«¯å£
     wire ren_b;
     reg[clogb2(delay_n-1):0] addr_b;
     wire[data_width-1:0] dout_b;
@@ -132,7 +156,7 @@ module ram_based_shift_regs #(
 		end
     endgenerate
     
-    // ¶ÁĞ´µØÖ·¿ØÖÆ
+    // è¯»å†™åœ°å€æ§åˆ¶
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -149,7 +173,7 @@ module ram_based_shift_regs #(
         end
     end
     
-    /** ÒÆÎ»Êä³ö **/
+    /** ç§»ä½è¾“å‡º **/
     assign shift_out = (shift_type == "ram") ? dout_b:shift_ffs[delay_n-1];
 
 endmodule

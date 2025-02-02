@@ -1,34 +1,58 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ÖĞ¶ÏĞÅºÅ·¢ÉúÆ÷
+æœ¬æ¨¡å—: ä¸­æ–­ä¿¡å·å‘ç”Ÿå™¨
 
-ÃèÊö: 
-½«Ô­Ê¼µÄÖĞ¶ÏÂö³åÍØÕ¹ÎªÒ»¶¨Âö¿íµÄÖĞ¶ÏĞÅºÅ
+æè¿°: 
+å°†åŸå§‹çš„ä¸­æ–­è„‰å†²æ‹“å±•ä¸ºä¸€å®šè„‰å®½çš„ä¸­æ–­ä¿¡å·
 
-×¢Òâ£º
-ÖĞ¶ÏÂö¿í±ØĞë >= 2
+æ³¨æ„ï¼š
+ä¸­æ–­è„‰å®½å¿…é¡» >= 2
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/08
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/08
 ********************************************************************/
 
 
 module itr_generator #(
-    parameter integer pulse_w = 100, // ÖĞ¶ÏÂö¿í(±ØĞë>=1)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer pulse_w = 100, // ä¸­æ–­è„‰å®½(å¿…é¡»>=1)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    input wire itr_org, // Ô­Ê¼ÖĞ¶ÏÊäÈë
-    output wire itr // ÖĞ¶ÏÊä³ö
+    input wire itr_org, // åŸå§‹ä¸­æ–­è¾“å…¥
+    output wire itr // ä¸­æ–­è¾“å‡º
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -38,9 +62,9 @@ module itr_generator #(
     end                                        
     endfunction
     
-    // ²úÉúÖĞ¶ÏĞÅºÅ
-    reg itr_reg; // ÖĞ¶ÏĞÅºÅ
-    reg[clogb2(pulse_w - 1):0] itr_cnt; // ÖĞ¶Ï¼ÆÊıÆ÷
+    // äº§ç”Ÿä¸­æ–­ä¿¡å·
+    reg itr_reg; // ä¸­æ–­ä¿¡å·
+    reg[clogb2(pulse_w - 1):0] itr_cnt; // ä¸­æ–­è®¡æ•°å™¨
     
     assign itr = itr_reg;
     
@@ -65,9 +89,9 @@ module itr_generator #(
                 begin
                     # simulation_delay;
                     
-                    if(~itr_reg) // µÈ´ıÔ­Ê¼ÖĞ¶ÏÂö³å
+                    if(~itr_reg) // ç­‰å¾…åŸå§‹ä¸­æ–­è„‰å†²
                         itr_reg <= itr_org;
-                    else // µÈ´ı¼ÆÊıÍê³É
+                    else // ç­‰å¾…è®¡æ•°å®Œæˆ
                         itr_reg <= itr_cnt != pulse_w - 1;
                 end
             end

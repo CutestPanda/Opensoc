@@ -1,67 +1,91 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIÖ¡»º´æ
+æœ¬æ¨¡å—: AXIå¸§ç¼“å­˜
 
-ÃèÊö: 
-ÊµÏÖÁËÖ¡Ğ´ÈëAXISµ½AXIĞ´Í¨µÀ, Ö¡¶ÁÈ¡AXISµ½AXI¶ÁÍ¨µÀÖ®¼äµÄ×ª»»
-AXIÖ÷»úµÄµØÖ·/Êı¾İÎ»¿í¹Ì¶¨Îª32
-¿ÉÑ¡µÄ4KB±ß½ç±£»¤
+æè¿°: 
+å®ç°äº†å¸§å†™å…¥AXISåˆ°AXIå†™é€šé“, å¸§è¯»å–AXISåˆ°AXIè¯»é€šé“ä¹‹é—´çš„è½¬æ¢
+AXIä¸»æœºçš„åœ°å€/æ•°æ®ä½å®½å›ºå®šä¸º32
+å¯é€‰çš„4KBè¾¹ç•Œä¿æŠ¤
 
-×¢Òâ£º
-Ö¡´óĞ¡(img_n * pix_data_width / 8)±ØĞëÄÜ±»4Õû³ı
-AXI¶ÁµØÖ·»º³åÉî¶È(axi_raddr_outstanding)ºÍAXI¶ÁÍ¨µÀÊı¾İbufferÉî¶È(axi_rchn_data_buffer_depth)¹²Í¬¾ö¶¨ARÍ¨µÀµÄÎÕÊÖ
+æ³¨æ„ï¼š
+å¸§å¤§å°(img_n * pix_data_width / 8)å¿…é¡»èƒ½è¢«4æ•´é™¤
+AXIè¯»åœ°å€ç¼“å†²æ·±åº¦(axi_raddr_outstanding)å’ŒAXIè¯»é€šé“æ•°æ®bufferæ·±åº¦(axi_rchn_data_buffer_depth)å…±åŒå†³å®šARé€šé“çš„æ¡æ‰‹
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 AXI MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/08
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/08
 ********************************************************************/
 
 
 module axi_frame_buffer #(
-    parameter en_4KB_boundary_protect = "false", // ÊÇ·ñÆôÓÃ4KB±ß½ç±£»¤
-    parameter en_reg_slice_at_m_axi_ar = "true", // ÊÇ·ñÔÚAXIÖ÷»úµÄARÍ¨µÀ²åÈë¼Ä´æÆ÷Æ¬
-    parameter en_reg_slice_at_m_axi_aw = "true", // ÊÇ·ñÔÚAXIÖ÷»úµÄAWÍ¨µÀ²åÈë¼Ä´æÆ÷Æ¬
-    parameter en_reg_slice_at_m_axi_r = "true", // ÊÇ·ñÔÚAXIÖ÷»úµÄRÍ¨µÀ²åÈë¼Ä´æÆ÷Æ¬
-    parameter en_reg_slice_at_m_axi_w = "true", // ÊÇ·ñÔÚAXIÖ÷»úµÄWÍ¨µÀ²åÈë¼Ä´æÆ÷Æ¬
-    parameter en_reg_slice_at_m_axi_b = "true", // ÊÇ·ñÔÚAXIÖ÷»úµÄBÍ¨µÀ²åÈë¼Ä´æÆ÷Æ¬
-    parameter integer frame_n = 4, // »º³åÇøÖ¡¸öÊı(±ØĞëÔÚ·¶Î§[3, 16]ÄÚ)
-    parameter integer frame_buffer_baseaddr = 0, // Ö¡»º³åÇøÊ×µØÖ·(±ØĞëÄÜ±»4Õû³ı)
-    parameter integer img_n = 1920 * 1080, // Í¼Ïñ´óĞ¡(ÒÔÏñËØ¸öÊı¼Æ)
-    parameter integer pix_data_width = 24, // ÏñËØÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter integer pix_per_clk_for_wt = 1, // Ã¿clkĞ´µÄÏñËØ¸öÊı
-	parameter integer pix_per_clk_for_rd = 1, // Ã¿clk¶ÁµÄÏñËØ¸öÊı
-    parameter integer axi_raddr_outstanding = 2, // AXI¶ÁµØÖ·»º³åÉî¶È(1 | 2 | 4 | 8 | 16)
-    parameter integer axi_rchn_max_burst_len = 64, // AXI¶ÁÍ¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-    parameter integer axi_waddr_outstanding = 2, // AXIĞ´µØÖ·»º³åÉî¶È(1 | 2 | 4 | 8 | 16)
-    parameter integer axi_wchn_max_burst_len = 64, // AXIĞ´Í¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-    parameter integer axi_wchn_data_buffer_depth = 512, // AXIĞ´Í¨µÀÊı¾İbufferÉî¶È(0 | 16 | 32 | 64 | ..., ÉèÎª0Ê±±íÊ¾²»Ê¹ÓÃ)
-    parameter integer axi_rchn_data_buffer_depth = 512, // AXI¶ÁÍ¨µÀÊı¾İbufferÉî¶È(0 | 16 | 32 | 64 | ..., ÉèÎª0Ê±±íÊ¾²»Ê¹ÓÃ)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter en_4KB_boundary_protect = "false", // æ˜¯å¦å¯ç”¨4KBè¾¹ç•Œä¿æŠ¤
+    parameter en_reg_slice_at_m_axi_ar = "true", // æ˜¯å¦åœ¨AXIä¸»æœºçš„ARé€šé“æ’å…¥å¯„å­˜å™¨ç‰‡
+    parameter en_reg_slice_at_m_axi_aw = "true", // æ˜¯å¦åœ¨AXIä¸»æœºçš„AWé€šé“æ’å…¥å¯„å­˜å™¨ç‰‡
+    parameter en_reg_slice_at_m_axi_r = "true", // æ˜¯å¦åœ¨AXIä¸»æœºçš„Ré€šé“æ’å…¥å¯„å­˜å™¨ç‰‡
+    parameter en_reg_slice_at_m_axi_w = "true", // æ˜¯å¦åœ¨AXIä¸»æœºçš„Wé€šé“æ’å…¥å¯„å­˜å™¨ç‰‡
+    parameter en_reg_slice_at_m_axi_b = "true", // æ˜¯å¦åœ¨AXIä¸»æœºçš„Bé€šé“æ’å…¥å¯„å­˜å™¨ç‰‡
+    parameter integer frame_n = 4, // ç¼“å†²åŒºå¸§ä¸ªæ•°(å¿…é¡»åœ¨èŒƒå›´[3, 16]å†…)
+    parameter integer frame_buffer_baseaddr = 0, // å¸§ç¼“å†²åŒºé¦–åœ°å€(å¿…é¡»èƒ½è¢«4æ•´é™¤)
+    parameter integer img_n = 1920 * 1080, // å›¾åƒå¤§å°(ä»¥åƒç´ ä¸ªæ•°è®¡)
+    parameter integer pix_data_width = 24, // åƒç´ ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter integer pix_per_clk_for_wt = 1, // æ¯clkå†™çš„åƒç´ ä¸ªæ•°
+	parameter integer pix_per_clk_for_rd = 1, // æ¯clkè¯»çš„åƒç´ ä¸ªæ•°
+    parameter integer axi_raddr_outstanding = 2, // AXIè¯»åœ°å€ç¼“å†²æ·±åº¦(1 | 2 | 4 | 8 | 16)
+    parameter integer axi_rchn_max_burst_len = 64, // AXIè¯»é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+    parameter integer axi_waddr_outstanding = 2, // AXIå†™åœ°å€ç¼“å†²æ·±åº¦(1 | 2 | 4 | 8 | 16)
+    parameter integer axi_wchn_max_burst_len = 64, // AXIå†™é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+    parameter integer axi_wchn_data_buffer_depth = 512, // AXIå†™é€šé“æ•°æ®bufferæ·±åº¦(0 | 16 | 32 | 64 | ..., è®¾ä¸º0æ—¶è¡¨ç¤ºä¸ä½¿ç”¨)
+    parameter integer axi_rchn_data_buffer_depth = 512, // AXIè¯»é€šé“æ•°æ®bufferæ·±åº¦(0 | 16 | 32 | 64 | ..., è®¾ä¸º0æ—¶è¡¨ç¤ºä¸ä½¿ç”¨)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // Ö¡»º´æ¿ØÖÆºÍ×´Ì¬
-    input wire disp_suspend, // ÔİÍ£È¡ĞÂµÄÒ»Ö¡(±êÖ¾)
-    output wire rd_new_frame, // ¶ÁÈ¡ĞÂµÄÒ»Ö¡(Ö¸Ê¾)
+    // å¸§ç¼“å­˜æ§åˆ¶å’ŒçŠ¶æ€
+    input wire disp_suspend, // æš‚åœå–æ–°çš„ä¸€å¸§(æ ‡å¿—)
+    output wire rd_new_frame, // è¯»å–æ–°çš„ä¸€å¸§(æŒ‡ç¤º)
     
-    // Ö¡Ğ´ÈëAXIS
+    // å¸§å†™å…¥AXIS
     input wire[pix_data_width*pix_per_clk_for_wt-1:0] s_axis_pix_data,
     input wire s_axis_pix_valid,
     output wire s_axis_pix_ready,
     
-    // Ö¡¶ÁÈ¡AXIS
+    // å¸§è¯»å–AXIS
     output wire[pix_data_width*pix_per_clk_for_rd-1:0] m_axis_pix_data,
-    output wire[7:0] m_axis_pix_user, // µ±Ç°¶ÁÖ¡ºÅ
-    output wire m_axis_pix_last, // Ö¸Ê¾±¾Ö¡×îºó1¸öÏñËØ
+    output wire[7:0] m_axis_pix_user, // å½“å‰è¯»å¸§å·
+    output wire m_axis_pix_last, // æŒ‡ç¤ºæœ¬å¸§æœ€å1ä¸ªåƒç´ 
     output wire m_axis_pix_valid,
     input wire m_axis_pix_ready,
     
-    // AXIÖ÷»ú
+    // AXIä¸»æœº
     // AR
     output wire[31:0] m_axi_araddr,
     output wire[1:0] m_axi_arburst, // const -> 2'b01(INCR)
@@ -94,8 +118,8 @@ module axi_frame_buffer #(
     input wire m_axi_wready
 );
 
-    /** AXIÖ¡»º´æ(ºËĞÄ) **/
-    // AXIÖ÷»ú
+    /** AXIå¸§ç¼“å­˜(æ ¸å¿ƒ) **/
+    // AXIä¸»æœº
     // AR
     wire[31:0] m_axi_araddr_w;
     wire[1:0] m_axi_arburst_w;
@@ -185,8 +209,8 @@ module axi_frame_buffer #(
         .m_axi_bready(m_axi_bready_w)
     );
     
-    /** ¿ÉÑ¡µÄ4KB±ß½ç±£»¤ **/
-    // AXIÖ÷»ú
+    /** å¯é€‰çš„4KBè¾¹ç•Œä¿æŠ¤ **/
+    // AXIä¸»æœº
     // AR
     wire[31:0] m_axi_araddr_w2;
     wire[1:0] m_axi_arburst_w2;
@@ -245,7 +269,7 @@ module axi_frame_buffer #(
                 .m_axis_r_last(m_axi_rlast_w),
                 .m_axis_r_valid(m_axi_rvalid_w),
                 .m_axis_r_ready(m_axi_rready_w),
-                .m_axis_b_data(m_axi_bresp_w), // 8bitÊä³öºÍ2bitÁ¬ÏßÎ»¿í²»·û
+                .m_axis_b_data(m_axi_bresp_w), // 8bitè¾“å‡ºå’Œ2bitè¿çº¿ä½å®½ä¸ç¬¦
                 .m_axis_b_valid(m_axi_bvalid_w),
                 .m_axis_b_ready(m_axi_bready_w),
                 
@@ -316,7 +340,7 @@ module axi_frame_buffer #(
         end
     endgenerate
     
-    /** ¿ÉÑ¡µÄARÍ¨µÀ¼Ä´æÆ÷Æ¬ **/
+    /** å¯é€‰çš„ARé€šé“å¯„å­˜å™¨ç‰‡ **/
     axis_reg_slice #(
         .data_width(32),
         .user_width(2 + 8 + 3),
@@ -343,7 +367,7 @@ module axi_frame_buffer #(
         .m_axis_ready(m_axi_arready)
     );
     
-    /** ¿ÉÑ¡µÄAWÍ¨µÀ¼Ä´æÆ÷Æ¬ **/
+    /** å¯é€‰çš„AWé€šé“å¯„å­˜å™¨ç‰‡ **/
     axis_reg_slice #(
         .data_width(32),
         .user_width(2 + 8 + 3),
@@ -370,7 +394,7 @@ module axi_frame_buffer #(
         .m_axis_ready(m_axi_awready)
     );
     
-    /** ¿ÉÑ¡µÄRÍ¨µÀ¼Ä´æÆ÷Æ¬ **/
+    /** å¯é€‰çš„Ré€šé“å¯„å­˜å™¨ç‰‡ **/
     axis_reg_slice #(
         .data_width(32),
         .user_width(2),
@@ -397,7 +421,7 @@ module axi_frame_buffer #(
         .m_axis_ready(m_axi_rready_w2)
     );
     
-    /** ¿ÉÑ¡µÄWÍ¨µÀ¼Ä´æÆ÷Æ¬ **/
+    /** å¯é€‰çš„Wé€šé“å¯„å­˜å™¨ç‰‡ **/
     axis_reg_slice #(
         .data_width(32),
         .user_width(1),
@@ -424,7 +448,7 @@ module axi_frame_buffer #(
         .m_axis_ready(m_axi_wready)
     );
     
-    /** ¿ÉÑ¡µÄBÍ¨µÀ¼Ä´æÆ÷Æ¬ **/
+    /** å¯é€‰çš„Bé€šé“å¯„å­˜å™¨ç‰‡ **/
     axis_reg_slice #(
         .data_width(8),
         .user_width(1),
@@ -443,7 +467,7 @@ module axi_frame_buffer #(
         .s_axis_valid(m_axi_bvalid),
         .s_axis_ready(m_axi_bready),
         
-        .m_axis_data(m_axi_bresp_w2), // 8bitÊä³öºÍ2bitÁ¬ÏßÎ»¿í²»·û
+        .m_axis_data(m_axi_bresp_w2), // 8bitè¾“å‡ºå’Œ2bitè¿çº¿ä½å®½ä¸ç¬¦
         .m_axis_keep(),
         .m_axis_user(),
         .m_axis_last(),

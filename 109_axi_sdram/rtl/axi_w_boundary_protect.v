@@ -1,68 +1,92 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIĞ´Êı¾İÍ¨µÀµÄ±ß½ç±£»¤
+æœ¬æ¨¡å—: AXIå†™æ•°æ®é€šé“çš„è¾¹ç•Œä¿æŠ¤
 
-ÃèÊö: 
-¶ÔAXI´Ó»úµÄWÍ¨µÀ½øĞĞ±ß½ç±£»¤
-32Î»µØÖ·/Êı¾İ×ÜÏß
+æè¿°: 
+å¯¹AXIä»æœºçš„Wé€šé“è¿›è¡Œè¾¹ç•Œä¿æŠ¤
+32ä½åœ°å€/æ•°æ®æ€»çº¿
 
-×¢Òâ£º
-½öÖ§³ÖINCRÍ»·¢ÀàĞÍ
+æ³¨æ„ï¼š
+ä»…æ”¯æŒINCRçªå‘ç±»å‹
 
-ÒÔÏÂ·Ç¼Ä´æÆ÷Êä³ö ->
-    AXI´Ó»úWÍ¨µÀ: s_axis_w_ready
-    AXIÖ÷»úWÍ¨µÀ: m_axi_wlast, m_axi_wvalid
+ä»¥ä¸‹éå¯„å­˜å™¨è¾“å‡º ->
+    AXIä»æœºWé€šé“: s_axis_w_ready
+    AXIä¸»æœºWé€šé“: m_axi_wlast, m_axi_wvalid
 
-Ğ­Òé:
+åè®®:
 AXI MASTER(ONLY W)
 AXIS SLAVE
 FIFO READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module axi_w_boundary_protect #(
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»úµÄW
+    // AXIä»æœºçš„W
     input wire[31:0] s_axis_w_data,
     input wire[3:0] s_axis_w_keep,
     input wire s_axis_w_last,
     input wire s_axis_w_valid,
     output wire s_axis_w_ready,
     
-    // AXIÖ÷»úµÄW
+    // AXIä¸»æœºçš„W
     output wire[31:0] m_axi_wdata,
     output wire[3:0] m_axi_wstrb,
     output wire m_axi_wlast,
     output wire m_axi_wvalid,
     input wire m_axi_wready,
     
-    // Í»·¢³¤¶Èfifo¶Á¶Ë¿Ú
+    // çªå‘é•¿åº¦fifoè¯»ç«¯å£
     output wire burst_len_fifo_ren,
-    input wire[7:0] burst_len_fifo_dout, // Í»·¢³¤¶È - 1
+    input wire[7:0] burst_len_fifo_dout, // çªå‘é•¿åº¦ - 1
     input wire burst_len_fifo_empty_n
 );
     
-    reg wt_burst_transmitting; // Ğ´Í»·¢½øĞĞÖĞ
-    reg[7:0] wt_trans_cnt; // Ğ´´«Êä¼ÆÊıÆ÷
+    reg wt_burst_transmitting; // å†™çªå‘è¿›è¡Œä¸­
+    reg[7:0] wt_trans_cnt; // å†™ä¼ è¾“è®¡æ•°å™¨
     
     assign m_axi_wdata = s_axis_w_data;
     assign m_axi_wstrb = s_axis_w_keep;
     assign m_axi_wlast = (burst_len_fifo_dout == 8'd0) | (burst_len_fifo_dout == wt_trans_cnt);
-    // ÎÕÊÖÌõ¼ş: wt_burst_transmitting & s_axis_w_valid & m_axi_wready
+    // æ¡æ‰‹æ¡ä»¶: wt_burst_transmitting & s_axis_w_valid & m_axi_wready
     assign m_axi_wvalid = wt_burst_transmitting & s_axis_w_valid;
     assign s_axis_w_ready = wt_burst_transmitting & m_axi_wready;
     
     assign burst_len_fifo_ren = ~wt_burst_transmitting;
     
-    // Ğ´Í»·¢½øĞĞÖĞ
+    // å†™çªå‘è¿›è¡Œä¸­
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -71,7 +95,7 @@ module axi_w_boundary_protect #(
             # simulation_delay wt_burst_transmitting <= wt_burst_transmitting ? (~(m_axi_wvalid & m_axi_wready & m_axi_wlast)):burst_len_fifo_empty_n;
     end
     
-    // Ğ´´«Êä¼ÆÊıÆ÷
+    // å†™ä¼ è¾“è®¡æ•°å™¨
     always @(posedge clk)
     begin
         if(burst_len_fifo_ren & burst_len_fifo_empty_n)

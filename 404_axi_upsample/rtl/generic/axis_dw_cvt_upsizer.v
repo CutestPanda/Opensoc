@@ -1,31 +1,55 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXISÎ»¿í±¶ÔöÆ÷
+æœ¬æ¨¡å—: AXISä½å®½å€å¢å™¨
 
-ÃèÊö: 
-½«axis´Ó»úµÄÊı¾İÎ»¿í±¶ÔöÕûÊı±¶
-¿ÉÑ¡µÄÊä³ö¸ôÀë
+æè¿°: 
+å°†axisä»æœºçš„æ•°æ®ä½å®½å€å¢æ•´æ•°å€
+å¯é€‰çš„è¾“å‡ºéš”ç¦»
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2023/11/02
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2023/11/02
 ********************************************************************/
 
 
 module axis_dw_cvt_upsizer #(
-    parameter integer slave_data_width = 16, // ´Ó»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter integer slave_user_width_foreach_byte = 1, // ´Ó»úÃ¿¸öÊı¾İ×Ö½ÚµÄuserÎ»¿í(±ØĞë>=1, ²»ÓÃÊ±Ğü¿Õ¼´¿É)
-    parameter integer master_data_width = 32, // Ö÷»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı, ÇÒÎª´Ó»úÊı¾İÎ»¿íÕûÊı±¶)
-    parameter en_keep_all0_filter = "false", // ÊÇ·ñ¹ıÂËkeepÈ«0µÄ±¶ÔöÊä³ö
-    parameter en_out_isolation = "false", // ÊÇ·ñÆôÓÃÊä³ö¸ôÀë
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer slave_data_width = 16, // ä»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter integer slave_user_width_foreach_byte = 1, // ä»æœºæ¯ä¸ªæ•°æ®å­—èŠ‚çš„userä½å®½(å¿…é¡»>=1, ä¸ç”¨æ—¶æ‚¬ç©ºå³å¯)
+    parameter integer master_data_width = 32, // ä¸»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤, ä¸”ä¸ºä»æœºæ•°æ®ä½å®½æ•´æ•°å€)
+    parameter en_keep_all0_filter = "false", // æ˜¯å¦è¿‡æ»¤keepå…¨0çš„å€å¢è¾“å‡º
+    parameter en_out_isolation = "false", // æ˜¯å¦å¯ç”¨è¾“å‡ºéš”ç¦»
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
@@ -46,10 +70,10 @@ module axis_dw_cvt_upsizer #(
     input wire m_axis_ready
 );
     
-    /** ²ÎÊı **/
-    localparam integer upsize_scale = master_data_width/slave_data_width; // Î»¿í±¶ÔöÏµÊı
+    /** å‚æ•° **/
+    localparam integer upsize_scale = master_data_width/slave_data_width; // ä½å®½å€å¢ç³»æ•°
     
-    /** Êä³ö¸ôÀë **/
+    /** è¾“å‡ºéš”ç¦» **/
     wire[master_data_width-1:0] out_axis_data;
     wire[master_data_width/8-1:0] out_axis_keep;
     wire[slave_user_width_foreach_byte*master_data_width/8-1:0] out_axis_user;
@@ -95,13 +119,13 @@ module axis_dw_cvt_upsizer #(
         end
     endgenerate
     
-    /** Î»¿í±¶Ôö **/
-    reg[slave_data_width-1:0] data_latched[upsize_scale-2:0]; // dataËø´æ
-    reg[slave_data_width/8-1:0] keep_latched[upsize_scale-2:0]; // keepËø´æ
-    reg[slave_user_width_foreach_byte*slave_data_width/8-1:0] user_latched[upsize_scale-2:0]; // userËø´æ
-    reg[upsize_scale-1:0] upsize_onehot; // ±¶Ôö¶ÀÒ»Âë¼ÆÊıÆ÷
-    reg upsize_keep_all0_n; // µ±Ç°±¶ÔöÂÖ´ÎkeepÈ«0(±êÖ¾)
-    wire upsize_o_valid; // ±¶ÔöÊä³öÓĞĞ§
+    /** ä½å®½å€å¢ **/
+    reg[slave_data_width-1:0] data_latched[upsize_scale-2:0]; // dataé”å­˜
+    reg[slave_data_width/8-1:0] keep_latched[upsize_scale-2:0]; // keepé”å­˜
+    reg[slave_user_width_foreach_byte*slave_data_width/8-1:0] user_latched[upsize_scale-2:0]; // useré”å­˜
+    reg[upsize_scale-1:0] upsize_onehot; // å€å¢ç‹¬ä¸€ç è®¡æ•°å™¨
+    reg upsize_keep_all0_n; // å½“å‰å€å¢è½®æ¬¡keepå…¨0(æ ‡å¿—)
+    wire upsize_o_valid; // å€å¢è¾“å‡ºæœ‰æ•ˆ
     
     assign upsize_o_valid = s_axis_valid & (upsize_onehot[upsize_scale-1] | s_axis_last);
     
@@ -148,7 +172,7 @@ module axis_dw_cvt_upsizer #(
             # simulation_delay upsize_keep_all0_n <= upsize_keep_all0_n | (|s_axis_keep);
     end
     
-    /** Î»¿í±ä»»Êä³ö **/
+    /** ä½å®½å˜æ¢è¾“å‡º **/
     assign s_axis_ready = (~(upsize_onehot[upsize_scale-1] | s_axis_last)) | out_axis_ready;
     
     assign out_axis_data[master_data_width-1:master_data_width-slave_data_width] = s_axis_data;

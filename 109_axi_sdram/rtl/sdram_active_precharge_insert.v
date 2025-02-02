@@ -1,47 +1,71 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: sdram¼¤»î/Ô¤³äµçÃüÁî²åÈëÄ£¿é
+æœ¬æ¨¡å—: sdramæ¿€æ´»/é¢„å……ç”µå‘½ä»¤æ’å…¥æ¨¡å—
 
-ÃèÊö:
-¸ù¾İÓÃ»§ÃüÁî, Ïò¶ÁĞ´Êı¾İÃüÁîÇ°Ãæ²åÈëºÏÊÊµÄ¼¤»îºÍÔ¤³äµçÃüÁî
+æè¿°:
+æ ¹æ®ç”¨æˆ·å‘½ä»¤, å‘è¯»å†™æ•°æ®å‘½ä»¤å‰é¢æ’å…¥åˆé€‚çš„æ¿€æ´»å’Œé¢„å……ç”µå‘½ä»¤
 
-µ±²»ÊÇÈ«Ò³Í»·¢ÇÒÔÊĞí×Ô¶¯Ô¤³äµçÊ±, ±¾Ä£¿é»áÊ¹ÄÜ¶ÁĞ´Êı¾İÃüÁîµÄ×Ô¶¯Ô¤³äµç
+å½“ä¸æ˜¯å…¨é¡µçªå‘ä¸”å…è®¸è‡ªåŠ¨é¢„å……ç”µæ—¶, æœ¬æ¨¡å—ä¼šä½¿èƒ½è¯»å†™æ•°æ®å‘½ä»¤çš„è‡ªåŠ¨é¢„å……ç”µ
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/18
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/18
 ********************************************************************/
 
 
 module sdram_active_precharge_insert #(
-    parameter integer burst_len = -1, // Í»·¢³¤¶È(-1 -> È«Ò³; 1 | 2 | 4 | 8)
-    parameter allow_auto_precharge = "true", // ÊÇ·ñÔÊĞí×Ô¶¯Ô¤³äµç
-    parameter en_cmd_axis_reg_slice = "true" // ÊÇ·ñÊ¹ÄÜÃüÁîAXIS¼Ä´æÆ÷Æ¬
+    parameter integer burst_len = -1, // çªå‘é•¿åº¦(-1 -> å…¨é¡µ; 1 | 2 | 4 | 8)
+    parameter allow_auto_precharge = "true", // æ˜¯å¦å…è®¸è‡ªåŠ¨é¢„å……ç”µ
+    parameter en_cmd_axis_reg_slice = "true" // æ˜¯å¦ä½¿èƒ½å‘½ä»¤AXISå¯„å­˜å™¨ç‰‡
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ÓÃ»§ÃüÁîAXIS
-    input wire[31:0] s_axis_usr_cmd_data, // {±£Áô(5bit), ba(2bit), ĞĞµØÖ·(11bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    // ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî½ö¶ÔÈ«Ò³Í»·¢ÓĞĞ§
-    input wire[8:0] s_axis_usr_cmd_user, // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}
+    // ç”¨æˆ·å‘½ä»¤AXIS
+    input wire[31:0] s_axis_usr_cmd_data, // {ä¿ç•™(5bit), ba(2bit), è¡Œåœ°å€(11bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    // è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤ä»…å¯¹å…¨é¡µçªå‘æœ‰æ•ˆ
+    input wire[8:0] s_axis_usr_cmd_user, // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}
     input wire s_axis_usr_cmd_valid,
     output wire s_axis_usr_cmd_ready,
     
-    // ²åÈë¼¤»î/Ô¤³äµçÃüÁîºóµÄÃüÁîAXIS
-    output wire[15:0] m_axis_inserted_cmd_data, // {BS(2bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    output wire[8:0] m_axis_inserted_cmd_user, // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}(½ö¶ÔÈ«Ò³Í»·¢ÓĞĞ§)
+    // æ’å…¥æ¿€æ´»/é¢„å……ç”µå‘½ä»¤åçš„å‘½ä»¤AXIS
+    output wire[15:0] m_axis_inserted_cmd_data, // {BS(2bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    output wire[8:0] m_axis_inserted_cmd_user, // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}(ä»…å¯¹å…¨é¡µçªå‘æœ‰æ•ˆ)
     output wire m_axis_inserted_cmd_valid,
     input wire m_axis_inserted_cmd_ready
 );
     
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -51,17 +75,17 @@ module sdram_active_precharge_insert #(
     end    
     endfunction
     
-    /** ³£Á¿ **/
-    localparam rw_data_with_auto_precharge = (burst_len == -1) ? "false":allow_auto_precharge; // Ê¹ÄÜ¶ÁĞ´Êı¾İÃüÁîµÄ×Ô¶¯Ô¤³äµç
-    // ÃüÁîµÄÂß¼­±àÂë
-    localparam CMD_LOGI_BANK_ACTIVE = 3'b000; // ÃüÁî:¼¤»îbank
-    localparam CMD_LOGI_BANK_PRECHARGE = 3'b001; // ÃüÁî:Ô¤³äµçbank
-    localparam CMD_LOGI_WT_DATA = 3'b010; // ÃüÁî:Ğ´Êı¾İ
-    localparam CMD_LOGI_RD_DATA = 3'b011; // ÃüÁî:¶ÁÊı¾İ
+    /** å¸¸é‡ **/
+    localparam rw_data_with_auto_precharge = (burst_len == -1) ? "false":allow_auto_precharge; // ä½¿èƒ½è¯»å†™æ•°æ®å‘½ä»¤çš„è‡ªåŠ¨é¢„å……ç”µ
+    // å‘½ä»¤çš„é€»è¾‘ç¼–ç 
+    localparam CMD_LOGI_BANK_ACTIVE = 3'b000; // å‘½ä»¤:æ¿€æ´»bank
+    localparam CMD_LOGI_BANK_PRECHARGE = 3'b001; // å‘½ä»¤:é¢„å……ç”µbank
+    localparam CMD_LOGI_WT_DATA = 3'b010; // å‘½ä»¤:å†™æ•°æ®
+    localparam CMD_LOGI_RD_DATA = 3'b011; // å‘½ä»¤:è¯»æ•°æ®
     
-    /** ¿ÉÑ¡µÄÃüÁîAXIS¼Ä´æÆ÷Æ¬ **/
-    wire[31:0] m_axis_usr_cmd_data; // {±£Áô(5bit), ba(2bit), ĞĞµØÖ·(11bit), A10-0(11bit), ÃüÁîºÅ(3bit)}
-    wire[8:0] m_axis_usr_cmd_user; // {ÊÇ·ñ×Ô¶¯Ìí¼Ó"Í£Ö¹Í»·¢"ÃüÁî(1bit), Í»·¢³¤¶È - 1(8bit)}
+    /** å¯é€‰çš„å‘½ä»¤AXISå¯„å­˜å™¨ç‰‡ **/
+    wire[31:0] m_axis_usr_cmd_data; // {ä¿ç•™(5bit), ba(2bit), è¡Œåœ°å€(11bit), A10-0(11bit), å‘½ä»¤å·(3bit)}
+    wire[8:0] m_axis_usr_cmd_user; // {æ˜¯å¦è‡ªåŠ¨æ·»åŠ "åœæ­¢çªå‘"å‘½ä»¤(1bit), çªå‘é•¿åº¦ - 1(8bit)}
     wire m_axis_usr_cmd_valid;
     wire m_axis_usr_cmd_ready;
     
@@ -90,19 +114,19 @@ module sdram_active_precharge_insert #(
     );
     
     /**
-    bank¿ÕÏĞÓë¼¤»î×´Ì¬ÅĞ¶¨
+    bankç©ºé—²ä¸æ¿€æ´»çŠ¶æ€åˆ¤å®š
     
-    ÕâÀï¶ÔÆëµ½²åÈë¼¤»î/Ô¤³äµçÃüÁîºóµÄÃüÁîAXIS, ²¢·ÇÕæÊµµÄbank¿ÕÏĞÓë¼¤»î×´Ì¬
+    è¿™é‡Œå¯¹é½åˆ°æ’å…¥æ¿€æ´»/é¢„å……ç”µå‘½ä»¤åçš„å‘½ä»¤AXIS, å¹¶éçœŸå®çš„bankç©ºé—²ä¸æ¿€æ´»çŠ¶æ€
     **/
-    reg[3:0] spec_bank_active; // ¸÷¸öbankÊÇ·ñ¼¤»î
-    reg[10:0] bank_active_row[3:0]; // ¸÷¸öbank¼¤»îµÄĞĞ
+    reg[3:0] spec_bank_active; // å„ä¸ªbankæ˜¯å¦æ¿€æ´»
+    reg[10:0] bank_active_row[3:0]; // å„ä¸ªbankæ¿€æ´»çš„è¡Œ
     
-    // ¸÷¸öbankÊÇ·ñ¼¤»î
-    // bank±»¼¤»îµÄĞĞ
+    // å„ä¸ªbankæ˜¯å¦æ¿€æ´»
+    // bankè¢«æ¿€æ´»çš„è¡Œ
     genvar spec_bank_active_i;
     genvar bank_active_row_i;
     generate
-        // ¸÷¸öbankÊÇ·ñ¼¤»î
+        // å„ä¸ªbankæ˜¯å¦æ¿€æ´»
         for(spec_bank_active_i = 0;spec_bank_active_i < 4;spec_bank_active_i = spec_bank_active_i + 1)
         begin
             always @(posedge clk or negedge rst_n)
@@ -110,16 +134,16 @@ module sdram_active_precharge_insert #(
                 if(~rst_n)
                     spec_bank_active[spec_bank_active_i] <= 1'b0;
                 else if((m_axis_inserted_cmd_valid & m_axis_inserted_cmd_ready) & 
-                    (((m_axis_inserted_cmd_data[2:0] == CMD_LOGI_BANK_ACTIVE) & (m_axis_inserted_cmd_data[15:14] == spec_bank_active_i)) | // ¼¤»î
-                    ((m_axis_inserted_cmd_data[2:0] == CMD_LOGI_BANK_PRECHARGE) & (m_axis_inserted_cmd_data[15:14] == spec_bank_active_i)) | // Ô¤³äµç
+                    (((m_axis_inserted_cmd_data[2:0] == CMD_LOGI_BANK_ACTIVE) & (m_axis_inserted_cmd_data[15:14] == spec_bank_active_i)) | // æ¿€æ´»
+                    ((m_axis_inserted_cmd_data[2:0] == CMD_LOGI_BANK_PRECHARGE) & (m_axis_inserted_cmd_data[15:14] == spec_bank_active_i)) | // é¢„å……ç”µ
                     (((m_axis_inserted_cmd_data[2:0] == CMD_LOGI_WT_DATA) | (m_axis_inserted_cmd_data[2:0] == CMD_LOGI_RD_DATA)) & 
                         m_axis_inserted_cmd_data[13] & (m_axis_inserted_cmd_data[15:14] == spec_bank_active_i) & 
-                        (rw_data_with_auto_precharge == "true")))) // ´ø×Ô¶¯Ô¤³äµçµÄ¶ÁĞ´
+                        (rw_data_with_auto_precharge == "true")))) // å¸¦è‡ªåŠ¨é¢„å……ç”µçš„è¯»å†™
                     spec_bank_active[spec_bank_active_i] <= m_axis_inserted_cmd_data[2:0] == CMD_LOGI_BANK_ACTIVE;
             end
         end
         
-        // bank±»¼¤»îµÄĞĞ
+        // bankè¢«æ¿€æ´»çš„è¡Œ
         for(bank_active_row_i = 0;bank_active_row_i < 4;bank_active_row_i = bank_active_row_i + 1)
         begin
             always @(posedge clk)
@@ -132,26 +156,26 @@ module sdram_active_precharge_insert #(
     endgenerate
     
     /**
-    ¼¤»î/Ô¤³äµçÃüÁîµÄ²åÈë
+    æ¿€æ´»/é¢„å……ç”µå‘½ä»¤çš„æ’å…¥
     
-    ²»Ê¹ÄÜ¶ÁĞ´Êı¾İÃüÁîµÄ×Ô¶¯Ô¤³äµç: [Ô¤³äµç] -> [¼¤»î] -> [¶ÁĞ´Êı¾İ]
-    Ê¹ÄÜ¶ÁĞ´Êı¾İÃüÁîµÄ×Ô¶¯Ô¤³äµç: [Ô¤³äµç] -> [¼¤»î] -> ¶ÁĞ´Êı¾İ([×Ô¶¯Ô¤³äµç])
+    ä¸ä½¿èƒ½è¯»å†™æ•°æ®å‘½ä»¤çš„è‡ªåŠ¨é¢„å……ç”µ: [é¢„å……ç”µ] -> [æ¿€æ´»] -> [è¯»å†™æ•°æ®]
+    ä½¿èƒ½è¯»å†™æ•°æ®å‘½ä»¤çš„è‡ªåŠ¨é¢„å……ç”µ: [é¢„å……ç”µ] -> [æ¿€æ´»] -> è¯»å†™æ•°æ®([è‡ªåŠ¨é¢„å……ç”µ])
     **/
-    wire is_rw_cmd; // ÊÇ·ñ¶ÁĞ´Êı¾İÃüÁî
-    reg precharge_need; // ĞèÒªÔ¤³äµç(±êÖ¾)
-    reg active_need; // ĞèÒª¼¤»î(±êÖ¾)
-    wire usr_cmd_suspend; // ÓÃ»§ÃüÁîAXISµÈ´ı
-    reg[1:0] insert_stage_cnt; // ¼¤»î/Ô¤³äµçÃüÁî²åÈë½×¶Î¼ÆÊıÆ÷
+    wire is_rw_cmd; // æ˜¯å¦è¯»å†™æ•°æ®å‘½ä»¤
+    reg precharge_need; // éœ€è¦é¢„å……ç”µ(æ ‡å¿—)
+    reg active_need; // éœ€è¦æ¿€æ´»(æ ‡å¿—)
+    wire usr_cmd_suspend; // ç”¨æˆ·å‘½ä»¤AXISç­‰å¾…
+    reg[1:0] insert_stage_cnt; // æ¿€æ´»/é¢„å……ç”µå‘½ä»¤æ’å…¥é˜¶æ®µè®¡æ•°å™¨
     
     assign m_axis_inserted_cmd_user = m_axis_usr_cmd_user;
     assign m_axis_usr_cmd_ready = m_axis_inserted_cmd_ready & (~usr_cmd_suspend);
     
     assign m_axis_inserted_cmd_data = 
         (insert_stage_cnt == 2'd0) ? {m_axis_usr_cmd_data[26:25], m_axis_usr_cmd_data[13:3], m_axis_usr_cmd_data[2:0]}: // pass
-        (insert_stage_cnt == 2'd1) ? {m_axis_usr_cmd_data[26:25], 11'b0_xxxxx_xxxxx, CMD_LOGI_BANK_PRECHARGE}: // Ô¤³äµç
-        (insert_stage_cnt == 2'd2) ? {m_axis_usr_cmd_data[26:25], m_axis_usr_cmd_data[24:14], CMD_LOGI_BANK_ACTIVE}: // ¼¤»î
+        (insert_stage_cnt == 2'd1) ? {m_axis_usr_cmd_data[26:25], 11'b0_xxxxx_xxxxx, CMD_LOGI_BANK_PRECHARGE}: // é¢„å……ç”µ
+        (insert_stage_cnt == 2'd2) ? {m_axis_usr_cmd_data[26:25], m_axis_usr_cmd_data[24:14], CMD_LOGI_BANK_ACTIVE}: // æ¿€æ´»
                                      {m_axis_usr_cmd_data[26:25], (rw_data_with_auto_precharge == "ture") ? m_axis_usr_cmd_data[13]:1'b0, 
-                                        m_axis_usr_cmd_data[12:3], m_axis_usr_cmd_data[2:0]}; // ¶ÁĞ´Êı¾İ
+                                        m_axis_usr_cmd_data[12:3], m_axis_usr_cmd_data[2:0]}; // è¯»å†™æ•°æ®
     
     assign m_axis_inserted_cmd_valid = m_axis_usr_cmd_valid & 
         ((insert_stage_cnt == 2'd0) ? (~is_rw_cmd):
@@ -164,14 +188,14 @@ module sdram_active_precharge_insert #(
         (insert_stage_cnt == 2'd0) ? is_rw_cmd:
         (insert_stage_cnt == 2'd3) ? 1'b0:
                                      1'b1;
-    // ĞèÒªÔ¤³äµç(±êÖ¾)
+    // éœ€è¦é¢„å……ç”µ(æ ‡å¿—)
     always @(posedge clk)
     begin
         if((insert_stage_cnt == 2'd0) & is_rw_cmd)
             precharge_need <= spec_bank_active[m_axis_usr_cmd_data[26:25]] & (bank_active_row[m_axis_usr_cmd_data[26:25]] != m_axis_usr_cmd_data[24:14]);
     end
     
-    // ĞèÒª¼¤»î(±êÖ¾)
+    // éœ€è¦æ¿€æ´»(æ ‡å¿—)
     always @(posedge clk)
     begin
         if((insert_stage_cnt == 2'd0) & is_rw_cmd)
@@ -179,7 +203,7 @@ module sdram_active_precharge_insert #(
                 (bank_active_row[m_axis_usr_cmd_data[26:25]] == m_axis_usr_cmd_data[24:14]));
     end
     
-    // ¼¤»î/Ô¤³äµçÃüÁî²åÈë½×¶Î¼ÆÊıÆ÷
+    // æ¿€æ´»/é¢„å……ç”µå‘½ä»¤æ’å…¥é˜¶æ®µè®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

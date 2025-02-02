@@ -1,30 +1,54 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI-SDRAMµÄĞ´Êı¾İ/Ğ´ÏìÓ¦Í¨µÀ
+æœ¬æ¨¡å—: AXI-SDRAMçš„å†™æ•°æ®/å†™å“åº”é€šé“
 
-ÃèÊö: 
-ÔÚĞ´Êı¾İÍ¨µÀµÄÃ¿´ÎÍ»·¢µÄµÚ1¸ö´«ÊäÉÏ½øĞĞ¶ÔÆë´¦Àí
-ÔÚÃ¿´ÎĞ´Í»·¢ºó·¢ËÍĞ´ÏìÓ¦
+æè¿°: 
+åœ¨å†™æ•°æ®é€šé“çš„æ¯æ¬¡çªå‘çš„ç¬¬1ä¸ªä¼ è¾“ä¸Šè¿›è¡Œå¯¹é½å¤„ç†
+åœ¨æ¯æ¬¡å†™çªå‘åå‘é€å†™å“åº”
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXI SLAVE(ONLY W/B)
 AXIS MASTER
 FIFO READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/01
 ********************************************************************/
 
 
 module axi_sdram_w_b_chn (
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»ú
+    // AXIä»æœº
     // W
     input wire[31:0] s_axi_wdata,
     input wire[3:0] s_axi_wstrb,
@@ -36,29 +60,29 @@ module axi_sdram_w_b_chn (
     output wire s_axi_bvalid,
     input wire s_axi_bready,
     
-    // SDRAMĞ´Êı¾İAXIS
+    // SDRAMå†™æ•°æ®AXIS
     output wire[31:0] m_axis_wt_data,
     output wire[3:0] m_axis_wt_keep,
     output wire m_axis_wt_last,
     output wire m_axis_wt_valid,
     input wire m_axis_wt_ready,
     
-    // Ğ´Í»·¢·Ç¶ÔÆëµØÖ·ĞÅÏ¢fifo¶Á¶Ë¿Ú
+    // å†™çªå‘éå¯¹é½åœ°å€ä¿¡æ¯fifoè¯»ç«¯å£
     output wire wt_burst_unaligned_msg_fifo_ren,
-    input wire[1:0] wt_burst_unaligned_msg_fifo_dout, // Ğ´µØÖ·(awaddr)µÍ2Î»
+    input wire[1:0] wt_burst_unaligned_msg_fifo_dout, // å†™åœ°å€(awaddr)ä½2ä½
     input wire wt_burst_unaligned_msg_fifo_empty_n
 );
     
-    wire[3:0] wburst_realign_keep_mask; // Ğ´Í»·¢ÖØ¶ÔÆëkeepÑÚÂë
-    reg bresp_transmitting; // µ±Ç°ÕıÔÚ´«ÊäĞ´ÏìÓ¦
-    reg first_trans_in_wt_burst; // µ±Ç°Ğ´Í»·¢µÄµÚ1´Î´«Êä
+    wire[3:0] wburst_realign_keep_mask; // å†™çªå‘é‡å¯¹é½keepæ©ç 
+    reg bresp_transmitting; // å½“å‰æ­£åœ¨ä¼ è¾“å†™å“åº”
+    reg first_trans_in_wt_burst; // å½“å‰å†™çªå‘çš„ç¬¬1æ¬¡ä¼ è¾“
     
     assign wburst_realign_keep_mask = (wt_burst_unaligned_msg_fifo_dout == 2'b00) ? 4'b1111:
                                       (wt_burst_unaligned_msg_fifo_dout == 2'b01) ? 4'b1110:
                                       (wt_burst_unaligned_msg_fifo_dout == 2'b10) ? 4'b1100:
                                                                                     4'b1000;
     
-    // ÎÕÊÖÌõ¼ş: s_axi_wvalid & (~bresp_transmitting) & m_axis_wt_ready & wt_burst_unaligned_msg_fifo_empty_n
+    // æ¡æ‰‹æ¡ä»¶: s_axi_wvalid & (~bresp_transmitting) & m_axis_wt_ready & wt_burst_unaligned_msg_fifo_empty_n
     assign s_axi_wready = (~bresp_transmitting) & m_axis_wt_ready & wt_burst_unaligned_msg_fifo_empty_n;
     
     assign s_axi_bresp = 2'b00;
@@ -71,7 +95,7 @@ module axi_sdram_w_b_chn (
     
     assign wt_burst_unaligned_msg_fifo_ren = s_axi_bvalid & s_axi_bready;
     
-    // µ±Ç°ÕıÔÚ´«ÊäĞ´ÏìÓ¦
+    // å½“å‰æ­£åœ¨ä¼ è¾“å†™å“åº”
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -80,7 +104,7 @@ module axi_sdram_w_b_chn (
             bresp_transmitting <= bresp_transmitting ? (~s_axi_bready):(s_axi_wvalid & s_axi_wready & s_axi_wlast);
     end
     
-    // µ±Ç°Ğ´Í»·¢µÄµÚ1´Î´«Êä
+    // å½“å‰å†™çªå‘çš„ç¬¬1æ¬¡ä¼ è¾“
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

@@ -1,56 +1,80 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIÖÙ²ÃÆ÷
+æœ¬æ¨¡å—: AXIä»²è£å™¨
 
-ÃèÊö: 
-¶ÔAXIµÄ¶ÁµØÖ·/Ğ´µØÖ·Í¨µÀ½øĞĞÖÙ²Ã
+æè¿°: 
+å¯¹AXIçš„è¯»åœ°å€/å†™åœ°å€é€šé“è¿›è¡Œä»²è£
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 FIFO WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/29
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/29
 ********************************************************************/
 
 
 module axi_arbitrator #(
-    parameter integer master_n = 4, // Ö÷»ú¸öÊı(±ØĞëÔÚ·¶Î§[2, 8]ÄÚ)
-    parameter integer arb_itv = 4, // ÖÙ²Ã¼ä¸ôÖÜÆÚÊı(±ØĞëÔÚ·¶Î§[2, 16]ÄÚ)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer master_n = 4, // ä¸»æœºä¸ªæ•°(å¿…é¡»åœ¨èŒƒå›´[2, 8]å†…)
+    parameter integer arb_itv = 4, // ä»²è£é—´éš”å‘¨æœŸæ•°(å¿…é¡»åœ¨èŒƒå›´[2, 16]å†…)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // ´Ó»úAR/AWÍ¨µÀ
-    input wire[52:0] s0_ar_aw_payload, // 0ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[52:0] s1_ar_aw_payload, // 1ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[52:0] s2_ar_aw_payload, // 2ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[52:0] s3_ar_aw_payload, // 3ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[52:0] s4_ar_aw_payload, // 4ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[52:0] s5_ar_aw_payload, // 5ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[52:0] s6_ar_aw_payload, // 6ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[52:0] s7_ar_aw_payload, // 7ºÅ´Ó»úµÄ¸ºÔØ
-    input wire[7:0] s_ar_aw_valid, // Ã¿¸ö´Ó»úµÄvalid
-    output wire[7:0] s_ar_aw_ready, // Ã¿¸ö´Ó»úµÄready
+    // ä»æœºAR/AWé€šé“
+    input wire[52:0] s0_ar_aw_payload, // 0å·ä»æœºçš„è´Ÿè½½
+    input wire[52:0] s1_ar_aw_payload, // 1å·ä»æœºçš„è´Ÿè½½
+    input wire[52:0] s2_ar_aw_payload, // 2å·ä»æœºçš„è´Ÿè½½
+    input wire[52:0] s3_ar_aw_payload, // 3å·ä»æœºçš„è´Ÿè½½
+    input wire[52:0] s4_ar_aw_payload, // 4å·ä»æœºçš„è´Ÿè½½
+    input wire[52:0] s5_ar_aw_payload, // 5å·ä»æœºçš„è´Ÿè½½
+    input wire[52:0] s6_ar_aw_payload, // 6å·ä»æœºçš„è´Ÿè½½
+    input wire[52:0] s7_ar_aw_payload, // 7å·ä»æœºçš„è´Ÿè½½
+    input wire[7:0] s_ar_aw_valid, // æ¯ä¸ªä»æœºçš„valid
+    output wire[7:0] s_ar_aw_ready, // æ¯ä¸ªä»æœºçš„ready
     
-    // Ö÷»úAR/AWÍ¨µÀ
-    output wire[52:0] m_ar_aw_payload, // Ö÷»ú¸ºÔØ
-    output wire[clogb2(master_n-1):0] m_ar_aw_id, // ÊÂÎñid
+    // ä¸»æœºAR/AWé€šé“
+    output wire[52:0] m_ar_aw_payload, // ä¸»æœºè´Ÿè½½
+    output wire[clogb2(master_n-1):0] m_ar_aw_id, // äº‹åŠ¡id
     output wire m_ar_aw_valid,
     input wire m_ar_aw_ready,
     
-    // ÊÚÈ¨Ö÷»ú±àºÅfifoĞ´¶Ë¿Ú
+    // æˆæƒä¸»æœºç¼–å·fifoå†™ç«¯å£
     output wire grant_mid_fifo_wen,
     input wire grant_mid_fifo_full_n,
-    output wire[master_n-1:0] grant_mid_fifo_din_onehot, // ¶ÀÈÈÂë±àºÅ
-    output wire[clogb2(master_n-1):0] grant_mid_fifo_din_bin // ¶ş½øÖÆÂë±àºÅ
+    output wire[master_n-1:0] grant_mid_fifo_din_onehot, // ç‹¬çƒ­ç ç¼–å·
+    output wire[clogb2(master_n-1):0] grant_mid_fifo_din_bin // äºŒè¿›åˆ¶ç ç¼–å·
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -60,18 +84,18 @@ module axi_arbitrator #(
     end
     endfunction
 
-    /** ³£Á¿ **/
-    // ×´Ì¬³£Á¿
-    localparam STS_ARB = 2'b00; // ×´Ì¬:ÖÙ²Ã
-    localparam STS_M_TRANS = 2'b01; // ×´Ì¬:½«AR/AWÊÂÎñ´«µİ¸øÖ÷»ú
-    localparam STS_ITV = 2'b10; // ×´Ì¬:¼äÏ¶ÆÚ
+    /** å¸¸é‡ **/
+    // çŠ¶æ€å¸¸é‡
+    localparam STS_ARB = 2'b00; // çŠ¶æ€:ä»²è£
+    localparam STS_M_TRANS = 2'b01; // çŠ¶æ€:å°†AR/AWäº‹åŠ¡ä¼ é€’ç»™ä¸»æœº
+    localparam STS_ITV = 2'b10; // çŠ¶æ€:é—´éš™æœŸ
     
-    /** ÖÙ²ÃÆ÷×´Ì¬»ú **/
-    wire arb_valid; // ÖÙ²Ã½á¹ûÓĞĞ§(Ö¸Ê¾)
-    reg[arb_itv-1:0] arb_itv_cnt; // ÖÙ²Ã¼ä¸ô¼ÆÊıÆ÷
-    reg[1:0] arb_now_sts; // µ±Ç°×´Ì¬
+    /** ä»²è£å™¨çŠ¶æ€æœº **/
+    wire arb_valid; // ä»²è£ç»“æœæœ‰æ•ˆ(æŒ‡ç¤º)
+    reg[arb_itv-1:0] arb_itv_cnt; // ä»²è£é—´éš”è®¡æ•°å™¨
+    reg[1:0] arb_now_sts; // å½“å‰çŠ¶æ€
     
-    // µ±Ç°×´Ì¬
+    // å½“å‰çŠ¶æ€
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -81,29 +105,29 @@ module axi_arbitrator #(
             # simulation_delay;
             
             case(arb_now_sts)
-                STS_ARB: // ×´Ì¬:ÖÙ²Ã
+                STS_ARB: // çŠ¶æ€:ä»²è£
                     if(arb_valid)
-                        arb_now_sts <= STS_M_TRANS; // -> ×´Ì¬:½«AR/AWÊÂÎñ´«µİ¸øÖ÷»ú
-                STS_M_TRANS: // ×´Ì¬:½«AR/AWÊÂÎñ´«µİ¸øÖ÷»ú
+                        arb_now_sts <= STS_M_TRANS; // -> çŠ¶æ€:å°†AR/AWäº‹åŠ¡ä¼ é€’ç»™ä¸»æœº
+                STS_M_TRANS: // çŠ¶æ€:å°†AR/AWäº‹åŠ¡ä¼ é€’ç»™ä¸»æœº
                     if(m_ar_aw_ready)
-                        arb_now_sts <= STS_ITV; // -> ×´Ì¬:¼äÏ¶ÆÚ
-                STS_ITV: // ×´Ì¬:¼äÏ¶ÆÚ
+                        arb_now_sts <= STS_ITV; // -> çŠ¶æ€:é—´éš™æœŸ
+                STS_ITV: // çŠ¶æ€:é—´éš™æœŸ
                     if(arb_itv_cnt[arb_itv-1])
-                        arb_now_sts <= STS_ARB; // -> ×´Ì¬:ÖÙ²Ã
+                        arb_now_sts <= STS_ARB; // -> çŠ¶æ€:ä»²è£
                 default:
                     arb_now_sts <= STS_ARB;
             endcase
         end
     end
     
-    /** Round-RobinÖÙ²ÃÆ÷ **/
-    wire[master_n-1:0] arb_req; // ÇëÇó
-    wire[master_n-1:0] arb_grant; // ÊÚÈ¨(¶ÀÈÈÂë)
-    wire[clogb2(master_n-1):0] arb_sel; // Ñ¡Ôñ(Ïàµ±ÓÚÊÚÈ¨µÄ¶ş½øÖÆ±íÊ¾)
+    /** Round-Robinä»²è£å™¨ **/
+    wire[master_n-1:0] arb_req; // è¯·æ±‚
+    wire[master_n-1:0] arb_grant; // æˆæƒ(ç‹¬çƒ­ç )
+    wire[clogb2(master_n-1):0] arb_sel; // é€‰æ‹©(ç›¸å½“äºæˆæƒçš„äºŒè¿›åˆ¶è¡¨ç¤º)
     
     assign arb_req = ((arb_now_sts == STS_ARB) & grant_mid_fifo_full_n) ? s_ar_aw_valid[master_n-1:0]:{master_n{1'b0}};
     
-    // Round-RobinÖÙ²ÃÆ÷
+    // Round-Robinä»²è£å™¨
     round_robin_arbitrator #(
         .chn_n(master_n),
         .simulation_delay(simulation_delay)
@@ -116,9 +140,9 @@ module axi_arbitrator #(
         .arb_valid(arb_valid)
     );
     
-    /** ´Ó»úAR/AWÍ¨µÀ **/
-    wire[52:0] s_ar_aw_payload[7:0]; // ´Ó»ú¸ºÔØ
-    reg[master_n-1:0] s_ar_aw_ready_regs; // Ã¿¸ö´Ó»úµÄready
+    /** ä»æœºAR/AWé€šé“ **/
+    wire[52:0] s_ar_aw_payload[7:0]; // ä»æœºè´Ÿè½½
+    reg[master_n-1:0] s_ar_aw_ready_regs; // æ¯ä¸ªä»æœºçš„ready
     
     assign s_ar_aw_ready = {{(8-master_n){1'b1}}, s_ar_aw_ready_regs};
     
@@ -131,7 +155,7 @@ module axi_arbitrator #(
     assign s_ar_aw_payload[6] = s6_ar_aw_payload;
     assign s_ar_aw_payload[7] = s7_ar_aw_payload;
     
-    // Ã¿¸ö´Ó»úµÄready
+    // æ¯ä¸ªä»æœºçš„ready
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -140,28 +164,28 @@ module axi_arbitrator #(
             # simulation_delay s_ar_aw_ready_regs <= arb_grant;
     end
     
-    /** Ö÷»úAR/AWÍ¨µÀ **/
-    reg[52:0] m_payload_latched; // Ëø´æµÄÖ÷»ú¸ºÔØ
-    reg[clogb2(master_n-1):0] arb_sel_latched; // Ëø´æµÄÖÙ²ÃÑ¡Ôñ
-    reg m_valid; // Ö÷»úÊä³övalid
+    /** ä¸»æœºAR/AWé€šé“ **/
+    reg[52:0] m_payload_latched; // é”å­˜çš„ä¸»æœºè´Ÿè½½
+    reg[clogb2(master_n-1):0] arb_sel_latched; // é”å­˜çš„ä»²è£é€‰æ‹©
+    reg m_valid; // ä¸»æœºè¾“å‡ºvalid
     
     assign m_ar_aw_payload = m_payload_latched;
     assign m_ar_aw_id = arb_sel_latched;
     assign m_ar_aw_valid = m_valid;
     
-    // Ëø´æµÄÖ÷»ú¸ºÔØ
+    // é”å­˜çš„ä¸»æœºè´Ÿè½½
     always @(posedge clk)
     begin
         if(arb_valid)
             # simulation_delay m_payload_latched <= s_ar_aw_payload[arb_sel];
     end
-    // Ëø´æµÄÖÙ²ÃÑ¡Ôñ
+    // é”å­˜çš„ä»²è£é€‰æ‹©
     always @(posedge clk)
     begin
         if(arb_valid)
             # simulation_delay arb_sel_latched <= arb_sel;
     end
-    // Ö÷»úÊä³övalid
+    // ä¸»æœºè¾“å‡ºvalid
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -170,7 +194,7 @@ module axi_arbitrator #(
             # simulation_delay m_valid <= m_valid ? (~m_ar_aw_ready):arb_valid;
     end
     
-    /** ÊÚÈ¨Ö÷»ú±àºÅfifoĞ´¶Ë¿Ú **/
+    /** æˆæƒä¸»æœºç¼–å·fifoå†™ç«¯å£ **/
     reg grant_mid_fifo_wen_reg;
     reg[master_n-1:0] grant_mid_fifo_din_onehot_regs;
     reg[clogb2(master_n-1):0] grant_mid_fifo_din_bin_regs;
@@ -179,7 +203,7 @@ module axi_arbitrator #(
     assign grant_mid_fifo_din_onehot = grant_mid_fifo_din_onehot_regs;
     assign grant_mid_fifo_din_bin = grant_mid_fifo_din_bin_regs;
     
-    // ÊÚÈ¨Ö÷»ú±àºÅfifoĞ´Ê¹ÄÜ
+    // æˆæƒä¸»æœºç¼–å·fifoå†™ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -187,14 +211,14 @@ module axi_arbitrator #(
         else
             # simulation_delay grant_mid_fifo_wen_reg <= arb_valid;
     end
-    // ÊÚÈ¨Ö÷»ú±àºÅfifoĞ´Êı¾İ
+    // æˆæƒä¸»æœºç¼–å·fifoå†™æ•°æ®
     always @(posedge clk)
         # simulation_delay grant_mid_fifo_din_onehot_regs <= arb_grant;
     always @(posedge clk)
         # simulation_delay grant_mid_fifo_din_bin_regs <= arb_sel;
     
-    /** ÖÙ²Ã¼ä¸ô¼ÆÊıÆ÷ **/
-    // ÖÙ²Ã¼ä¸ô¼ÆÊıÆ÷
+    /** ä»²è£é—´éš”è®¡æ•°å™¨ **/
+    // ä»²è£é—´éš”è®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

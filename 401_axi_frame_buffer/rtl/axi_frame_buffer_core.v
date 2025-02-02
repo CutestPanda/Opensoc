@@ -1,63 +1,87 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIÖ¡»º´æ(ºËĞÄ)
+æœ¬æ¨¡å—: AXIå¸§ç¼“å­˜(æ ¸å¿ƒ)
 
-ÃèÊö: 
-ÊµÏÖÁËÖ¡Ğ´ÈëAXISµ½AXIĞ´Í¨µÀ, Ö¡¶ÁÈ¡AXISµ½AXI¶ÁÍ¨µÀÖ®¼äµÄ×ª»»
-AXIÖ÷»úµÄµØÖ·/Êı¾İÎ»¿í¹Ì¶¨Îª32
+æè¿°: 
+å®ç°äº†å¸§å†™å…¥AXISåˆ°AXIå†™é€šé“, å¸§è¯»å–AXISåˆ°AXIè¯»é€šé“ä¹‹é—´çš„è½¬æ¢
+AXIä¸»æœºçš„åœ°å€/æ•°æ®ä½å®½å›ºå®šä¸º32
 
-×¢Òâ£º
-Ö¡´óĞ¡(img_n * pix_data_width / 8)±ØĞëÄÜ±»4Õû³ı
-Î´¶ÔAXIÖ÷»úÊµÊ©4KB±ß½ç±£»¤
-AXI¶ÁµØÖ·»º³åÉî¶È(axi_raddr_outstanding)ºÍAXI¶ÁÍ¨µÀÊı¾İbufferÉî¶È(axi_rchn_data_buffer_depth)¹²Í¬¾ö¶¨ARÍ¨µÀµÄÎÕÊÖ
+æ³¨æ„ï¼š
+å¸§å¤§å°(img_n * pix_data_width / 8)å¿…é¡»èƒ½è¢«4æ•´é™¤
+æœªå¯¹AXIä¸»æœºå®æ–½4KBè¾¹ç•Œä¿æŠ¤
+AXIè¯»åœ°å€ç¼“å†²æ·±åº¦(axi_raddr_outstanding)å’ŒAXIè¯»é€šé“æ•°æ®bufferæ·±åº¦(axi_rchn_data_buffer_depth)å…±åŒå†³å®šARé€šé“çš„æ¡æ‰‹
 
-½«»º³åÇøÖ¡¸öÊı(frame_n)ºÍÖ¡»º³åÇøÊ×µØÖ·(frame_buffer_baseaddr)¸ü¸ÄÎªÔËĞĞÊ±²ÎÊı???
+å°†ç¼“å†²åŒºå¸§ä¸ªæ•°(frame_n)å’Œå¸§ç¼“å†²åŒºé¦–åœ°å€(frame_buffer_baseaddr)æ›´æ”¹ä¸ºè¿è¡Œæ—¶å‚æ•°???
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 AXI MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/07
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/07
 ********************************************************************/
 
 
 module axi_frame_buffer_core #(
-    parameter integer frame_n = 4, // »º³åÇøÖ¡¸öÊı(±ØĞëÔÚ·¶Î§[3, 16]ÄÚ)
-    parameter integer frame_buffer_baseaddr = 0, // Ö¡»º³åÇøÊ×µØÖ·(±ØĞëÄÜ±»4Õû³ı)
-    parameter integer img_n = 1920 * 1080, // Í¼Ïñ´óĞ¡(ÒÔÏñËØ¸öÊı¼Æ)
-    parameter integer pix_data_width = 24, // ÏñËØÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-	parameter integer pix_per_clk_for_wt = 1, // Ã¿clkĞ´µÄÏñËØ¸öÊı
-	parameter integer pix_per_clk_for_rd = 1, // Ã¿clk¶ÁµÄÏñËØ¸öÊı
-    parameter integer axi_raddr_outstanding = 2, // AXI¶ÁµØÖ·»º³åÉî¶È(1 | 2 | 4 | 8 | 16)
-    parameter integer axi_rchn_max_burst_len = 64, // AXI¶ÁÍ¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-    parameter integer axi_waddr_outstanding = 2, // AXIĞ´µØÖ·»º³åÉî¶È(1 | 2 | 4 | 8 | 16)
-    parameter integer axi_wchn_max_burst_len = 64, // AXIĞ´Í¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-    parameter integer axi_wchn_data_buffer_depth = 512, // AXIĞ´Í¨µÀÊı¾İbufferÉî¶È(0 | 16 | 32 | 64 | ..., ÉèÎª0Ê±±íÊ¾²»Ê¹ÓÃ)
-    parameter integer axi_rchn_data_buffer_depth = 512, // AXI¶ÁÍ¨µÀÊı¾İbufferÉî¶È(0 | 16 | 32 | 64 | ..., ÉèÎª0Ê±±íÊ¾²»Ê¹ÓÃ)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer frame_n = 4, // ç¼“å†²åŒºå¸§ä¸ªæ•°(å¿…é¡»åœ¨èŒƒå›´[3, 16]å†…)
+    parameter integer frame_buffer_baseaddr = 0, // å¸§ç¼“å†²åŒºé¦–åœ°å€(å¿…é¡»èƒ½è¢«4æ•´é™¤)
+    parameter integer img_n = 1920 * 1080, // å›¾åƒå¤§å°(ä»¥åƒç´ ä¸ªæ•°è®¡)
+    parameter integer pix_data_width = 24, // åƒç´ ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+	parameter integer pix_per_clk_for_wt = 1, // æ¯clkå†™çš„åƒç´ ä¸ªæ•°
+	parameter integer pix_per_clk_for_rd = 1, // æ¯clkè¯»çš„åƒç´ ä¸ªæ•°
+    parameter integer axi_raddr_outstanding = 2, // AXIè¯»åœ°å€ç¼“å†²æ·±åº¦(1 | 2 | 4 | 8 | 16)
+    parameter integer axi_rchn_max_burst_len = 64, // AXIè¯»é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+    parameter integer axi_waddr_outstanding = 2, // AXIå†™åœ°å€ç¼“å†²æ·±åº¦(1 | 2 | 4 | 8 | 16)
+    parameter integer axi_wchn_max_burst_len = 64, // AXIå†™é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+    parameter integer axi_wchn_data_buffer_depth = 512, // AXIå†™é€šé“æ•°æ®bufferæ·±åº¦(0 | 16 | 32 | 64 | ..., è®¾ä¸º0æ—¶è¡¨ç¤ºä¸ä½¿ç”¨)
+    parameter integer axi_rchn_data_buffer_depth = 512, // AXIè¯»é€šé“æ•°æ®bufferæ·±åº¦(0 | 16 | 32 | 64 | ..., è®¾ä¸º0æ—¶è¡¨ç¤ºä¸ä½¿ç”¨)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // Ö¡»º´æ¿ØÖÆºÍ×´Ì¬
-    input wire disp_suspend, // ÔİÍ£È¡ĞÂµÄÒ»Ö¡(±êÖ¾)
-    output wire rd_new_frame, // ¶ÁÈ¡ĞÂµÄÒ»Ö¡(Ö¸Ê¾)
+    // å¸§ç¼“å­˜æ§åˆ¶å’ŒçŠ¶æ€
+    input wire disp_suspend, // æš‚åœå–æ–°çš„ä¸€å¸§(æ ‡å¿—)
+    output wire rd_new_frame, // è¯»å–æ–°çš„ä¸€å¸§(æŒ‡ç¤º)
     
-    // Ö¡Ğ´ÈëAXIS
+    // å¸§å†™å…¥AXIS
     input wire[pix_data_width*pix_per_clk_for_wt-1:0] s_axis_pix_data,
     input wire s_axis_pix_valid,
     output wire s_axis_pix_ready,
     
-    // Ö¡¶ÁÈ¡AXIS
+    // å¸§è¯»å–AXIS
     output wire[pix_data_width*pix_per_clk_for_rd-1:0] m_axis_pix_data,
-    output wire[7:0] m_axis_pix_user, // µ±Ç°¶ÁÖ¡ºÅ
-    output wire m_axis_pix_last, // Ö¸Ê¾±¾Ö¡×îºó1¸öÏñËØ
+    output wire[7:0] m_axis_pix_user, // å½“å‰è¯»å¸§å·
+    output wire m_axis_pix_last, // æŒ‡ç¤ºæœ¬å¸§æœ€å1ä¸ªåƒç´ 
     output wire m_axis_pix_valid,
     input wire m_axis_pix_ready,
     
-    // AXIÖ÷»ú
+    // AXIä¸»æœº
     // AR
     output wire[31:0] m_axi_araddr,
     output wire[1:0] m_axi_arburst, // const -> 2'b01(INCR)
@@ -90,7 +114,7 @@ module axi_frame_buffer_core #(
     input wire m_axi_wready
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -100,22 +124,22 @@ module axi_frame_buffer_core #(
     end
     endfunction
     
-    /** ³£Á¿ **/
-    localparam integer frame_size = img_n * pix_data_width / 8; // Ö¡´óĞ¡(ÒÔ×Ö½Ú¼Æ)
-    localparam integer frame_dwords_n = frame_size / 4; // Ã¿Ö¡µÄË«×Ö¸öÊı
-    localparam integer baseaddr_of_last_frame = frame_buffer_baseaddr + (frame_n - 1) * frame_size; // Ö¡»º³åÇøÀï×îºó1Ö¡µÄÊ×µØÖ·
+    /** å¸¸é‡ **/
+    localparam integer frame_size = img_n * pix_data_width / 8; // å¸§å¤§å°(ä»¥å­—èŠ‚è®¡)
+    localparam integer frame_dwords_n = frame_size / 4; // æ¯å¸§çš„åŒå­—ä¸ªæ•°
+    localparam integer baseaddr_of_last_frame = frame_buffer_baseaddr + (frame_n - 1) * frame_size; // å¸§ç¼“å†²åŒºé‡Œæœ€å1å¸§çš„é¦–åœ°å€
     
-    /** Ö¡»º´æ **/
-    wire frame_buf_wen; // Ö¡»º³åÇøĞ´Ê¹ÄÜ
-    wire frame_buf_full; // Ö¡»º³åÇøÂú±êÖ¾
-    reg[frame_n-1:0] frame_buf_wptr; // Ö¡»º³åÇøĞ´Ö¸Õë(¶ÀÈÈÂë)
-    wire[frame_n-1:0] frame_buf_wptr_add1; // Ö¡»º³åÇøĞ´Ö¸Õë(¶ÀÈÈÂë) + 1
-    wire frame_buf_ren; // Ö¡»º³åÇø¶ÁÊ¹ÄÜ
-    wire frame_buf_empty; // Ö¡»º³åÇø¿Õ±êÖ¾
-    reg[frame_n-1:0] frame_buf_rptr; // Ö¡»º³åÇø¶ÁÖ¸Õë(¶ÀÈÈÂë)
-    wire[frame_n-1:0] frame_buf_rptr_add1; // Ö¡»º³åÇø¶ÁÖ¸Õë(¶ÀÈÈÂë) + 1
-    reg[frame_n-1:0] frame_filled_vec; // Ö¡ÒÑÌî³ä(ÏòÁ¿)
-    reg rd_new_frame_reg; // ¶ÁÈ¡ĞÂµÄÒ»Ö¡(Ö¸Ê¾)
+    /** å¸§ç¼“å­˜ **/
+    wire frame_buf_wen; // å¸§ç¼“å†²åŒºå†™ä½¿èƒ½
+    wire frame_buf_full; // å¸§ç¼“å†²åŒºæ»¡æ ‡å¿—
+    reg[frame_n-1:0] frame_buf_wptr; // å¸§ç¼“å†²åŒºå†™æŒ‡é’ˆ(ç‹¬çƒ­ç )
+    wire[frame_n-1:0] frame_buf_wptr_add1; // å¸§ç¼“å†²åŒºå†™æŒ‡é’ˆ(ç‹¬çƒ­ç ) + 1
+    wire frame_buf_ren; // å¸§ç¼“å†²åŒºè¯»ä½¿èƒ½
+    wire frame_buf_empty; // å¸§ç¼“å†²åŒºç©ºæ ‡å¿—
+    reg[frame_n-1:0] frame_buf_rptr; // å¸§ç¼“å†²åŒºè¯»æŒ‡é’ˆ(ç‹¬çƒ­ç )
+    wire[frame_n-1:0] frame_buf_rptr_add1; // å¸§ç¼“å†²åŒºè¯»æŒ‡é’ˆ(ç‹¬çƒ­ç ) + 1
+    reg[frame_n-1:0] frame_filled_vec; // å¸§å·²å¡«å……(å‘é‡)
+    reg rd_new_frame_reg; // è¯»å–æ–°çš„ä¸€å¸§(æŒ‡ç¤º)
     
     assign rd_new_frame = rd_new_frame_reg;
     
@@ -125,7 +149,7 @@ module axi_frame_buffer_core #(
     assign frame_buf_empty = (frame_buf_rptr_add1 & frame_filled_vec) == {frame_n{1'b0}};
     assign frame_buf_rptr_add1 = {frame_buf_rptr[frame_n-2:0], frame_buf_rptr[frame_n-1]};
     
-    // Ö¡»º³åÇøĞ´Ö¸Õë(¶ÀÈÈÂë)
+    // å¸§ç¼“å†²åŒºå†™æŒ‡é’ˆ(ç‹¬çƒ­ç )
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -133,7 +157,7 @@ module axi_frame_buffer_core #(
         else if(frame_buf_wen & (~frame_buf_full))
             # simulation_delay frame_buf_wptr <= {frame_buf_wptr[frame_n-2:0], frame_buf_wptr[frame_n-1]};
     end
-    // Ö¡»º³åÇø¶ÁÖ¸Õë(¶ÀÈÈÂë)
+    // å¸§ç¼“å†²åŒºè¯»æŒ‡é’ˆ(ç‹¬çƒ­ç )
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -142,7 +166,7 @@ module axi_frame_buffer_core #(
             # simulation_delay frame_buf_rptr <= {frame_buf_rptr[frame_n-2:0], frame_buf_rptr[frame_n-1]};
     end
     
-    // Ö¡ÒÑÌî³ä(ÏòÁ¿)
+    // å¸§å·²å¡«å……(å‘é‡)
     genvar frame_filled_vec_i;
     generate
         for(frame_filled_vec_i = 0;frame_filled_vec_i < frame_n;frame_filled_vec_i = frame_filled_vec_i + 1)
@@ -150,17 +174,17 @@ module axi_frame_buffer_core #(
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
-                    // ³õÊ¼Ê±Ö¡»º³åÇøÀï×îºó1Ö¡±»Ìî³ä¿ÕÖµ!
+                    // åˆå§‹æ—¶å¸§ç¼“å†²åŒºé‡Œæœ€å1å¸§è¢«å¡«å……ç©ºå€¼!
                     frame_filled_vec[frame_filled_vec_i] <= frame_filled_vec_i == (frame_n - 1);
                 else if((frame_buf_wen & (~frame_buf_full) & frame_buf_wptr[frame_filled_vec_i]) | 
                     (frame_buf_ren & (~frame_buf_empty) & (~disp_suspend) & frame_buf_rptr[frame_filled_vec_i]))
-                    // ¶ÏÑÔ: ²»¿ÉÄÜÍ¬Ê±²úÉúÓĞĞ§µÄÖ¡»º³åÇøĞ´Ê¹ÄÜºÍ¶ÁÊ¹ÄÜ!
+                    // æ–­è¨€: ä¸å¯èƒ½åŒæ—¶äº§ç”Ÿæœ‰æ•ˆçš„å¸§ç¼“å†²åŒºå†™ä½¿èƒ½å’Œè¯»ä½¿èƒ½!
                     # simulation_delay frame_filled_vec[frame_filled_vec_i] <= frame_buf_wen & (~frame_buf_full);
             end
         end
     endgenerate
     
-    // ¶ÁÈ¡ĞÂµÄÒ»Ö¡(Ö¸Ê¾)
+    // è¯»å–æ–°çš„ä¸€å¸§(æŒ‡ç¤º)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -170,11 +194,11 @@ module axi_frame_buffer_core #(
     end
     
     /** 
-    Ö¡Ğ´ÈëAXISÎ»¿í±ä»»
+    å¸§å†™å…¥AXISä½å®½å˜æ¢
     
     pix_data_width*pix_per_clk_for_wt -> 32
     **/
-    // Î»¿í±ä»»ºóµÄÖ¡Ğ´ÈëAXIS
+    // ä½å®½å˜æ¢åçš„å¸§å†™å…¥AXIS
     wire[31:0] s_axis_pix_data_w;
     wire s_axis_pix_valid_w;
     wire s_axis_pix_ready_w;
@@ -207,14 +231,14 @@ module axi_frame_buffer_core #(
     );
     
     /** 
-    Ö¡¶ÁÈ¡AXISÎ»¿í±ä»»
+    å¸§è¯»å–AXISä½å®½å˜æ¢
     
     32 -> pix_data_width*pix_per_clk_for_rd
     **/
-    // Î»¿í±ä»»Ç°µÄÖ¡¶ÁÈ¡AXIS
+    // ä½å®½å˜æ¢å‰çš„å¸§è¯»å–AXIS
     wire[31:0] m_axis_pix_data_w;
-    wire[31:0] m_axis_pix_user_w; // µ±Ç°¶ÁÖ¡ºÅ(¸´ÖÆ4¸ö)
-    wire m_axis_pix_last_w; // Ö¸Ê¾±¾Ö¡×îºó1¸öÏñËØ
+    wire[31:0] m_axis_pix_user_w; // å½“å‰è¯»å¸§å·(å¤åˆ¶4ä¸ª)
+    wire m_axis_pix_last_w; // æŒ‡ç¤ºæœ¬å¸§æœ€å1ä¸ªåƒç´ 
     wire m_axis_pix_valid_w;
     wire m_axis_pix_ready_w;
     
@@ -239,29 +263,29 @@ module axi_frame_buffer_core #(
         
         .m_axis_data(m_axis_pix_data),
         .m_axis_keep(),
-        .m_axis_user(m_axis_pix_user), // Î»¿ípix_data_width*pix_per_clk_for_rd¿ÉÄÜÓëÎ»¿í8²»·û, ½ØÈ¡µÍÎ»
+        .m_axis_user(m_axis_pix_user), // ä½å®½pix_data_width*pix_per_clk_for_rdå¯èƒ½ä¸ä½å®½8ä¸ç¬¦, æˆªå–ä½ä½
         .m_axis_last(m_axis_pix_last),
         .m_axis_valid(m_axis_pix_valid),
         .m_axis_ready(m_axis_pix_ready)
     );
     
-    /** Î»¿í±ä»»Ç°µÄÖ¡¶ÁÈ¡AXIS **/
-    reg[clogb2(frame_dwords_n-1):0] rd_frame_cnt; // Ö¡¶ÁÈ¡¼ÆÊıÆ÷
-    reg m_axis_pix_last_w_reg; // Î»¿í±ä»»Ç°µÄÖ¡¶ÁÈ¡AXISµÄlastĞÅºÅ
-    reg[7:0] now_rd_fid; // µ±Ç°¶ÁÖ¡ºÅ
-    // AXI¶ÁÍ¨µÀÊı¾İ»º³å
-    reg[clogb2(axi_rchn_data_buffer_depth/axi_rchn_max_burst_len):0] rburst_launched_n; // ÒÑÆô¶¯µÄ¶ÁÍ»·¢¸öÊı
-    wire rburst_buffer_full; // AXI¶ÁÍ¨µÀÊı¾İ»º³åÂú±êÖ¾
-    wire rburst_buffer_wen; // AXI¶ÁÍ¨µÀÊı¾İ»º³åĞ´Ê¹ÄÜ
-    wire rburst_buffer_ren; // AXI¶ÁÍ¨µÀÊı¾İ»º³å¶ÁÊ¹ÄÜ
-	wire m_axis_pix_last_w2; // ´«µİµÄAXI¶ÁÍ¨µÀlastĞÅºÅ
+    /** ä½å®½å˜æ¢å‰çš„å¸§è¯»å–AXIS **/
+    reg[clogb2(frame_dwords_n-1):0] rd_frame_cnt; // å¸§è¯»å–è®¡æ•°å™¨
+    reg m_axis_pix_last_w_reg; // ä½å®½å˜æ¢å‰çš„å¸§è¯»å–AXISçš„lastä¿¡å·
+    reg[7:0] now_rd_fid; // å½“å‰è¯»å¸§å·
+    // AXIè¯»é€šé“æ•°æ®ç¼“å†²
+    reg[clogb2(axi_rchn_data_buffer_depth/axi_rchn_max_burst_len):0] rburst_launched_n; // å·²å¯åŠ¨çš„è¯»çªå‘ä¸ªæ•°
+    wire rburst_buffer_full; // AXIè¯»é€šé“æ•°æ®ç¼“å†²æ»¡æ ‡å¿—
+    wire rburst_buffer_wen; // AXIè¯»é€šé“æ•°æ®ç¼“å†²å†™ä½¿èƒ½
+    wire rburst_buffer_ren; // AXIè¯»é€šé“æ•°æ®ç¼“å†²è¯»ä½¿èƒ½
+	wire m_axis_pix_last_w2; // ä¼ é€’çš„AXIè¯»é€šé“lastä¿¡å·
     
     assign rburst_buffer_ren = m_axis_pix_valid_w & m_axis_pix_ready_w & m_axis_pix_last_w2;
     
     generate
         if(axi_rchn_data_buffer_depth == 0)
         begin
-            // ½«AXIÖ÷»úµÄRÍ¨µÀÖ±½Ó´«µİ¸øÎ»¿í±ä»»Ç°µÄÖ¡¶ÁÈ¡AXIS
+            // å°†AXIä¸»æœºçš„Ré€šé“ç›´æ¥ä¼ é€’ç»™ä½å®½å˜æ¢å‰çš„å¸§è¯»å–AXIS
             assign m_axis_pix_data_w = m_axi_rdata;
             assign m_axis_pix_user_w = {4{now_rd_fid}};
             assign m_axis_pix_last_w = m_axis_pix_last_w_reg;
@@ -273,13 +297,13 @@ module axi_frame_buffer_core #(
         end
         else
         begin
-            reg rburst_buffer_full_reg; // AXI¶ÁÍ¨µÀÊı¾İ»º³åÂú±êÖ¾
-            wire[7:0] now_rd_fid_passed; // ´«µİµÄµ±Ç°¶ÁÖ¡ºÅ
+            reg rburst_buffer_full_reg; // AXIè¯»é€šé“æ•°æ®ç¼“å†²æ»¡æ ‡å¿—
+            wire[7:0] now_rd_fid_passed; // ä¼ é€’çš„å½“å‰è¯»å¸§å·
             
             assign rburst_buffer_full = rburst_buffer_full_reg;
             assign m_axis_pix_user_w = {4{now_rd_fid_passed}};
             
-            // ÒÑÆô¶¯µÄ¶ÁÍ»·¢¸öÊı
+            // å·²å¯åŠ¨çš„è¯»çªå‘ä¸ªæ•°
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -288,7 +312,7 @@ module axi_frame_buffer_core #(
                     # simulation_delay rburst_launched_n <= rburst_buffer_ren ? (rburst_launched_n-1):(rburst_launched_n+1);
             end
             
-            // AXI¶ÁÍ¨µÀÊı¾İ»º³åÂú±êÖ¾
+            // AXIè¯»é€šé“æ•°æ®ç¼“å†²æ»¡æ ‡å¿—
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -297,7 +321,7 @@ module axi_frame_buffer_core #(
                     # simulation_delay rburst_buffer_full_reg <= rburst_buffer_ren ? 1'b0:(rburst_launched_n == (axi_rchn_data_buffer_depth/axi_rchn_max_burst_len-1));
             end
             
-            // AXI¶ÁÍ¨µÀÊı¾İbuffer
+            // AXIè¯»é€šé“æ•°æ®buffer
             ram_fifo_wrapper #(
                 .fwft_mode("true"),
                 .ram_type((axi_rchn_data_buffer_depth <= 64) ? "lutram":"bram"),
@@ -327,7 +351,7 @@ module axi_frame_buffer_core #(
         end
     endgenerate
     
-    // Ö¡¶ÁÈ¡¼ÆÊıÆ÷
+    // å¸§è¯»å–è®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -335,7 +359,7 @@ module axi_frame_buffer_core #(
         else if(m_axi_rvalid & m_axi_rready)
             # simulation_delay rd_frame_cnt <= (rd_frame_cnt == (frame_dwords_n-1)) ? 0:(rd_frame_cnt + 1);
     end
-    // Î»¿í±ä»»Ç°µÄÖ¡¶ÁÈ¡AXISµÄlastĞÅºÅ
+    // ä½å®½å˜æ¢å‰çš„å¸§è¯»å–AXISçš„lastä¿¡å·
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -344,27 +368,27 @@ module axi_frame_buffer_core #(
             # simulation_delay m_axis_pix_last_w_reg <= rd_frame_cnt == (frame_dwords_n-2);
     end
     
-    /** AXIÖ÷»úµÄARÍ¨µÀ **/
-    wire rd_frame_last_trans; // Ö¡¶ÁÈ¡Ö¡ÄÚ×îºó1´Î´«Êä(±êÖ¾)
-    reg[clogb2(frame_dwords_n):0] rd_frame_remaining_trans_n; // Ö¡¶ÁÈ¡Ö¡ÄÚÊ£Óà´«Êä´ÎÊı
-    reg[clogb2(baseaddr_of_last_frame):0] rd_frame_baseaddr; // Ö¡¶ÁÈ¡Ê×µØÖ·
-    reg[clogb2(frame_size-1):0] rd_frame_ofsaddr; // Ö¡¶ÁÈ¡Æ«ÒÆµØÖ·
-    reg rd_frame_last_trans_running; // Ö¡¶ÁÈ¡Ö¡ÄÚ×îºó1´Î´«Êä½øĞĞÖĞ(±êÖ¾)
-    wire rd_frame_last_trans_done; // Ö¡¶ÁÈ¡Ö¡ÄÚ×îºó1´Î´«ÊäÍê³É(Ö¸Ê¾)
-    // Ö¡¶ÁÈ¡´«ÊäÊÂÎñfifo
+    /** AXIä¸»æœºçš„ARé€šé“ **/
+    wire rd_frame_last_trans; // å¸§è¯»å–å¸§å†…æœ€å1æ¬¡ä¼ è¾“(æ ‡å¿—)
+    reg[clogb2(frame_dwords_n):0] rd_frame_remaining_trans_n; // å¸§è¯»å–å¸§å†…å‰©ä½™ä¼ è¾“æ¬¡æ•°
+    reg[clogb2(baseaddr_of_last_frame):0] rd_frame_baseaddr; // å¸§è¯»å–é¦–åœ°å€
+    reg[clogb2(frame_size-1):0] rd_frame_ofsaddr; // å¸§è¯»å–åç§»åœ°å€
+    reg rd_frame_last_trans_running; // å¸§è¯»å–å¸§å†…æœ€å1æ¬¡ä¼ è¾“è¿›è¡Œä¸­(æ ‡å¿—)
+    wire rd_frame_last_trans_done; // å¸§è¯»å–å¸§å†…æœ€å1æ¬¡ä¼ è¾“å®Œæˆ(æŒ‡ç¤º)
+    // å¸§è¯»å–ä¼ è¾“äº‹åŠ¡fifo
     wire rd_frame_trans_fifo_wen;
-    wire rd_frame_trans_fifo_din; // µ±Ç°ÊÇ·ñÖ¡ÄÚ×îºó1´Î´«Êä
+    wire rd_frame_trans_fifo_din; // å½“å‰æ˜¯å¦å¸§å†…æœ€å1æ¬¡ä¼ è¾“
     wire rd_frame_trans_fifo_full;
-    // ¶ÏÑÔ:Ö¡¶ÁÈ¡´«ÊäÊÂÎñfifo¶ÁÊ¹ÄÜÓĞĞ§Ê±fifo±Ø¶¨·Ç¿Õ!
+    // æ–­è¨€:å¸§è¯»å–ä¼ è¾“äº‹åŠ¡fifoè¯»ä½¿èƒ½æœ‰æ•ˆæ—¶fifoå¿…å®šéç©º!
     wire rd_frame_trans_fifo_ren;
-    wire rd_frame_trans_fifo_dout; // µ±Ç°ÊÇ·ñÖ¡ÄÚ×îºó1´Î´«Êä
+    wire rd_frame_trans_fifo_dout; // å½“å‰æ˜¯å¦å¸§å†…æœ€å1æ¬¡ä¼ è¾“
     
     assign m_axi_araddr = rd_frame_baseaddr + rd_frame_ofsaddr;
     assign m_axi_arburst = 2'b01;
     assign m_axi_arlen = (rd_frame_last_trans ? rd_frame_remaining_trans_n:axi_rchn_max_burst_len) - 8'd1;
     assign m_axi_arsize = 3'b010;
-    // ARÍ¨µÀÎÕÊÖÌõ¼ş:  (~rd_frame_trans_fifo_full) & (~rd_frame_last_trans_running) & (~rburst_buffer_full) & m_axi_arready
-    // ½öµ±¶ÁÊı¾İ»º´æÇø·ÇÂúÊ±²úÉúÓĞĞ§µÄ¶ÁµØÖ·!
+    // ARé€šé“æ¡æ‰‹æ¡ä»¶:  (~rd_frame_trans_fifo_full) & (~rd_frame_last_trans_running) & (~rburst_buffer_full) & m_axi_arready
+    // ä»…å½“è¯»æ•°æ®ç¼“å­˜åŒºéæ»¡æ—¶äº§ç”Ÿæœ‰æ•ˆçš„è¯»åœ°å€!
     assign m_axi_arvalid = (~rd_frame_trans_fifo_full) & (~rd_frame_last_trans_running) & (~rburst_buffer_full);
     
     assign frame_buf_ren = rd_frame_last_trans_done;
@@ -376,16 +400,16 @@ module axi_frame_buffer_core #(
     assign rd_frame_trans_fifo_ren = m_axi_rvalid & m_axi_rready & m_axi_rlast;
     assign rd_frame_last_trans_done = rd_frame_trans_fifo_ren & rd_frame_trans_fifo_dout;
     
-    // µ±Ç°¶ÁÖ¡ºÅ
+    // å½“å‰è¯»å¸§å·
 	always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
 			now_rd_fid <= 8'd0;
-		else if(frame_buf_ren & (~frame_buf_empty) & (~disp_suspend)) // Ö¡»º³åÇø·Ç¿ÕÇÒ²»ÔİÍ£Ê±Ìøµ½ÏÂ1Ö¡, ·ñÔòÖØ¸´µ±Ç°Ö¡!
+		else if(frame_buf_ren & (~frame_buf_empty) & (~disp_suspend)) // å¸§ç¼“å†²åŒºéç©ºä¸”ä¸æš‚åœæ—¶è·³åˆ°ä¸‹1å¸§, å¦åˆ™é‡å¤å½“å‰å¸§!
 			# simulation_delay now_rd_fid <= now_rd_fid + 8'd1;
 	end
     
-    // Ö¡¶ÁÈ¡Ö¡ÄÚÊ£Óà´«Êä´ÎÊı
+    // å¸§è¯»å–å¸§å†…å‰©ä½™ä¼ è¾“æ¬¡æ•°
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -393,15 +417,15 @@ module axi_frame_buffer_core #(
         else if(m_axi_arvalid & m_axi_arready)
             # simulation_delay rd_frame_remaining_trans_n <= rd_frame_last_trans ? frame_dwords_n:(rd_frame_remaining_trans_n - axi_rchn_max_burst_len);
     end
-    // Ö¡¶ÁÈ¡Ê×µØÖ·
+    // å¸§è¯»å–é¦–åœ°å€
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
             rd_frame_baseaddr <= baseaddr_of_last_frame;
-        else if(frame_buf_ren & (~frame_buf_empty) & (~disp_suspend)) // Ö¡»º³åÇø·Ç¿ÕÊ±Ìøµ½ÏÂ1Ö¡, ¿ÕÊ±ÖØ¸´µ±Ç°Ö¡!
+        else if(frame_buf_ren & (~frame_buf_empty) & (~disp_suspend)) // å¸§ç¼“å†²åŒºéç©ºæ—¶è·³åˆ°ä¸‹1å¸§, ç©ºæ—¶é‡å¤å½“å‰å¸§!
             # simulation_delay rd_frame_baseaddr <= frame_buf_rptr[frame_n-1] ? frame_buffer_baseaddr:(rd_frame_baseaddr + frame_size);
     end
-    // Ö¡¶ÁÈ¡Æ«ÒÆµØÖ·
+    // å¸§è¯»å–åç§»åœ°å€
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -410,7 +434,7 @@ module axi_frame_buffer_core #(
             # simulation_delay rd_frame_ofsaddr <= rd_frame_last_trans ? 0:(rd_frame_ofsaddr + axi_rchn_max_burst_len * 4);
     end
     
-    // Ö¡¶ÁÈ¡Ö¡ÄÚ×îºó1´Î´«Êä½øĞĞÖĞ(±êÖ¾)
+    // å¸§è¯»å–å¸§å†…æœ€å1æ¬¡ä¼ è¾“è¿›è¡Œä¸­(æ ‡å¿—)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -419,7 +443,7 @@ module axi_frame_buffer_core #(
             # simulation_delay rd_frame_last_trans_running <= rd_frame_last_trans_running ? (~rd_frame_last_trans_done):(m_axi_arvalid & m_axi_arready & rd_frame_last_trans);
     end
     
-    /** Ö¡¶ÁÈ¡´«ÊäÊÂÎñfifo **/
+    /** å¸§è¯»å–ä¼ è¾“äº‹åŠ¡fifo **/
     rw_frame_trans_fifo #(
         .axi_rwaddr_outstanding(axi_raddr_outstanding),
         .simulation_delay(simulation_delay)
@@ -436,16 +460,16 @@ module axi_frame_buffer_core #(
         .rw_frame_trans_fifo_dout(rd_frame_trans_fifo_dout)
     );
     
-    /** AXIÖ÷»úµÄWÍ¨µÀ **/
-    reg[clogb2(frame_dwords_n-1):0] wt_frame_cnt; // Ö¡Ğ´Èë¼ÆÊıÆ÷
-    reg[clogb2(axi_wchn_max_burst_len-1):0] trans_cnt_at_wchn; // Î»ÓÚWÍ¨µÀµÄ´«Êä¼ÆÊıÆ÷
-    wire s_axis_pix_last_w; // Ğ´Í»·¢×îºó1´Î´«Êä
-    // AXIĞ´Í¨µÀÊı¾İ»º³å
-    // ¶ÏÑÔ: ÒÑ»º´æµÄĞ´Í»·¢¸öÊı²»»á³¬¹ıaxi_wchn_data_buffer_depth!
-    reg[clogb2(axi_wchn_data_buffer_depth):0] wburst_buffered_n; // ÒÑ»º´æµÄĞ´Í»·¢¸öÊı
-    wire wburst_buffer_empty; // AXIĞ´Í¨µÀÊı¾İ»º³å¿Õ±êÖ¾
-    wire wburst_buffer_wen; // AXIĞ´Í¨µÀÊı¾İ»º³åĞ´Ê¹ÄÜ
-    wire wburst_buffer_ren; // AXIĞ´Í¨µÀÊı¾İ»º³å¶ÁÊ¹ÄÜ
+    /** AXIä¸»æœºçš„Wé€šé“ **/
+    reg[clogb2(frame_dwords_n-1):0] wt_frame_cnt; // å¸§å†™å…¥è®¡æ•°å™¨
+    reg[clogb2(axi_wchn_max_burst_len-1):0] trans_cnt_at_wchn; // ä½äºWé€šé“çš„ä¼ è¾“è®¡æ•°å™¨
+    wire s_axis_pix_last_w; // å†™çªå‘æœ€å1æ¬¡ä¼ è¾“
+    // AXIå†™é€šé“æ•°æ®ç¼“å†²
+    // æ–­è¨€: å·²ç¼“å­˜çš„å†™çªå‘ä¸ªæ•°ä¸ä¼šè¶…è¿‡axi_wchn_data_buffer_depth!
+    reg[clogb2(axi_wchn_data_buffer_depth):0] wburst_buffered_n; // å·²ç¼“å­˜çš„å†™çªå‘ä¸ªæ•°
+    wire wburst_buffer_empty; // AXIå†™é€šé“æ•°æ®ç¼“å†²ç©ºæ ‡å¿—
+    wire wburst_buffer_wen; // AXIå†™é€šé“æ•°æ®ç¼“å†²å†™ä½¿èƒ½
+    wire wburst_buffer_ren; // AXIå†™é€šé“æ•°æ®ç¼“å†²è¯»ä½¿èƒ½
     
     assign m_axi_wstrb = 4'b1111;
     
@@ -455,7 +479,7 @@ module axi_frame_buffer_core #(
     generate
         if(axi_wchn_data_buffer_depth == 0)
         begin
-            // ½«Î»¿í±ä»»ºóµÄÖ¡Ğ´ÈëAXISÖ±½Ó´«µİ¸øAXIÖ÷»úµÄWÍ¨µÀ
+            // å°†ä½å®½å˜æ¢åçš„å¸§å†™å…¥AXISç›´æ¥ä¼ é€’ç»™AXIä¸»æœºçš„Wé€šé“
             assign m_axi_wdata = s_axis_pix_data_w;
             assign m_axi_wlast = s_axis_pix_last_w;
             assign m_axi_wvalid = s_axis_pix_valid_w;
@@ -465,11 +489,11 @@ module axi_frame_buffer_core #(
         end
         else
         begin
-            reg wburst_buffer_empty_reg; // AXIĞ´Í¨µÀÊı¾İ»º³å¿Õ±êÖ¾
+            reg wburst_buffer_empty_reg; // AXIå†™é€šé“æ•°æ®ç¼“å†²ç©ºæ ‡å¿—
             
             assign wburst_buffer_empty = wburst_buffer_empty_reg;
             
-            // ÒÑ»º´æµÄĞ´Í»·¢¸öÊı
+            // å·²ç¼“å­˜çš„å†™çªå‘ä¸ªæ•°
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -478,7 +502,7 @@ module axi_frame_buffer_core #(
                     # simulation_delay wburst_buffered_n <= wburst_buffer_wen ? (wburst_buffered_n + 1):(wburst_buffered_n - 1);
             end
             
-            // AXIĞ´Í¨µÀÊı¾İ»º³å¿Õ±êÖ¾
+            // AXIå†™é€šé“æ•°æ®ç¼“å†²ç©ºæ ‡å¿—
             always @(posedge clk or negedge rst_n)
             begin
                 if(~rst_n)
@@ -487,7 +511,7 @@ module axi_frame_buffer_core #(
                     # simulation_delay wburst_buffer_empty_reg <= wburst_buffer_wen ? 1'b0:(wburst_buffered_n == 1);
             end
             
-            // AXIĞ´Í¨µÀÊı¾İbuffer
+            // AXIå†™é€šé“æ•°æ®buffer
             ram_fifo_wrapper #(
                 .fwft_mode("true"),
                 .ram_type((axi_wchn_data_buffer_depth <= 64) ? "lutram":"bram"),
@@ -517,7 +541,7 @@ module axi_frame_buffer_core #(
         end
     endgenerate
     
-    // Ö¡Ğ´Èë¼ÆÊıÆ÷
+    // å¸§å†™å…¥è®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -525,7 +549,7 @@ module axi_frame_buffer_core #(
         else if(s_axis_pix_valid_w & s_axis_pix_ready_w)
             # simulation_delay wt_frame_cnt <= (wt_frame_cnt == (frame_dwords_n-1)) ? 0:(wt_frame_cnt + 1);
     end
-    // Î»ÓÚWÍ¨µÀµÄ´«Êä¼ÆÊıÆ÷
+    // ä½äºWé€šé“çš„ä¼ è¾“è®¡æ•°å™¨
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -535,28 +559,28 @@ module axi_frame_buffer_core #(
                 0:(trans_cnt_at_wchn + 1);
     end
     
-    /** AXIÖ÷»úµÄAWÍ¨µÀ **/
-    wire wt_frame_last_trans; // Ö¡Ğ´ÈëÖ¡ÄÚ×îºó1´Î´«Êä(±êÖ¾)
-    reg[clogb2(frame_dwords_n):0] wt_frame_remaining_trans_n; // Ö¡Ğ´ÈëÖ¡ÄÚÊ£Óà´«Êä´ÎÊı
-    reg[clogb2(baseaddr_of_last_frame):0] wt_frame_baseaddr; // Ö¡Ğ´ÈëÊ×µØÖ·
-    reg[clogb2(frame_size-1):0] wt_frame_ofsaddr; // Ö¡Ğ´ÈëÆ«ÒÆµØÖ·
-    reg wt_frame_last_trans_running; // Ö¡Ğ´ÈëÖ¡ÄÚ×îºó1´Î´«Êä½øĞĞÖĞ(±êÖ¾)
-    wire wt_frame_last_trans_done; // Ö¡Ğ´ÈëÖ¡ÄÚ×îºó1´Î´«ÊäÍê³É(Ö¸Ê¾)
-    reg frame_buf_wen_reg; // Ö¡»º³åÇøĞ´Ê¹ÄÜ
-    // Ö¡Ğ´Èë´«ÊäÊÂÎñfifo
+    /** AXIä¸»æœºçš„AWé€šé“ **/
+    wire wt_frame_last_trans; // å¸§å†™å…¥å¸§å†…æœ€å1æ¬¡ä¼ è¾“(æ ‡å¿—)
+    reg[clogb2(frame_dwords_n):0] wt_frame_remaining_trans_n; // å¸§å†™å…¥å¸§å†…å‰©ä½™ä¼ è¾“æ¬¡æ•°
+    reg[clogb2(baseaddr_of_last_frame):0] wt_frame_baseaddr; // å¸§å†™å…¥é¦–åœ°å€
+    reg[clogb2(frame_size-1):0] wt_frame_ofsaddr; // å¸§å†™å…¥åç§»åœ°å€
+    reg wt_frame_last_trans_running; // å¸§å†™å…¥å¸§å†…æœ€å1æ¬¡ä¼ è¾“è¿›è¡Œä¸­(æ ‡å¿—)
+    wire wt_frame_last_trans_done; // å¸§å†™å…¥å¸§å†…æœ€å1æ¬¡ä¼ è¾“å®Œæˆ(æŒ‡ç¤º)
+    reg frame_buf_wen_reg; // å¸§ç¼“å†²åŒºå†™ä½¿èƒ½
+    // å¸§å†™å…¥ä¼ è¾“äº‹åŠ¡fifo
     wire wt_frame_trans_fifo_wen;
-    wire wt_frame_trans_fifo_din; // µ±Ç°ÊÇ·ñÖ¡ÄÚ×îºó1´Î´«Êä
+    wire wt_frame_trans_fifo_din; // å½“å‰æ˜¯å¦å¸§å†…æœ€å1æ¬¡ä¼ è¾“
     wire wt_frame_trans_fifo_full;
-    // ¶ÏÑÔ:Ö¡Ğ´Èë´«ÊäÊÂÎñfifo¶ÁÊ¹ÄÜÓĞĞ§Ê±fifo±Ø¶¨·Ç¿Õ!
+    // æ–­è¨€:å¸§å†™å…¥ä¼ è¾“äº‹åŠ¡fifoè¯»ä½¿èƒ½æœ‰æ•ˆæ—¶fifoå¿…å®šéç©º!
     wire wt_frame_trans_fifo_ren;
-    wire wt_frame_trans_fifo_dout; // µ±Ç°ÊÇ·ñÖ¡ÄÚ×îºó1´Î´«Êä
+    wire wt_frame_trans_fifo_dout; // å½“å‰æ˜¯å¦å¸§å†…æœ€å1æ¬¡ä¼ è¾“
     
     assign m_axi_awaddr = wt_frame_baseaddr + wt_frame_ofsaddr;
     assign m_axi_awburst = 2'b01;
     assign m_axi_awlen = (wt_frame_last_trans ? wt_frame_remaining_trans_n:axi_wchn_max_burst_len) - 8'd1;
     assign m_axi_awsize = 3'b010;
-    // AWÍ¨µÀÎÕÊÖÌõ¼ş:  (~wt_frame_trans_fifo_full) & (~wt_frame_last_trans_running) & (~wburst_buffer_empty) & m_axi_awready
-    // ½öµ±Ğ´Êı¾İ»º´æÇø·Ç¿ÕÊ±²úÉúÓĞĞ§µÄĞ´µØÖ·!
+    // AWé€šé“æ¡æ‰‹æ¡ä»¶:  (~wt_frame_trans_fifo_full) & (~wt_frame_last_trans_running) & (~wburst_buffer_empty) & m_axi_awready
+    // ä»…å½“å†™æ•°æ®ç¼“å­˜åŒºéç©ºæ—¶äº§ç”Ÿæœ‰æ•ˆçš„å†™åœ°å€!
     assign m_axi_awvalid = (~wt_frame_trans_fifo_full) & (~wt_frame_last_trans_running) & (~wburst_buffer_empty);
     
     assign frame_buf_wen = frame_buf_wen_reg;
@@ -568,7 +592,7 @@ module axi_frame_buffer_core #(
     assign wt_frame_trans_fifo_ren = m_axi_bvalid & m_axi_bready;
     assign wt_frame_last_trans_done = wt_frame_trans_fifo_ren & wt_frame_trans_fifo_dout;
     
-    // Ö¡Ğ´ÈëÖ¡ÄÚÊ£Óà´«Êä´ÎÊı
+    // å¸§å†™å…¥å¸§å†…å‰©ä½™ä¼ è¾“æ¬¡æ•°
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -576,7 +600,7 @@ module axi_frame_buffer_core #(
         else if(m_axi_awvalid & m_axi_awready)
             # simulation_delay wt_frame_remaining_trans_n <= wt_frame_last_trans ? frame_dwords_n:(wt_frame_remaining_trans_n - axi_wchn_max_burst_len);
     end
-    // Ö¡Ğ´ÈëÊ×µØÖ·
+    // å¸§å†™å…¥é¦–åœ°å€
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -584,7 +608,7 @@ module axi_frame_buffer_core #(
         else if(frame_buf_wen & (~frame_buf_full))
             # simulation_delay wt_frame_baseaddr <= frame_buf_wptr[frame_n-1] ? frame_buffer_baseaddr:(wt_frame_baseaddr + frame_size);
     end
-    // Ö¡Ğ´ÈëÆ«ÒÆµØÖ·
+    // å¸§å†™å…¥åç§»åœ°å€
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -593,7 +617,7 @@ module axi_frame_buffer_core #(
             # simulation_delay wt_frame_ofsaddr <= wt_frame_last_trans ? 0:(wt_frame_ofsaddr + axi_wchn_max_burst_len * 4);
     end
     
-    // Ö¡Ğ´ÈëÖ¡ÄÚ×îºó1´Î´«Êä½øĞĞÖĞ(±êÖ¾)
+    // å¸§å†™å…¥å¸§å†…æœ€å1æ¬¡ä¼ è¾“è¿›è¡Œä¸­(æ ‡å¿—)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -603,16 +627,16 @@ module axi_frame_buffer_core #(
                 (m_axi_awvalid & m_axi_awready & wt_frame_last_trans);
     end
     
-    // Ö¡»º³åÇøĞ´Ê¹ÄÜ
+    // å¸§ç¼“å†²åŒºå†™ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
             frame_buf_wen_reg <= 1'b0;
-        else // Ö¡»º³åÇøĞ´Ê¹ÄÜ±£³ÖÓĞĞ§Ö±µ½Ö¡»º³åÇø·ÇÂú!
+        else // å¸§ç¼“å†²åŒºå†™ä½¿èƒ½ä¿æŒæœ‰æ•ˆç›´åˆ°å¸§ç¼“å†²åŒºéæ»¡!
             # simulation_delay frame_buf_wen_reg <= frame_buf_wen_reg ? frame_buf_full:wt_frame_last_trans_done;
     end
     
-    /** Ö¡Ğ´Èë´«ÊäÊÂÎñfifo **/
+    /** å¸§å†™å…¥ä¼ è¾“äº‹åŠ¡fifo **/
     rw_frame_trans_fifo #(
         .axi_rwaddr_outstanding(axi_waddr_outstanding),
         .simulation_delay(simulation_delay)
@@ -629,7 +653,7 @@ module axi_frame_buffer_core #(
         .rw_frame_trans_fifo_dout(wt_frame_trans_fifo_dout)
     );
     
-    /** AXIÖ÷»úµÄBÍ¨µÀ **/
+    /** AXIä¸»æœºçš„Bé€šé“ **/
     assign m_axi_bready = 1'b1;
     
 endmodule

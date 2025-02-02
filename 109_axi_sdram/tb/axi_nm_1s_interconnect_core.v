@@ -1,38 +1,62 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXI¶àÖ÷Ò»´Ó×ÜÏß»¥Áª(ºËĞÄ)
+æœ¬æ¨¡å—: AXIå¤šä¸»ä¸€ä»æ€»çº¿äº’è”(æ ¸å¿ƒ)
 
-ÃèÊö: 
-Ö§³Ö¶à´ï8¸öAXIÖ÷»ú
-²ÉÓÃRound-RobinÖÙ²ÃËã·¨
+æè¿°: 
+æ”¯æŒå¤šè¾¾8ä¸ªAXIä¸»æœº
+é‡‡ç”¨Round-Robinä»²è£ç®—æ³•
 
-×¢Òâ£º
-ÒÔÏÂ·Ç¼Ä´æÆ÷Êä³ö ->
-    ´Ó»úRÍ¨µÀ: sx_axi_rvalid
-    ´Ó»úWÍ¨µÀ: sx_axi_wready
-    ´Ó»úBÍ¨µÀ: sx_axi_bvalid
-    Ö÷»úRÍ¨µÀ: m_axi_rready
-    Ö÷»úWÍ¨µÀ: m_axi_wdata, m_axi_wstrb, m_axi_wlast, m_axi_wvalid
-    Ö÷»úBÍ¨µÀ: m_axi_bready
+æ³¨æ„ï¼š
+ä»¥ä¸‹éå¯„å­˜å™¨è¾“å‡º ->
+    ä»æœºRé€šé“: sx_axi_rvalid
+    ä»æœºWé€šé“: sx_axi_wready
+    ä»æœºBé€šé“: sx_axi_bvalid
+    ä¸»æœºRé€šé“: m_axi_rready
+    ä¸»æœºWé€šé“: m_axi_wdata, m_axi_wstrb, m_axi_wlast, m_axi_wvalid
+    ä¸»æœºBé€šé“: m_axi_bready
 
-Ğ­Òé:
+åè®®:
 AXI MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/28
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/28
 ********************************************************************/
 
 
 module axi_nm_1s_interconnect_core #(
-    parameter integer master_n = 3, // Ö÷»ú¸öÊı(±ØĞëÔÚ·¶Î§[2, 8]ÄÚ)
-    parameter integer arb_itv = 2, // ÖÙ²Ã¼ä¸ôÖÜÆÚÊı(±ØĞëÔÚ·¶Î§[2, 16]ÄÚ)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer master_n = 3, // ä¸»æœºä¸ªæ•°(å¿…é¡»åœ¨èŒƒå›´[2, 8]å†…)
+    parameter integer arb_itv = 2, // ä»²è£é—´éš”å‘¨æœŸæ•°(å¿…é¡»åœ¨èŒƒå›´[2, 16]å†…)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // 0ºÅAXI´Ó»ú
+    // 0å·AXIä»æœº
     // AR
     input wire[31:0] s0_axi_araddr,
     input wire[1:0] s0_axi_arburst,
@@ -70,7 +94,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s0_axi_bvalid,
     input wire s0_axi_bready,
     
-    // 1ºÅAXI´Ó»ú
+    // 1å·AXIä»æœº
     // AR
     input wire[31:0] s1_axi_araddr,
     input wire[1:0] s1_axi_arburst,
@@ -108,7 +132,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s1_axi_bvalid,
     input wire s1_axi_bready,
     
-    // 2ºÅAXI´Ó»ú
+    // 2å·AXIä»æœº
     // AR
     input wire[31:0] s2_axi_araddr,
     input wire[1:0] s2_axi_arburst,
@@ -146,7 +170,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s2_axi_bvalid,
     input wire s2_axi_bready,
     
-    // 3ºÅAXI´Ó»ú
+    // 3å·AXIä»æœº
     // AR
     input wire[31:0] s3_axi_araddr,
     input wire[1:0] s3_axi_arburst,
@@ -184,7 +208,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s3_axi_bvalid,
     input wire s3_axi_bready,
     
-    // 4ºÅAXI´Ó»ú
+    // 4å·AXIä»æœº
     // AR
     input wire[31:0] s4_axi_araddr,
     input wire[1:0] s4_axi_arburst,
@@ -222,7 +246,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s4_axi_bvalid,
     input wire s4_axi_bready,
     
-    // 5ºÅAXI´Ó»ú
+    // 5å·AXIä»æœº
     // AR
     input wire[31:0] s5_axi_araddr,
     input wire[1:0] s5_axi_arburst,
@@ -260,7 +284,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s5_axi_bvalid,
     input wire s5_axi_bready,
     
-    // 6ºÅAXI´Ó»ú
+    // 6å·AXIä»æœº
     // AR
     input wire[31:0] s6_axi_araddr,
     input wire[1:0] s6_axi_arburst,
@@ -298,7 +322,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s6_axi_bvalid,
     input wire s6_axi_bready,
     
-    // 7ºÅAXI´Ó»ú
+    // 7å·AXIä»æœº
     // AR
     input wire[31:0] s7_axi_araddr,
     input wire[1:0] s7_axi_arburst,
@@ -336,7 +360,7 @@ module axi_nm_1s_interconnect_core #(
     output wire s7_axi_bvalid,
     input wire s7_axi_bready,
     
-    // AXIÖ÷»ú
+    // AXIä¸»æœº
     // AR
     output wire[31:0] m_axi_araddr,
     output wire[1:0] m_axi_arburst,
@@ -379,7 +403,7 @@ module axi_nm_1s_interconnect_core #(
     output wire m_axi_bready
 );
     
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -389,31 +413,31 @@ module axi_nm_1s_interconnect_core #(
     end
     endfunction
     
-    /** ³£Á¿ **/
-    // ÏìÓ¦ÀàĞÍ
+    /** å¸¸é‡ **/
+    // å“åº”ç±»å‹
     localparam RESP_OKAY = 2'b00;
     localparam RESP_EXOKAY = 2'b01;
     localparam RESP_SLVERR = 2'b10;
     localparam RESP_DECERR = 2'b11;
     
-    /** AXI¶ÁµØÖ·/¶ÁÊı¾İÍ¨µÀ **/
-    // AXI¶ÁÍ¨µÀ
-    wire[52:0] s_ar_payload[7:0]; // ´Ó»úARÍ¨µÀµÄ¸ºÔØ
-    wire[7:0] s_ar_valid; // ´Ó»úARÍ¨µÀµÄvalidĞÅºÅ
-    wire[7:0] s_ar_ready; // ´Ó»úARÍ¨µÀµÄreadyĞÅºÅ
-    wire[7:0] s_r_valid; // ´Ó»úRÍ¨µÀµÄvalidĞÅºÅ
-    wire[7:0] s_r_ready; // ´Ó»úRÍ¨µÀµÄreadyĞÅºÅ
-    wire[52:0] m_ar_payload; // Ö÷»úARÍ¨µÀµÄ¸ºÔØ
-    // ARÍ¨µÀÊÚÈ¨Ö÷»ú±àºÅfifoĞ´¶Ë¿Ú
+    /** AXIè¯»åœ°å€/è¯»æ•°æ®é€šé“ **/
+    // AXIè¯»é€šé“
+    wire[52:0] s_ar_payload[7:0]; // ä»æœºARé€šé“çš„è´Ÿè½½
+    wire[7:0] s_ar_valid; // ä»æœºARé€šé“çš„validä¿¡å·
+    wire[7:0] s_ar_ready; // ä»æœºARé€šé“çš„readyä¿¡å·
+    wire[7:0] s_r_valid; // ä»æœºRé€šé“çš„validä¿¡å·
+    wire[7:0] s_r_ready; // ä»æœºRé€šé“çš„readyä¿¡å·
+    wire[52:0] m_ar_payload; // ä¸»æœºARé€šé“çš„è´Ÿè½½
+    // ARé€šé“æˆæƒä¸»æœºç¼–å·fifoå†™ç«¯å£
     wire ar_grant_mid_fifo_wen;
     wire ar_grant_mid_fifo_full_n;
-    wire[master_n-1:0] ar_grant_mid_fifo_din_onehot; // ¶ÀÈÈÂë±àºÅ
-    // ARÍ¨µÀÊÚÈ¨Ö÷»ú±àºÅfifo¶Á¶Ë¿Ú
+    wire[master_n-1:0] ar_grant_mid_fifo_din_onehot; // ç‹¬çƒ­ç ç¼–å·
+    // ARé€šé“æˆæƒä¸»æœºç¼–å·fifoè¯»ç«¯å£
     wire ar_grant_mid_fifo_ren;
     wire ar_grant_mid_fifo_empty_n;
     wire[master_n-1:0] ar_grant_mid_fifo_dout_onehot;
     
-    // ´Ó»úARÍ¨µÀµÄ¸ºÔØ
+    // ä»æœºARé€šé“çš„è´Ÿè½½
     assign s_ar_payload[0] = {s0_axi_araddr, s0_axi_arburst, s0_axi_arcache, s0_axi_arlen, s0_axi_arlock, s0_axi_arprot, s0_axi_arsize};
     assign s_ar_payload[1] = {s1_axi_araddr, s1_axi_arburst, s1_axi_arcache, s1_axi_arlen, s1_axi_arlock, s1_axi_arprot, s1_axi_arsize};
     assign s_ar_payload[2] = {s2_axi_araddr, s2_axi_arburst, s2_axi_arcache, s2_axi_arlen, s2_axi_arlock, s2_axi_arprot, s2_axi_arsize};
@@ -422,13 +446,13 @@ module axi_nm_1s_interconnect_core #(
     assign s_ar_payload[5] = {s5_axi_araddr, s5_axi_arburst, s5_axi_arcache, s5_axi_arlen, s5_axi_arlock, s5_axi_arprot, s5_axi_arsize};
     assign s_ar_payload[6] = {s6_axi_araddr, s6_axi_arburst, s6_axi_arcache, s6_axi_arlen, s6_axi_arlock, s6_axi_arprot, s6_axi_arsize};
     assign s_ar_payload[7] = {s7_axi_araddr, s7_axi_arburst, s7_axi_arcache, s7_axi_arlen, s7_axi_arlock, s7_axi_arprot, s7_axi_arsize};
-    // ´Ó»úARÍ¨µÀµÄvalidĞÅºÅ
+    // ä»æœºARé€šé“çš„validä¿¡å·
     assign s_ar_valid = {s7_axi_arvalid, s6_axi_arvalid, s5_axi_arvalid, s4_axi_arvalid, 
         s3_axi_arvalid, s2_axi_arvalid, s1_axi_arvalid, s0_axi_arvalid};
-    // ´Ó»úARÍ¨µÀµÄreadyĞÅºÅ
+    // ä»æœºARé€šé“çš„readyä¿¡å·
     assign {s7_axi_arready, s6_axi_arready, s5_axi_arready, s4_axi_arready, 
         s3_axi_arready, s2_axi_arready, s1_axi_arready, s0_axi_arready} = s_ar_ready;
-    // ´Ó»úRÍ¨µÀµÄ¸ºÔØ
+    // ä»æœºRé€šé“çš„è´Ÿè½½
     assign {s0_axi_rdata, s0_axi_rresp, s0_axi_rlast} = {m_axi_rdata, m_axi_rresp, m_axi_rlast};
     assign {s1_axi_rdata, s1_axi_rresp, s1_axi_rlast} = {m_axi_rdata, (master_n >= 2) ? m_axi_rresp:RESP_DECERR, m_axi_rlast};
     assign {s2_axi_rdata, s2_axi_rresp, s2_axi_rlast} = {m_axi_rdata, (master_n >= 3) ? m_axi_rresp:RESP_DECERR, m_axi_rlast};
@@ -437,17 +461,17 @@ module axi_nm_1s_interconnect_core #(
     assign {s5_axi_rdata, s5_axi_rresp, s5_axi_rlast} = {m_axi_rdata, (master_n >= 6) ? m_axi_rresp:RESP_DECERR, m_axi_rlast};
     assign {s6_axi_rdata, s6_axi_rresp, s6_axi_rlast} = {m_axi_rdata, (master_n >= 7) ? m_axi_rresp:RESP_DECERR, m_axi_rlast};
     assign {s7_axi_rdata, s7_axi_rresp, s7_axi_rlast} = {m_axi_rdata, (master_n >= 8) ? m_axi_rresp:RESP_DECERR, m_axi_rlast};
-    // ´Ó»úRÍ¨µÀµÄvalidĞÅºÅ
+    // ä»æœºRé€šé“çš„validä¿¡å·
     assign {s7_axi_rvalid, s6_axi_rvalid, s5_axi_rvalid, s4_axi_rvalid, 
         s3_axi_rvalid, s2_axi_rvalid, s1_axi_rvalid, s0_axi_rvalid} = s_r_valid;
-    // ´Ó»úRÍ¨µÀµÄreadyĞÅºÅ
+    // ä»æœºRé€šé“çš„readyä¿¡å·
     assign s_r_ready = {s7_axi_rready, s6_axi_rready, s5_axi_rready, s4_axi_rready, 
         s3_axi_rready, s2_axi_rready, s1_axi_rready, s0_axi_rready};
-    // Ö÷»úARÍ¨µÀµÄ¸ºÔØ
+    // ä¸»æœºARé€šé“çš„è´Ÿè½½
     assign {m_axi_araddr, m_axi_arburst, m_axi_arcache, m_axi_arlen, m_axi_arlock, m_axi_arprot, m_axi_arsize} = m_ar_payload;
     
-    /** AXI¶ÁÍ¨µÀÖÙ²ÃÓëÂ·ÓÉ **/
-    // AXI¶ÁµØÖ·Í¨µÀÖÙ²Ã
+    /** AXIè¯»é€šé“ä»²è£ä¸è·¯ç”± **/
+    // AXIè¯»åœ°å€é€šé“ä»²è£
     axi_arbitrator #(
         .master_n(master_n),
         .arb_itv(arb_itv),
@@ -478,7 +502,7 @@ module axi_nm_1s_interconnect_core #(
         .grant_mid_fifo_din_bin()
     );
     
-    // AXI¶ÁÊı¾İÍ¨µÀÂ·ÓÉ
+    // AXIè¯»æ•°æ®é€šé“è·¯ç”±
     axi_rchn_router #(
         .master_n(master_n),
         .simulation_delay(simulation_delay)
@@ -498,7 +522,7 @@ module axi_nm_1s_interconnect_core #(
         .grant_mid_fifo_dout_onehot(ar_grant_mid_fifo_dout_onehot)
     );
     
-    // ARÍ¨µÀÊÚÈ¨Ö÷»ú±àºÅfifo
+    // ARé€šé“æˆæƒä¸»æœºç¼–å·fifo
     fifo_based_on_regs #(
         .fwft_mode("true"),
         .fifo_depth(4),
@@ -519,31 +543,31 @@ module axi_nm_1s_interconnect_core #(
         .fifo_empty_n(ar_grant_mid_fifo_empty_n)
     );
     
-    /** AXIĞ´µØÖ·/Ğ´Êı¾İ/Ğ´ÏìÓ¦Í¨µÀ **/
-    // AXIĞ´Í¨µÀ
-    wire[52:0] s_aw_payload[7:0]; // ´Ó»úAWÍ¨µÀµÄ¸ºÔØ
-    wire[7:0] s_aw_valid; // ´Ó»úAWÍ¨µÀµÄvalidĞÅºÅ
-    wire[7:0] s_aw_ready; // ´Ó»úAWÍ¨µÀµÄreadyĞÅºÅ
-    wire[35:0] s_w_payload[7:0]; // ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    wire[7:0] s_w_last; // ´Ó»úWÍ¨µÀµÄlastĞÅºÅ
-    wire[7:0] s_w_valid; // ´Ó»úWÍ¨µÀµÄvalidĞÅºÅ
-    wire[7:0] s_w_ready; // ´Ó»úWÍ¨µÀµÄreadyĞÅºÅ
-    wire[7:0] s_b_valid; // ´Ó»úBÍ¨µÀµÄvalidĞÅºÅ
-    wire[7:0] s_b_ready; // ´Ó»úBÍ¨µÀµÄreadyĞÅºÅ
-    wire[52:0] m_aw_payload; // Ö÷»úAWÍ¨µÀµÄ¸ºÔØ
-    wire[35:0] m_w_payload; // Ö÷»úWÍ¨µÀµÄ¸ºÔØ
-    // AWÍ¨µÀÊÚÈ¨Ö÷»ú±àºÅfifoĞ´¶Ë¿Ú
+    /** AXIå†™åœ°å€/å†™æ•°æ®/å†™å“åº”é€šé“ **/
+    // AXIå†™é€šé“
+    wire[52:0] s_aw_payload[7:0]; // ä»æœºAWé€šé“çš„è´Ÿè½½
+    wire[7:0] s_aw_valid; // ä»æœºAWé€šé“çš„validä¿¡å·
+    wire[7:0] s_aw_ready; // ä»æœºAWé€šé“çš„readyä¿¡å·
+    wire[35:0] s_w_payload[7:0]; // ä»æœºWé€šé“çš„è´Ÿè½½
+    wire[7:0] s_w_last; // ä»æœºWé€šé“çš„lastä¿¡å·
+    wire[7:0] s_w_valid; // ä»æœºWé€šé“çš„validä¿¡å·
+    wire[7:0] s_w_ready; // ä»æœºWé€šé“çš„readyä¿¡å·
+    wire[7:0] s_b_valid; // ä»æœºBé€šé“çš„validä¿¡å·
+    wire[7:0] s_b_ready; // ä»æœºBé€šé“çš„readyä¿¡å·
+    wire[52:0] m_aw_payload; // ä¸»æœºAWé€šé“çš„è´Ÿè½½
+    wire[35:0] m_w_payload; // ä¸»æœºWé€šé“çš„è´Ÿè½½
+    // AWé€šé“æˆæƒä¸»æœºç¼–å·fifoå†™ç«¯å£
     wire aw_grant_mid_fifo_wen;
     wire aw_grant_mid_fifo_full_n;
-    wire[master_n-1:0] aw_grant_mid_fifo_din_onehot; // ¶ÀÈÈÂë±àºÅ
-    wire[clogb2(master_n-1):0] aw_grant_mid_fifo_din_bin; // ¶ş½øÖÆÂë±àºÅ
-    // AWÍ¨µÀÊÚÈ¨Ö÷»ú±àºÅfifo¶Á¶Ë¿Ú
+    wire[master_n-1:0] aw_grant_mid_fifo_din_onehot; // ç‹¬çƒ­ç ç¼–å·
+    wire[clogb2(master_n-1):0] aw_grant_mid_fifo_din_bin; // äºŒè¿›åˆ¶ç ç¼–å·
+    // AWé€šé“æˆæƒä¸»æœºç¼–å·fifoè¯»ç«¯å£
     wire aw_grant_mid_fifo_ren;
     wire aw_grant_mid_fifo_empty_n;
-    wire[master_n-1:0] aw_grant_mid_fifo_dout_onehot; // ¶ÀÈÈÂë±àºÅ
-    wire[clogb2(master_n-1):0] aw_grant_mid_fifo_dout_bin; // ¶ş½øÖÆÂë±àºÅ
+    wire[master_n-1:0] aw_grant_mid_fifo_dout_onehot; // ç‹¬çƒ­ç ç¼–å·
+    wire[clogb2(master_n-1):0] aw_grant_mid_fifo_dout_bin; // äºŒè¿›åˆ¶ç ç¼–å·
     
-    // ´Ó»úAWÍ¨µÀµÄ¸ºÔØ
+    // ä»æœºAWé€šé“çš„è´Ÿè½½
     assign s_aw_payload[0] = {s0_axi_awaddr, s0_axi_awburst, s0_axi_awcache, s0_axi_awlen, s0_axi_awlock, s0_axi_awprot, s0_axi_awsize};
     assign s_aw_payload[1] = {s1_axi_awaddr, s1_axi_awburst, s1_axi_awcache, s1_axi_awlen, s1_axi_awlock, s1_axi_awprot, s1_axi_awsize};
     assign s_aw_payload[2] = {s2_axi_awaddr, s2_axi_awburst, s2_axi_awcache, s2_axi_awlen, s2_axi_awlock, s2_axi_awprot, s2_axi_awsize};
@@ -552,13 +576,13 @@ module axi_nm_1s_interconnect_core #(
     assign s_aw_payload[5] = {s5_axi_awaddr, s5_axi_awburst, s5_axi_awcache, s5_axi_awlen, s5_axi_awlock, s5_axi_awprot, s5_axi_awsize};
     assign s_aw_payload[6] = {s6_axi_awaddr, s6_axi_awburst, s6_axi_awcache, s6_axi_awlen, s6_axi_awlock, s6_axi_awprot, s6_axi_awsize};
     assign s_aw_payload[7] = {s7_axi_awaddr, s7_axi_awburst, s7_axi_awcache, s7_axi_awlen, s7_axi_awlock, s7_axi_awprot, s7_axi_awsize};
-    // ´Ó»úAWÍ¨µÀµÄvalidĞÅºÅ
+    // ä»æœºAWé€šé“çš„validä¿¡å·
     assign s_aw_valid = {s7_axi_awvalid, s6_axi_awvalid, s5_axi_awvalid, s4_axi_awvalid, 
         s3_axi_awvalid, s2_axi_awvalid, s1_axi_awvalid, s0_axi_awvalid};
-    // ´Ó»úAWÍ¨µÀµÄreadyĞÅºÅ
+    // ä»æœºAWé€šé“çš„readyä¿¡å·
     assign {s7_axi_awready, s6_axi_awready, s5_axi_awready, s4_axi_awready, 
         s3_axi_awready, s2_axi_awready, s1_axi_awready, s0_axi_awready} = s_aw_ready;
-    // ´Ó»úWÍ¨µÀµÄ¸ºÔØ
+    // ä»æœºWé€šé“çš„è´Ÿè½½
     assign s_w_payload[0] = {s0_axi_wdata, s0_axi_wstrb};
     assign s_w_payload[1] = {s1_axi_wdata, s1_axi_wstrb};
     assign s_w_payload[2] = {s2_axi_wdata, s2_axi_wstrb};
@@ -567,16 +591,16 @@ module axi_nm_1s_interconnect_core #(
     assign s_w_payload[5] = {s5_axi_wdata, s5_axi_wstrb};
     assign s_w_payload[6] = {s6_axi_wdata, s6_axi_wstrb};
     assign s_w_payload[7] = {s7_axi_wdata, s7_axi_wstrb};
-    // ´Ó»úWÍ¨µÀµÄlastĞÅºÅ
+    // ä»æœºWé€šé“çš„lastä¿¡å·
     assign s_w_last = {s7_axi_wlast, s6_axi_wlast, s5_axi_wlast, s4_axi_wlast,
         s3_axi_wlast, s2_axi_wlast, s1_axi_wlast, s0_axi_wlast};
-    // ´Ó»úWÍ¨µÀµÄvalidĞÅºÅ
+    // ä»æœºWé€šé“çš„validä¿¡å·
     assign s_w_valid = {s7_axi_wvalid, s6_axi_wvalid, s5_axi_wvalid, s4_axi_wvalid,
         s3_axi_wvalid, s2_axi_wvalid, s1_axi_wvalid, s0_axi_wvalid};
-    // ´Ó»úWÍ¨µÀµÄreadyĞÅºÅ
+    // ä»æœºWé€šé“çš„readyä¿¡å·
     assign {s7_axi_wready, s6_axi_wready, s5_axi_wready, s4_axi_wready,
         s3_axi_wready, s2_axi_wready, s1_axi_wready, s0_axi_wready} = s_w_ready;
-    // ´Ó»úBÍ¨µÀµÄ¸ºÔØ
+    // ä»æœºBé€šé“çš„è´Ÿè½½
     assign s0_axi_bresp = m_axi_bresp;
     assign s1_axi_bresp = (master_n >= 2) ? m_axi_bresp:RESP_DECERR;
     assign s2_axi_bresp = (master_n >= 3) ? m_axi_bresp:RESP_DECERR;
@@ -585,19 +609,19 @@ module axi_nm_1s_interconnect_core #(
     assign s5_axi_bresp = (master_n >= 6) ? m_axi_bresp:RESP_DECERR;
     assign s6_axi_bresp = (master_n >= 7) ? m_axi_bresp:RESP_DECERR;
     assign s7_axi_bresp = (master_n >= 8) ? m_axi_bresp:RESP_DECERR;
-    // ´Ó»úBÍ¨µÀµÄvalidĞÅºÅ
+    // ä»æœºBé€šé“çš„validä¿¡å·
     assign {s7_axi_bvalid, s6_axi_bvalid, s5_axi_bvalid, s4_axi_bvalid, 
         s3_axi_bvalid, s2_axi_bvalid, s1_axi_bvalid, s0_axi_bvalid} = s_b_valid;
-    // ´Ó»úBÍ¨µÀµÄreadyĞÅºÅ
+    // ä»æœºBé€šé“çš„readyä¿¡å·
     assign s_b_ready = {s7_axi_bready, s6_axi_bready, s5_axi_bready, s4_axi_bready, 
         s3_axi_bready, s2_axi_bready, s1_axi_bready, s0_axi_bready};
-    // Ö÷»úAWÍ¨µÀµÄ¸ºÔØ
+    // ä¸»æœºAWé€šé“çš„è´Ÿè½½
     assign {m_axi_awaddr, m_axi_awburst, m_axi_awcache, m_axi_awlen, m_axi_awlock, m_axi_awprot, m_axi_awsize} = m_aw_payload;
-    // Ö÷»úWÍ¨µÀµÄ¸ºÔØ
+    // ä¸»æœºWé€šé“çš„è´Ÿè½½
     assign {m_axi_wdata, m_axi_wstrb} = m_w_payload;
     
-    /** AXIĞ´Í¨µÀÖÙ²ÃÓëÂ·ÓÉ **/
-    // AXIĞ´µØÖ·Í¨µÀÖÙ²Ã
+    /** AXIå†™é€šé“ä»²è£ä¸è·¯ç”± **/
+    // AXIå†™åœ°å€é€šé“ä»²è£
     axi_arbitrator #(
         .master_n(master_n),
         .arb_itv(arb_itv),
@@ -628,7 +652,7 @@ module axi_nm_1s_interconnect_core #(
         .grant_mid_fifo_din_bin(aw_grant_mid_fifo_din_bin)
     );
     
-    // AXIĞ´Êı¾İ/Ğ´ÏìÓ¦Í¨µÀÂ·ÓÉ
+    // AXIå†™æ•°æ®/å†™å“åº”é€šé“è·¯ç”±
     axi_wchn_router #(
         .master_n(master_n),
         .simulation_delay(simulation_delay)
@@ -663,7 +687,7 @@ module axi_nm_1s_interconnect_core #(
         .grant_mid_fifo_dout_bin(aw_grant_mid_fifo_dout_bin)
     );
     
-    // AWÍ¨µÀÊÚÈ¨Ö÷»ú±àºÅfifo
+    // AWé€šé“æˆæƒä¸»æœºç¼–å·fifo
     fifo_based_on_regs #(
         .fwft_mode("true"),
         .fifo_depth(4),

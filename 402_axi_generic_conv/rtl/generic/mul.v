@@ -1,40 +1,64 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ³Ë·¨Æ÷DSPµ¥Ôª
+æœ¬æ¨¡å—: ä¹˜æ³•å™¨DSPå•å…ƒ
 
-ÃèÊö:
-ÓĞ·ûºÅ³Ë¼ÓÆ÷: mul_out = op_a * op_b
-Ê±ÑÓ = 1clk
+æè¿°:
+æœ‰ç¬¦å·ä¹˜åŠ å™¨: mul_out = op_a * op_b
+æ—¶å»¶ = 1clk
 
-×¢Òâ£º
-¶ÔÓÚxilinxÏµÁĞFPGA, 1¸öDSPµ¥Ôª¿ÉÒÔÍê³É¼ÆËã:
+æ³¨æ„ï¼š
+å¯¹äºxilinxç³»åˆ—FPGA, 1ä¸ªDSPå•å…ƒå¯ä»¥å®Œæˆè®¡ç®—:
 	P[42:0] = A[24:0] * B[17:0]
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/11/06
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/11/06
 ********************************************************************/
 
 
 module mul #(
-	parameter integer op_a_width = 16, // ²Ù×÷ÊıAÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer op_b_width = 16, // ²Ù×÷ÊıBÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter integer output_width = 32, // Êä³öÎ»¿í(º¬1Î»·ûºÅÎ»)
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer op_a_width = 16, // æ“ä½œæ•°Aä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer op_b_width = 16, // æ“ä½œæ•°Bä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter integer output_width = 32, // è¾“å‡ºä½å®½(å«1ä½ç¬¦å·ä½)
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓ
+    // æ—¶é’Ÿ
 	input wire clk,
 	
-	// Ê¹ÄÜ
+	// ä½¿èƒ½
 	input wire ce_s0_mul,
 	
-	// ³Ë¼ÓÆ÷ÊäÈë
+	// ä¹˜åŠ å™¨è¾“å…¥
 	input wire signed[op_a_width-1:0] op_a,
 	input wire signed[op_b_width-1:0] op_b,
 	
-	// ³Ë¼ÓÆ÷Êä³ö
+	// ä¹˜åŠ å™¨è¾“å‡º
 	output wire signed[output_width-1:0] res
 );
     

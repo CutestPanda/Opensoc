@@ -1,30 +1,54 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: Òì²½fifo
+æœ¬æ¨¡å—: å¼‚æ­¥fifo
 
-ÃèÊö: 
-Ê¹ÓÃ¼òµ¥Ë«¿ÚRAM×÷Îªfifo´æ´¢Æ÷
-Ö§³Öfirst word fall throughÌØĞÔ(READ LA = 0)
+æè¿°: 
+ä½¿ç”¨ç®€å•åŒå£RAMä½œä¸ºfifoå­˜å‚¨å™¨
+æ”¯æŒfirst word fall throughç‰¹æ€§(READ LA = 0)
 
-×¢Òâ£º
-½öÖ§³ÖRAMµÄ¶ÁÑÓ³Ù=1
+æ³¨æ„ï¼š
+ä»…æ”¯æŒRAMçš„è¯»å»¶è¿Ÿ=1
 
-Ğ­Òé:
+åè®®:
 FIFO READ/WRITE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/05/10
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/05/10
 ********************************************************************/
 
 
 module async_fifo_with_ram #(
-    parameter fwft_mode = "true", // ÊÇ·ñÆôÓÃfirst word fall throughÌØĞÔ
-    parameter ram_type = "lutram", // RAMÀàĞÍ(lutram | bram)
-    parameter integer depth = 32, // fifoÉî¶È(16 | 32 | 64 | ...)
-    parameter integer data_width = 8, // Êı¾İÎ»¿í
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter fwft_mode = "true", // æ˜¯å¦å¯ç”¨first word fall throughç‰¹æ€§
+    parameter ram_type = "lutram", // RAMç±»å‹(lutram | bram)
+    parameter integer depth = 32, // fifoæ·±åº¦(16 | 32 | 64 | ...)
+    parameter integer data_width = 8, // æ•°æ®ä½å®½
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk_wt,
     input wire rst_n_wt,
     input wire clk_rd,
@@ -41,7 +65,7 @@ module async_fifo_with_ram #(
     output wire[data_width-1:0] fifo_dout
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -51,7 +75,7 @@ module async_fifo_with_ram #(
     end
     endfunction
     
-    /** Ö÷fifo¿ØÖÆÆ÷ **/
+    /** ä¸»fifoæ§åˆ¶å™¨ **/
     wire ram_clk_w;
     wire[clogb2(depth-1):0] ram_waddr;
     wire ram_wen;
@@ -60,7 +84,7 @@ module async_fifo_with_ram #(
     wire ram_ren;
     wire[clogb2(depth-1):0] ram_raddr;
     wire[data_width-1:0] ram_dout;
-    // Ö÷fifoĞ´¶Ë¿Ú
+    // ä¸»fifoå†™ç«¯å£
     wire m_fifo_ren;
     wire m_fifo_empty;
 	wire m_fifo_empty_n;
@@ -95,7 +119,7 @@ module async_fifo_with_ram #(
         .fifo_dout(m_fifo_dout)
     );
     
-    /** ¿ÉÑ¡µÄ´Ófifo **/
+    /** å¯é€‰çš„ä»fifo **/
     generate
         if(fwft_mode == "false")
         begin
@@ -125,7 +149,7 @@ module async_fifo_with_ram #(
         end
     endgenerate
     
-    /** ¼òµ¥Ë«¿ÚRAM **/
+    /** ç®€å•åŒå£RAM **/
     generate
         if(ram_type == "bram")
         begin

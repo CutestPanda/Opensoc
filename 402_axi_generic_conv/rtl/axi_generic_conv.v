@@ -1,127 +1,151 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIÍ¨ÓÃ¾í»ı¼ÆËãµ¥Ôª
+æœ¬æ¨¡å—: AXIé€šç”¨å·ç§¯è®¡ç®—å•å…ƒ
 
-ÃèÊö:
-Ö§³Ö¶àºË¶àÍ¨µÀ1x1/3x3¾í»ı
-Ö§³Öµ±¾í»ıºËÀàĞÍÎª3x3Ê±ÏòÉÏ/ÏÂ/×ó/ÓÒÌî³ä1ÏñËØ
-32Î»µØÖ·64Î»Êı¾İµÄAXIÖ÷»ú
+æè¿°:
+æ”¯æŒå¤šæ ¸å¤šé€šé“1x1/3x3å·ç§¯
+æ”¯æŒå½“å·ç§¯æ ¸ç±»å‹ä¸º3x3æ—¶å‘ä¸Š/ä¸‹/å·¦/å³å¡«å……1åƒç´ 
+32ä½åœ°å€64ä½æ•°æ®çš„AXIä¸»æœº
 
-ÌØÕ÷Í¼»º´æÇø´æ´¢Ë³Ğò ->
+ç‰¹å¾å›¾ç¼“å­˜åŒºå­˜å‚¨é¡ºåº ->
 	{
-		[x1y1, Í¨µÀ1] [x2y1, Í¨µÀ1] .... [xny1, Í¨µÀ1]
+		[x1y1, é€šé“1] [x2y1, é€šé“1] .... [xny1, é€šé“1]
 							:
 							:
-		[x1yn, Í¨µÀ1] [x2yn, Í¨µÀ1] .... [xnyn, Í¨µÀ1]
+		[x1yn, é€šé“1] [x2yn, é€šé“1] .... [xnyn, é€šé“1]
 	}
 	... ...
 	{
-		[x1y1, Í¨µÀn] [x2y1, Í¨µÀn] .... [xny1, Í¨µÀn]
+		[x1y1, é€šé“n] [x2y1, é€šé“n] .... [xny1, é€šé“n]
 							:
 							:
-		[x1yn, Í¨µÀn] [x2yn, Í¨µÀn] .... [xnyn, Í¨µÀn]
+		[x1yn, é€šé“n] [x2yn, é€šé“n] .... [xnyn, é€šé“n]
 	}
 
-¾í»ıºË»º´æÇø´æ´¢Ë³Ğò ->
-	[ºË1Í¨µÀ1] [ºË1Í¨µÀ2] .... [ºË1Í¨µÀn]
+å·ç§¯æ ¸ç¼“å­˜åŒºå­˜å‚¨é¡ºåº ->
+	[æ ¸1é€šé“1] [æ ¸1é€šé“2] .... [æ ¸1é€šé“n]
 	                :
 					:
-	[ºËmÍ¨µÀ1] [ºËmÍ¨µÀ2] .... [ºËmÍ¨µÀn]
+	[æ ¸mé€šé“1] [æ ¸mé€šé“2] .... [æ ¸mé€šé“n]
 
-ÏßĞÔ²ÎÊı»º´æÇø´æ´¢Ë³Ğò ->
-	[³ËÊı1, ¼ÓÊı1] [³ËÊı2, ¼ÓÊı2] ... [³ËÊım, ¼ÓÊım]
+çº¿æ€§å‚æ•°ç¼“å­˜åŒºå­˜å‚¨é¡ºåº ->
+	[ä¹˜æ•°1, åŠ æ•°1] [ä¹˜æ•°2, åŠ æ•°2] ... [ä¹˜æ•°m, åŠ æ•°m]
 
-×¢Òâ£º
-ÊäÈëÌØÕ÷Í¼Í¨µÀÊıÓ¦µ±µÈÓÚ¾í»ıºËÍ¨µÀÊı
-ÊäÈëÌØÕ÷Í¼»º´æ¸öÊı(in_feature_map_buffer_n)±ØĞë>=Í¨µÀ²¢ĞĞÊı(prl_chn_n)
-¾í»ıºË²ÎÊı»º´æ¸öÊı(kernal_pars_buffer_n)±ØĞë>=¾í»ıºË²¢ĞĞÊı(prl_kernal_n)
+æ³¨æ„ï¼š
+è¾“å…¥ç‰¹å¾å›¾é€šé“æ•°åº”å½“ç­‰äºå·ç§¯æ ¸é€šé“æ•°
+è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜ä¸ªæ•°(in_feature_map_buffer_n)å¿…é¡»>=é€šé“å¹¶è¡Œæ•°(prl_chn_n)
+å·ç§¯æ ¸å‚æ•°ç¼“å­˜ä¸ªæ•°(kernal_pars_buffer_n)å¿…é¡»>=å·ç§¯æ ¸å¹¶è¡Œæ•°(prl_kernal_n)
 
-Ğ­Òé:
+åè®®:
 AXI-Lite SLAVE
 AXI MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/12/28
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/12/28
 ********************************************************************/
 
 
 module axi_generic_conv #(
-	// ¶ÁÇëÇóÃèÊö×ÓDMAÅäÖÃ
-	parameter integer max_rd_req_n = 1024 * 1024, // ×î´óµÄ¶ÁÇëÇó¸öÊı
-	parameter integer axi_rd_req_dsc_rchn_max_burst_len = 8, // AXI¶ÁÍ¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-	parameter integer rd_req_dsc_buffer_depth = 512, // ¶ÁÇëÇóÃèÊö×ÓbufferÉî¶È(256 | 512 | 1024 | ...)
-	// Ğ´ÇëÇóÃèÊö×ÓDMAÅäÖÃ
-	parameter integer max_wt_req_n = 1024 * 1024, // ×î´óµÄĞ´ÇëÇó¸öÊı
-	parameter integer axi_wt_req_dsc_rchn_max_burst_len = 8, // AXI¶ÁÍ¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-	parameter integer wt_req_dsc_buffer_depth = 512, // Ğ´ÇëÇóÃèÊö×ÓbufferÉî¶È(256 | 512 | 1024 | ...)
-	// ÌØÕ÷Í¼Óë²ÎÊıÊäÈë/ÌØÕ÷Í¼Êä³öDMAÊÇ·ñÊ¹ÄÜ4KB±ß½ç±£»¤
+	// è¯»è¯·æ±‚æè¿°å­DMAé…ç½®
+	parameter integer max_rd_req_n = 1024 * 1024, // æœ€å¤§çš„è¯»è¯·æ±‚ä¸ªæ•°
+	parameter integer axi_rd_req_dsc_rchn_max_burst_len = 8, // AXIè¯»é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+	parameter integer rd_req_dsc_buffer_depth = 512, // è¯»è¯·æ±‚æè¿°å­bufferæ·±åº¦(256 | 512 | 1024 | ...)
+	// å†™è¯·æ±‚æè¿°å­DMAé…ç½®
+	parameter integer max_wt_req_n = 1024 * 1024, // æœ€å¤§çš„å†™è¯·æ±‚ä¸ªæ•°
+	parameter integer axi_wt_req_dsc_rchn_max_burst_len = 8, // AXIè¯»é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+	parameter integer wt_req_dsc_buffer_depth = 512, // å†™è¯·æ±‚æè¿°å­bufferæ·±åº¦(256 | 512 | 1024 | ...)
+	// ç‰¹å¾å›¾ä¸å‚æ•°è¾“å…¥/ç‰¹å¾å›¾è¾“å‡ºDMAæ˜¯å¦ä½¿èƒ½4KBè¾¹ç•Œä¿æŠ¤
 	parameter axi_conv_rw_chn_en_4KB_boundary_protection = "true", 
-	// ÌØÕ÷Í¼Óë²ÎÊıÊäÈëDMAÅäÖÃ
-	parameter integer conv_max_rd_btt = 65536, // ×î´óµÄ¶Á´«Êä×Ö½ÚÊı(256 | 512 | 1024 | ...)
-	parameter integer axi_conv_rchn_max_burst_len = 32, // AXI¶ÁÍ¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-	parameter integer axi_conv_raddr_outstanding = 4, // AXI¶ÁµØÖ·»º³åÉî¶È(1 | 2 | 4)
-	parameter integer axi_conv_rdata_buffer_depth = 512, // AXI¶ÁÊı¾İbufferÉî¶È(0 -> ²»ÆôÓÃ | 512 | 1024 | ...)
-	// ÌØÕ÷Í¼Êä³öDMAÅäÖÃ
-	parameter integer conv_max_wt_btt = 65536, // ×î´óµÄĞ´´«Êä×Ö½ÚÊı(256 | 512 | 1024 | ...)
-	parameter integer axi_conv_wchn_max_burst_len = 32, // AXIĞ´Í¨µÀ×î´óÍ»·¢³¤¶È(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
-	parameter integer axi_conv_waddr_outstanding = 4, // AXIĞ´µØÖ·»º³åÉî¶È(1 | 2 | 4)
-	parameter integer axi_conv_wdata_buffer_depth = 512, // AXIĞ´Êı¾İbufferÉî¶È(512 | 1024 | ...)
-	// ÌØÕ÷Í¼ºÍ²ÎÊı»º´æÇøÅäÖÃ
-	parameter integer in_feature_map_buffer_n = 8, // ÊäÈëÌØÕ÷Í¼»º´æ¸öÊı
-	parameter integer kernal_pars_buffer_n = 8, // ¾í»ıºË²ÎÊı»º´æ¸öÊı
-	parameter integer out_buffer_n = 8, // ¶àÍ¨µÀ¾í»ı½á¹û»º´æ¸öÊı
-	// ¼ÆËã½á¹ûÒç³ö´¦Àí
-	parameter en_res_amp_lmt = "true", // ÊÇ·ñÊ¹ÄÜ¼ÆËã½á¹ûÏŞ·ù
-	// ¾í»ı¼ÆËãÅäÖÃ
-	parameter en_use_dsp_for_conv_add_3 = "true", // ÊÇ·ñÊ¹ÓÃDSPÀ´ÊµÏÖ¾í»ı¼ÆËãÖĞµÄÈıÊäÈë¼Ó·¨Æ÷
-	parameter integer in_ft_quaz_acc = 10, // ÌØÕ÷µãÁ¿»¯¾«¶È(±ØĞëÔÚ·¶Î§[1, feature_pars_data_width-1]ÄÚ)
-	parameter integer conv_res_ext_int_width = 4, // ¾í»ı½á¹û¶îÍâ¿¼ÂÇµÄÕûÊıÎ»Êı(±ØĞë<=(feature_pars_data_width-in_ft_quaz_acc))
-	parameter integer conv_res_ext_frac_width = 4, // ¾í»ı½á¹û¶îÍâ¿¼ÂÇµÄĞ¡ÊıÎ»Êı(±ØĞë<=in_ft_quaz_acc)
-	// ÏßĞÔ³Ë¼ÓÓë¼¤»î¼ÆËãÅäÖÃ
-	parameter integer ab_quaz_acc = 12, // a/bÏµÊıÁ¿»¯¾«¶È(±ØĞëÔÚ·¶Î§[1, feature_pars_data_width-1]ÄÚ)
-	parameter integer c_quaz_acc = 14, // cÏµÊıÁ¿»¯¾«¶È(±ØĞëÔÚ·¶Î§[1, feature_pars_data_width-1]ÄÚ)
-	// ¶àÍ¨µÀ¾í»ı²ÎÊıÅäÖÃ
-	parameter integer feature_pars_data_width = 16, // ÌØÕ÷µãºÍ²ÎÊıÎ»¿í(8 | 16 | 32 | 64)
-	parameter integer max_feature_map_w = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È
-	parameter integer max_feature_map_h = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼¸ß¶È
-	parameter integer max_feature_map_chn_n = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼Í¨µÀÊı
-	parameter integer max_kernal_n = 512, // ×î´óµÄ¾í»ıºË¸öÊı
-	parameter integer prl_chn_n = 4, // Í¨µÀ²¢ĞĞÊı(1 | 2 | 4 | 8 | 16)
-	parameter integer prl_kernal_n = 4, // ¾í»ıºË²¢ĞĞÊı(1 | 2 | 4 | 8 | 16)
-	// ·ÂÕæ²ÎÊıÅäÖÃ
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	// ç‰¹å¾å›¾ä¸å‚æ•°è¾“å…¥DMAé…ç½®
+	parameter integer conv_max_rd_btt = 65536, // æœ€å¤§çš„è¯»ä¼ è¾“å­—èŠ‚æ•°(256 | 512 | 1024 | ...)
+	parameter integer axi_conv_rchn_max_burst_len = 32, // AXIè¯»é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+	parameter integer axi_conv_raddr_outstanding = 4, // AXIè¯»åœ°å€ç¼“å†²æ·±åº¦(1 | 2 | 4)
+	parameter integer axi_conv_rdata_buffer_depth = 512, // AXIè¯»æ•°æ®bufferæ·±åº¦(0 -> ä¸å¯ç”¨ | 512 | 1024 | ...)
+	// ç‰¹å¾å›¾è¾“å‡ºDMAé…ç½®
+	parameter integer conv_max_wt_btt = 65536, // æœ€å¤§çš„å†™ä¼ è¾“å­—èŠ‚æ•°(256 | 512 | 1024 | ...)
+	parameter integer axi_conv_wchn_max_burst_len = 32, // AXIå†™é€šé“æœ€å¤§çªå‘é•¿åº¦(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
+	parameter integer axi_conv_waddr_outstanding = 4, // AXIå†™åœ°å€ç¼“å†²æ·±åº¦(1 | 2 | 4)
+	parameter integer axi_conv_wdata_buffer_depth = 512, // AXIå†™æ•°æ®bufferæ·±åº¦(512 | 1024 | ...)
+	// ç‰¹å¾å›¾å’Œå‚æ•°ç¼“å­˜åŒºé…ç½®
+	parameter integer in_feature_map_buffer_n = 8, // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜ä¸ªæ•°
+	parameter integer kernal_pars_buffer_n = 8, // å·ç§¯æ ¸å‚æ•°ç¼“å­˜ä¸ªæ•°
+	parameter integer out_buffer_n = 8, // å¤šé€šé“å·ç§¯ç»“æœç¼“å­˜ä¸ªæ•°
+	// è®¡ç®—ç»“æœæº¢å‡ºå¤„ç†
+	parameter en_res_amp_lmt = "true", // æ˜¯å¦ä½¿èƒ½è®¡ç®—ç»“æœé™å¹…
+	// å·ç§¯è®¡ç®—é…ç½®
+	parameter en_use_dsp_for_conv_add_3 = "true", // æ˜¯å¦ä½¿ç”¨DSPæ¥å®ç°å·ç§¯è®¡ç®—ä¸­çš„ä¸‰è¾“å…¥åŠ æ³•å™¨
+	parameter integer in_ft_quaz_acc = 10, // ç‰¹å¾ç‚¹é‡åŒ–ç²¾åº¦(å¿…é¡»åœ¨èŒƒå›´[1, feature_pars_data_width-1]å†…)
+	parameter integer conv_res_ext_int_width = 4, // å·ç§¯ç»“æœé¢å¤–è€ƒè™‘çš„æ•´æ•°ä½æ•°(å¿…é¡»<=(feature_pars_data_width-in_ft_quaz_acc))
+	parameter integer conv_res_ext_frac_width = 4, // å·ç§¯ç»“æœé¢å¤–è€ƒè™‘çš„å°æ•°ä½æ•°(å¿…é¡»<=in_ft_quaz_acc)
+	// çº¿æ€§ä¹˜åŠ ä¸æ¿€æ´»è®¡ç®—é…ç½®
+	parameter integer ab_quaz_acc = 12, // a/bç³»æ•°é‡åŒ–ç²¾åº¦(å¿…é¡»åœ¨èŒƒå›´[1, feature_pars_data_width-1]å†…)
+	parameter integer c_quaz_acc = 14, // cç³»æ•°é‡åŒ–ç²¾åº¦(å¿…é¡»åœ¨èŒƒå›´[1, feature_pars_data_width-1]å†…)
+	// å¤šé€šé“å·ç§¯å‚æ•°é…ç½®
+	parameter integer feature_pars_data_width = 16, // ç‰¹å¾ç‚¹å’Œå‚æ•°ä½å®½(8 | 16 | 32 | 64)
+	parameter integer max_feature_map_w = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦
+	parameter integer max_feature_map_h = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾é«˜åº¦
+	parameter integer max_feature_map_chn_n = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾é€šé“æ•°
+	parameter integer max_kernal_n = 512, // æœ€å¤§çš„å·ç§¯æ ¸ä¸ªæ•°
+	parameter integer prl_chn_n = 4, // é€šé“å¹¶è¡Œæ•°(1 | 2 | 4 | 8 | 16)
+	parameter integer prl_kernal_n = 4, // å·ç§¯æ ¸å¹¶è¡Œæ•°(1 | 2 | 4 | 8 | 16)
+	// ä»¿çœŸå‚æ•°é…ç½®
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire resetn,
 	
-	// ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú(AXI-Lite´Ó»ú)
-    // ¶ÁµØÖ·Í¨µÀ
+	// å¯„å­˜å™¨é…ç½®æ¥å£(AXI-Liteä»æœº)
+    // è¯»åœ°å€é€šé“
     input wire[31:0] s_axi_lite_araddr,
 	input wire[2:0] s_axi_lite_arprot, // ignored
     input wire s_axi_lite_arvalid,
     output wire s_axi_lite_arready,
-    // Ğ´µØÖ·Í¨µÀ
+    // å†™åœ°å€é€šé“
     input wire[31:0] s_axi_lite_awaddr,
 	input wire[2:0] s_axi_lite_awprot, // ignored
     input wire s_axi_lite_awvalid,
     output wire s_axi_lite_awready,
-    // Ğ´ÏìÓ¦Í¨µÀ
+    // å†™å“åº”é€šé“
     output wire[1:0] s_axi_lite_bresp, // const -> 2'b00(OKAY)
     output wire s_axi_lite_bvalid,
     input wire s_axi_lite_bready,
-    // ¶ÁÊı¾İÍ¨µÀ
+    // è¯»æ•°æ®é€šé“
     output wire[31:0] s_axi_lite_rdata,
     output wire[1:0] s_axi_lite_rresp, // const -> 2'b00(OKAY)
     output wire s_axi_lite_rvalid,
     input wire s_axi_lite_rready,
-    // Ğ´Êı¾İÍ¨µÀ
+    // å†™æ•°æ®é€šé“
     input wire[31:0] s_axi_lite_wdata,
 	input wire[3:0] s_axi_lite_wstrb,
     input wire s_axi_lite_wvalid,
     output wire s_axi_lite_wready,
 	
-	// ÌØÕ÷Í¼Óë²ÎÊıÊäÈë/ÌØÕ÷Í¼Êä³ö(AXIÖ÷»ú)
+	// ç‰¹å¾å›¾ä¸å‚æ•°è¾“å…¥/ç‰¹å¾å›¾è¾“å‡º(AXIä¸»æœº)
 	// AR
     output wire[31:0] m_axi_conv_araddr,
     output wire[1:0] m_axi_conv_arburst, // const -> 2'b01(INCR)
@@ -155,7 +179,7 @@ module axi_generic_conv #(
     output wire m_axi_conv_wvalid,
     input wire m_axi_conv_wready,
 	
-	// ¶Á/Ğ´ÇëÇóÃèÊö×ÓÊäÈë(AXIÖ÷»ú, READ ONLY)
+	// è¯»/å†™è¯·æ±‚æè¿°å­è¾“å…¥(AXIä¸»æœº, READ ONLY)
 	// AR
     output wire[31:0] m_axi_rw_req_dsc_araddr,
     output wire[1:0] m_axi_rw_req_dsc_arburst, // const -> 2'b01(INCR)
@@ -189,54 +213,54 @@ module axi_generic_conv #(
     output wire m_axi_rw_req_dsc_wvalid, // const -> 1'b0
     input wire m_axi_rw_req_dsc_wready, // ignored
 	
-	// ÖĞ¶ÏĞÅºÅ
+	// ä¸­æ–­ä¿¡å·
 	output wire itr
 );
     
-	/** ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú **/
-	// ¿é¼¶¿ØÖÆ
-	// ¶ÁÇëÇóÃèÊö×ÓDMA
+	/** å¯„å­˜å™¨é…ç½®æ¥å£ **/
+	// å—çº§æ§åˆ¶
+	// è¯»è¯·æ±‚æè¿°å­DMA
 	wire rd_req_dsc_dma_blk_start;
 	wire rd_req_dsc_dma_blk_idle;
-	// Ğ´ÇëÇóÃèÊö×ÓDMA
+	// å†™è¯·æ±‚æè¿°å­DMA
 	wire wt_req_dsc_dma_blk_start;
 	wire wt_req_dsc_dma_blk_idle;
-	// Ê¹ÄÜ
-	wire en_conv_cal; // ÊÇ·ñÊ¹ÄÜ¾í»ı¼ÆËã
-	// ¸´Î»
-	wire rst_linear_pars_buf; // ¸´Î»ÏßĞÔ²ÎÊı»º´æÇø
-	wire rst_cal_path_kernal_buf; // ¸´Î»Êı¾İÍ¨Â·ÉÏµÄ¾í»ıºË²ÎÊı»º´æ
-	// ÖĞ¶Ï
-	wire[31:0] wt_req_itr_th; // Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏãĞÖµ
-	wire[2:0] itr_req; // ÖĞ¶ÏÇëÇó({Ğ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÇëÇó, 
-	                   //     Ğ´ÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÇëÇó, ¶ÁÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³ÉÖĞ¶ÏÇëÇó})
-	wire en_wt_req_fns_itr; // ÊÇ·ñÊ¹ÄÜĞ´ÇëÇó´¦ÀíÍê³ÉÖĞ¶Ï
-	// ÒÑÍê³ÉµÄĞ´ÇëÇó¸öÊı
+	// ä½¿èƒ½
+	wire en_conv_cal; // æ˜¯å¦ä½¿èƒ½å·ç§¯è®¡ç®—
+	// å¤ä½
+	wire rst_linear_pars_buf; // å¤ä½çº¿æ€§å‚æ•°ç¼“å­˜åŒº
+	wire rst_cal_path_kernal_buf; // å¤ä½æ•°æ®é€šè·¯ä¸Šçš„å·ç§¯æ ¸å‚æ•°ç¼“å­˜
+	// ä¸­æ–­
+	wire[31:0] wt_req_itr_th; // å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­é˜ˆå€¼
+	wire[2:0] itr_req; // ä¸­æ–­è¯·æ±‚({å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­è¯·æ±‚, 
+	                   //     å†™è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­è¯·æ±‚, è¯»è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­è¯·æ±‚})
+	wire en_wt_req_fns_itr; // æ˜¯å¦ä½¿èƒ½å†™è¯·æ±‚å¤„ç†å®Œæˆä¸­æ–­
+	// å·²å®Œæˆçš„å†™è¯·æ±‚ä¸ªæ•°
 	wire[3:0] to_set_wt_req_fns_n;
 	wire[31:0] wt_req_fns_n_set_v;
 	wire[31:0] wt_req_fns_n_cur_v;
-	// ·ÇÏßĞÔ¼¤»î²éÕÒ±í(Ğ´¶Ë¿Ú)
+	// éçº¿æ€§æ¿€æ´»æŸ¥æ‰¾è¡¨(å†™ç«¯å£)
 	wire non_ln_act_lut_wen;
 	wire[10:0] non_ln_act_lut_waddr;
 	wire[15:0] non_ln_act_lut_din; // Q15
-	// ÔËĞĞÊ±²ÎÊı
-	wire[feature_pars_data_width-1:0] act_rate_c; // Relu¼¤»îÏµÊıc
-	wire[31:0] rd_req_buf_baseaddr; // ¶ÁÇëÇó»º´æÇøÊ×µØÖ·
-	wire[31:0] rd_req_n; // ¶ÁÇëÇó¸öÊı - 1
-	wire[31:0] wt_req_buf_baseaddr; // Ğ´ÇëÇó»º´æÇøÊ×µØÖ·
-	wire[31:0] wt_req_n; // Ğ´ÇëÇó¸öÊı - 1
-	wire kernal_type; // ¾í»ıºËÀàĞÍ(1'b0 -> 1x1, 1'b1 -> 3x3)
-	wire[15:0] feature_map_w; // ÊäÈëÌØÕ÷Í¼¿í¶È - 1
-	wire[15:0] feature_map_h; // ÊäÈëÌØÕ÷Í¼¸ß¶È - 1
-	wire[15:0] feature_map_chn_n; // ÊäÈëÌØÕ÷Í¼Í¨µÀÊı - 1
-	wire[15:0] kernal_n; // ¾í»ıºË¸öÊı - 1
-	wire[3:0] padding_en; // ÍâÍØÌî³äÊ¹ÄÜ(½öµ±¾í»ıºËÀàĞÍÎª3x3Ê±¿ÉÓÃ, {ÉÏ, ÏÂ, ×ó, ÓÒ})
-	wire[15:0] o_ft_map_w; // Êä³öÌØÕ÷Í¼¿í¶È - 1
-	wire[15:0] o_ft_map_h; // Êä³öÌØÕ÷Í¼¸ß¶È - 1
-	wire[2:0] horizontal_step; // Ë®Æ½²½³¤ - 1
-	wire[2:0] vertical_step; // ´¹Ö±²½³¤ - 1
-	wire step_type; // ²½³¤ÀàĞÍ(1'b0 -> ´ÓµÚ1¸öROI¿ªÊ¼, 1'b1 -> ÉáÆúµÚ1¸öROI)
-	wire[1:0] act_type; // ¼¤»îÀàĞÍ(2'b00 -> Relu, 2'b01 -> ±£Áô, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
+	// è¿è¡Œæ—¶å‚æ•°
+	wire[feature_pars_data_width-1:0] act_rate_c; // Reluæ¿€æ´»ç³»æ•°c
+	wire[31:0] rd_req_buf_baseaddr; // è¯»è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€
+	wire[31:0] rd_req_n; // è¯»è¯·æ±‚ä¸ªæ•° - 1
+	wire[31:0] wt_req_buf_baseaddr; // å†™è¯·æ±‚ç¼“å­˜åŒºé¦–åœ°å€
+	wire[31:0] wt_req_n; // å†™è¯·æ±‚ä¸ªæ•° - 1
+	wire kernal_type; // å·ç§¯æ ¸ç±»å‹(1'b0 -> 1x1, 1'b1 -> 3x3)
+	wire[15:0] feature_map_w; // è¾“å…¥ç‰¹å¾å›¾å®½åº¦ - 1
+	wire[15:0] feature_map_h; // è¾“å…¥ç‰¹å¾å›¾é«˜åº¦ - 1
+	wire[15:0] feature_map_chn_n; // è¾“å…¥ç‰¹å¾å›¾é€šé“æ•° - 1
+	wire[15:0] kernal_n; // å·ç§¯æ ¸ä¸ªæ•° - 1
+	wire[3:0] padding_en; // å¤–æ‹“å¡«å……ä½¿èƒ½(ä»…å½“å·ç§¯æ ¸ç±»å‹ä¸º3x3æ—¶å¯ç”¨, {ä¸Š, ä¸‹, å·¦, å³})
+	wire[15:0] o_ft_map_w; // è¾“å‡ºç‰¹å¾å›¾å®½åº¦ - 1
+	wire[15:0] o_ft_map_h; // è¾“å‡ºç‰¹å¾å›¾é«˜åº¦ - 1
+	wire[2:0] horizontal_step; // æ°´å¹³æ­¥é•¿ - 1
+	wire[2:0] vertical_step; // å‚ç›´æ­¥é•¿ - 1
+	wire step_type; // æ­¥é•¿ç±»å‹(1'b0 -> ä»ç¬¬1ä¸ªROIå¼€å§‹, 1'b1 -> èˆå¼ƒç¬¬1ä¸ªROI)
+	wire[1:0] act_type; // æ¿€æ´»ç±»å‹(2'b00 -> Relu, 2'b01 -> ä¿ç•™, 2'b10 -> Sigmoid, 2'b11 -> Tanh)
 	
 	reg_if_for_generic_conv #(
 		.simulation_delay(simulation_delay)
@@ -288,7 +312,7 @@ module axi_generic_conv #(
 		.non_ln_act_lut_waddr(non_ln_act_lut_waddr),
 		.non_ln_act_lut_din(non_ln_act_lut_din),
 		
-		.act_rate_c(act_rate_c), // Î»¿í64ÓëÎ»¿ífeature_pars_data_width²»·û, È¡µÍÎ»!
+		.act_rate_c(act_rate_c), // ä½å®½64ä¸ä½å®½feature_pars_data_widthä¸ç¬¦, å–ä½ä½!
 		.rd_req_buf_baseaddr(rd_req_buf_baseaddr),
 		.rd_req_n(rd_req_n),
 		.wt_req_buf_baseaddr(wt_req_buf_baseaddr),
@@ -307,12 +331,12 @@ module axi_generic_conv #(
 		.act_type(act_type)
 	);
 	
-	/** ÖĞ¶Ï¿ØÖÆ **/
-	// ¶ÁÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³É(Ö¸Ê¾)
+	/** ä¸­æ–­æ§åˆ¶ **/
+	// è¯»è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆ(æŒ‡ç¤º)
 	wire rd_req_dsc_dma_blk_done;
-	// Ğ´ÇëÇóÃèÊö×ÓDMAÇëÇó´¦ÀíÍê³É(Ö¸Ê¾)
+	// å†™è¯·æ±‚æè¿°å­DMAè¯·æ±‚å¤„ç†å®Œæˆ(æŒ‡ç¤º)
 	wire wt_req_dsc_dma_blk_done;
-	// Íê³ÉĞ´ÇëÇó(Ö¸Ê¾)
+	// å®Œæˆå†™è¯·æ±‚(æŒ‡ç¤º)
 	wire wt_req_fns;
 	
 	itr_ctrl_for_generic_conv #(
@@ -336,12 +360,12 @@ module axi_generic_conv #(
 		.itr_req(itr_req)
 	);
 	
-	/** ¶ÁÇëÇóÃèÊö×ÓDMA **/
-	// ¶ÁÇëÇóÃèÊö×Ó(AXISÖ÷»ú)
+	/** è¯»è¯·æ±‚æè¿°å­DMA **/
+	// è¯»è¯·æ±‚æè¿°å­(AXISä¸»æœº)
 	wire[63:0] m_axis_rd_req_dsc_data;
 	wire m_axis_rd_req_dsc_valid;
 	wire m_axis_rd_req_dsc_ready;
-	// AXIÖ÷»ú(¶ÁÍ¨µÀ)
+	// AXIä¸»æœº(è¯»é€šé“)
 	// AR
     wire[31:0] m_axi_rd_req_dsc_araddr;
     wire[1:0] m_axi_rd_req_dsc_arburst; // const -> 2'b01(INCR)
@@ -390,12 +414,12 @@ module axi_generic_conv #(
 		.m_axi_rready(m_axi_rd_req_dsc_rready)
 	);
 	
-	/** Ğ´ÇëÇóÃèÊö×ÓDMA **/
-	// Ğ´ÇëÇóÃèÊö×Ó(AXISÖ÷»ú)
+	/** å†™è¯·æ±‚æè¿°å­DMA **/
+	// å†™è¯·æ±‚æè¿°å­(AXISä¸»æœº)
 	wire[63:0] m_axis_wt_req_dsc_data;
 	wire m_axis_wt_req_dsc_valid;
 	wire m_axis_wt_req_dsc_ready;
-	// AXIÖ÷»ú(¶ÁÍ¨µÀ)
+	// AXIä¸»æœº(è¯»é€šé“)
 	// AR
     wire[31:0] m_axi_wt_req_dsc_araddr;
     wire[1:0] m_axi_wt_req_dsc_arburst; // const -> 2'b01(INCR)
@@ -444,16 +468,16 @@ module axi_generic_conv #(
 		.m_axi_rready(m_axi_wt_req_dsc_rready)
 	);
 	
-	/** AXIS¶ÁÇëÇóÅÉ·¢µ¥Ôª **/
-	// ¶ÁÇëÇóÃèÊö×Ó(AXIS´Ó»ú)
+	/** AXISè¯»è¯·æ±‚æ´¾å‘å•å…ƒ **/
+	// è¯»è¯·æ±‚æè¿°å­(AXISä»æœº)
 	wire[63:0] s_axis_rd_req_dsc_data;
 	wire s_axis_rd_req_dsc_valid;
 	wire s_axis_rd_req_dsc_ready;
-	// ÊäÈëÌØÕ÷Í¼/¾í»ıºË/ÏßĞÔ²ÎÊı¶ÁÇëÇó(AXISÖ÷»ú)
-	wire[63:0] m_axis_rd_req_data; // {´ı¶ÁÈ¡µÄ×Ö½ÚÊı(32bit), »ùµØÖ·(32bit)}
+	// è¾“å…¥ç‰¹å¾å›¾/å·ç§¯æ ¸/çº¿æ€§å‚æ•°è¯»è¯·æ±‚(AXISä¸»æœº)
+	wire[63:0] m_axis_rd_req_data; // {å¾…è¯»å–çš„å­—èŠ‚æ•°(32bit), åŸºåœ°å€(32bit)}
 	wire m_axis_rd_req_valid;
 	wire m_axis_rd_req_ready;
-	// ÅÉ·¢ĞÅÏ¢Á÷(AXISÖ÷»ú)
+	// æ´¾å‘ä¿¡æ¯æµ(AXISä¸»æœº)
 	wire[7:0] m_axis_dispatch_msg_data;
 	wire m_axis_dispatch_msg_valid;
 	wire m_axis_dispatch_msg_ready;
@@ -482,12 +506,12 @@ module axi_generic_conv #(
 		.m_axis_dispatch_msg_ready(m_axis_dispatch_msg_ready)
 	);
 	
-	/** ÌØÕ÷Í¼Óë²ÎÊıÊäÈëDMA **/
-	// ÊäÈëÌØÕ÷Í¼/¾í»ıºË/ÏßĞÔ²ÎÊı¶ÁÇëÇó
-	wire[63:0] s_axis_rd_req_data; // {´ı¶ÁÈ¡µÄ×Ö½ÚÊı(32bit), »ùµØÖ·(32bit)}
+	/** ç‰¹å¾å›¾ä¸å‚æ•°è¾“å…¥DMA **/
+	// è¾“å…¥ç‰¹å¾å›¾/å·ç§¯æ ¸/çº¿æ€§å‚æ•°è¯»è¯·æ±‚
+	wire[63:0] s_axis_rd_req_data; // {å¾…è¯»å–çš„å­—èŠ‚æ•°(32bit), åŸºåœ°å€(32bit)}
 	wire s_axis_rd_req_valid;
 	wire s_axis_rd_req_ready;
-	// ÊäÈëÌØÕ÷Í¼/¾í»ıºË/ÏßĞÔ²ÎÊıÊı¾İÁ÷
+	// è¾“å…¥ç‰¹å¾å›¾/å·ç§¯æ ¸/çº¿æ€§å‚æ•°æ•°æ®æµ
 	wire[63:0] m_axis_ft_par_data;
 	wire[7:0] m_axis_ft_par_keep;
 	wire m_axis_ft_par_last;
@@ -536,35 +560,35 @@ module axi_generic_conv #(
 		.m_axi_rready(m_axi_conv_rready)
 	);
 	
-	/** AXISÊı¾İÅÉ·¢Â·ÓÉÆ÷ **/
-	// DMA¶ÁÊı¾İÁ÷(AXIS´Ó»ú)
+	/** AXISæ•°æ®æ´¾å‘è·¯ç”±å™¨ **/
+	// DMAè¯»æ•°æ®æµ(AXISä»æœº)
 	wire[63:0] s_axis_ft_par_dma_data;
 	wire[7:0] s_axis_ft_par_dma_keep;
 	wire s_axis_ft_par_dma_last;
 	wire s_axis_ft_par_dma_valid;
 	wire s_axis_ft_par_dma_ready;
-	// ÅÉ·¢ĞÅÏ¢Á÷(AXIS´Ó»ú)
+	// æ´¾å‘ä¿¡æ¯æµ(AXISä»æœº)
 	wire[7:0] s_axis_dispatch_msg_data;
 	wire s_axis_dispatch_msg_valid;
 	wire s_axis_dispatch_msg_ready;
-	// ÊäÈëÌØÕ÷Í¼»º´æ(AXISÖ÷»ú)
+	// è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜(AXISä¸»æœº)
 	wire[63:0] m_axis_ft_buf_data;
-	wire m_axis_ft_buf_last; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	wire[1:0] m_axis_ft_buf_user; // {±¾ĞĞÊÇ·ñÓĞĞ§, µ±Ç°»º´æÇø×îºó1ĞĞ±êÖ¾}
+	wire m_axis_ft_buf_last; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	wire[1:0] m_axis_ft_buf_user; // {æœ¬è¡Œæ˜¯å¦æœ‰æ•ˆ, å½“å‰ç¼“å­˜åŒºæœ€å1è¡Œæ ‡å¿—}
 	wire m_axis_ft_buf_valid;
 	wire m_axis_ft_buf_ready;
-	// ¾í»ıºË²ÎÊı»º´æ(AXISÖ÷»ú)
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜(AXISä¸»æœº)
 	wire[63:0] m_axis_kernal_buf_data;
 	wire[7:0] m_axis_kernal_buf_keep;
-	wire m_axis_kernal_buf_last; // ±íÊ¾×îºó1×é¾í»ıºË²ÎÊı
-	wire m_axis_kernal_buf_user; // µ±Ç°¶àÍ¨µÀ¾í»ıºËÊÇ·ñÓĞĞ§
+	wire m_axis_kernal_buf_last; // è¡¨ç¤ºæœ€å1ç»„å·ç§¯æ ¸å‚æ•°
+	wire m_axis_kernal_buf_user; // å½“å‰å¤šé€šé“å·ç§¯æ ¸æ˜¯å¦æœ‰æ•ˆ
 	wire m_axis_kernal_buf_valid;
 	wire m_axis_kernal_buf_ready;
-	// ÏßĞÔ²ÎÊı»º´æ(AXISÖ÷»ú)
+	// çº¿æ€§å‚æ•°ç¼“å­˜(AXISä¸»æœº)
 	wire[63:0] m_axis_linear_pars_data;
 	wire[7:0] m_axis_linear_pars_keep;
-	wire m_axis_linear_pars_last; // ±íÊ¾×îºó1×éÏßĞÔ²ÎÊı
-	wire[1:0] m_axis_linear_pars_user; // {ÏßĞÔ²ÎÊıÊÇ·ñÓĞĞ§, ÏßĞÔ²ÎÊıÀàĞÍ(1'b0 -> A, 1'b1 -> B)}
+	wire m_axis_linear_pars_last; // è¡¨ç¤ºæœ€å1ç»„çº¿æ€§å‚æ•°
+	wire[1:0] m_axis_linear_pars_user; // {çº¿æ€§å‚æ•°æ˜¯å¦æœ‰æ•ˆ, çº¿æ€§å‚æ•°ç±»å‹(1'b0 -> A, 1'b1 -> B)}
 	wire m_axis_linear_pars_valid;
 	wire m_axis_linear_pars_ready;
 	
@@ -610,18 +634,18 @@ module axi_generic_conv #(
 		.m_axis_linear_pars_ready(m_axis_linear_pars_ready)
 	);
 	
-	/** AXISÊäÈëÌØÕ÷Í¼»º´æ×é **/
-	// ÊäÈëÌØÕ÷Í¼(AXIS´Ó»ú)
+	/** AXISè¾“å…¥ç‰¹å¾å›¾ç¼“å­˜ç»„ **/
+	// è¾“å…¥ç‰¹å¾å›¾(AXISä»æœº)
 	wire[63:0] s_axis_ft_buf_data;
-	wire s_axis_ft_buf_last; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	wire[1:0] s_axis_ft_buf_user; // {±¾ĞĞÊÇ·ñÓĞĞ§, µ±Ç°»º´æÇø×îºó1ĞĞ±êÖ¾}
+	wire s_axis_ft_buf_last; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	wire[1:0] s_axis_ft_buf_user; // {æœ¬è¡Œæ˜¯å¦æœ‰æ•ˆ, å½“å‰ç¼“å­˜åŒºæœ€å1è¡Œæ ‡å¿—}
 	wire s_axis_ft_buf_valid;
 	wire s_axis_ft_buf_ready;
-	// »º´æÊä³ö(AXISÖ÷»ú)
-	// {»º´æ#(n-1)ĞĞ#2, »º´æ#(n-1)ĞĞ#1, »º´æ#(n-1)ĞĞ#0, ..., »º´æ#0ĞĞ#2, »º´æ#0ĞĞ#1, »º´æ#0ĞĞ#0}
+	// ç¼“å­˜è¾“å‡º(AXISä¸»æœº)
+	// {ç¼“å­˜#(n-1)è¡Œ#2, ç¼“å­˜#(n-1)è¡Œ#1, ç¼“å­˜#(n-1)è¡Œ#0, ..., ç¼“å­˜#0è¡Œ#2, ç¼“å­˜#0è¡Œ#1, ç¼“å­˜#0è¡Œ#0}
 	wire[feature_pars_data_width*3*prl_chn_n-1:0] m_axis_feature_map_data;
-	wire m_axis_feature_map_last; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	wire[prl_chn_n*3-1:0] m_axis_feature_map_user; // {»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿}
+	wire m_axis_feature_map_last; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	wire[prl_chn_n*3-1:0] m_axis_feature_map_user; // {ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡}
 	wire m_axis_feature_map_valid;
 	wire m_axis_feature_map_ready;
 	
@@ -657,22 +681,22 @@ module axi_generic_conv #(
 		.m_axis_buf_ready(m_axis_feature_map_ready)
 	);
 	
-	/** AXIS¾í»ıºË²ÎÊı»º´æÇø **/
-	// ÊäÈë¾í»ıºË²ÎÊıÁ÷(AXIS´Ó»ú)
+	/** AXISå·ç§¯æ ¸å‚æ•°ç¼“å­˜åŒº **/
+	// è¾“å…¥å·ç§¯æ ¸å‚æ•°æµ(AXISä»æœº)
 	wire[63:0] s_axis_kernal_buf_data;
 	wire[7:0] s_axis_kernal_buf_keep;
-	wire s_axis_kernal_buf_last; // ±íÊ¾×îºó1×é¾í»ıºË²ÎÊı
-	wire s_axis_kernal_buf_user; // µ±Ç°¶àÍ¨µÀ¾í»ıºËÊÇ·ñÓĞĞ§
+	wire s_axis_kernal_buf_last; // è¡¨ç¤ºæœ€å1ç»„å·ç§¯æ ¸å‚æ•°
+	wire s_axis_kernal_buf_user; // å½“å‰å¤šé€šé“å·ç§¯æ ¸æ˜¯å¦æœ‰æ•ˆ
 	wire s_axis_kernal_buf_valid;
 	wire s_axis_kernal_buf_ready;
-	// ¾í»ıºË²ÎÊı»º´æ¿ØÖÆ(fifo¶Á¶Ë¿Ú)
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜æ§åˆ¶(fifoè¯»ç«¯å£)
 	wire kernal_pars_buf_fifo_ren;
 	wire kernal_pars_buf_fifo_empty_n;
-	// ¾í»ıºË²ÎÊı»º´æMEM¶Á¶Ë¿Ú
+	// å·ç§¯æ ¸å‚æ•°ç¼“å­˜MEMè¯»ç«¯å£
 	wire kernal_pars_buf_mem_buf_ren_s0;
 	wire kernal_pars_buf_mem_buf_ren_s1;
-	wire[15:0] kernal_pars_buf_mem_buf_raddr; // Ã¿¸ö¶ÁµØÖ·¶ÔÓ¦1¸öµ¥Í¨µÀ¾í»ıºË
-	wire[prl_kernal_n*feature_pars_data_width*9-1:0] kernal_pars_buf_mem_buf_dout; // {ºË#(n-1), ..., ºË#1, ºË#0}
+	wire[15:0] kernal_pars_buf_mem_buf_raddr; // æ¯ä¸ªè¯»åœ°å€å¯¹åº”1ä¸ªå•é€šé“å·ç§¯æ ¸
+	wire[prl_kernal_n*feature_pars_data_width*9-1:0] kernal_pars_buf_mem_buf_dout; // {æ ¸#(n-1), ..., æ ¸#1, æ ¸#0}
 	
 	assign s_axis_kernal_buf_data = m_axis_kernal_buf_data;
 	assign s_axis_kernal_buf_keep = m_axis_kernal_buf_keep;
@@ -709,17 +733,17 @@ module axi_generic_conv #(
 		.kernal_pars_buf_mem_buf_dout(kernal_pars_buf_mem_buf_dout)
 	);
 	
-	/** AXISÏßĞÔ²ÎÊı»º´æÇø **/
-	// ÏßĞÔ²ÎÊı»º´æÇø¼ÓÔØÍê³É±êÖ¾
+	/** AXISçº¿æ€§å‚æ•°ç¼“å­˜åŒº **/
+	// çº¿æ€§å‚æ•°ç¼“å­˜åŒºåŠ è½½å®Œæˆæ ‡å¿—
 	wire linear_pars_buf_load_completed;
-	// ÊäÈëÏßĞÔ²ÎÊıÁ÷(AXIS´Ó»ú)
+	// è¾“å…¥çº¿æ€§å‚æ•°æµ(AXISä»æœº)
 	wire[63:0] s_axis_linear_pars_data;
 	wire[7:0] s_axis_linear_pars_keep;
-	wire s_axis_linear_pars_last; // ±íÊ¾×îºó1×éÏßĞÔ²ÎÊı
-	wire[1:0] s_axis_linear_pars_user; // {ÏßĞÔ²ÎÊıÊÇ·ñÓĞĞ§, ÏßĞÔ²ÎÊıÀàĞÍ(1'b0 -> A, 1'b1 -> B)}
+	wire s_axis_linear_pars_last; // è¡¨ç¤ºæœ€å1ç»„çº¿æ€§å‚æ•°
+	wire[1:0] s_axis_linear_pars_user; // {çº¿æ€§å‚æ•°æ˜¯å¦æœ‰æ•ˆ, çº¿æ€§å‚æ•°ç±»å‹(1'b0 -> A, 1'b1 -> B)}
 	wire s_axis_linear_pars_valid;
 	wire s_axis_linear_pars_ready;
-	// ÏßĞÔ²ÎÊı»ñÈ¡(MEM¶Á)
+	// çº¿æ€§å‚æ•°è·å–(MEMè¯»)
 	wire linear_pars_buffer_ren_s0;
 	wire linear_pars_buffer_ren_s1;
 	wire[15:0] linear_pars_buffer_raddr;
@@ -758,19 +782,19 @@ module axi_generic_conv #(
 		.linear_pars_buffer_dout_b(linear_pars_buffer_dout_b)
 	);
 	
-	/** nÍ¨µÀ²¢ĞĞmºË²¢ĞĞ3x3¾í»ı¼ÆËãµ¥Ôª **/
-	// ÌØÕ÷Í¼ÊäÈë(AXIS´Ó»ú)
-	// {»º´æ#(n-1)ĞĞ#2, »º´æ#(n-1)ĞĞ#1, »º´æ#(n-1)ĞĞ#0, ..., »º´æ#0ĞĞ#2, »º´æ#0ĞĞ#1, »º´æ#0ĞĞ#0}
+	/** né€šé“å¹¶è¡Œmæ ¸å¹¶è¡Œ3x3å·ç§¯è®¡ç®—å•å…ƒ **/
+	// ç‰¹å¾å›¾è¾“å…¥(AXISä»æœº)
+	// {ç¼“å­˜#(n-1)è¡Œ#2, ç¼“å­˜#(n-1)è¡Œ#1, ç¼“å­˜#(n-1)è¡Œ#0, ..., ç¼“å­˜#0è¡Œ#2, ç¼“å­˜#0è¡Œ#1, ç¼“å­˜#0è¡Œ#0}
 	wire[feature_pars_data_width*3*prl_chn_n-1:0] s_axis_feature_map_data;
-	wire s_axis_feature_map_last; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
+	wire s_axis_feature_map_last; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
 	wire s_axis_feature_map_valid;
 	wire s_axis_feature_map_ready;
-	// ¾í»ıºËÍ¨µÀÀÛ¼ÓÖĞ¼ä½á¹ûÊä³ö(AXISÖ÷»ú)
-	// {ºË#(m-1)½á¹û, ..., ºË#1½á¹û, ºË#0½á¹û}
-	// Ã¿¸öÖĞ¼ä½á¹û½öµÍ(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)Î»ÓĞĞ§
+	// å·ç§¯æ ¸é€šé“ç´¯åŠ ä¸­é—´ç»“æœè¾“å‡º(AXISä¸»æœº)
+	// {æ ¸#(m-1)ç»“æœ, ..., æ ¸#1ç»“æœ, æ ¸#0ç»“æœ}
+	// æ¯ä¸ªä¸­é—´ç»“æœä»…ä½(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[feature_pars_data_width*2*prl_kernal_n-1:0] m_axis_mid_res_data;
-	wire m_axis_mid_res_last; // ±íÊ¾ĞĞÎ²
-	wire m_axis_mid_res_user; // ±íÊ¾µ±Ç°ĞĞ×îºó1×é½á¹û
+	wire m_axis_mid_res_last; // è¡¨ç¤ºè¡Œå°¾
+	wire m_axis_mid_res_user; // è¡¨ç¤ºå½“å‰è¡Œæœ€å1ç»„ç»“æœ
 	wire m_axis_mid_res_valid;
 	wire m_axis_mid_res_ready;
 	
@@ -830,20 +854,20 @@ module axi_generic_conv #(
 		.m_axis_res_ready(m_axis_mid_res_ready)
 	);
 	
-	/** AXIS¶àÍ¨µÀ¾í»ı½á¹û»º´æÇø **/
-	// ¾í»ıºËÍ¨µÀÀÛ¼ÓÖĞ¼ä½á¹ûÊäÈë(AXIS´Ó»ú)
-	// {ºË#(m-1)½á¹û, ..., ºË#1½á¹û, ºË#0½á¹û}
-	// Ã¿¸öÖĞ¼ä½á¹û½öµÍ(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)Î»ÓĞĞ§
+	/** AXISå¤šé€šé“å·ç§¯ç»“æœç¼“å­˜åŒº **/
+	// å·ç§¯æ ¸é€šé“ç´¯åŠ ä¸­é—´ç»“æœè¾“å…¥(AXISä»æœº)
+	// {æ ¸#(m-1)ç»“æœ, ..., æ ¸#1ç»“æœ, æ ¸#0ç»“æœ}
+	// æ¯ä¸ªä¸­é—´ç»“æœä»…ä½(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[feature_pars_data_width*2*prl_kernal_n-1:0] s_axis_mid_res_data;
-	wire s_axis_mid_res_last; // ±íÊ¾ĞĞÎ²
-	wire s_axis_mid_res_user; // ±íÊ¾µ±Ç°ĞĞ×îºó1×é½á¹û
+	wire s_axis_mid_res_last; // è¡¨ç¤ºè¡Œå°¾
+	wire s_axis_mid_res_user; // è¡¨ç¤ºå½“å‰è¡Œæœ€å1ç»„ç»“æœ
 	wire s_axis_mid_res_valid;
 	wire s_axis_mid_res_ready;
-	// Êä³öÌØÕ÷Í¼Êı¾İÁ÷Êä³ö(AXISÖ÷»ú)
-	// ÌØÕ÷Í¼Êı¾İ½öµÍ(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)Î»ÓĞĞ§
+	// è¾“å‡ºç‰¹å¾å›¾æ•°æ®æµè¾“å‡º(AXISä¸»æœº)
+	// ç‰¹å¾å›¾æ•°æ®ä»…ä½(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[feature_pars_data_width*2-1:0] m_axis_conv_res_data;
-	wire[15:0] m_axis_conv_res_user; // µ±Ç°Êä³öÌØÕ÷ĞĞËùÔÚµÄÍ¨µÀºÅ
-	wire m_axis_conv_res_last; // ±íÊ¾ĞĞÎ²
+	wire[15:0] m_axis_conv_res_user; // å½“å‰è¾“å‡ºç‰¹å¾è¡Œæ‰€åœ¨çš„é€šé“å·
+	wire m_axis_conv_res_last; // è¡¨ç¤ºè¡Œå°¾
 	wire m_axis_conv_res_valid;
 	wire m_axis_conv_res_ready;
 	
@@ -887,21 +911,21 @@ module axi_generic_conv #(
 		.m_axis_ft_out_ready(m_axis_conv_res_ready)
 	);
 	
-	/** AXISÏßĞÔ³Ë¼ÓÓë¼¤»î¼ÆËãµ¥Ôª **/
-	// ¶àÍ¨µÀ¾í»ı¼ÆËã½á¹ûÊäÈë(AXIS´Ó»ú)
-	// ½öµÍ(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)Î»ÓĞĞ§
+	/** AXISçº¿æ€§ä¹˜åŠ ä¸æ¿€æ´»è®¡ç®—å•å…ƒ **/
+	// å¤šé€šé“å·ç§¯è®¡ç®—ç»“æœè¾“å…¥(AXISä»æœº)
+	// ä»…ä½(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[feature_pars_data_width*2-1:0] s_axis_conv_res_data;
-	wire[15:0] s_axis_conv_res_user; // µ±Ç°Êä³öÌØÕ÷ĞĞËùÔÚµÄÍ¨µÀºÅ
-	wire s_axis_conv_res_last; // ±íÊ¾ĞĞÎ²
+	wire[15:0] s_axis_conv_res_user; // å½“å‰è¾“å‡ºç‰¹å¾è¡Œæ‰€åœ¨çš„é€šé“å·
+	wire s_axis_conv_res_last; // è¡¨ç¤ºè¡Œå°¾
 	wire s_axis_conv_res_valid;
 	wire s_axis_conv_res_ready;
-	// ÏßĞÔ³Ë¼ÓÓë¼¤»î¼ÆËã½á¹ûÊä³ö(AXISÖ÷»ú)
-	// ½öµÍ(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)Î»ÓĞĞ§
+	// çº¿æ€§ä¹˜åŠ ä¸æ¿€æ´»è®¡ç®—ç»“æœè¾“å‡º(AXISä¸»æœº)
+	// ä»…ä½(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[feature_pars_data_width*2-1:0] m_axis_linear_act_res_data;
-	wire m_axis_linear_act_res_last; // ±íÊ¾ĞĞÎ²
+	wire m_axis_linear_act_res_last; // è¡¨ç¤ºè¡Œå°¾
 	wire m_axis_linear_act_res_valid;
 	wire m_axis_linear_act_res_ready;
-	// ·ÇÏßĞÔ¼¤»î²éÕÒ±í(¶Á¶Ë¿Ú)
+	// éçº¿æ€§æ¿€æ´»æŸ¥æ‰¾è¡¨(è¯»ç«¯å£)
 	wire non_ln_act_lut_ren;
 	wire[10:0] non_ln_act_lut_raddr;
 	wire[15:0] non_ln_act_lut_dout; // Q15
@@ -951,16 +975,16 @@ module axi_generic_conv #(
 		.non_ln_act_lut_dout(non_ln_act_lut_dout)
 	);
 	
-	/** ¼ÆËã½á¹ûÏŞ·ù´¦Àí **/
-	// ¼ÆËã½á¹ûÊäÈë(AXIS´Ó»ú)
-	// ½öµÍ(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)Î»ÓĞĞ§
+	/** è®¡ç®—ç»“æœé™å¹…å¤„ç† **/
+	// è®¡ç®—ç»“æœè¾“å…¥(AXISä»æœº)
+	// ä»…ä½(conv_res_ext_int_width+feature_pars_data_width+conv_res_ext_frac_width)ä½æœ‰æ•ˆ
 	wire[feature_pars_data_width*2-1:0] s_axis_amp_lmt_data;
-	wire s_axis_amp_lmt_last; // ±íÊ¾ĞĞÎ²
+	wire s_axis_amp_lmt_last; // è¡¨ç¤ºè¡Œå°¾
 	wire s_axis_amp_lmt_valid;
 	wire s_axis_amp_lmt_ready;
-	// ÏŞ·ùºó¼ÆËã½á¹ûÊä³ö(AXISÖ÷»ú)
+	// é™å¹…åè®¡ç®—ç»“æœè¾“å‡º(AXISä¸»æœº)
 	wire[feature_pars_data_width-1:0] m_axis_amp_lmt_data;
-	wire m_axis_amp_lmt_last; // ±íÊ¾ĞĞÎ²
+	wire m_axis_amp_lmt_last; // è¡¨ç¤ºè¡Œå°¾
 	wire m_axis_amp_lmt_valid;
 	wire m_axis_amp_lmt_ready;
 	
@@ -1002,14 +1026,14 @@ module axi_generic_conv #(
 		.m_axis_amp_lmt_ready(m_axis_amp_lmt_ready)
 	);
 	
-	/** ÌØÕ÷Í¼Êä³öDMA **/
-	// ¼ÆËã½á¹ûĞ´ÇëÇó
-	wire[63:0] s_axis_wt_req_data; // {´ıĞ´ÈëµÄ×Ö½ÚÊı(32bit), »ùµØÖ·(32bit)}
+	/** ç‰¹å¾å›¾è¾“å‡ºDMA **/
+	// è®¡ç®—ç»“æœå†™è¯·æ±‚
+	wire[63:0] s_axis_wt_req_data; // {å¾…å†™å…¥çš„å­—èŠ‚æ•°(32bit), åŸºåœ°å€(32bit)}
 	wire s_axis_wt_req_valid;
 	wire s_axis_wt_req_ready;
-	// ¼ÆËã½á¹ûÁ÷
+	// è®¡ç®—ç»“æœæµ
 	wire[feature_pars_data_width-1:0] s_axis_res_data;
-	wire s_axis_res_last; // ±íÊ¾±¾´ÎĞ´ÇëÇó×îºó1¸öÊı¾İ
+	wire s_axis_res_last; // è¡¨ç¤ºæœ¬æ¬¡å†™è¯·æ±‚æœ€å1ä¸ªæ•°æ®
 	wire s_axis_res_valid;
 	wire s_axis_res_ready;
 	
@@ -1030,7 +1054,7 @@ module axi_generic_conv #(
 			assign m_axis_amp_lmt_ready = 1'b1;
 			
 			assign s_axis_res_data = 
-				// ½«ÏßĞÔ³Ë¼ÓÓë¼¤»îµÃµ½µÄ½á¹ûÓÒÒÆconv_res_ext_frac_widthÎ», µÃµ½Á¿»¯¾«¶ÈÎªin_ft_quaz_accµÄÊä³öÌØÕ÷µã
+				// å°†çº¿æ€§ä¹˜åŠ ä¸æ¿€æ´»å¾—åˆ°çš„ç»“æœå³ç§»conv_res_ext_frac_widthä½, å¾—åˆ°é‡åŒ–ç²¾åº¦ä¸ºin_ft_quaz_accçš„è¾“å‡ºç‰¹å¾ç‚¹
 				m_axis_linear_act_res_data[conv_res_ext_frac_width+feature_pars_data_width-1:conv_res_ext_frac_width];
 			assign s_axis_res_last = m_axis_linear_act_res_last;
 			assign s_axis_res_valid = m_axis_linear_act_res_valid;
@@ -1081,7 +1105,7 @@ module axi_generic_conv #(
 		.m_axi_wready(m_axi_conv_wready)
 	);
 	
-	/** ¶Á/Ğ´ÇëÇóÃèÊö×ÓAXI¶ÁÍ¨µÀÖÙ²Ã **/
+	/** è¯»/å†™è¯·æ±‚æè¿°å­AXIè¯»é€šé“ä»²è£ **/
 	assign m_axi_rw_req_dsc_arcache = 4'b0011;
 	
 	assign m_axi_rw_req_dsc_awaddr = 32'dx;
@@ -1145,7 +1169,7 @@ module axi_generic_conv #(
 		.m_axi_rw_req_dsc_rready(m_axi_rw_req_dsc_rready)
 	);
 	
-	/** ·ÇÏßĞÔ¼¤»î²éÕÒ±í **/
+	/** éçº¿æ€§æ¿€æ´»æŸ¥æ‰¾è¡¨ **/
 	bram_simple_dual_port #(
 		.style("LOW_LATENCY"),
 		.mem_width(16),

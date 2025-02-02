@@ -1,114 +1,138 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: SD¿¨¿ØÖÆÆ÷
+æœ¬æ¨¡å—: SDå¡æ§åˆ¶å™¨
 
-ÃèÊö:
-1.´ø³õÊ¼»¯Ä£¿é
-2.Ö§³ÖÒ»Ïß/ËÄÏßÄ£Ê½
-3.Ö§³ÖÃüÁî->
-(1)¿ØÖÆ/×´Ì¬ÃüÁî
-ÃüÁîºÅ  ÏìÓ¦ÀàĞÍ                      º¬Òå
- CMD0     ---                        ¸´Î»
- CMD5     R4                     IO½Ó¿ÚµçÑ¹ÉèÖÃ
- CMD6     R1                     ²éÑ¯/ÇĞ»»¹¦ÄÜ
- CMD8     R7             ·¢ËÍSD¿¨½Ó¿Ú»·¾³(Ìá¹©µçÑ¹µÈ)
- CMD11    R1                        µçÑ¹ÇĞ»»
- CMD55    R1             Ö¸Ê¾ÏÂÒ»ÌõÃüÁîÊÇÌØ¶¨µÄÓ¦ÓÃÃüÁî
- ACMD41   R3     ·¢ËÍÖ÷»úµçÈİ¹©¸øĞÅÏ¢(HCS)²¢»ñÈ¡²Ù×÷»·¾³¼Ä´æÆ÷(OCR)
- CMD2     R2                  »ñÈ¡¿¨±êÊ¶ºÅ(CID)
- CMD3     R6                 »ñÈ¡¿¨Ïà¶ÔµØÖ·(RCA)
- CMD7     R1b                  Ñ¡ÖĞ»òÈ¡ÏûÑ¡ÖĞ¿¨
- CMD16    R1                       ÉèÖÃ¿é´óĞ¡
- ACMD6    R1                      ÉèÖÃ×ÜÏßÎ»¿í
-(2)¶ÁĞ´ÃüÁî
-ÃüÁîºÅ  ÏìÓ¦ÀàĞÍ           º¬Òå
- CMD17    R1             µ¥¿é¶Á
- CMD18    R1             ¶à¿é¶Á
- CMD24    R1             µ¥¿éĞ´
- CMD25    R1             ¶à¿éĞ´
- CMD12    R1b         Í£Ö¹µ±Ç°´«Êä
+æè¿°:
+1.å¸¦åˆå§‹åŒ–æ¨¡å—
+2.æ”¯æŒä¸€çº¿/å››çº¿æ¨¡å¼
+3.æ”¯æŒå‘½ä»¤->
+(1)æ§åˆ¶/çŠ¶æ€å‘½ä»¤
+å‘½ä»¤å·  å“åº”ç±»å‹                      å«ä¹‰
+ CMD0     ---                        å¤ä½
+ CMD5     R4                     IOæ¥å£ç”µå‹è®¾ç½®
+ CMD6     R1                     æŸ¥è¯¢/åˆ‡æ¢åŠŸèƒ½
+ CMD8     R7             å‘é€SDå¡æ¥å£ç¯å¢ƒ(æä¾›ç”µå‹ç­‰)
+ CMD11    R1                        ç”µå‹åˆ‡æ¢
+ CMD55    R1             æŒ‡ç¤ºä¸‹ä¸€æ¡å‘½ä»¤æ˜¯ç‰¹å®šçš„åº”ç”¨å‘½ä»¤
+ ACMD41   R3     å‘é€ä¸»æœºç”µå®¹ä¾›ç»™ä¿¡æ¯(HCS)å¹¶è·å–æ“ä½œç¯å¢ƒå¯„å­˜å™¨(OCR)
+ CMD2     R2                  è·å–å¡æ ‡è¯†å·(CID)
+ CMD3     R6                 è·å–å¡ç›¸å¯¹åœ°å€(RCA)
+ CMD7     R1b                  é€‰ä¸­æˆ–å–æ¶ˆé€‰ä¸­å¡
+ CMD16    R1                       è®¾ç½®å—å¤§å°
+ ACMD6    R1                      è®¾ç½®æ€»çº¿ä½å®½
+(2)è¯»å†™å‘½ä»¤
+å‘½ä»¤å·  å“åº”ç±»å‹           å«ä¹‰
+ CMD17    R1             å•å—è¯»
+ CMD18    R1             å¤šå—è¯»
+ CMD24    R1             å•å—å†™
+ CMD25    R1             å¤šå—å†™
+ CMD12    R1b         åœæ­¢å½“å‰ä¼ è¾“
 
-×¢Òâ£º
-SD¿¨¿é´óĞ¡Îª512×Ö½Ú
-R2ÏìÓ¦ÓĞ136bit, ÆäËûÀàĞÍµÄÏìÓ¦ÓĞ48bit
-¿ØÖÆÆ÷ÔÚ³õÊ¼»¯Íê³Éºó²ÅÄÜ½ÓÊÜÓÃ»§ÃüÁî
+æ³¨æ„ï¼š
+SDå¡å—å¤§å°ä¸º512å­—èŠ‚
+R2å“åº”æœ‰136bit, å…¶ä»–ç±»å‹çš„å“åº”æœ‰48bit
+æ§åˆ¶å™¨åœ¨åˆå§‹åŒ–å®Œæˆåæ‰èƒ½æ¥å—ç”¨æˆ·å‘½ä»¤
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 SDIO MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/03/01
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/03/01
 ********************************************************************/
 
 
 module sd_card_ctrler #(
-    parameter integer init_acmd41_try_n = 20, // ³õÊ¼»¯Ê±·¢ËÍACMD41ÃüÁîµÄ³¢ÊÔ´ÎÊı(±ØĞë<=32)
-    parameter integer resp_timeout = 64, // ÏìÓ¦³¬Ê±ÖÜÆÚÊı
-    parameter integer resp_with_busy_timeout = 64, // ÏìÓ¦ºóbusy³¬Ê±ÖÜÆÚÊı
-    parameter integer read_timeout = -1, // ¶Á³¬Ê±ÖÜÆÚÊı(-1±íÊ¾²»Éè³¬Ê±)
-    parameter en_resp_rd_crc = "false", // ÊÇ·ñÊ¹ÄÜÏìÓ¦ºÍ¶ÁÊı¾İCRC
-    parameter en_sdio_clken = "false", // ÊÇ·ñÊ¹ÓÃsdioÊ±ÖÓÊ±ÖÓÊ¹ÄÜ
-    parameter en_resp = "false", // ÊÇ·ñÊ¹ÄÜÏìÓ¦AXIS
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer init_acmd41_try_n = 20, // åˆå§‹åŒ–æ—¶å‘é€ACMD41å‘½ä»¤çš„å°è¯•æ¬¡æ•°(å¿…é¡»<=32)
+    parameter integer resp_timeout = 64, // å“åº”è¶…æ—¶å‘¨æœŸæ•°
+    parameter integer resp_with_busy_timeout = 64, // å“åº”åbusyè¶…æ—¶å‘¨æœŸæ•°
+    parameter integer read_timeout = -1, // è¯»è¶…æ—¶å‘¨æœŸæ•°(-1è¡¨ç¤ºä¸è®¾è¶…æ—¶)
+    parameter en_resp_rd_crc = "false", // æ˜¯å¦ä½¿èƒ½å“åº”å’Œè¯»æ•°æ®CRC
+    parameter en_sdio_clken = "false", // æ˜¯å¦ä½¿ç”¨sdioæ—¶é’Ÿæ—¶é’Ÿä½¿èƒ½
+    parameter en_resp = "false", // æ˜¯å¦ä½¿èƒ½å“åº”AXIS
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-	// Ê±ÖÓºÍ¸´Î»
+	// æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire resetn,
     
-    // ÔËĞĞÊ±²ÎÊı
-    input wire en_sdio_clk, // ÆôÓÃsdioÊ±ÖÓ(¸´Î»Ê±±ØĞëÎª0), ½öÊ¹ÓÃsdioÊ±ÖÓÊ±ÖÓÊ¹ÄÜ¿ÉÓÃ
-    input wire[9:0] div_rate, // ·ÖÆµÊı - 1
-    input wire en_wide_sdio, // ÆôÓÃËÄÏßÄ£Ê½
+    // è¿è¡Œæ—¶å‚æ•°
+    input wire en_sdio_clk, // å¯ç”¨sdioæ—¶é’Ÿ(å¤ä½æ—¶å¿…é¡»ä¸º0), ä»…ä½¿ç”¨sdioæ—¶é’Ÿæ—¶é’Ÿä½¿èƒ½å¯ç”¨
+    input wire[9:0] div_rate, // åˆ†é¢‘æ•° - 1
+    input wire en_wide_sdio, // å¯ç”¨å››çº¿æ¨¡å¼
     
-    // ³õÊ¼»¯Ä£¿é¿ØÖÆ
-    input wire init_start, // ¿ªÊ¼³õÊ¼»¯ÇëÇó(Ö¸Ê¾)
-    output wire init_idle, // ³õÊ¼»¯Ä£¿é¿ÕÏĞ(±êÖ¾)
-    output wire init_done, // ³õÊ¼»¯Íê³É(Ö¸Ê¾)
+    // åˆå§‹åŒ–æ¨¡å—æ§åˆ¶
+    input wire init_start, // å¼€å§‹åˆå§‹åŒ–è¯·æ±‚(æŒ‡ç¤º)
+    output wire init_idle, // åˆå§‹åŒ–æ¨¡å—ç©ºé—²(æ ‡å¿—)
+    output wire init_done, // åˆå§‹åŒ–å®Œæˆ(æŒ‡ç¤º)
     
-    // ÃüÁîAXIS
-    input wire[39:0] s_axis_cmd_data, // {±£Áô(2bit), ÃüÁîºÅ(6bit), ²ÎÊı(32bit)}
-    input wire[15:0] s_axis_cmd_user, // ±¾´Î¶ÁĞ´µÄ¿é¸öÊı-1
+    // å‘½ä»¤AXIS
+    input wire[39:0] s_axis_cmd_data, // {ä¿ç•™(2bit), å‘½ä»¤å·(6bit), å‚æ•°(32bit)}
+    input wire[15:0] s_axis_cmd_user, // æœ¬æ¬¡è¯»å†™çš„å—ä¸ªæ•°-1
     input wire s_axis_cmd_valid,
     output wire s_axis_cmd_ready,
     
-    // ÏìÓ¦AXIS
-    // ½öÊ¹ÄÜÏìÓ¦AXISÊ±¿ÉÓÃ
-    output wire[119:0] m_axis_resp_data, // 48bitÏìÓ¦ -> {ÃüÁîºÅ(6bit), ²ÎÊı(32bit)}, 136bitÏìÓ¦ -> {²ÎÊı(120bit)}
-    output wire[2:0] m_axis_resp_user, // {ÏìÓ¦³¬Ê±(1bit), CRC´íÎó(1bit), ÊÇ·ñ³¤ÏìÓ¦(1bit)}
+    // å“åº”AXIS
+    // ä»…ä½¿èƒ½å“åº”AXISæ—¶å¯ç”¨
+    output wire[119:0] m_axis_resp_data, // 48bitå“åº” -> {å‘½ä»¤å·(6bit), å‚æ•°(32bit)}, 136bitå“åº” -> {å‚æ•°(120bit)}
+    output wire[2:0] m_axis_resp_user, // {å“åº”è¶…æ—¶(1bit), CRCé”™è¯¯(1bit), æ˜¯å¦é•¿å“åº”(1bit)}
     output wire m_axis_resp_valid,
     input wire m_axis_resp_ready,
     
-    // ³õÊ¼»¯½á¹ûAXIS
-    output wire[23:0] m_axis_init_res_data, // {±£Áô(5bit), RCA(16bit), ÊÇ·ñ´óÈİÁ¿¿¨(1bit), ÊÇ·ñÖ§³ÖSD2.0(1bit), ÊÇ·ñ³É¹¦(1bit)}
+    // åˆå§‹åŒ–ç»“æœAXIS
+    output wire[23:0] m_axis_init_res_data, // {ä¿ç•™(5bit), RCA(16bit), æ˜¯å¦å¤§å®¹é‡å¡(1bit), æ˜¯å¦æ”¯æŒSD2.0(1bit), æ˜¯å¦æˆåŠŸ(1bit)}
     output wire m_axis_init_res_valid,
     
-    // Ğ´Êı¾İAXIS
+    // å†™æ•°æ®AXIS
     input wire[31:0] s_axis_wt_data,
     input wire s_axis_wt_valid,
     output wire s_axis_wt_ready,
     
-    // ¶ÁÊı¾İAXIS
+    // è¯»æ•°æ®AXIS
     output wire[31:0] m_axis_rd_data,
-    output wire m_axis_rd_last, // µ±Ç°¿éµÄ×îºó1×éÊı¾İ
+    output wire m_axis_rd_last, // å½“å‰å—çš„æœ€å1ç»„æ•°æ®
     output wire m_axis_rd_valid,
     input wire m_axis_rd_ready,
     
-    // ¶ÁÊı¾İ·µ»Ø½á¹ûAXIS
-    output wire[7:0] m_axis_rd_sts_data, // {±£Áô(3bit), ¶Á³¬Ê±(1bit), Ğ£Ñé½á¹û(4bit)}
+    // è¯»æ•°æ®è¿”å›ç»“æœAXIS
+    output wire[7:0] m_axis_rd_sts_data, // {ä¿ç•™(3bit), è¯»è¶…æ—¶(1bit), æ ¡éªŒç»“æœ(4bit)}
     output wire m_axis_rd_sts_valid,
     
-    // Ğ´Êı¾İ×´Ì¬·µ»ØAXIS
-    output wire[7:0] m_axis_wt_sts_data, // {±£Áô(5bit), ×´Ì¬ĞÅÏ¢(3bit)}
+    // å†™æ•°æ®çŠ¶æ€è¿”å›AXIS
+    output wire[7:0] m_axis_wt_sts_data, // {ä¿ç•™(5bit), çŠ¶æ€ä¿¡æ¯(3bit)}
     output wire m_axis_wt_sts_valid,
     
-    // ¿ØÖÆÆ÷×´Ì¬
+    // æ§åˆ¶å™¨çŠ¶æ€
     output wire sdio_ctrler_idle,
     output wire sdio_ctrler_start,
     output wire sdio_ctrler_done,
-    output wire[1:0] sdio_ctrler_rw_type_done, // 2'b00->·Ç¶ÁĞ´ 2'b01->¶Á 2'b10->Ğ´
+    output wire[1:0] sdio_ctrler_rw_type_done, // 2'b00->éè¯»å†™ 2'b01->è¯» 2'b10->å†™
     
-    // sdio½Ó¿Ú(ÈıÌ¬×ÜÏß·½ÏòÑ¡Ôñ -> 0±íÊ¾Êä³ö, 1±íÊ¾ÊäÈë)
+    // sdioæ¥å£(ä¸‰æ€æ€»çº¿æ–¹å‘é€‰æ‹© -> 0è¡¨ç¤ºè¾“å‡º, 1è¡¨ç¤ºè¾“å…¥)
     // clk
     output wire sdio_clk,
     // cmd
@@ -133,9 +157,9 @@ module sd_card_ctrler #(
     input wire sdio_d3_i
 );
 
-    /** SD¿¨³õÊ¼»¯Ä£¿é **/
-    // ³õÊ¼»¯Ä£¿é²úÉúµÄÃüÁîAXIS
-    wire[39:0] m_axis_init_cmd_data; // {±£Áô(1bit), ÊÇ·ñºöÂÔ¶ÁÊı¾İ(1bit), ÃüÁîºÅ(6bit), ²ÎÊı(32bit)}
+    /** SDå¡åˆå§‹åŒ–æ¨¡å— **/
+    // åˆå§‹åŒ–æ¨¡å—äº§ç”Ÿçš„å‘½ä»¤AXIS
+    wire[39:0] m_axis_init_cmd_data; // {ä¿ç•™(1bit), æ˜¯å¦å¿½ç•¥è¯»æ•°æ®(1bit), å‘½ä»¤å·(6bit), å‚æ•°(32bit)}
     wire m_axis_init_cmd_valid;
     wire m_axis_init_cmd_ready;
     
@@ -164,30 +188,30 @@ module sd_card_ctrler #(
 		.m_axis_init_res_valid(m_axis_init_res_valid)
 	);
     
-    /** SDIO¿ØÖÆÆ÷ **/
-    // ÃüÁîAXIS
-    wire[39:0] m_axis_cmd_data; // {±£Áô(1bit), ÊÇ·ñºöÂÔ¶ÁÊı¾İ(1bit), ÃüÁîºÅ(6bit), ²ÎÊı(32bit)}
-    wire[15:0] m_axis_cmd_user; // ±¾´Î¶ÁĞ´µÄ¿é¸öÊı-1
+    /** SDIOæ§åˆ¶å™¨ **/
+    // å‘½ä»¤AXIS
+    wire[39:0] m_axis_cmd_data; // {ä¿ç•™(1bit), æ˜¯å¦å¿½ç•¥è¯»æ•°æ®(1bit), å‘½ä»¤å·(6bit), å‚æ•°(32bit)}
+    wire[15:0] m_axis_cmd_user; // æœ¬æ¬¡è¯»å†™çš„å—ä¸ªæ•°-1
     wire m_axis_cmd_valid;
     wire m_axis_cmd_ready;
-    // sdioÊ±ÖÓÊ¹ÄÜ
+    // sdioæ—¶é’Ÿä½¿èƒ½
     reg[3:0] sdio_rst_onehot;
     wire sdio_clken;
-	// ³õÊ¼»¯Íê³É±êÖ¾
+	// åˆå§‹åŒ–å®Œæˆæ ‡å¿—
 	reg init_finished;
     
     assign sdio_clken = sdio_rst_onehot[3];
     
-    // sdioÊ±ÖÓÊ¹ÄÜ
+    // sdioæ—¶é’Ÿä½¿èƒ½
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
             sdio_rst_onehot <= 4'b0000;
-        else if(~sdio_rst_onehot[3]) // Ïò×óÒÆÈë1'b1
+        else if(~sdio_rst_onehot[3]) // å‘å·¦ç§»å…¥1'b1
             # simulation_delay sdio_rst_onehot <= {sdio_rst_onehot[2:0], 1'b1};
     end
 	
-	// ³õÊ¼»¯Íê³É±êÖ¾
+	// åˆå§‹åŒ–å®Œæˆæ ‡å¿—
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
@@ -259,9 +283,9 @@ module sd_card_ctrler #(
     );
     
     /** 
-	ÃüÁîAXISÑ¡Í¨
+	å‘½ä»¤AXISé€‰é€š
 	
-	³õÊ¼»¯Íê³É -> Ñ¡Í¨¸ø³õÊ¼»¯Ä£¿é, ³õÊ¼»¯Î´Íê³É -> Ñ¡Í¨¸øÓÃ»§
+	åˆå§‹åŒ–å®Œæˆ -> é€‰é€šç»™åˆå§‹åŒ–æ¨¡å—, åˆå§‹åŒ–æœªå®Œæˆ -> é€‰é€šç»™ç”¨æˆ·
 	**/
     assign m_axis_init_cmd_ready = (~init_finished) & m_axis_cmd_ready;
     assign s_axis_cmd_ready = init_finished & m_axis_cmd_ready;

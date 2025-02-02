@@ -1,31 +1,55 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIS·ÇÕûÊı±¶Î»¿í±ä»»Æ÷
+æœ¬æ¨¡å—: AXISéæ•´æ•°å€ä½å®½å˜æ¢å™¨
 
-ÃèÊö: 
-½«axis´Ó»úµÄÊı¾İÎ»¿í±ä»»·ÇÕûÊı±¶
-»ùÓÚ¼Ä´æÆ÷Æ¬
-¿ÉÑ¡µÄÊä³ö¸ôÀë
+æè¿°: 
+å°†axisä»æœºçš„æ•°æ®ä½å®½å˜æ¢éæ•´æ•°å€
+åŸºäºå¯„å­˜å™¨ç‰‡
+å¯é€‰çš„è¾“å‡ºéš”ç¦»
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/02/21
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/02/21
 ********************************************************************/
 
 
 module axis_dw_cvt_not_tpc #(
-    parameter integer slave_data_width = 64, // ´Ó»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter integer master_data_width = 48, // Ö÷»úÊı¾İÎ»¿í(±ØĞëÄÜ±»8Õû³ı)
-    parameter integer slave_user_width_foreach_byte = 1, // ´Ó»úÃ¿¸öÊı¾İ×Ö½ÚµÄuserÎ»¿í(±ØĞë>=1, ²»ÓÃÊ±Ğü¿Õ¼´¿É)
-    parameter en_out_isolation = "true", // ÊÇ·ñÆôÓÃÊä³ö¸ôÀë
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer slave_data_width = 64, // ä»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter integer master_data_width = 48, // ä¸»æœºæ•°æ®ä½å®½(å¿…é¡»èƒ½è¢«8æ•´é™¤)
+    parameter integer slave_user_width_foreach_byte = 1, // ä»æœºæ¯ä¸ªæ•°æ®å­—èŠ‚çš„userä½å®½(å¿…é¡»>=1, ä¸ç”¨æ—¶æ‚¬ç©ºå³å¯)
+    parameter en_out_isolation = "true", // æ˜¯å¦å¯ç”¨è¾“å‡ºéš”ç¦»
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
@@ -46,7 +70,7 @@ module axis_dw_cvt_not_tpc #(
     input wire m_axis_ready
 );
     
-    // ¼ÆËãlog2(bit_depth)
+    // è®¡ç®—log2(bit_depth)
     function integer clogb2(input integer bit_depth);
         integer temp;
     begin
@@ -56,7 +80,7 @@ module axis_dw_cvt_not_tpc #(
     end
     endfunction
 
-    // ¼ÆËãÁ½ÊıµÄ×î´ó¹«Ô¼Êı
+    // è®¡ç®—ä¸¤æ•°çš„æœ€å¤§å…¬çº¦æ•°
     function integer gcd(input integer a, input integer b);
         integer div_a;
         integer mod;
@@ -73,20 +97,20 @@ module axis_dw_cvt_not_tpc #(
     end
     endfunction
     
-    /** ³£Á¿ **/
+    /** å¸¸é‡ **/
     localparam integer data_width_gcd = (slave_data_width > master_data_width) ?
         gcd(slave_data_width, master_data_width):
-        gcd(master_data_width, slave_data_width); // Ö÷´Ó»úÊı¾İÎ»¿íµÄ×îĞ¡¹«Ô¼Êı
-    localparam integer data_width_lcm = slave_data_width * master_data_width / data_width_gcd; // Ö÷´Ó»úÊı¾İÎ»¿íµÄ×î´ó¹«±¶Êı
-    localparam integer buf_len_div_s_data_width = data_width_lcm / slave_data_width; // »º³åÇø³¤¶È / ´Ó»úÊı¾İÎ»¿í
-    localparam integer buf_len_div_m_data_width = data_width_lcm / master_data_width; // »º³åÇø³¤¶È / Ö÷»úÊı¾İÎ»¿í
+        gcd(master_data_width, slave_data_width); // ä¸»ä»æœºæ•°æ®ä½å®½çš„æœ€å°å…¬çº¦æ•°
+    localparam integer data_width_lcm = slave_data_width * master_data_width / data_width_gcd; // ä¸»ä»æœºæ•°æ®ä½å®½çš„æœ€å¤§å…¬å€æ•°
+    localparam integer buf_len_div_s_data_width = data_width_lcm / slave_data_width; // ç¼“å†²åŒºé•¿åº¦ / ä»æœºæ•°æ®ä½å®½
+    localparam integer buf_len_div_m_data_width = data_width_lcm / master_data_width; // ç¼“å†²åŒºé•¿åº¦ / ä¸»æœºæ•°æ®ä½å®½
     localparam integer dw_cvt_buf_width = 8 + 1 + slave_user_width_foreach_byte + 1;
     localparam integer dw_cvt_buf_for_rd_width = master_data_width + master_data_width / 8 + master_data_width / 8 * slave_user_width_foreach_byte + 1;
-    localparam integer max_dw_cvt_buf_n = data_width_lcm/data_width_gcd; // Î»¿í±ä»»»º³åÇø×î´ó´æ´¢¸öÊı
-    localparam integer wt_add_n = slave_data_width / data_width_gcd; // Ğ´»º³åÇøÊ±Ôö¼ÓµÄ´æ´¢¸öÊı
-    localparam integer rd_sub_n = master_data_width / data_width_gcd; // ¶Á»º³åÇøÊ±¼õÉÙµÄ´æ´¢¸öÊı
+    localparam integer max_dw_cvt_buf_n = data_width_lcm/data_width_gcd; // ä½å®½å˜æ¢ç¼“å†²åŒºæœ€å¤§å­˜å‚¨ä¸ªæ•°
+    localparam integer wt_add_n = slave_data_width / data_width_gcd; // å†™ç¼“å†²åŒºæ—¶å¢åŠ çš„å­˜å‚¨ä¸ªæ•°
+    localparam integer rd_sub_n = master_data_width / data_width_gcd; // è¯»ç¼“å†²åŒºæ—¶å‡å°‘çš„å­˜å‚¨ä¸ªæ•°
     
-    /** ÊäÈë¶Ë **/
+    /** è¾“å…¥ç«¯ **/
     wire[7:0] s_axis_data_w[slave_data_width/8-1:0];
     wire[slave_user_width_foreach_byte-1:0] s_axis_user_w[slave_data_width/8-1:0];
     
@@ -100,7 +124,7 @@ module axis_dw_cvt_not_tpc #(
         end
     endgenerate
     
-    /** Êä³ö¼Ä´æÆ÷Æ¬ **/
+    /** è¾“å‡ºå¯„å­˜å™¨ç‰‡ **/
     wire[master_data_width-1:0] m_axis_data_w;
     wire[master_data_width/8-1:0] m_axis_keep_w;
     wire[master_data_width/8*slave_user_width_foreach_byte-1:0] m_axis_user_w;
@@ -144,21 +168,21 @@ module axis_dw_cvt_not_tpc #(
         end
     endgenerate
     
-     /** Î»¿í±ä»» **/
-    reg s_axis_ready_reg; // ÊäÈëaxisµÄready
-    reg m_axis_valid_w_reg; // Êä³öaxisµÄvalid
-    // Î»¿í±ä»»(»º³åÇø) Ã¿×Ö½Ú -> {last, user, keep, data}
+     /** ä½å®½å˜æ¢ **/
+    reg s_axis_ready_reg; // è¾“å…¥axisçš„ready
+    reg m_axis_valid_w_reg; // è¾“å‡ºaxisçš„valid
+    // ä½å®½å˜æ¢(ç¼“å†²åŒº) æ¯å­—èŠ‚ -> {last, user, keep, data}
     reg[dw_cvt_buf_width-1:0] dw_cvt_buf[data_width_lcm/8-1:0];
-    // ´æ´¢¼ÆÊı
-    reg[clogb2(max_dw_cvt_buf_n-1):0] dw_cvt_buf_n; // Î»¿í±ä»»»º³åÇø´æ´¢¸öÊı
-    // Ğ´¶Ë¿Ú
-    wire dw_cvt_wen; // Ğ´Ê¹ÄÜ
-    reg[buf_len_div_s_data_width-1:0] dw_cvt_buf_ce; // ÇøÓòĞ´Ê¹ÄÜ
-    // ¶Á¶Ë¿Ú
-    // Î»¿í±ä»»(¶Á×éºÏ) {last, user, keep, data}
+    // å­˜å‚¨è®¡æ•°
+    reg[clogb2(max_dw_cvt_buf_n-1):0] dw_cvt_buf_n; // ä½å®½å˜æ¢ç¼“å†²åŒºå­˜å‚¨ä¸ªæ•°
+    // å†™ç«¯å£
+    wire dw_cvt_wen; // å†™ä½¿èƒ½
+    reg[buf_len_div_s_data_width-1:0] dw_cvt_buf_ce; // åŒºåŸŸå†™ä½¿èƒ½
+    // è¯»ç«¯å£
+    // ä½å®½å˜æ¢(è¯»ç»„åˆ) {last, user, keep, data}
     wire[dw_cvt_buf_for_rd_width-1:0] dw_cvt_buf_for_rd[buf_len_div_m_data_width-1:0];
-    wire dw_cvt_ren; // ¶ÁÊ¹ÄÜ
-    reg[clogb2(buf_len_div_m_data_width-1):0] dw_cvt_rptr; // ¶ÁÖ¸Õë
+    wire dw_cvt_ren; // è¯»ä½¿èƒ½
+    reg[clogb2(buf_len_div_m_data_width-1):0] dw_cvt_rptr; // è¯»æŒ‡é’ˆ
     
     assign s_axis_ready = s_axis_ready_reg;
     assign m_axis_data_w = dw_cvt_buf_for_rd[dw_cvt_rptr][master_data_width-1:0];
@@ -196,7 +220,7 @@ module axis_dw_cvt_not_tpc #(
         end
     endgenerate
     
-    // ÊäÈëaxisµÄready
+    // è¾“å…¥axisçš„ready
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -213,7 +237,7 @@ module axis_dw_cvt_not_tpc #(
             endcase
         end
     end
-    // Êä³öaxisµÄvalid
+    // è¾“å‡ºaxisçš„valid
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -231,7 +255,7 @@ module axis_dw_cvt_not_tpc #(
         end
     end
     
-    // Î»¿í±ä»»»º³åÇø´æ´¢¸öÊı
+    // ä½å®½å˜æ¢ç¼“å†²åŒºå­˜å‚¨ä¸ªæ•°
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -249,13 +273,13 @@ module axis_dw_cvt_not_tpc #(
         end
     end
     
-    // Î»¿í±ä»»(»º³åÇø)
+    // ä½å®½å˜æ¢(ç¼“å†²åŒº)
     genvar dw_cvt_buf_i;
     generate
         for(dw_cvt_buf_i = 0;dw_cvt_buf_i < data_width_lcm/8;dw_cvt_buf_i = dw_cvt_buf_i + 1)
         begin
-            integer dw_cnt_buf_region = dw_cvt_buf_i / (slave_data_width / 8); // Ïà¶ÔÓÚ´Ó»úµÄÇøÓò±àºÅ
-            integer dw_cnt_buf_id_in_region = dw_cvt_buf_i % (slave_data_width / 8); // Ïà¶ÔÓÚ´Ó»úµÄÇøÓòÄÚ²¿±àºÅ
+            integer dw_cnt_buf_region = dw_cvt_buf_i / (slave_data_width / 8); // ç›¸å¯¹äºä»æœºçš„åŒºåŸŸç¼–å·
+            integer dw_cnt_buf_id_in_region = dw_cvt_buf_i % (slave_data_width / 8); // ç›¸å¯¹äºä»æœºçš„åŒºåŸŸå†…éƒ¨ç¼–å·
             
             always @(posedge clk)
             begin
@@ -267,16 +291,16 @@ module axis_dw_cvt_not_tpc #(
         end
     endgenerate
     
-    // ÇøÓòĞ´Ê¹ÄÜ
+    // åŒºåŸŸå†™ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
             dw_cvt_buf_ce <= {{(buf_len_div_s_data_width-1){1'b0}}, 1'b1};
-        else if(dw_cvt_wen) // Ñ­»·×óÒÆ
+        else if(dw_cvt_wen) // å¾ªç¯å·¦ç§»
             # simulation_delay dw_cvt_buf_ce <= {dw_cvt_buf_ce[buf_len_div_s_data_width-2:0], dw_cvt_buf_ce[buf_len_div_s_data_width-1]};
     end
     
-    // ¶ÁÖ¸Õë
+    // è¯»æŒ‡é’ˆ
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

@@ -1,64 +1,88 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXIĞ´Êı¾İ/Ğ´ÏìÓ¦Í¨µÀÂ·ÓÉ
+æœ¬æ¨¡å—: AXIå†™æ•°æ®/å†™å“åº”é€šé“è·¯ç”±
 
-ÃèÊö: 
-½«¸ø¶¨´Ó»úµÄĞ´Êı¾İ(W)Í¨µÀÑ¡Í¨¸øÖ÷»ú
-½«Ö÷»úµÄĞ´ÏìÓ¦Í¨µÀ(B)Â·ÓÉµ½¸ø¶¨µÄ´Ó»ú
+æè¿°: 
+å°†ç»™å®šä»æœºçš„å†™æ•°æ®(W)é€šé“é€‰é€šç»™ä¸»æœº
+å°†ä¸»æœºçš„å†™å“åº”é€šé“(B)è·¯ç”±åˆ°ç»™å®šçš„ä»æœº
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
+åè®®:
 FIFO READ
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/04/29
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/04/29
 ********************************************************************/
 
 
 module axi_wchn_router #(
-    parameter integer master_n = 4, // Ö÷»ú¸öÊı(±ØĞëÔÚ·¶Î§[2, 8]ÄÚ)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer master_n = 4, // ä¸»æœºä¸ªæ•°(å¿…é¡»åœ¨èŒƒå›´[2, 8]å†…)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire rst_n,
     
-    // AXI´Ó»úWÍ¨µÀ
-    input wire[35:0] s0_w_payload, // 0ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[35:0] s1_w_payload, // 1ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[35:0] s2_w_payload, // 2ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[35:0] s3_w_payload, // 3ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[35:0] s4_w_payload, // 4ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[35:0] s5_w_payload, // 5ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[35:0] s6_w_payload, // 6ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[35:0] s7_w_payload, // 7ºÅ´Ó»úWÍ¨µÀµÄ¸ºÔØ
-    input wire[7:0] s_w_last, // Ã¿¸ö´Ó»úWÍ¨µÀµÄlastĞÅºÅ
-    input wire[7:0] s_w_valid, // Ã¿¸ö´Ó»úWÍ¨µÀµÄvalidĞÅºÅ
-    output wire[7:0] s_w_ready, // Ã¿¸ö´Ó»úWÍ¨µÀµÄreadyĞÅºÅ
+    // AXIä»æœºWé€šé“
+    input wire[35:0] s0_w_payload, // 0å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[35:0] s1_w_payload, // 1å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[35:0] s2_w_payload, // 2å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[35:0] s3_w_payload, // 3å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[35:0] s4_w_payload, // 4å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[35:0] s5_w_payload, // 5å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[35:0] s6_w_payload, // 6å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[35:0] s7_w_payload, // 7å·ä»æœºWé€šé“çš„è´Ÿè½½
+    input wire[7:0] s_w_last, // æ¯ä¸ªä»æœºWé€šé“çš„lastä¿¡å·
+    input wire[7:0] s_w_valid, // æ¯ä¸ªä»æœºWé€šé“çš„validä¿¡å·
+    output wire[7:0] s_w_ready, // æ¯ä¸ªä»æœºWé€šé“çš„readyä¿¡å·
     
-    // AXI´Ó»úBÍ¨µÀ
-    output wire[7:0] s_b_valid, // ´Ó»úBÍ¨µÀµÄvalidĞÅºÅ
-    input wire[7:0] s_b_ready, // ´Ó»úBÍ¨µÀµÄreadyĞÅºÅ
+    // AXIä»æœºBé€šé“
+    output wire[7:0] s_b_valid, // ä»æœºBé€šé“çš„validä¿¡å·
+    input wire[7:0] s_b_ready, // ä»æœºBé€šé“çš„readyä¿¡å·
     
-    // AXIÖ÷»úWÍ¨µÀ
-    output wire[35:0] m_w_payload, // Ö÷»úWÍ¨µÀ¸ºÔØ
+    // AXIä¸»æœºWé€šé“
+    output wire[35:0] m_w_payload, // ä¸»æœºWé€šé“è´Ÿè½½
     output wire m_w_last,
     output wire m_w_valid,
     input wire m_w_ready,
-    // AXIÖ÷»úBÍ¨µÀ
+    // AXIä¸»æœºBé€šé“
     input wire m_b_valid,
     output wire m_b_ready,
     
-    // ÊÚÈ¨Ö÷»ú±àºÅfifo¶Á¶Ë¿Ú
+    // æˆæƒä¸»æœºç¼–å·fifoè¯»ç«¯å£
     output wire grant_mid_fifo_ren,
     input wire grant_mid_fifo_empty_n,
-    input wire[master_n-1:0] grant_mid_fifo_dout_onehot, // ¶ÀÈÈÂë±àºÅ
-    input wire[clogb2(master_n-1):0] grant_mid_fifo_dout_bin // ¶ş½øÖÆÂë±àºÅ
+    input wire[master_n-1:0] grant_mid_fifo_dout_onehot, // ç‹¬çƒ­ç ç¼–å·
+    input wire[clogb2(master_n-1):0] grant_mid_fifo_dout_bin // äºŒè¿›åˆ¶ç ç¼–å·
 );
 
-    // ¼ÆËãlog2(bit_depth)               
+    // è®¡ç®—log2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -68,7 +92,7 @@ module axi_wchn_router #(
     end
     endfunction
 
-    /** AXI´Ó»úWÍ¨µÀµÄ¸ºÔØ **/
+    /** AXIä»æœºWé€šé“çš„è´Ÿè½½ **/
     wire[35:0] s_w_payload[7:0];
     
     assign s_w_payload[0] = s0_w_payload;
@@ -80,11 +104,11 @@ module axi_wchn_router #(
     assign s_w_payload[6] = s6_w_payload;
     assign s_w_payload[7] = s7_w_payload;
     
-    /** AXIĞ´Êı¾İÍ¨µÀÂ·ÓÉ **/
-    // µ±WÍ¨µÀÍ¨µÀÍ»·¢½áÊøµ«ÊÇBÍ¨µÀÎ´ÎÕÊÖÊ±²»Ê¹ÄÜWÍ¨µÀ
-    reg w_chn_en; // WÍ¨µÀÊ¹ÄÜ
+    /** AXIå†™æ•°æ®é€šé“è·¯ç”± **/
+    // å½“Wé€šé“é€šé“çªå‘ç»“æŸä½†æ˜¯Bé€šé“æœªæ¡æ‰‹æ—¶ä¸ä½¿èƒ½Wé€šé“
+    reg w_chn_en; // Wé€šé“ä½¿èƒ½
     
-    // Ğ´Êı¾İÊ¹ÄÜ
+    // å†™æ•°æ®ä½¿èƒ½
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -94,19 +118,19 @@ module axi_wchn_router #(
                 (~((m_w_valid & m_w_ready & m_w_last) & (~(m_b_valid & m_b_ready)))):(m_b_valid & m_b_ready);
     end
     
-    // ½«´Ó»úĞ´Êı¾İÍ¨µÀµÄpayloadºÍlastÂ·ÓÉ¸øÖ÷»ú
+    // å°†ä»æœºå†™æ•°æ®é€šé“çš„payloadå’Œlastè·¯ç”±ç»™ä¸»æœº
     assign m_w_payload = s_w_payload[grant_mid_fifo_dout_bin];
     assign m_w_last = s_w_last[grant_mid_fifo_dout_bin];
-    // ¶ÔÓÚÃ¿¸ö´Ó»úµÄWÍ¨µÀ, ÎÕÊÖÌõ¼şÊÇ: w_chn_en & s_w_valid[i] & grant_mid_fifo_empty_n & m_w_ready & grant_mid_fifo_dout_onehot[i]
+    // å¯¹äºæ¯ä¸ªä»æœºçš„Wé€šé“, æ¡æ‰‹æ¡ä»¶æ˜¯: w_chn_en & s_w_valid[i] & grant_mid_fifo_empty_n & m_w_ready & grant_mid_fifo_dout_onehot[i]
     assign m_w_valid = w_chn_en & grant_mid_fifo_empty_n & ((grant_mid_fifo_dout_onehot & s_w_valid[master_n-1:0]) != {master_n{1'b0}});
     assign s_w_ready = {{(8-master_n){1'b1}}, {master_n{w_chn_en & grant_mid_fifo_empty_n & m_w_ready}} & grant_mid_fifo_dout_onehot};
     
-    /** AXIĞ´ÏìÓ¦Í¨µÀÂ·ÓÉ **/
-    // ¶ÔÓÚÃ¿¸ö´Ó»úµÄBÍ¨µÀ, ÎÕÊÖÌõ¼şÊÇ: m_b_valid & grant_mid_fifo_dout_onehot[i] & s_b_ready[i]
+    /** AXIå†™å“åº”é€šé“è·¯ç”± **/
+    // å¯¹äºæ¯ä¸ªä»æœºçš„Bé€šé“, æ¡æ‰‹æ¡ä»¶æ˜¯: m_b_valid & grant_mid_fifo_dout_onehot[i] & s_b_ready[i]
     assign s_b_valid = {{(8-master_n){1'b1}}, {master_n{m_b_valid}} & grant_mid_fifo_dout_onehot};
     assign m_b_ready = (grant_mid_fifo_dout_onehot & s_b_ready[master_n-1:0]) != {master_n{1'b0}};
     
-    /** ÊÚÈ¨Ö÷»ú±àºÅfifo¶Á¶Ë¿Ú **/
+    /** æˆæƒä¸»æœºç¼–å·fifoè¯»ç«¯å£ **/
     assign grant_mid_fifo_ren = m_b_valid & m_b_ready;
     
 endmodule

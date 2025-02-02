@@ -1,64 +1,88 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: AXISÊäÈëÌØÕ÷Í¼»º´æ×é
+æœ¬æ¨¡å—: AXISè¾“å…¥ç‰¹å¾å›¾ç¼“å­˜ç»„
 
-ÃèÊö:
-½«ÊäÈëÌØÕ÷Í¼´æÈën¸ö»º´æÇø, ¶Á»º´æÇøÊ±Í¬Ê±Êä³ömĞĞÍ¬Ò»ÁĞµÄÌØÕ÷µã
+æè¿°:
+å°†è¾“å…¥ç‰¹å¾å›¾å­˜å…¥nä¸ªç¼“å­˜åŒº, è¯»ç¼“å­˜åŒºæ—¶åŒæ—¶è¾“å‡ºmè¡ŒåŒä¸€åˆ—çš„ç‰¹å¾ç‚¹
 
-		 {[------ĞĞ#0------]  --
-          [------ĞĞ#1------]   |
-		  [------ĞĞ#2------]}  |
+		 {[------è¡Œ#0------]  --
+          [------è¡Œ#1------]   |
+		  [------è¡Œ#2------]}  |
                                |----->
-		 {[------ĞĞ#0------]   |
-          [------ĞĞ#1------]   |
-		  [------ĞĞ#2------]} --
+		 {[------è¡Œ#0------]   |
+          [------è¡Œ#1------]   |
+		  [------è¡Œ#2------]} --
 
-		 {[------ĞĞ#0------]
-  ----->  [------ĞĞ#1------]
-		  [------ĞĞ#2------]}
-×¢Òâ£º
-ÊäÈëÌØÕ÷Í¼»º´æ¸öÊı(in_feature_map_buffer_n)±ØĞë>=¶ÁÊäÈëÌØÕ÷Í¼»º´æµÄ²¢ĞĞ¸öÊı(in_feature_map_buffer_rd_prl_n)
+		 {[------è¡Œ#0------]
+  ----->  [------è¡Œ#1------]
+		  [------è¡Œ#2------]}
+æ³¨æ„ï¼š
+è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜ä¸ªæ•°(in_feature_map_buffer_n)å¿…é¡»>=è¯»è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜çš„å¹¶è¡Œä¸ªæ•°(in_feature_map_buffer_rd_prl_n)
 
-Ğ­Òé:
+åè®®:
 AXIS MASTER/SLAVE
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/10/21
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/10/21
 ********************************************************************/
 
 
 module axis_in_feature_map_buffer_group #(
-	parameter integer in_feature_map_buffer_n = 8, // ÊäÈëÌØÕ÷Í¼»º´æ¸öÊı
-	parameter integer in_feature_map_buffer_rd_prl_n = 4, // ¶ÁÊäÈëÌØÕ÷Í¼»º´æµÄ²¢ĞĞ¸öÊı
-	parameter integer feature_data_width = 16, // ÌØÕ÷µãÎ»¿í(8 | 16 | 32 | 64)
-	parameter integer max_feature_map_w = 512, // ×î´óµÄÊäÈëÌØÕ÷Í¼¿í¶È
-	parameter line_buffer_mem_type = "bram", // ĞĞ»º´æMEMÀàĞÍ("bram" | "lutram" | "auto")
-	parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+	parameter integer in_feature_map_buffer_n = 8, // è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜ä¸ªæ•°
+	parameter integer in_feature_map_buffer_rd_prl_n = 4, // è¯»è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜çš„å¹¶è¡Œä¸ªæ•°
+	parameter integer feature_data_width = 16, // ç‰¹å¾ç‚¹ä½å®½(8 | 16 | 32 | 64)
+	parameter integer max_feature_map_w = 512, // æœ€å¤§çš„è¾“å…¥ç‰¹å¾å›¾å®½åº¦
+	parameter line_buffer_mem_type = "bram", // è¡Œç¼“å­˜MEMç±»å‹("bram" | "lutram" | "auto")
+	parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
 	input wire clk,
 	input wire rst_n,
 	
-	// ÔËĞĞÊ±²ÎÊı
-	input wire[15:0] feature_map_w, // ÊäÈëÌØÕ÷Í¼¿í¶È - 1
+	// è¿è¡Œæ—¶å‚æ•°
+	input wire[15:0] feature_map_w, // è¾“å…¥ç‰¹å¾å›¾å®½åº¦ - 1
 	
-	// ÊäÈëÌØÕ÷Í¼(AXIS´Ó»ú)
+	// è¾“å…¥ç‰¹å¾å›¾(AXISä»æœº)
 	input wire[63:0] s_axis_ft_data,
-	input wire s_axis_ft_last, // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	input wire[1:0] s_axis_ft_user, // {±¾ĞĞÊÇ·ñÓĞĞ§, µ±Ç°»º´æÇø×îºó1ĞĞ±êÖ¾}
+	input wire s_axis_ft_last, // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	input wire[1:0] s_axis_ft_user, // {æœ¬è¡Œæ˜¯å¦æœ‰æ•ˆ, å½“å‰ç¼“å­˜åŒºæœ€å1è¡Œæ ‡å¿—}
 	input wire s_axis_ft_valid,
 	output wire s_axis_ft_ready,
 	
-	// »º´æÊä³ö(AXISÖ÷»ú)
-	// {»º´æ#(n-1)ĞĞ#2, »º´æ#(n-1)ĞĞ#1, »º´æ#(n-1)ĞĞ#0, ..., »º´æ#0ĞĞ#2, »º´æ#0ĞĞ#1, »º´æ#0ĞĞ#0}
+	// ç¼“å­˜è¾“å‡º(AXISä¸»æœº)
+	// {ç¼“å­˜#(n-1)è¡Œ#2, ç¼“å­˜#(n-1)è¡Œ#1, ç¼“å­˜#(n-1)è¡Œ#0, ..., ç¼“å­˜#0è¡Œ#2, ç¼“å­˜#0è¡Œ#1, ç¼“å­˜#0è¡Œ#0}
 	output wire[feature_data_width*3*in_feature_map_buffer_rd_prl_n-1:0] m_axis_buf_data,
-	output wire m_axis_buf_last, // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	output wire[in_feature_map_buffer_rd_prl_n*3-1:0] m_axis_buf_user, // {»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿}
+	output wire m_axis_buf_last, // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	output wire[in_feature_map_buffer_rd_prl_n*3-1:0] m_axis_buf_user, // {ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡}
 	output wire m_axis_buf_valid,
 	input wire m_axis_buf_ready
 );
 	
-    // ¼ÆËãbit_depthµÄ×î¸ßÓĞĞ§Î»±àºÅ(¼´Î»Êı-1)
+    // è®¡ç®—bit_depthçš„æœ€é«˜æœ‰æ•ˆä½ç¼–å·(å³ä½æ•°-1)
     function integer clogb2(input integer bit_depth);
     begin
 		if(bit_depth == 0)
@@ -71,30 +95,30 @@ module axis_in_feature_map_buffer_group #(
     end
     endfunction
 	
-	/** »º´æÊä³ö **/
-	// ¶Á»º´æÇøMEMÁ÷Ë®Ïß
+	/** ç¼“å­˜è¾“å‡º **/
+	// è¯»ç¼“å­˜åŒºMEMæµæ°´çº¿
 	// stage0
 	wire buffer_out_valid_stage0;
 	wire buffer_out_ready_stage0;
-	wire buffer_out_last_stage0; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	wire[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage0; // {»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿}
+	wire buffer_out_last_stage0; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	wire[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage0; // {ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡}
 	// stage1
 	reg buffer_out_valid_stage1;
 	wire buffer_out_ready_stage1;
-	reg buffer_out_last_stage1; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	reg[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage1; // {»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿}
+	reg buffer_out_last_stage1; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	reg[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage1; // {ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡}
 	// stage2
 	reg buffer_out_valid_stage2;
 	wire buffer_out_ready_stage2;
 	wire[feature_data_width*3*in_feature_map_buffer_rd_prl_n-1:0] buffer_out_data_stage2;
-	reg buffer_out_last_stage2; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	reg[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage2; // {»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿}
+	reg buffer_out_last_stage2; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	reg[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage2; // {ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡}
 	// stage3
 	reg buffer_out_valid_stage3;
 	wire buffer_out_ready_stage3;
 	reg[feature_data_width*3*in_feature_map_buffer_rd_prl_n-1:0] buffer_out_data_stage3;
-	reg buffer_out_last_stage3; // ±íÊ¾ÌØÕ÷Í¼ĞĞÎ²
-	reg[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage3; // {»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿}
+	reg buffer_out_last_stage3; // è¡¨ç¤ºç‰¹å¾å›¾è¡Œå°¾
+	reg[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_out_user_stage3; // {ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡}
 	
 	assign m_axis_buf_data = buffer_out_data_stage3;
 	assign m_axis_buf_last = buffer_out_last_stage3;
@@ -106,7 +130,7 @@ module axis_in_feature_map_buffer_group #(
 	assign buffer_out_ready_stage2 = (~buffer_out_valid_stage3) | buffer_out_ready_stage3;
 	assign buffer_out_ready_stage3 = m_axis_buf_ready;
 	
-	// ¶Á»º´æÇøMEMµÚ1¼¶Á÷Ë®Ïßvalid
+	// è¯»ç¼“å­˜åŒºMEMç¬¬1çº§æµæ°´çº¿valid
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -114,7 +138,7 @@ module axis_in_feature_map_buffer_group #(
 		else if(buffer_out_ready_stage0)
 			buffer_out_valid_stage1 <= # simulation_delay buffer_out_valid_stage0;
 	end
-	// ¶Á»º´æÇøMEMµÚ1¼¶Á÷Ë®ÏßlastºÍuser
+	// è¯»ç¼“å­˜åŒºMEMç¬¬1çº§æµæ°´çº¿lastå’Œuser
 	always @(posedge clk)
 	begin
 		if(buffer_out_valid_stage0 & buffer_out_ready_stage0)
@@ -122,7 +146,7 @@ module axis_in_feature_map_buffer_group #(
 				{buffer_out_last_stage0, buffer_out_user_stage0};
 	end
 	
-	// ¶Á»º´æÇøMEMµÚ2¼¶Á÷Ë®Ïßvalid
+	// è¯»ç¼“å­˜åŒºMEMç¬¬2çº§æµæ°´çº¿valid
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -130,7 +154,7 @@ module axis_in_feature_map_buffer_group #(
 		else if(buffer_out_ready_stage1)
 			buffer_out_valid_stage2 <= # simulation_delay buffer_out_valid_stage1;
 	end
-	// ¶Á»º´æÇøMEMµÚ2¼¶Á÷Ë®ÏßlastºÍuser
+	// è¯»ç¼“å­˜åŒºMEMç¬¬2çº§æµæ°´çº¿lastå’Œuser
 	always @(posedge clk)
 	begin
 		if(buffer_out_valid_stage1 & buffer_out_ready_stage1)
@@ -138,7 +162,7 @@ module axis_in_feature_map_buffer_group #(
 				{buffer_out_last_stage1, buffer_out_user_stage1};
 	end
 	
-	// ¶Á»º´æÇøMEMµÚ3¼¶Á÷Ë®Ïßvalid
+	// è¯»ç¼“å­˜åŒºMEMç¬¬3çº§æµæ°´çº¿valid
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -146,7 +170,7 @@ module axis_in_feature_map_buffer_group #(
 		else if(buffer_out_ready_stage2)
 			buffer_out_valid_stage3 <= # simulation_delay buffer_out_valid_stage2;
 	end
-	// ¶Á»º´æÇøMEMµÚ3¼¶Á÷Ë®Ïßdata, lastºÍuser
+	// è¯»ç¼“å­˜åŒºMEMç¬¬3çº§æµæ°´çº¿data, lastå’Œuser
 	always @(posedge clk)
 	begin
 		if(buffer_out_valid_stage2 & buffer_out_ready_stage2)
@@ -154,14 +178,14 @@ module axis_in_feature_map_buffer_group #(
 				{buffer_out_data_stage2, buffer_out_last_stage2, buffer_out_user_stage2};
 	end
 	
-	/** »º´æÇø´æ´¢¼ÆÊı **/
-	wire buffer_group_wen; // »º´æ×éĞ´Ê¹ÄÜ
-	wire buffer_group_ren; // »º´æ×é¶ÁÊ¹ÄÜ
-	reg[clogb2(in_feature_map_buffer_n):0] buffer_group_n; // »º´æ×é´æ´¢¸öÊı
-	wire[clogb2(in_feature_map_buffer_n):0] buffer_group_n_incr; // »º´æ×é´æ´¢¸öÊıÔöÁ¿
-	wire[clogb2(in_feature_map_buffer_n):0] buffer_group_n_nxt; // ĞÂµÄ»º´æ×é´æ´¢¸öÊı
-	reg buffer_group_full_n; // »º´æ×éÂú±êÖ¾
-	reg buffer_group_empty_n; // »º´æ×é¿Õ±êÖ¾
+	/** ç¼“å­˜åŒºå­˜å‚¨è®¡æ•° **/
+	wire buffer_group_wen; // ç¼“å­˜ç»„å†™ä½¿èƒ½
+	wire buffer_group_ren; // ç¼“å­˜ç»„è¯»ä½¿èƒ½
+	reg[clogb2(in_feature_map_buffer_n):0] buffer_group_n; // ç¼“å­˜ç»„å­˜å‚¨ä¸ªæ•°
+	wire[clogb2(in_feature_map_buffer_n):0] buffer_group_n_incr; // ç¼“å­˜ç»„å­˜å‚¨ä¸ªæ•°å¢é‡
+	wire[clogb2(in_feature_map_buffer_n):0] buffer_group_n_nxt; // æ–°çš„ç¼“å­˜ç»„å­˜å‚¨ä¸ªæ•°
+	reg buffer_group_full_n; // ç¼“å­˜ç»„æ»¡æ ‡å¿—
+	reg buffer_group_empty_n; // ç¼“å­˜ç»„ç©ºæ ‡å¿—
 	
 	assign buffer_group_n_incr = 
 		// -in_feature_map_buffer_rd_prl_n
@@ -173,7 +197,7 @@ module axis_in_feature_map_buffer_group #(
 																 1;
 	assign buffer_group_n_nxt = buffer_group_n + buffer_group_n_incr;
 	
-	// »º´æ×é´æ´¢¸öÊı
+	// ç¼“å­˜ç»„å­˜å‚¨ä¸ªæ•°
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -182,7 +206,7 @@ module axis_in_feature_map_buffer_group #(
 			buffer_group_n <= # simulation_delay buffer_group_n_nxt;
 	end
 	
-	// »º´æ×éÂú±êÖ¾
+	// ç¼“å­˜ç»„æ»¡æ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -190,7 +214,7 @@ module axis_in_feature_map_buffer_group #(
 		else if((buffer_group_wen & buffer_group_full_n) | (buffer_group_ren & buffer_group_empty_n))
 			buffer_group_full_n <= # simulation_delay buffer_group_n_nxt != in_feature_map_buffer_n;
 	end
-	// »º´æ×é¿Õ±êÖ¾
+	// ç¼“å­˜ç»„ç©ºæ ‡å¿—
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -199,18 +223,18 @@ module axis_in_feature_map_buffer_group #(
 			buffer_group_empty_n <= # simulation_delay buffer_group_n_nxt >= in_feature_map_buffer_rd_prl_n;
 	end
 	
-	/** »º´æÇøĞ´¶Ë¿Ú **/
-	reg[in_feature_map_buffer_n-1:0] buffer_group_wptr; // »º´æ×éĞ´Ö¸Õë
-	reg[2:0] buffer_row_wptr; // »º´æĞĞĞ´Ö¸Õë
-	reg[1:0] buffer_row_written; // »º´æĞĞÒÑĞ´±êÖ¾ÏòÁ¿({ĞĞ#1ÒÑĞ´, ĞĞ#0ÒÑĞ´})
+	/** ç¼“å­˜åŒºå†™ç«¯å£ **/
+	reg[in_feature_map_buffer_n-1:0] buffer_group_wptr; // ç¼“å­˜ç»„å†™æŒ‡é’ˆ
+	reg[2:0] buffer_row_wptr; // ç¼“å­˜è¡Œå†™æŒ‡é’ˆ
+	reg[1:0] buffer_row_written; // ç¼“å­˜è¡Œå·²å†™æ ‡å¿—å‘é‡({è¡Œ#1å·²å†™, è¡Œ#0å·²å†™})
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_ft_valid & buffer_group_full_n
+	// æ¡æ‰‹æ¡ä»¶: s_axis_ft_valid & buffer_group_full_n
 	assign s_axis_ft_ready = buffer_group_full_n;
 	
-	// ÎÕÊÖÌõ¼ş: s_axis_ft_valid & s_axis_ft_user[0] & s_axis_ft_last & buffer_group_full_n
+	// æ¡æ‰‹æ¡ä»¶: s_axis_ft_valid & s_axis_ft_user[0] & s_axis_ft_last & buffer_group_full_n
 	assign buffer_group_wen = s_axis_ft_valid & s_axis_ft_user[0] & s_axis_ft_last;
 	
-	// »º´æ×éĞ´Ö¸Õë
+	// ç¼“å­˜ç»„å†™æŒ‡é’ˆ
 	generate
 		if(in_feature_map_buffer_n == 1)
 		begin
@@ -230,7 +254,7 @@ module axis_in_feature_map_buffer_group #(
 		end
 	endgenerate
 	
-	// »º´æĞĞĞ´Ö¸Õë
+	// ç¼“å­˜è¡Œå†™æŒ‡é’ˆ
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -241,7 +265,7 @@ module axis_in_feature_map_buffer_group #(
 				s_axis_ft_user[0] | buffer_row_wptr[2]};
 	end
 	
-	// »º´æĞĞÒÑĞ´±êÖ¾ÏòÁ¿
+	// ç¼“å­˜è¡Œå·²å†™æ ‡å¿—å‘é‡
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -251,21 +275,21 @@ module axis_in_feature_map_buffer_group #(
 			buffer_row_written <= # simulation_delay {2{~s_axis_ft_user[0]}} & (buffer_row_written | buffer_row_wptr[1:0]);
 	end
 	
-	/** »º´æÇø¶Á¶Ë¿Ú **/
-	reg[clogb2(max_feature_map_w-1):0] buffer_rd_col_id; // »º´æÇø¶ÁÁĞºÅ
-	wire buffer_rd_last_col; // µ±Ç°¶Á»º´æÇø×îºó1ÁĞ(±êÖ¾)
-	reg[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel; // »º´æÇø¶ÁÆ¬Ñ¡
-	reg[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel_d; // ÑÓ³Ù1clkµÄ»º´æÇø¶ÁÆ¬Ñ¡
-	reg[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel_d2; // ÑÓ³Ù2clkµÄ»º´æÇø¶ÁÆ¬Ñ¡
-	wire[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel_incr; // »º´æÇø¶ÁÆ¬Ñ¡ÔöÁ¿
-	reg[in_feature_map_buffer_n-1:0] buffer_group_rptr; // »º´æ×é¶ÁÖ¸Õë
-	reg[in_feature_map_buffer_n-1:0] buffer_group_rptr_d; // ÑÓ³Ù1clkµÄ»º´æ×é¶ÁÖ¸Õë
+	/** ç¼“å­˜åŒºè¯»ç«¯å£ **/
+	reg[clogb2(max_feature_map_w-1):0] buffer_rd_col_id; // ç¼“å­˜åŒºè¯»åˆ—å·
+	wire buffer_rd_last_col; // å½“å‰è¯»ç¼“å­˜åŒºæœ€å1åˆ—(æ ‡å¿—)
+	reg[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel; // ç¼“å­˜åŒºè¯»ç‰‡é€‰
+	reg[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel_d; // å»¶è¿Ÿ1clkçš„ç¼“å­˜åŒºè¯»ç‰‡é€‰
+	reg[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel_d2; // å»¶è¿Ÿ2clkçš„ç¼“å­˜åŒºè¯»ç‰‡é€‰
+	wire[clogb2(in_feature_map_buffer_n-1):0] buffer_rd_sel_incr; // ç¼“å­˜åŒºè¯»ç‰‡é€‰å¢é‡
+	reg[in_feature_map_buffer_n-1:0] buffer_group_rptr; // ç¼“å­˜ç»„è¯»æŒ‡é’ˆ
+	reg[in_feature_map_buffer_n-1:0] buffer_group_rptr_d; // å»¶è¿Ÿ1clkçš„ç¼“å­˜ç»„è¯»æŒ‡é’ˆ
 	
-	// ÎÕÊÖÌõ¼ş: buffer_group_empty_n & buffer_out_ready_stage0
+	// æ¡æ‰‹æ¡ä»¶: buffer_group_empty_n & buffer_out_ready_stage0
 	assign buffer_out_valid_stage0 = buffer_group_empty_n;
 	assign buffer_out_last_stage0 = buffer_rd_last_col;
 	
-	// ÎÕÊÖÌõ¼ş: buffer_group_empty_n & buffer_out_ready_stage0 & buffer_rd_last_col
+	// æ¡æ‰‹æ¡ä»¶: buffer_group_empty_n & buffer_out_ready_stage0 & buffer_rd_last_col
 	assign buffer_group_ren = buffer_out_ready_stage0 & buffer_rd_last_col;
 	
 	assign buffer_rd_last_col = buffer_rd_col_id == feature_map_w[clogb2(max_feature_map_w-1):0];
@@ -274,7 +298,7 @@ module axis_in_feature_map_buffer_group #(
 		((~(in_feature_map_buffer_n - in_feature_map_buffer_rd_prl_n)) + 1):
 		in_feature_map_buffer_rd_prl_n;
 	
-	// »º´æÇø¶ÁÁĞºÅ
+	// ç¼“å­˜åŒºè¯»åˆ—å·
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -285,7 +309,7 @@ module axis_in_feature_map_buffer_group #(
 				{(clogb2(max_feature_map_w-1)+1){~buffer_rd_last_col}} & (buffer_rd_col_id + 1);
 	end
 	
-	// »º´æÇø¶ÁÆ¬Ñ¡
+	// ç¼“å­˜åŒºè¯»ç‰‡é€‰
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -293,20 +317,20 @@ module axis_in_feature_map_buffer_group #(
 		else if(buffer_group_ren & buffer_group_empty_n)
 			buffer_rd_sel <= # simulation_delay buffer_rd_sel + buffer_rd_sel_incr;
 	end
-	// ÑÓ³Ù1clkµÄ»º´æÇø¶ÁÆ¬Ñ¡
+	// å»¶è¿Ÿ1clkçš„ç¼“å­˜åŒºè¯»ç‰‡é€‰
 	always @(posedge clk)
 	begin
 		if(buffer_out_valid_stage0 & buffer_out_ready_stage0)
 			buffer_rd_sel_d <= # simulation_delay buffer_rd_sel;
 	end
-	// ÑÓ³Ù2clkµÄ»º´æÇø¶ÁÆ¬Ñ¡
+	// å»¶è¿Ÿ2clkçš„ç¼“å­˜åŒºè¯»ç‰‡é€‰
 	always @(posedge clk)
 	begin
 		if(buffer_out_valid_stage1 & buffer_out_ready_stage1)
 			buffer_rd_sel_d2 <= # simulation_delay buffer_rd_sel_d;
 	end
 	
-	// »º´æ×é¶ÁÖ¸Õë
+	// ç¼“å­˜ç»„è¯»æŒ‡é’ˆ
 	generate
 		if(in_feature_map_buffer_n == in_feature_map_buffer_rd_prl_n)
 		begin
@@ -321,7 +345,7 @@ module axis_in_feature_map_buffer_group #(
 					buffer_group_rptr <= {{(in_feature_map_buffer_n-in_feature_map_buffer_rd_prl_n){1'b0}}, 
 						{in_feature_map_buffer_rd_prl_n{1'b1}}};
 				else if(buffer_group_ren & buffer_group_empty_n)
-					// Ñ­»·×óÒÆin_feature_map_buffer_rd_prl_nÎ»
+					// å¾ªç¯å·¦ç§»in_feature_map_buffer_rd_prl_nä½
 					buffer_group_rptr <= # simulation_delay 
 						(buffer_group_rptr << in_feature_map_buffer_rd_prl_n) | 
 						(buffer_group_rptr >> (in_feature_map_buffer_n-in_feature_map_buffer_rd_prl_n));
@@ -329,22 +353,22 @@ module axis_in_feature_map_buffer_group #(
 		end
 	endgenerate
 	
-	// ÑÓ³Ù1clkµÄ»º´æ×é¶ÁÖ¸Õë
+	// å»¶è¿Ÿ1clkçš„ç¼“å­˜ç»„è¯»æŒ‡é’ˆ
 	always @(posedge clk)
 	begin
 		if(buffer_out_valid_stage0 & buffer_out_ready_stage0)
 			buffer_group_rptr_d <= # simulation_delay buffer_group_rptr;
 	end
 	
-	/** »º´æÇøĞÅÏ¢fifo **/
-	reg[2:0] buffer_msg_fifo[0:in_feature_map_buffer_n-1]; // »º´æÇøĞÅÏ¢fifo¼Ä´æÆ÷Çø({ĞĞ#2ÊÇ·ñÓĞĞ§, ĞĞ#1ÊÇ·ñÓĞĞ§, ĞĞ#0ÊÇ·ñÓĞĞ§})
-	wire[in_feature_map_buffer_n*3-1:0] buffer_row_vld_flattened; // Õ¹Æ½µÄ»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾
-	wire[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_row_vld_vec; // »º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿
+	/** ç¼“å­˜åŒºä¿¡æ¯fifo **/
+	reg[2:0] buffer_msg_fifo[0:in_feature_map_buffer_n-1]; // ç¼“å­˜åŒºä¿¡æ¯fifoå¯„å­˜å™¨åŒº({è¡Œ#2æ˜¯å¦æœ‰æ•ˆ, è¡Œ#1æ˜¯å¦æœ‰æ•ˆ, è¡Œ#0æ˜¯å¦æœ‰æ•ˆ})
+	wire[in_feature_map_buffer_n*3-1:0] buffer_row_vld_flattened; // å±•å¹³çš„ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—
+	wire[in_feature_map_buffer_rd_prl_n*3-1:0] buffer_row_vld_vec; // ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡
 	
 	assign buffer_out_user_stage0 = buffer_row_vld_vec;
 	
-	// »º´æÇøÊÇ·ñÓĞĞ§±êÖ¾ÏòÁ¿
-	// Ñ­»·ÓÒÒÆbuffer_rd_sel*3Î», ½ö±£Áôin_feature_map_buffer_nÖÖÇé¿ö
+	// ç¼“å­˜åŒºæ˜¯å¦æœ‰æ•ˆæ ‡å¿—å‘é‡
+	// å¾ªç¯å³ç§»buffer_rd_sel*3ä½, ä»…ä¿ç•™in_feature_map_buffer_nç§æƒ…å†µ
 	assign buffer_row_vld_vec = (buffer_rd_sel >= in_feature_map_buffer_n) ? 
 		{(in_feature_map_buffer_rd_prl_n*3){1'bx}}: // not care!
 		((buffer_row_vld_flattened >> (buffer_rd_sel*3)) | 
@@ -354,57 +378,57 @@ module axis_in_feature_map_buffer_group #(
 	generate
 		for(buffer_msg_fifo_i = 0;buffer_msg_fifo_i < in_feature_map_buffer_n;buffer_msg_fifo_i = buffer_msg_fifo_i + 1)
 		begin
-			// Õ¹Æ½µÄ»º´æĞĞÊÇ·ñÓĞĞ§±êÖ¾
+			// å±•å¹³çš„ç¼“å­˜è¡Œæ˜¯å¦æœ‰æ•ˆæ ‡å¿—
 			assign buffer_row_vld_flattened[(buffer_msg_fifo_i+1)*3-1:buffer_msg_fifo_i*3] = 
 				buffer_msg_fifo[buffer_msg_fifo_i];
 			
-			// »º´æÇøĞÅÏ¢fifoÊı¾İÏî
-			// ĞĞ#0ÊÇ·ñÓĞĞ§
+			// ç¼“å­˜åŒºä¿¡æ¯fifoæ•°æ®é¡¹
+			// è¡Œ#0æ˜¯å¦æœ‰æ•ˆ
 			always @(posedge clk)
 			begin
 				if(s_axis_ft_valid & s_axis_ft_ready & s_axis_ft_last & 
 					buffer_group_wptr[buffer_msg_fifo_i] & buffer_row_wptr[0])
 					buffer_msg_fifo[buffer_msg_fifo_i][0] <= # simulation_delay s_axis_ft_user[1];
 			end
-			// ĞĞ#1ÊÇ·ñÓĞĞ§
+			// è¡Œ#1æ˜¯å¦æœ‰æ•ˆ
 			always @(posedge clk)
 			begin
 				if(s_axis_ft_valid & s_axis_ft_ready & s_axis_ft_last & 
 					buffer_group_wptr[buffer_msg_fifo_i] & 
-					// Èç¹ûÎ´Ğ´ÍêĞĞ#0¾Í½áÊøĞ´µ±Ç°»º´æÇø, ½«ĞĞ#1ÉèÎªÎŞĞ§
+					// å¦‚æœæœªå†™å®Œè¡Œ#0å°±ç»“æŸå†™å½“å‰ç¼“å­˜åŒº, å°†è¡Œ#1è®¾ä¸ºæ— æ•ˆ
 					(buffer_row_wptr[1] | (s_axis_ft_user[0] & (~buffer_row_written[0]))))
 					buffer_msg_fifo[buffer_msg_fifo_i][1] <= # simulation_delay buffer_row_wptr[1] & s_axis_ft_user[1];
 			end
-			// ĞĞ#2ÊÇ·ñÓĞĞ§
+			// è¡Œ#2æ˜¯å¦æœ‰æ•ˆ
 			always @(posedge clk)
 			begin
 				if(s_axis_ft_valid & s_axis_ft_ready & s_axis_ft_last & 
 					buffer_group_wptr[buffer_msg_fifo_i] & 
-					// Èç¹ûÎ´Ğ´ÍêĞĞ#1¾Í½áÊøĞ´µ±Ç°»º´æÇø, ½«ĞĞ#2ÉèÎªÎŞĞ§
+					// å¦‚æœæœªå†™å®Œè¡Œ#1å°±ç»“æŸå†™å½“å‰ç¼“å­˜åŒº, å°†è¡Œ#2è®¾ä¸ºæ— æ•ˆ
 					(buffer_row_wptr[2] | (s_axis_ft_user[0] & (~buffer_row_written[1]))))
 					buffer_msg_fifo[buffer_msg_fifo_i][2] <= # simulation_delay buffer_row_wptr[2] & s_axis_ft_user[1];
 			end
 		end
 	endgenerate
 	
-	/** ÊäÈëÌØÕ÷Í¼»º´æÇøMEM **/
-	// MEMĞ´¶Ë¿Ú
+	/** è¾“å…¥ç‰¹å¾å›¾ç¼“å­˜åŒºMEM **/
+	// MEMå†™ç«¯å£
 	wire[2:0] buffer_mem_wen[0:in_feature_map_buffer_n-1];
-	reg[clogb2(max_feature_map_w*feature_data_width/64-1):0] buffer_mem_waddr; // Ã¿¸öĞ´µØÖ·¶ÔÓ¦64Î»Êı¾İ
-	wire[63:0] buffer_mem_din; // 64Î»Êı¾İ
-	wire[64/feature_data_width-1:0] buffer_mem_din_last; // ĞĞÎ²±êÖ¾
-	// MEM¶Á¶Ë¿Ú
+	reg[clogb2(max_feature_map_w*feature_data_width/64-1):0] buffer_mem_waddr; // æ¯ä¸ªå†™åœ°å€å¯¹åº”64ä½æ•°æ®
+	wire[63:0] buffer_mem_din; // 64ä½æ•°æ®
+	wire[64/feature_data_width-1:0] buffer_mem_din_last; // è¡Œå°¾æ ‡å¿—
+	// MEMè¯»ç«¯å£
 	wire buffer_mem_ren_s0[0:in_feature_map_buffer_n-1];
 	wire buffer_mem_ren_s1[0:in_feature_map_buffer_n-1];
-	wire[clogb2(max_feature_map_w-1):0] buffer_mem_raddr; // Ã¿¸ö¶ÁµØÖ·¶ÔÓ¦1¸öÌØÕ÷µã
-	wire[feature_data_width-1:0] buffer_mem_dout_r0[0:in_feature_map_buffer_n-1]; // ĞĞ#0ÌØÕ÷µã
-	wire[feature_data_width-1:0] buffer_mem_dout_r1[0:in_feature_map_buffer_n-1]; // ĞĞ#1ÌØÕ÷µã
-	wire[feature_data_width-1:0] buffer_mem_dout_r2[0:in_feature_map_buffer_n-1]; // ĞĞ#2ÌØÕ÷µã
-	wire[feature_data_width*3*in_feature_map_buffer_n-1:0] buffer_mem_dout_flattened; // Õ¹Æ½µÄ¶ÁÊı¾İ
-	// Î»ÓÚ¶Á»º´æÇøMEMµÚ2¼¶Á÷Ë®ÏßµÄ¶ÁÊı¾İÑÚÂë
+	wire[clogb2(max_feature_map_w-1):0] buffer_mem_raddr; // æ¯ä¸ªè¯»åœ°å€å¯¹åº”1ä¸ªç‰¹å¾ç‚¹
+	wire[feature_data_width-1:0] buffer_mem_dout_r0[0:in_feature_map_buffer_n-1]; // è¡Œ#0ç‰¹å¾ç‚¹
+	wire[feature_data_width-1:0] buffer_mem_dout_r1[0:in_feature_map_buffer_n-1]; // è¡Œ#1ç‰¹å¾ç‚¹
+	wire[feature_data_width-1:0] buffer_mem_dout_r2[0:in_feature_map_buffer_n-1]; // è¡Œ#2ç‰¹å¾ç‚¹
+	wire[feature_data_width*3*in_feature_map_buffer_n-1:0] buffer_mem_dout_flattened; // å±•å¹³çš„è¯»æ•°æ®
+	// ä½äºè¯»ç¼“å­˜åŒºMEMç¬¬2çº§æµæ°´çº¿çš„è¯»æ•°æ®æ©ç 
 	wire[feature_data_width*3*in_feature_map_buffer_rd_prl_n-1:0] buffer_out_data_mask_stage2;
 	
-	// Õ¹Æ½µÄ¶ÁÊı¾İ
+	// å±•å¹³çš„è¯»æ•°æ®
 	genvar buffer_mem_dout_flattened_i;
 	generate
 		for(buffer_mem_dout_flattened_i = 0;buffer_mem_dout_flattened_i < in_feature_map_buffer_n;
@@ -418,15 +442,15 @@ module axis_in_feature_map_buffer_group #(
 				};
 		end
 	endgenerate
-	// ¶Á»º´æÇøMEMµÚ2¼¶Á÷Ë®Ïßdata
-	// Ñ­»·ÓÒÒÆ(buffer_rd_sel_d2 * feature_data_width * 3)Î», ½ö±£Áôin_feature_map_buffer_nÖÖÇé¿ö
+	// è¯»ç¼“å­˜åŒºMEMç¬¬2çº§æµæ°´çº¿data
+	// å¾ªç¯å³ç§»(buffer_rd_sel_d2 * feature_data_width * 3)ä½, ä»…ä¿ç•™in_feature_map_buffer_nç§æƒ…å†µ
 	assign buffer_out_data_stage2 = ((buffer_rd_sel_d2 >= in_feature_map_buffer_n) ? 
 		{(feature_data_width*3*in_feature_map_buffer_rd_prl_n){1'bx}}: // not care!
 		((buffer_mem_dout_flattened >> (buffer_rd_sel_d2 * feature_data_width * 3)) | 
 			(buffer_mem_dout_flattened << ((in_feature_map_buffer_n - buffer_rd_sel_d2) * feature_data_width * 3)))) & 
 		buffer_out_data_mask_stage2;
 	
-	// Î»ÓÚ¶Á»º´æÇøMEMµÚ2¼¶Á÷Ë®ÏßµÄ¶ÁÊı¾İÑÚÂë
+	// ä½äºè¯»ç¼“å­˜åŒºMEMç¬¬2çº§æµæ°´çº¿çš„è¯»æ•°æ®æ©ç 
 	genvar buffer_out_data_mask_stage2_i;
 	generate
 		for(buffer_out_data_mask_stage2_i = 0;buffer_out_data_mask_stage2_i < in_feature_map_buffer_rd_prl_n*3;
@@ -438,7 +462,7 @@ module axis_in_feature_map_buffer_group #(
 		end
 	endgenerate
 	
-	// MEMĞ´Ê¹ÄÜ
+	// MEMå†™ä½¿èƒ½
 	genvar buffer_mem_wen_i;
 	generate
 		for(buffer_mem_wen_i = 0;buffer_mem_wen_i < in_feature_map_buffer_n;buffer_mem_wen_i = buffer_mem_wen_i + 1)
@@ -448,11 +472,11 @@ module axis_in_feature_map_buffer_group #(
 		end
 	endgenerate
 	
-	// MEMĞ´Êı¾İ
+	// MEMå†™æ•°æ®
 	assign buffer_mem_din = s_axis_ft_data;
 	assign buffer_mem_din_last = {(64/feature_data_width){1'bx}}; // not care!
 	
-	// MEM¶ÁÊ¹ÄÜ
+	// MEMè¯»ä½¿èƒ½
 	genvar buffer_mem_ren_i;
 	generate
 		for(buffer_mem_ren_i = 0;buffer_mem_ren_i < in_feature_map_buffer_n;buffer_mem_ren_i = buffer_mem_ren_i + 1)
@@ -464,10 +488,10 @@ module axis_in_feature_map_buffer_group #(
 		end
 	endgenerate
 	
-	// MEM¶ÁµØÖ·
+	// MEMè¯»åœ°å€
 	assign buffer_mem_raddr = buffer_rd_col_id;
 	
-	// MEMĞ´µØÖ·
+	// MEMå†™åœ°å€
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -478,7 +502,7 @@ module axis_in_feature_map_buffer_group #(
 				(buffer_mem_waddr + 1);
 	end
 	
-	// »º´æMEM
+	// ç¼“å­˜MEM
 	genvar buffer_mem_i;
 	generate
 		for(buffer_mem_i = 0;buffer_mem_i < in_feature_map_buffer_n;buffer_mem_i = buffer_mem_i + 1)

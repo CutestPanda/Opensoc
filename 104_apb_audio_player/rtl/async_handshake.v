@@ -1,55 +1,79 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: »ùÓÚÎÕÊÖµÄ¿çÊ±ÖÓÓòÍ¬²½Æ÷
+æœ¬æ¨¡å—: åŸºäºæ¡æ‰‹çš„è·¨æ—¶é’ŸåŸŸåŒæ­¥å™¨
 
-ÃèÊö: 
+æè¿°: 
               req -> req_d2
               |        |
 ack    ->   ack_d2     |
  |---------------------
 
-×¢Òâ£º
-ÎŞ
+æ³¨æ„ï¼š
+æ— 
 
-Ğ­Òé:
-ÎŞ
+åè®®:
+æ— 
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/03/07
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/03/07
 ********************************************************************/
 
 
 module async_handshake #(
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»1
+    // æ—¶é’Ÿå’Œå¤ä½1
     input wire clk1,
     input wire rst_n1,
-    // Ê±ÖÓºÍ¸´Î»2
+    // æ—¶é’Ÿå’Œå¤ä½2
     input wire clk2,
     input wire rst_n2,
     
-    // Ê±ÖÓÓò1
-    input wire req1, // Êı¾İ´«ÊäÇëÇó(Ö¸Ê¾)
-    output wire busy, // ÕıÔÚ½øĞĞÊı¾İ´«Êä(±êÖ¾)
-    // Ê±ÖÓÓò2
-    output wire req2 // Êı¾İ´«ÊäÇëÇó(Ö¸Ê¾)
+    // æ—¶é’ŸåŸŸ1
+    input wire req1, // æ•°æ®ä¼ è¾“è¯·æ±‚(æŒ‡ç¤º)
+    output wire busy, // æ­£åœ¨è¿›è¡Œæ•°æ®ä¼ è¾“(æ ‡å¿—)
+    // æ—¶é’ŸåŸŸ2
+    output wire req2 // æ•°æ®ä¼ è¾“è¯·æ±‚(æŒ‡ç¤º)
 );
     
-    /** Ê±ÖÓÓò1 **/
-    reg req; // Êı¾İ´«ÊäÇëÇó
-    reg busy_reg; // ÕıÔÚ½øĞĞÊı¾İ´«Êä(±êÖ¾)
+    /** æ—¶é’ŸåŸŸ1 **/
+    reg req; // æ•°æ®ä¼ è¾“è¯·æ±‚
+    reg busy_reg; // æ­£åœ¨è¿›è¡Œæ•°æ®ä¼ è¾“(æ ‡å¿—)
     wire ack_w;
     reg ack_d;
     reg ack_d2;
     reg ack_d3;
-    wire ack_neg_edge; // ackĞÅºÅ³öÏÖÏÂ½µÑØ(Ö¸Ê¾)
+    wire ack_neg_edge; // ackä¿¡å·å‡ºç°ä¸‹é™æ²¿(æŒ‡ç¤º)
     
     assign busy = busy_reg;
     
     assign ack_neg_edge = ack_d3 & (~ack_d2);
     
-    // Êı¾İ´«ÊäÇëÇó
+    // æ•°æ®ä¼ è¾“è¯·æ±‚
     always @(posedge clk1 or negedge rst_n1)
     begin
         if(~rst_n1)
@@ -57,7 +81,7 @@ module async_handshake #(
         else
             # simulation_delay req <= req ? (~ack_d2):(req1 & (~busy_reg));
     end
-    // ÕıÔÚ½øĞĞÊı¾İ´«Êä(±êÖ¾)
+    // æ­£åœ¨è¿›è¡Œæ•°æ®ä¼ è¾“(æ ‡å¿—)
     always @(posedge clk1 or negedge rst_n1)
     begin
         if(~rst_n1)
@@ -66,7 +90,7 @@ module async_handshake #(
             # simulation_delay busy_reg <= busy_reg ? (~ack_neg_edge):req1;
     end
     
-    // ¶ÔÀ´×ÔÊ±ÖÓÓò2µÄackĞÅºÅ´ò2ÅÄ
+    // å¯¹æ¥è‡ªæ—¶é’ŸåŸŸ2çš„ackä¿¡å·æ‰“2æ‹
     always @(posedge clk1 or negedge rst_n1)
     begin
         if(~rst_n1)
@@ -74,7 +98,7 @@ module async_handshake #(
         else
             # simulation_delay {ack_d2, ack_d} <= {ack_d, ack_w};
     end
-    // ¶ÔÍ¬²½µ½Ê±ÖÓÓò1µÄackĞÅºÅ´ò1ÅÄ
+    // å¯¹åŒæ­¥åˆ°æ—¶é’ŸåŸŸ1çš„ackä¿¡å·æ‰“1æ‹
     always @(posedge clk1 or negedge rst_n1)
     begin
         if(~rst_n1)
@@ -83,8 +107,8 @@ module async_handshake #(
             # simulation_delay ack_d3 <= ack_d2;
     end
     
-    /** Ê±ÖÓÓò2 **/
-    reg ack; // Êı¾İ´«ÊäÓ¦´ğ
+    /** æ—¶é’ŸåŸŸ2 **/
+    reg ack; // æ•°æ®ä¼ è¾“åº”ç­”
     reg req_d;
     reg req_d2;
     reg req_d3;
@@ -93,7 +117,7 @@ module async_handshake #(
     
     assign ack_w = ack;
     
-    // Êı¾İ´«ÊäÓ¦´ğ
+    // æ•°æ®ä¼ è¾“åº”ç­”
     always @(posedge clk2 or negedge rst_n2)
     begin
         if(~rst_n2)
@@ -102,7 +126,7 @@ module async_handshake #(
             # simulation_delay ack <= req_d2;
     end
     
-    // ¶ÔÀ´×ÔÊ±ÖÓÓò1µÄreqĞÅºÅ´ò2ÅÄ
+    // å¯¹æ¥è‡ªæ—¶é’ŸåŸŸ1çš„reqä¿¡å·æ‰“2æ‹
     always @(posedge clk2 or negedge rst_n2)
     begin
         if(~rst_n2)
@@ -110,7 +134,7 @@ module async_handshake #(
         else
             # simulation_delay {req_d2, req_d} <= {req_d, req};
     end
-    // ¶ÔÍ¬²½µ½Ê±ÖÓÓò2µÄreqĞÅºÅ´ò1ÅÄ
+    // å¯¹åŒæ­¥åˆ°æ—¶é’ŸåŸŸ2çš„reqä¿¡å·æ‰“1æ‹
     always @(posedge clk2 or negedge rst_n2)
     begin
         if(~rst_n2)

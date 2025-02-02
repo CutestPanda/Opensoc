@@ -1,73 +1,97 @@
+/*
+MIT License
+
+Copyright (c) 2024 Panda, 2257691535@qq.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 `timescale 1ns / 1ps
 /********************************************************************
-±¾Ä£¿é: ·ûºÏAPBĞ­ÒéµÄI2C¿ØÖÆÆ÷
+æœ¬æ¨¡å—: ç¬¦åˆAPBåè®®çš„I2Cæ§åˆ¶å™¨
 
-ÃèÊö: 
-APB-I2C¿ØÖÆÆ÷
-Ö§³ÖI2CÊÕ·¢ÖĞ¶Ï
-Ö§³Ö7Î»/10Î»µØÖ·
+æè¿°: 
+APB-I2Cæ§åˆ¶å™¨
+æ”¯æŒI2Cæ”¶å‘ä¸­æ–­
+æ”¯æŒ7ä½/10ä½åœ°å€
 
-·¢ËÍfifoÊı¾İ°ü¸ñÊ½£º
-    Ğ´Êı¾İ -> last0 xxxx_xxx0 µØÖ·½×¶Î
-             [last0 xxxx_xxxx µØÖ·½×¶Î(½ö10Î»µØÖ·Ê±ĞèÒª)]
-             last0 xxxx_xxxx Êı¾İ½×¶Î
+å‘é€fifoæ•°æ®åŒ…æ ¼å¼ï¼š
+    å†™æ•°æ® -> last0 xxxx_xxx0 åœ°å€é˜¶æ®µ
+             [last0 xxxx_xxxx åœ°å€é˜¶æ®µ(ä»…10ä½åœ°å€æ—¶éœ€è¦)]
+             last0 xxxx_xxxx æ•°æ®é˜¶æ®µ
              ...
-             last1 xxxx_xxxx Êı¾İ½×¶Î
-    ¶ÁÊı¾İ -> last0 xxxx_xxx1 µØÖ·½×¶Î
-             [last0 xxxx_xxxx µØÖ·½×¶Î(½ö10Î»µØÖ·Ê±ĞèÒª)]
-             last1 8Î»´ı¶ÁÈ¡×Ö½ÚÊı
+             last1 xxxx_xxxx æ•°æ®é˜¶æ®µ
+    è¯»æ•°æ® -> last0 xxxx_xxx1 åœ°å€é˜¶æ®µ
+             [last0 xxxx_xxxx åœ°å€é˜¶æ®µ(ä»…10ä½åœ°å€æ—¶éœ€è¦)]
+             last1 8ä½å¾…è¯»å–å­—èŠ‚æ•°
 
-¼Ä´æÆ÷->
-    Æ«ÒÆÁ¿  |    º¬Òå                     |   ¶ÁĞ´ÌØĞÔ    |                 ±¸×¢
-    0x00    0:·¢ËÍfifoÊÇ·ñÂú                    R
-            1:·¢ËÍfifoĞ´Ê¹ÄÜ                    W         Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±²úÉú·¢ËÍfifoĞ´Ê¹ÄÜ
-            10~2:·¢ËÍfifoĞ´Êı¾İ                 W                 {last(1bit), data(8bit)}
-            16:½ÓÊÕfifoÊÇ·ñ¿Õ                   R
-            17:½ÓÊÕfifo¶ÁÊ¹ÄÜ                   W         Ğ´¸Ã¼Ä´æÆ÷ÇÒ¸ÃÎ»Îª1'b1Ê±²úÉú½ÓÊÕfifo¶ÁÊ¹ÄÜ
-            25~18:½ÓÊÕfifo¶ÁÊı¾İ                R
-    0x04    0:I2CÈ«¾ÖÖĞ¶ÏÊ¹ÄÜ                   W
-            8:I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ         W
-            9:I2C´Ó»úÏìÓ¦´íÎóÖĞ¶ÏÊ¹ÄÜ           W
-            10:I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÊ¹ÄÜ        W
-            11:I2C½ÓÊÕÒç³öÖĞ¶ÏÊ¹ÄÜ              W
-    0x08    7~0:I2C·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ           W                  ·¢ËÍ×Ö½ÚÊı > ãĞÖµÊ±·¢ÉúÖĞ¶Ï
-            15~8:I2C½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ          W                  ½ÓÊÕ×Ö½ÚÊı > ãĞÖµÊ±·¢ÉúÖĞ¶Ï
-			23~16:I2CÊ±ÖÓ·ÖÆµÏµÊı               W                  ·ÖÆµÊı = (·ÖÆµÏµÊı + 1) * 2
-			                                                              ·ÖÆµÏµÊıÓ¦>=1
-    0x0C    0:I2CÈ«¾ÖÖĞ¶Ï±êÖ¾                  RWC                 ÇëÔÚÖĞ¶Ï·şÎñº¯ÊıÖĞÇå³ıÖĞ¶Ï±êÖ¾
-            1:I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶Ï±êÖ¾         R
-            2:I2C´Ó»úÏìÓ¦´íÎóÖĞ¶Ï±êÖ¾           R
-            3:I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶Ï±êÖ¾         R
-            4:I2C½ÓÊÕÒç³öÖĞ¶Ï±êÖ¾               R
-            19~8:I2C·¢ËÍ×Ö½ÚÊı                RWC                  Ã¿µ±·¢ËÍÒ»¸öI2CÊı¾İ°üºó¸üĞÂ
-            31~20:I2C½ÓÊÕ×Ö½ÚÊı               RWC                  Ã¿µ±½ÓÊÕÒ»¸öI2CÊı¾İ°üºó¸üĞÂ
+å¯„å­˜å™¨->
+    åç§»é‡  |    å«ä¹‰                     |   è¯»å†™ç‰¹æ€§    |                 å¤‡æ³¨
+    0x00    0:å‘é€fifoæ˜¯å¦æ»¡                    R
+            1:å‘é€fifoå†™ä½¿èƒ½                    W         å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶äº§ç”Ÿå‘é€fifoå†™ä½¿èƒ½
+            10~2:å‘é€fifoå†™æ•°æ®                 W                 {last(1bit), data(8bit)}
+            16:æ¥æ”¶fifoæ˜¯å¦ç©º                   R
+            17:æ¥æ”¶fifoè¯»ä½¿èƒ½                   W         å†™è¯¥å¯„å­˜å™¨ä¸”è¯¥ä½ä¸º1'b1æ—¶äº§ç”Ÿæ¥æ”¶fifoè¯»ä½¿èƒ½
+            25~18:æ¥æ”¶fifoè¯»æ•°æ®                R
+    0x04    0:I2Cå…¨å±€ä¸­æ–­ä½¿èƒ½                   W
+            8:I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½         W
+            9:I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­ä½¿èƒ½           W
+            10:I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­ä½¿èƒ½        W
+            11:I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­ä½¿èƒ½              W
+    0x08    7~0:I2Cå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼           W                  å‘é€å­—èŠ‚æ•° > é˜ˆå€¼æ—¶å‘ç”Ÿä¸­æ–­
+            15~8:I2Cæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼          W                  æ¥æ”¶å­—èŠ‚æ•° > é˜ˆå€¼æ—¶å‘ç”Ÿä¸­æ–­
+			23~16:I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°               W                  åˆ†é¢‘æ•° = (åˆ†é¢‘ç³»æ•° + 1) * 2
+			                                                              åˆ†é¢‘ç³»æ•°åº”>=1
+    0x0C    0:I2Cå…¨å±€ä¸­æ–­æ ‡å¿—                  RWC                 è¯·åœ¨ä¸­æ–­æœåŠ¡å‡½æ•°ä¸­æ¸…é™¤ä¸­æ–­æ ‡å¿—
+            1:I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ ‡å¿—         R
+            2:I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­æ ‡å¿—           R
+            3:I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ ‡å¿—         R
+            4:I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­æ ‡å¿—               R
+            19~8:I2Cå‘é€å­—èŠ‚æ•°                RWC                  æ¯å½“å‘é€ä¸€ä¸ªI2Cæ•°æ®åŒ…åæ›´æ–°
+            31~20:I2Cæ¥æ”¶å­—èŠ‚æ•°               RWC                  æ¯å½“æ¥æ”¶ä¸€ä¸ªI2Cæ•°æ®åŒ…åæ›´æ–°
 
-×¢Òâ£º
-I2C·¢ËÍ/½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶ÏÃ¿µ±·¢ËÍ/½ÓÊÕÒ»¸öI2CÊı¾İ°üºóÅĞ¶Ï
-Ã¿¸öI2CÊı¾İ°ü²»ÄÜ³¬¹ı15×Ö½Ú
+æ³¨æ„ï¼š
+I2Cå‘é€/æ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ¯å½“å‘é€/æ¥æ”¶ä¸€ä¸ªI2Cæ•°æ®åŒ…ååˆ¤æ–­
+æ¯ä¸ªI2Cæ•°æ®åŒ…ä¸èƒ½è¶…è¿‡15å­—èŠ‚
 
-Ğ­Òé:
+åè®®:
 APB SLAVE
 I2C MASTER
 
-×÷Õß: ³Â¼ÒÒ«
-ÈÕÆÚ: 2024/06/14
+ä½œè€…: é™ˆå®¶è€€
+æ—¥æœŸ: 2024/06/14
 ********************************************************************/
 
 
 module apb_i2c #(
-    parameter integer addr_bits_n = 7, // µØÖ·Î»Êı(7|10)
-	parameter en_i2c_rx = "true", // ÊÇ·ñÊ¹ÄÜi2c½ÓÊÕ
-    parameter tx_rx_fifo_ram_type = "bram", // ·¢ËÍ½ÓÊÕfifoµÄRAMÀàĞÍ(lutram|bram)
-    parameter integer tx_fifo_depth = 1024, // ·¢ËÍfifoÉî¶È(32|64|128|...)
-    parameter integer rx_fifo_depth = 1024, // ½ÓÊÕfifoÉî¶È(32|64|128|...)
-    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
+    parameter integer addr_bits_n = 7, // åœ°å€ä½æ•°(7|10)
+	parameter en_i2c_rx = "true", // æ˜¯å¦ä½¿èƒ½i2cæ¥æ”¶
+    parameter tx_rx_fifo_ram_type = "bram", // å‘é€æ¥æ”¶fifoçš„RAMç±»å‹(lutram|bram)
+    parameter integer tx_fifo_depth = 1024, // å‘é€fifoæ·±åº¦(32|64|128|...)
+    parameter integer rx_fifo_depth = 1024, // æ¥æ”¶fifoæ·±åº¦(32|64|128|...)
+    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
 )(
-    // Ê±ÖÓºÍ¸´Î»
+    // æ—¶é’Ÿå’Œå¤ä½
     input wire clk,
     input wire resetn,
     
-    // APB´Ó»ú½Ó¿Ú
+    // APBä»æœºæ¥å£
     input wire[31:0] paddr,
     input wire psel,
     input wire penable,
@@ -77,40 +101,40 @@ module apb_i2c #(
     output wire[31:0] prdata_out,
     output wire pslverr_out, // const -> 1'b0
     
-    // I2CÖ÷»ú½Ó¿Ú
+    // I2Cä¸»æœºæ¥å£
     // scl
-    output wire scl_t, // 1'b1ÎªÊäÈë, 1'b0ÎªÊä³ö
+    output wire scl_t, // 1'b1ä¸ºè¾“å…¥, 1'b0ä¸ºè¾“å‡º
     input wire scl_i,
     output wire scl_o,
     // sda
-    output wire sda_t, // 1'b1ÎªÊäÈë, 1'b0ÎªÊä³ö
+    output wire sda_t, // 1'b1ä¸ºè¾“å…¥, 1'b0ä¸ºè¾“å‡º
     input wire sda_i,
     output wire sda_o,
     
-    // ÖĞ¶ÏĞÅºÅ
+    // ä¸­æ–­ä¿¡å·
     output wire itr
 );
 	
-    /** ÊÕ·¢fifo **/
-    // ·¢ËÍfifoĞ´¶Ë¿Ú
+    /** æ”¶å‘fifo **/
+    // å‘é€fifoå†™ç«¯å£
     wire[8:0] tx_fifo_din;
     wire tx_fifo_wen;
     wire tx_fifo_full;
-    // ·¢ËÍfifo¶Á¶Ë¿Ú
+    // å‘é€fifoè¯»ç«¯å£
     wire tx_fifo_ren;
     wire tx_fifo_empty;
     wire[7:0] tx_fifo_dout;
     wire tx_fifo_dout_last;
-    // ½ÓÊÕfifoĞ´¶Ë¿Ú
+    // æ¥æ”¶fifoå†™ç«¯å£
     wire rx_fifo_wen;
     wire rx_fifo_full;
     wire[7:0] rx_fifo_din;
-    // ½ÓÊÕfifo¶Á¶Ë¿Ú
+    // æ¥æ”¶fifoè¯»ç«¯å£
     wire rx_fifo_ren;
     wire rx_fifo_empty;
     wire[7:0] rx_fifo_dout;
     
-    // ·¢ËÍfifo
+    // å‘é€fifo
     ram_fifo_wrapper #(
         .fwft_mode("false"),
         .ram_type(tx_rx_fifo_ram_type),
@@ -136,7 +160,7 @@ module apb_i2c #(
         .fifo_empty(tx_fifo_empty)
     );
     
-    // ½ÓÊÕfifo
+    // æ¥æ”¶fifo
 	generate
 		if(en_i2c_rx == "true")
 		begin
@@ -174,21 +198,21 @@ module apb_i2c #(
 		end
 	endgenerate
     
-    /** ¼Ä´æÆ÷½Ó¿ÚºÍÖĞ¶Ï´¦Àí **/
-	// I2CÊ±ÖÓ·ÖÆµÏµÊı
+    /** å¯„å­˜å™¨æ¥å£å’Œä¸­æ–­å¤„ç† **/
+	// I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°
     wire[7:0] i2c_scl_div_rate;
-    // I2C·¢ËÍÍê³ÉÖ¸Ê¾
+    // I2Cå‘é€å®ŒæˆæŒ‡ç¤º
     wire i2c_tx_done;
     wire[3:0] i2c_tx_bytes_n;
-    // I2C½ÓÊÕÍê³ÉÖ¸Ê¾
+    // I2Cæ¥æ”¶å®ŒæˆæŒ‡ç¤º
     wire i2c_rx_done;
     wire[3:0] i2c_rx_bytes_n;
-    // I2C´Ó»úÏìÓ¦´íÎó
+    // I2Cä»æœºå“åº”é”™è¯¯
     wire i2c_slave_resp_err;
-    // I2C½ÓÊÕÒç³ö
+    // I2Cæ¥æ”¶æº¢å‡º
     wire i2c_rx_overflow;
     
-    // ¼Ä´æÆ÷½Ó¿ÚºÍÖĞ¶Ï´¦Àí
+    // å¯„å­˜å™¨æ¥å£å’Œä¸­æ–­å¤„ç†
     regs_if_for_i2c #(
         .simulation_delay(simulation_delay)
     )regs_if_for_i2c_u(
@@ -224,7 +248,7 @@ module apb_i2c #(
         .itr(itr)
     );
     
-    /** I2C¿ØÖÆÆ÷ **/
+    /** I2Cæ§åˆ¶å™¨ **/
     i2c_ctrler #(
         .addr_bits_n(addr_bits_n),
         .simulation_delay(simulation_delay)
