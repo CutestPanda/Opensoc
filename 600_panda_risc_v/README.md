@@ -59,7 +59,7 @@
 
 ## 搭建硬件工程
 测评SOC的所有源码都在**600_panda_risc_v/fpga/panda_soc_eva**下，  
-请修改**imem_init_file**参数为boot_rom.txt所在的路径（在**600_panda_risc_v/fpga**下），注意修改PLL的例化。  
+请修改**imem_init_file**参数为**boot_rom.txt**所在的路径（在**600_panda_risc_v/fpga**下），注意修改PLL的例化。  
 在SOC测评工程中，PLL输出时钟的频率是**50MHz**。  
 
 #### <center>存储映射表</center>
