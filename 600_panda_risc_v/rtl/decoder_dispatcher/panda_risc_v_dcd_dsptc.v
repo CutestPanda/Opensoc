@@ -36,7 +36,7 @@ SOFTWARE.
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -79,6 +79,7 @@ module panda_risc_v_dcd_dsptc #(
 	input wire[127:0] s_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	input wire[3:0] s_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
 	input wire[inst_id_width-1:0] s_if_res_id, // 指令编号
+	input wire s_if_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	input wire s_if_res_valid,
 	output wire s_if_res_ready,
 	
@@ -92,10 +93,15 @@ module panda_risc_v_dcd_dsptc #(
 									 //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	output wire[31:0] m_alu_pc_of_inst, // 指令对应的PC
 	output wire m_alu_is_b_inst, // 是否B指令
+	output wire m_alu_is_jal_inst, // 是否JAL指令
+	output wire m_alu_is_jalr_inst, // 是否JALR指令
 	output wire m_alu_is_ecall_inst, // 是否ECALL指令
 	output wire m_alu_is_mret_inst, // 是否MRET指令
 	output wire m_alu_is_csr_rw_inst, // 是否CSR读写指令
 	output wire m_alu_is_fence_i_inst, // 是否FENCE.I指令
+	output wire m_alu_is_ebreak_inst, // 是否EBREAK指令
+	output wire m_alu_is_dret_inst, // 是否DRET指令
+	output wire m_alu_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
@@ -227,7 +233,7 @@ module panda_risc_v_dcd_dsptc #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	wire[70:0] m_dispatch_req_msg_reused; // 复用的派遣信息
-	wire[10:0] m_dispatch_req_inst_type_packeted; // 打包的指令类型标志
+	wire[14:0] m_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] m_dispatch_req_pc_of_inst; // 指令对应的PC
 	wire[31:0] m_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	wire[4:0] m_dispatch_req_rd_id; // RD索引
@@ -236,6 +242,7 @@ module panda_risc_v_dcd_dsptc #(
 	                                   //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									   //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	wire[inst_id_width-1:0] m_dispatch_req_inst_id; // 指令编号
+	wire m_dispatch_req_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire m_dispatch_req_valid;
 	wire m_dispatch_req_ready;
 	
@@ -264,6 +271,7 @@ module panda_risc_v_dcd_dsptc #(
 		.s_if_res_data(s_if_res_data),
 		.s_if_res_msg(s_if_res_msg),
 		.s_if_res_id(s_if_res_id),
+		.s_if_res_is_first_inst_after_rst(s_if_res_is_first_inst_after_rst),
 		.s_if_res_valid(s_if_res_valid),
 		.s_if_res_ready(s_if_res_ready),
 		
@@ -287,6 +295,7 @@ module panda_risc_v_dcd_dsptc #(
 		.m_dispatch_req_rd_vld(m_dispatch_req_rd_vld),
 		.m_dispatch_req_err_code(m_dispatch_req_err_code),
 		.m_dispatch_req_inst_id(m_dispatch_req_inst_id),
+		.m_dispatch_req_is_first_inst_after_rst(m_dispatch_req_is_first_inst_after_rst),
 		.m_dispatch_req_valid(m_dispatch_req_valid),
 		.m_dispatch_req_ready(m_dispatch_req_ready),
 		
@@ -310,7 +319,7 @@ module panda_risc_v_dcd_dsptc #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	wire[70:0] s_dispatch_req_msg_reused; // 复用的派遣信息
-	wire[10:0] s_dispatch_req_inst_type_packeted; // 打包的指令类型标志
+	wire[14:0] s_dispatch_req_inst_type_packeted; // 打包的指令类型标志
 	wire[31:0] s_dispatch_req_pc_of_inst; // 指令对应的PC
 	wire[31:0] s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	wire[4:0] s_dispatch_req_rd_id; // RD索引
@@ -319,6 +328,7 @@ module panda_risc_v_dcd_dsptc #(
 	                                   //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									   //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	wire[inst_id_width-1:0] s_dispatch_req_inst_id; // 指令编号
+	wire s_dispatch_req_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire s_dispatch_req_valid;
 	wire s_dispatch_req_ready;
 	
@@ -330,6 +340,7 @@ module panda_risc_v_dcd_dsptc #(
 	assign s_dispatch_req_rd_vld = m_dispatch_req_rd_vld;
 	assign s_dispatch_req_err_code = m_dispatch_req_err_code;
 	assign s_dispatch_req_inst_id = m_dispatch_req_inst_id;
+	assign s_dispatch_req_is_first_inst_after_rst = m_dispatch_req_is_first_inst_after_rst;
 	assign s_dispatch_req_valid = m_dispatch_req_valid;
 	assign m_dispatch_req_ready = s_dispatch_req_ready;
 	
@@ -349,6 +360,7 @@ module panda_risc_v_dcd_dsptc #(
 		.s_dispatch_req_rd_vld(s_dispatch_req_rd_vld),
 		.s_dispatch_req_err_code(s_dispatch_req_err_code),
 		.s_dispatch_req_inst_id(s_dispatch_req_inst_id),
+		.s_dispatch_req_is_first_inst_after_rst(s_dispatch_req_is_first_inst_after_rst),
 		.s_dispatch_req_valid(s_dispatch_req_valid),
 		.s_dispatch_req_ready(s_dispatch_req_ready),
 		
@@ -359,10 +371,15 @@ module panda_risc_v_dcd_dsptc #(
 		.m_alu_err_code(m_alu_err_code),
 		.m_alu_pc_of_inst(m_alu_pc_of_inst),
 		.m_alu_is_b_inst(m_alu_is_b_inst),
+		.m_alu_is_jal_inst(m_alu_is_jal_inst),
+		.m_alu_is_jalr_inst(m_alu_is_jalr_inst),
 		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
 		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_is_csr_rw_inst(m_alu_is_csr_rw_inst),
 		.m_alu_is_fence_i_inst(m_alu_is_fence_i_inst),
+		.m_alu_is_ebreak_inst(m_alu_is_ebreak_inst),
+		.m_alu_is_dret_inst(m_alu_is_dret_inst),
+		.m_alu_is_first_inst_after_rst(m_alu_is_first_inst_after_rst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),

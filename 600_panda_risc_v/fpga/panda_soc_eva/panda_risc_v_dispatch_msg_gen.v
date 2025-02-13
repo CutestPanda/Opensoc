@@ -38,7 +38,7 @@ IFU取指结果 -> 向通用寄存器读控制提交请求 -> 译码单元 -> �
 无
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -58,6 +58,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	input wire[127:0] s_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	input wire[3:0] s_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
 	input wire[inst_id_width-1:0] s_if_res_id, // 指令编号
+	input wire s_if_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	input wire s_if_res_valid,
 	output wire s_if_res_ready,
 	
@@ -88,7 +89,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	output wire[70:0] m_dispatch_req_msg_reused, // 复用的派遣信息
-	output wire[10:0] m_dispatch_req_inst_type_packeted, // 打包的指令类型标志
+	output wire[14:0] m_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	output wire[31:0] m_dispatch_req_pc_of_inst, // 指令对应的PC
 	output wire[31:0] m_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
 	output wire[4:0] m_dispatch_req_rd_id, // RD索引
@@ -97,6 +98,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	                                          //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 											  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	output wire[inst_id_width-1:0] m_dispatch_req_inst_id, // 指令编号
+	output wire m_dispatch_req_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire m_dispatch_req_valid,
 	input wire m_dispatch_req_ready,
 	
@@ -124,12 +126,18 @@ module panda_risc_v_dispatch_msg_gen #(
 	localparam integer PRE_DCD_MSG_IS_MRET_INST_SID = 10;
 	localparam integer PRE_DCD_MSG_IS_FENCE_INST_SID = 11;
 	localparam integer PRE_DCD_MSG_IS_FENCE_I_INST_SID = 12;
-	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 13;
-	localparam integer PRE_DCD_MSG_RD_VLD_SID = 34;
-	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 35;
-	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 36;
-	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 37;
+	localparam integer PRE_DCD_MSG_IS_EBREAK_INST_SID = 13;
+	localparam integer PRE_DCD_MSG_IS_DRET_INST_SID = 14;
+	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 15;
+	localparam integer PRE_DCD_MSG_RD_VLD_SID = 36;
+	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 37;
+	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 38;
+	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 39;
 	// 打包的指令类型标志各项的起始索引
+	localparam integer INST_TYPE_FLAG_IS_JALR_INST_SID = 14;
+	localparam integer INST_TYPE_FLAG_IS_JAL_INST_SID = 13;
+	localparam integer INST_TYPE_FLAG_IS_DRET_INST_SID = 12;
+	localparam integer INST_TYPE_FLAG_IS_EBREAK_INST_SID = 11;
 	localparam integer INST_TYPE_FLAG_IS_FENCE_I_INST_SID = 10;
 	localparam integer INST_TYPE_FLAG_IS_FENCE_INST_SID = 9;
 	localparam integer INST_TYPE_FLAG_IS_MRET_INST_SID = 8;
@@ -215,10 +223,12 @@ module panda_risc_v_dispatch_msg_gen #(
 	wire if_res_illegal_inst; // 是否非法指令
 	wire[1:0] if_res_imem_access_err_code; // 指令存储器访问错误码
 	wire[inst_id_width-1:0] if_res_inst_id; // 指令编号
+	wire if_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	
 	assign {if_res_pc_of_inst, if_res_pre_decoding_msg_packeted, if_res_inst} = s_if_res_data;
 	assign {if_res_prdt_jump, if_res_illegal_inst, if_res_imem_access_err_code} = s_if_res_msg;
 	assign if_res_inst_id = s_if_res_id;
+	assign if_res_is_first_inst_after_rst = s_if_res_is_first_inst_after_rst;
 	
 	/** 读通用寄存器 **/
 	assign m_reg_file_rd_req_rs1_id = if_res_inst[19:15];
@@ -245,7 +255,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	wire ls_addr_aligned; // 访存地址对齐(标志)
 	wire is_ls_inst; // 是否L/S指令
 	// 打包的译码结果
-	wire[10:0] dcd_res_inst_type_packeted; // 打包的指令类型标志
+	wire[14:0] dcd_res_inst_type_packeted; // 打包的指令类型标志
 	wire[67:0] dcd_res_alu_op_msg_packeted; // 打包的ALU操作信息
 	wire[2:0] dcd_res_lsu_op_msg_packeted; // 打包的LSU操作信息
 	wire[45:0] dcd_res_csr_rw_op_msg_packeted; // 打包的CSR原子读写操作信息
@@ -282,6 +292,10 @@ module panda_risc_v_dispatch_msg_gen #(
 		.is_mret_inst(),
 		.is_fence_inst(),
 		.is_fence_i_inst(),
+		.is_ebreak_inst(),
+		.is_dret_inst(),
+		.is_jal_inst(),
+		.is_jalr_inst(),
 		
 		.prdt_jump(if_res_prdt_jump),
 		.brc_pc_upd(brc_pc_upd),
@@ -325,13 +339,14 @@ module panda_risc_v_dispatch_msg_gen #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	reg[70:0] dispatch_msg_reused; // 复用的派遣信息
-	reg[10:0] dispatch_inst_type_packeted; // 打包的指令类型标志
+	reg[14:0] dispatch_inst_type_packeted; // 打包的指令类型标志
 	reg[31:0] dispatch_pc_of_inst; // 指令对应的PC
 	reg[31:0] dispatch_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
 	reg[4:0] dispatch_rd_id; // RD索引
 	reg dispatch_rd_vld; // 是否需要写RD
 	reg[2:0] dispatch_err_code; // 错误类型
 	reg[inst_id_width-1:0] dispatch_inst_id; // 指令编号
+	reg dispatch_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	reg dispatch_msg_valid; // 派遣信息有效标志
 	
 	assign m_dispatch_req_msg_reused = dispatch_msg_reused;
@@ -342,6 +357,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	assign m_dispatch_req_rd_vld = dispatch_rd_vld;
 	assign m_dispatch_req_err_code = dispatch_err_code;
 	assign m_dispatch_req_inst_id = dispatch_inst_id;
+	assign m_dispatch_req_is_first_inst_after_rst = dispatch_is_first_inst_after_rst;
 	assign m_dispatch_req_valid = dispatch_msg_valid;
 	
 	assign dispatch_msg_regs_empty = ~dispatch_msg_valid;
@@ -382,8 +398,8 @@ module panda_risc_v_dispatch_msg_gen #(
 	always @(posedge clk)
 	begin
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
-			// 注意: 非法指令不属于B/CSR读写/LS/乘除法/ECALL/MRET/FENCE/FENCE.I指令!
-			dispatch_inst_type_packeted <= # simulation_delay {11{~if_res_illegal_inst}} & dcd_res_inst_type_packeted;
+			// 注意: 非法指令不属于B/CSR读写/LS/乘除法/ECALL/MRET/FENCE/FENCE.I/EBREAK/DRET/JAL/JALR指令!
+			dispatch_inst_type_packeted <= # simulation_delay {15{~if_res_illegal_inst}} & dcd_res_inst_type_packeted;
 	end
 	// 指令对应的PC
 	always @(posedge clk)
@@ -438,6 +454,12 @@ module panda_risc_v_dispatch_msg_gen #(
 	begin
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
 			dispatch_inst_id <= # simulation_delay if_res_inst_id;
+	end
+	// 是否复位释放后的第1条指令
+	always @(posedge clk)
+	begin
+		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
+			dispatch_is_first_inst_after_rst <= # simulation_delay if_res_is_first_inst_after_rst;
 	end
 	
 	// 派遣信息有效标志

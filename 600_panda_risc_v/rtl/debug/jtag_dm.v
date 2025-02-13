@@ -28,8 +28,8 @@ SOFTWARE.
 
 描述:
 实现DM寄存器, 支持以下调试特性:
-	(1)系统总线访问(System Bus Access, 可选)
-	(2)抽象命令(Abstract Command)下的GPRs读写和程序缓存区(Program Buffer)执行
+	(1)系统总线访问(System Bus Access), 可选
+	(2)抽象命令(Abstract Command)下的GPRs读写和程序缓存区(Program Buffer)执行, 可选
 	(3)复位释放后暂停(resethaltreq)
 
 尚不支持以下特性:
@@ -40,7 +40,8 @@ SOFTWARE.
 参见《The RISC-V Debug Specification》(Version 1.0.0-rc4, Revised 2024-12-05: Frozen)
 
 注意：
-无
+DM内容在存储映射上的地址(DATA0_ADDR, PROGBUF0_ADDR, HART_ACMD_CTRT_ADDR)
+	必须在范围[0xFFFFF800, 0xFFFFFFFF] U [0x00000000, 0x000007FF]内
 
 协议:
 APB SLAVE
@@ -48,25 +49,25 @@ ICB MASTER
 MEM SLAVE
 
 作者: 陈家耀
-日期: 2025/02/08
+日期: 2025/02/13
 ********************************************************************/
 
 
 module jtag_dm #(
 	parameter integer ABITS = 7, // DMI地址位宽(必须在范围[7, 32]内)
 	parameter integer HARTS_N = 1, // HART个数(必须在范围[1, 32]内)
-	parameter integer SCRATCH_N = 1, // HART支持的dscratch个数(必须在范围[0, 2]内)
-	parameter SBUS_SUPPORTED = "true", // 是否支持系统总线访问
+	parameter integer SCRATCH_N = 1, // HART支持的dscratch个数(1 | 2)
+	parameter SBUS_SUPPORTED = "false", // 是否支持系统总线访问
 	/*
 	Spec:
 		If there is more than one DM accessible on this DMI, this register contains the base address of the next
 			one in the chain, or 0 if this is the last one in the chain.
 	*/
 	parameter NEXT_DM_ADDR = 32'h0000_0000, // 下一DM地址
-	parameter integer PROGBUF_SIZE = 2, // Program Buffer的大小(以双字计, 必须在范围[2, 16]内)
-	parameter DATA0_ADDR = 32'hFFFF_F800, // data0寄存器在存储映射中的地址(必须在范围[0xFFFFF800, 0xFFFFFFFF] U [0x00000000, 0x000007FF]内)
-	parameter PROGBUF0_ADDR = 32'hFFFF_F900, // progbuf0寄存器在存储映射中的地址(必须在范围[0xFFFFF800, 0xFFFFFFFF] U [0x00000000, 0x000007FF]内)
-	parameter ACMD_FLAGS_ADDR = 32'hFFFF_FA00, // 抽象命令执行标志在存储映射中的地址(必须在范围[0xFFFFF800, 0xFFFFFFFF] U [0x00000000, 0x000007FF]内)
+	parameter integer PROGBUF_SIZE = 2, // Program Buffer的大小(以双字计, 必须在范围[0, 16]内)
+	parameter DATA0_ADDR = 32'hFFFF_F800, // data0寄存器在存储映射中的地址
+	parameter PROGBUF0_ADDR = 32'hFFFF_F900, // progbuf0寄存器在存储映射中的地址
+	parameter HART_ACMD_CTRT_ADDR = 32'hFFFF_FA00, // HART抽象命令运行控制在存储映射中的地址
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -89,12 +90,9 @@ module jtag_dm #(
 	output wire[HARTS_N-1:0] hart_reset_req,
 	input wire[HARTS_N-1:0] hart_reset_fns,
 	
-	// 运行/暂停控制
+	// HART暂停请求
 	output wire[HARTS_N-1:0] hart_req_halt,
 	output wire[HARTS_N-1:0] hart_req_halt_on_reset,
-	output wire[HARTS_N-1:0] hart_req_resume,
-	input wire[HARTS_N-1:0] hart_halted,
-	input wire[HARTS_N-1:0] hart_running,
 	
 	// HART对DM内容的访问(存储器从接口)
 	input wire hart_access_en,
@@ -133,9 +131,10 @@ module jtag_dm #(
 	
 	/** 常量 **/
 	// DM版本
-	localparam DM_VERSION = 4'd2; // RISC-V debug spec 0.13.2
+	localparam DM_VERSION = 4'd3; // RISC-V debug spec 1.0
 	// DM寄存器地址
 	localparam ADDR_DATA0 = {ABITS{1'b0}} | 7'h04;
+	localparam ADDR_DATA1 = {ABITS{1'b0}} | 7'h05;
 	localparam ADDR_DMCONTROL = {ABITS{1'b0}} | 7'h10;
 	localparam ADDR_DMSTATUS = {ABITS{1'b0}} | 7'h11;
 	localparam ADDR_HARTINFO = {ABITS{1'b0}} | 7'h12;
@@ -174,6 +173,47 @@ module jtag_dm #(
 	localparam ACMD_EXEC_STS_IDLE = 2'b00;
 	localparam ACMD_EXEC_STS_REGS_RW = 2'b01;
 	localparam ACMD_EXEC_STS_PROGBUF = 2'b10;
+	localparam ACMD_EXEC_STS_MEM_RW = 2'b11;
+	// HART抽象命令运行控制存储映射偏移量
+	localparam integer HART_ACMD_CTRL_HALTED = 0;
+	localparam integer HART_ACMD_CTRL_RESUMING = 4;
+	localparam integer HART_ACMD_CTRL_GOING = 8;
+	localparam integer HART_ACMD_CTRL_RESUME_REQ = 12;
+	// data1寄存器在存储映射中的地址
+	localparam DATA1_ADDR = 32'hFFFF_F804;
+	
+	/** HART暂停/运行状态 **/
+	/*
+	set_halted_hartid位于存储映射(地址 = (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_HALTED))上!
+	set_resuming_hartid位于存储映射(地址 = (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_RESUMING))上!
+	*/
+	reg[HARTS_N-1:0] hart_halted;
+	reg[HARTS_N-1:0] hart_running;
+	
+	genvar hart_sts_i;
+	generate
+		for(hart_sts_i = 0;hart_sts_i < HARTS_N;hart_sts_i = hart_sts_i + 1)
+		begin
+			always @(posedge clk or negedge rst_n)
+			begin
+				if(~rst_n)
+				begin
+					hart_halted[hart_sts_i] <= 1'b0;
+					hart_running[hart_sts_i] <= 1'b1;
+				end
+				else if(
+					(hart_access_en & hart_access_wen[0] & ({hart_access_addr, 2'b00} == (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_HALTED)) & 
+						(hart_access_din[4:0] == hart_sts_i)) | 
+					(hart_access_en & hart_access_wen[0] & ({hart_access_addr, 2'b00} == (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_RESUMING)) & 
+						(hart_access_din[4:0] == hart_sts_i))
+				)
+				begin
+					hart_halted[hart_sts_i] <= # SIM_DELAY {hart_access_addr, 2'b00} == (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_HALTED);
+					hart_running[hart_sts_i] <= # SIM_DELAY {hart_access_addr, 2'b00} == (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_RESUMING);
+				end
+			end
+		end
+	endgenerate
 	
 	/** DMI访问 **/
 	wire dmi_write;
@@ -239,8 +279,9 @@ module jtag_dm #(
 	reg[HARTS_N-1:0] hart_reset_fns_d; // 延迟1clk的HART复位完成标志
 	reg[HARTS_N-1:0] dmstatus_havereset; // HART已复位标志
 	wire[HARTS_N-1:0] hart_available; // HART可用标志
-	reg[HARTS_N-1:0] dmstatus_resumeack; // HART复位应答标志
-	reg[HARTS_N-1:0] dmcontrol_resumereq; // HART复位请求
+	reg[HARTS_N-1:0] dmstatus_resumeack; // HART恢复应答标志
+	reg[HARTS_N-1:0] dmcontrol_resumereq; // HART恢复请求
+	wire[HARTS_N-1:0] hart_req_resume; // HART恢复请求(复制的线网)
 	
 	assign sys_reset_req = dmcontrol_ndmreset;
 	assign hart_reset_req = dmcontrol_hartreset;
@@ -437,13 +478,13 @@ module jtag_dm #(
 	wire sb_badsize; // 不支持的系统总线访问位宽
 	wire sb_badalign; // 系统总线访问非对齐
 	
-	assign m_icb_cmd_sbus_addr = sbaddress;
-	assign m_icb_cmd_sbus_read = sbus_is_read_latched;
-	assign m_icb_cmd_sbus_wdata = sbus_wdata_latched;
-	assign m_icb_cmd_sbus_wmask = sbus_wmask_latched;
-	assign m_icb_cmd_sbus_valid = sbus_cmd_vld;
+	assign m_icb_cmd_sbus_addr = (SBUS_SUPPORTED == "true") ? sbaddress:32'dx;
+	assign m_icb_cmd_sbus_read = (SBUS_SUPPORTED == "true") ? sbus_is_read_latched:1'bx;
+	assign m_icb_cmd_sbus_wdata = (SBUS_SUPPORTED == "true") ? sbus_wdata_latched:32'dx;
+	assign m_icb_cmd_sbus_wmask = (SBUS_SUPPORTED == "true") ? sbus_wmask_latched:4'bxxxx;
+	assign m_icb_cmd_sbus_valid = (SBUS_SUPPORTED == "true") ? sbus_cmd_vld:1'b0;
 	
-	assign m_icb_rsp_sbus_ready = sbbusy;
+	assign m_icb_rsp_sbus_ready = (SBUS_SUPPORTED == "true") ? sbbusy:1'b1;
 	
 	assign sbaddress0_en = dmi_write & (dmi_regaddr == ADDR_SBADDRESS0);
 	assign sbdata0_en = dmi_write & (dmi_regaddr == ADDR_SBDATA0);
@@ -474,7 +515,7 @@ module jtag_dm #(
 	
 	/*
 	SPEC: 
-		When the system bus manager is busy, writes to this register will set sbbusyerror and don’t do anything else.
+		When the system bus manager is busy, writes to this register will set sbbusyerror and don't do anything else.
 		If the read/write succeeded and sbautoincrement is set, increment sbaddress.
 	*/
 	always @(posedge clk or negedge rst_n)
@@ -499,8 +540,8 @@ module jtag_dm #(
 	
 	/*
 	SPEC:
-		If either sberror or sbbusyerror isn’t 0 then accesses do nothing.
-		If the bus manager is busy then accesses set sbbusyerror, and don’t do anything else.
+		If either sberror or sbbusyerror isn't 0 then accesses do nothing.
+		If the bus manager is busy then accesses set sbbusyerror, and don't do anything else.
 		
 		If the width of the read access is less than the width of sbdata, 
 			the contents of the remaining high bits may take on any value.
@@ -570,7 +611,7 @@ module jtag_dm #(
 	
 	/*
 	SPEC:
-		When the Debug Module’s system bus manager encounters an error, this field gets set.
+		When the Debug Module's system bus manager encounters an error, this field gets set.
 	*/
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -627,22 +668,29 @@ module jtag_dm #(
 	/** 抽象命令 **/
 	// 注意: 该寄存器(RW)位于存储映射(地址 = DATA0_ADDR)上!
 	reg[31:0] abstract_data0; // 抽象命令data0
+	// 注意: 该寄存器(RW)位于存储映射(地址 = DATA1_ADDR)上!
+	reg[31:0] abstract_data1; // 抽象命令data1
 	wire[31:0] progbuf[0:PROGBUF_SIZE]; // 程序缓存区
-	reg abstractauto_autoexecdata; // 访问data时自动执行抽象命令
+	reg[1:0] abstractauto_autoexecdata; // 访问data时自动执行抽象命令
 	reg[15:0] abstractauto_autoexecprogbuf; // 访问progbuf时自动执行抽象命令
+	reg[7:0] acmd_cmdtype; // 抽象命令类型
+	reg[2:0] acmd_aarsize; // 抽象命令读写位宽
+	reg acmd_aarpostincrement; // 抽象命令访问地址自动递增标志
 	reg acmd_postexec; // 抽象命令后执行程序缓存区
 	reg acmd_transfer; // 抽象命令允许传输
 	reg acmd_write; // 抽象命令读写类型
 	reg[15:0] acmd_regno; // 抽象命令寄存器号
 	wire[7:0] acmd_cmdtype_nxt; // 最新的抽象命令类型
-	wire[2:0] acmd_aarsize_nxt; // 最新的抽象命令寄存器读写位宽
-	wire acmd_aarpostincrement_nxt; // 最新的抽象命令寄存器号自动递增标志
+	wire aamvirtual_nxt; // 最新的抽象命令存储访问地址类型
+	wire[2:0] acmd_aarsize_nxt; // 最新的抽象命令读写位宽
+	wire acmd_aarpostincrement_nxt; // 最新的抽象命令访问地址自动递增标志
 	wire acmd_postexec_nxt; // 最新的抽象命令后执行程序缓存区
 	wire acmd_transfer_nxt; // 最新的抽象命令允许传输
 	wire acmd_write_nxt; // 最新的抽象命令读写类型
 	wire[15:0] acmd_regno_nxt; // 最新的抽象命令寄存器号
 	reg[2:0] abstractcs_cmderr; // 抽象命令错误类型
 	wire abstract_data0_en;
+	wire abstract_data1_en;
 	wire[PROGBUF_SIZE:0] progbuf_en;
 	wire abstractauto_en;
 	wire acmd_en;
@@ -651,30 +699,31 @@ module jtag_dm #(
 	wire start_acmd; // 启动抽象命令
 	wire acmd_supported; // 抽象命令被支持
 	wire acmd_hart_halted; // 待执行抽象命令的HART已暂停
-	reg[31:0] regs_rw_inst_0; // 寄存器读写指令区#0
-	wire[31:0] regs_rw_inst_1; // 寄存器读写指令区#1
-	wire[31:0] regs_rw_inst_2; // 寄存器读写指令区#2
-	// 注意: 该寄存器(RW)位于存储映射(地址 = ACMD_FLAGS_ADDR)上!
-	reg exec_progbuf; // 执行程序缓存区标志
+	reg[31:0] regs_rw_inst[0:6]; // 寄存器读写指令区
+	// 注意: 该寄存器(RW)位于存储映射(地址 = (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_GOING))上!
+	reg[31:0] exec_progbuf; // 执行程序缓存区标志
 	reg[1:0] acmd_exec_sts; // 抽象命令执行状态
 	wire illegal_access_while_abstractcs_busy; // 在抽象命令执行时进行非法访问
+	wire selected_hart_notify_halted; // 被选中的HART通知DM其已暂停
 	
 	assign abstractcs_busy = acmd_exec_sts != ACMD_EXEC_STS_IDLE;
 	
-	assign {acmd_cmdtype_nxt, acmd_aarsize_nxt, acmd_aarpostincrement_nxt, 
+	assign {acmd_cmdtype_nxt, aamvirtual_nxt, acmd_aarsize_nxt, acmd_aarpostincrement_nxt, 
 		acmd_postexec_nxt, acmd_transfer_nxt, acmd_write_nxt, acmd_regno_nxt} = 
 		acmd_en ? 
-			{dmi_wdata[31:24], dmi_wdata[22:0]}:
-			{8'd0, 3'b010, 1'b0, acmd_postexec, acmd_transfer, acmd_write, acmd_regno};
+			dmi_wdata:
+			{acmd_cmdtype, 1'b0, acmd_aarsize, acmd_aarpostincrement, acmd_postexec, acmd_transfer, acmd_write, acmd_regno};
 	
 	assign abstract_data0_en = dmi_write & (dmi_regaddr == ADDR_DATA0);
+	assign abstract_data1_en = dmi_write & (dmi_regaddr == ADDR_DATA1);
 	assign abstractauto_en = dmi_write & (dmi_regaddr == ADDR_ABSTRACTAUTO);
 	assign acmd_en = dmi_write & (dmi_regaddr == ADDR_COMMAND);
 	assign abstractcs_en = dmi_write & (dmi_regaddr == ADDR_ABSTRACTCS);
 	
 	assign dmi_want_launch_acmd = 
 		(dmi_write & (dmi_regaddr == ADDR_COMMAND)) | 
-		((dmi_write | dmi_read) & (dmi_regaddr == ADDR_DATA0) & abstractauto_autoexecdata) | 
+		((dmi_write | dmi_read) & (dmi_regaddr == ADDR_DATA0) & abstractauto_autoexecdata[0]) | 
+		((dmi_write | dmi_read) & (dmi_regaddr == ADDR_DATA1) & abstractauto_autoexecdata[1]) | 
 		((dmi_write | dmi_read) & (dmi_regaddr == (ADDR_PROGBUF_BASE + 0)) & abstractauto_autoexecprogbuf[0] & (PROGBUF_SIZE >= 1)) | 
 		((dmi_write | dmi_read) & (dmi_regaddr == (ADDR_PROGBUF_BASE + 1)) & abstractauto_autoexecprogbuf[1] & (PROGBUF_SIZE >= 2)) | 
 		((dmi_write | dmi_read) & (dmi_regaddr == (ADDR_PROGBUF_BASE + 2)) & abstractauto_autoexecprogbuf[2] & (PROGBUF_SIZE >= 3)) | 
@@ -694,18 +743,28 @@ module jtag_dm #(
 	assign start_acmd = 
 		(abstractcs_cmderr == CMDERR_NONE) & (~abstractcs_busy) & 
 		acmd_supported & acmd_hart_halted & 
-		(acmd_transfer_nxt | acmd_postexec_nxt) & 
+		((acmd_cmdtype_nxt == 8'd2) | acmd_transfer_nxt | acmd_postexec_nxt) & 
 		dmi_want_launch_acmd;
 	assign acmd_supported = 
-		(acmd_cmdtype_nxt == 8'd0) & // 仅支持寄存器读写
-		((acmd_aarsize_nxt == 3'b010) | (~acmd_transfer_nxt)) & // 仅支持32位寄存器读写位宽
-		(~acmd_aarpostincrement_nxt) & // 不支持寄存器号自动递增
-		((acmd_regno_nxt[15:5] == 11'b0001_0000000) | (~acmd_transfer_nxt)); // 仅支持读写GPRs
+		(acmd_cmdtype_nxt == 8'd0) ? 
+		// 寄存器读写
+		(
+			((acmd_aarsize_nxt == 3'b010) | (~acmd_transfer_nxt)) & // 仅支持32位寄存器读写位宽
+			(~acmd_aarpostincrement_nxt) & // 不支持寄存器号自动递增
+			((acmd_regno_nxt <= 16'h101f) | (~acmd_transfer_nxt)) // 仅支持读写GPRs或CSRs
+		):
+		(acmd_cmdtype_nxt == 8'd2) ? 
+		// 存储器读写
+		(
+			(~aamvirtual_nxt) & // 仅支持物理地址
+			(acmd_aarsize_nxt <= 3'b010) // 仅支持8/16/32位传输
+		):1'b0;
 	assign acmd_hart_halted = hart_halted[hartsel] & hart_available[hartsel];
 	assign illegal_access_while_abstractcs_busy = 
 		(
 			(dmi_write | dmi_read) & (
 				(dmi_regaddr == ADDR_DATA0) | 
+				(dmi_regaddr == ADDR_DATA1) | 
 				((dmi_regaddr == (ADDR_PROGBUF_BASE + 0)) & (PROGBUF_SIZE >= 1)) | 
 				((dmi_regaddr == (ADDR_PROGBUF_BASE + 1)) & (PROGBUF_SIZE >= 2)) | 
 				((dmi_regaddr == (ADDR_PROGBUF_BASE + 2)) & (PROGBUF_SIZE >= 3)) | 
@@ -723,11 +782,10 @@ module jtag_dm #(
 				((dmi_regaddr == (ADDR_PROGBUF_BASE + 14)) & (PROGBUF_SIZE >= 15)) | 
 				((dmi_regaddr == (ADDR_PROGBUF_BASE + 15)) & (PROGBUF_SIZE >= 16))
 			)
-		) | abstractauto_en | acmd_en;
-	
-	assign progbuf_impebreak = 32'h00100073; // ebreak
-	assign regs_rw_inst_1 = 32'h0ff0000f; // fence iorw, iorw
-	assign regs_rw_inst_2 = 32'h00100073; // ebreak
+		) | abstractcs_en | abstractauto_en | acmd_en;
+	assign selected_hart_notify_halted = 
+		hart_access_en & hart_access_wen[0] & ({hart_access_addr, 2'b00} == (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_HALTED)) & 
+			(hart_access_din[4:0] == (5'b00000 | hartsel));
 	
 	/*
 	SPEC:
@@ -752,6 +810,55 @@ module jtag_dm #(
 							hart_access_din) | 
 						({{8{~hart_access_wen[3]}}, {8{~hart_access_wen[2]}}, {8{~hart_access_wen[1]}}, {8{~hart_access_wen[0]}}} & 
 							abstract_data0)
+					)
+				);
+	end
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			abstract_data1 <= 32'h0000_0000;
+		else if((~dmactive) | 
+			// 注意: DM只能在abstractcs_busy无效时写该寄存器, 而HART可在任何时候写该寄存器, DM的写具有更高优先级
+			(abstract_data1_en & (~abstractcs_busy)) | 
+			(hart_access_en & (|hart_access_wen) & ({hart_access_addr, 2'b00} == DATA1_ADDR)) | 
+			// 访问地址自动递增
+			(
+				(acmd_exec_sts == ACMD_EXEC_STS_MEM_RW) & 
+				selected_hart_notify_halted & 
+				((exec_progbuf & (32'h0000_0001 << hartsel)) == 32'h0000_0000) & 
+				acmd_aarpostincrement
+			)
+		)
+			abstract_data1 <= # SIM_DELAY 
+				{32{dmactive}} & 
+				(abstractcs_busy ? 
+					(
+						(hart_access_en & (|hart_access_wen) & ({hart_access_addr, 2'b00} == DATA1_ADDR)) ? 
+							(
+								({{8{hart_access_wen[3]}}, {8{hart_access_wen[2]}}, 
+									{8{hart_access_wen[1]}}, {8{hart_access_wen[0]}}} & 
+									hart_access_din) | 
+								({{8{~hart_access_wen[3]}}, {8{~hart_access_wen[2]}}, 
+									{8{~hart_access_wen[1]}}, {8{~hart_access_wen[0]}}} & 
+									abstract_data1)
+							):
+							(abstract_data1 + (
+								({3{acmd_aarsize == 3'b000}} & 3'd1) | 
+								({3{acmd_aarsize == 3'b001}} & 3'd2) | 
+								({3{acmd_aarsize == 3'b010}} & 3'd4)
+							))
+					):
+					(
+						abstract_data1_en ? 
+							dmi_wdata:
+							(
+								({{8{hart_access_wen[3]}}, {8{hart_access_wen[2]}}, 
+									{8{hart_access_wen[1]}}, {8{hart_access_wen[0]}}} & 
+									hart_access_din) | 
+								({{8{~hart_access_wen[3]}}, {8{~hart_access_wen[2]}}, 
+									{8{~hart_access_wen[1]}}, {8{~hart_access_wen[0]}}} & 
+									abstract_data1)
+							)
 					)
 				);
 	end
@@ -793,15 +900,15 @@ module jtag_dm #(
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
-			{abstractauto_autoexecprogbuf, abstractauto_autoexecdata} <= {16'd0, 1'b0};
+			{abstractauto_autoexecprogbuf, abstractauto_autoexecdata} <= {16'd0, 2'b00};
 		else if((~dmactive) | 
 			// 注意: DM只能在abstractcs_busy无效时写该寄存器
 			(abstractauto_en & (~abstractcs_busy))
 		)
 			{abstractauto_autoexecprogbuf, abstractauto_autoexecdata} <= # SIM_DELAY 
 				dmactive ? 
-					{dmi_wdata[31:16], dmi_wdata[0]}:
-					{16'd0, 1'b0};
+					{dmi_wdata[31:16], dmi_wdata[1:0]}:
+					{16'd0, 2'b00};
 	end
 	
 	/*
@@ -814,22 +921,33 @@ module jtag_dm #(
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
-			{acmd_postexec, acmd_transfer, acmd_write, acmd_regno} <= {1'b0, 1'b0, 1'b0, 16'd0};
+			{acmd_cmdtype, acmd_aarsize, acmd_aarpostincrement, acmd_postexec, acmd_transfer, acmd_write, acmd_regno} <= 
+				{8'd0, 3'b010, 1'b0, 1'b0, 1'b0, 1'b0, 16'd0};
 		else if((~dmactive) | 
 			(acmd_en & (abstractcs_cmderr == CMDERR_NONE) & (~abstractcs_busy))
 		)
-			{acmd_postexec, acmd_transfer, acmd_write, acmd_regno} <= # SIM_DELAY 
-				{19{dmactive}} & {acmd_postexec_nxt, acmd_transfer_nxt, acmd_write_nxt, acmd_regno_nxt};
+			{acmd_cmdtype, acmd_aarsize, acmd_aarpostincrement, acmd_postexec, acmd_transfer, acmd_write, acmd_regno} <= # SIM_DELAY 
+				{31{dmactive}} & 
+				{
+					acmd_cmdtype_nxt, acmd_aarsize_nxt, acmd_aarpostincrement_nxt, 
+					acmd_postexec_nxt, acmd_transfer_nxt, acmd_write_nxt, acmd_regno_nxt
+				};
 	end
 	
 	// 注意: 未处理处理器在执行Program Buffer时的异常(即给出错误码CMDERR_EXCEPTION)!
+	/*
+	Spec:
+	Writing this register while an abstract command is executing causes cmderr to become 1 (busy) once
+		the command completes (busy becomes 0).
+	*/
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
 			abstractcs_cmderr <= CMDERR_NONE;
 		else if(
 			((acmd_exec_sts == ACMD_EXEC_STS_IDLE) & 
-				((~acmd_supported) | (~acmd_hart_halted)) & (acmd_transfer_nxt | acmd_postexec_nxt) & dmi_want_launch_acmd) | 
+				((~acmd_supported) | (~acmd_hart_halted)) & 
+				((acmd_cmdtype_nxt == 8'd2) | acmd_transfer_nxt | acmd_postexec_nxt) & dmi_want_launch_acmd) | 
 			(abstractcs_busy & illegal_access_while_abstractcs_busy) | 
 			abstractcs_en
 		)
@@ -845,29 +963,115 @@ module jtag_dm #(
 					);
 	end
 	
-	// 注意: 仅支持对GPRs的读写!
 	always @(posedge clk)
 	begin
-		if(start_acmd & acmd_transfer_nxt)
-			regs_rw_inst_0 <= # SIM_DELAY 
-				acmd_write_nxt ? 
-					// data0 -> GPRs, 使用指令: lw acmd_regno_nxt[4:0], DATA0_ADDR[11:0](x0)
-					{DATA0_ADDR[11:0], 5'b00000, 3'b010, acmd_regno_nxt[4:0], 7'b0000011}:
-					// GPRs -> data0, 使用指令: sw acmd_regno_nxt[4:0], DATA0_ADDR[11:0](x0)
-					{DATA0_ADDR[11:5], acmd_regno_nxt[4:0], 5'b00000, 3'b010, DATA0_ADDR[4:0], 7'b0100011};
+		if(start_acmd)
+		begin
+			if(acmd_cmdtype_nxt == 8'd0)
+			begin
+				// 寄存器读写
+				if(acmd_regno_nxt[12])
+				begin
+					// 读写GPRs
+					regs_rw_inst[0] <= # SIM_DELAY 
+						acmd_write_nxt ? 
+							// data0 -> GPRs, 使用指令: lw acmd_regno_nxt[4:0], DATA0_ADDR[11:0](x0)
+							{DATA0_ADDR[11:0], 5'b00000, 3'b010, acmd_regno_nxt[4:0], 7'b0000011}:
+							// GPRs -> data0, 使用指令: sw acmd_regno_nxt[4:0], DATA0_ADDR[11:0](x0)
+							{DATA0_ADDR[11:5], acmd_regno_nxt[4:0], 5'b00000, 3'b010, DATA0_ADDR[4:0], 7'b0100011};
+					regs_rw_inst[1] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[2] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[3] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[4] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[5] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[6] <= # SIM_DELAY 32'h00100073; // EBREAK
+				end
+				else
+				begin
+					// 读写CSRs
+					regs_rw_inst[0] <= # SIM_DELAY 32'h7b241073; // csrrw x0, dscratch0, x8
+					regs_rw_inst[1] <= # SIM_DELAY 
+						acmd_write_nxt ? 
+							// data0 -> CSRs, 使用指令: lw x8, DATA0_ADDR[11:0](x0)
+							{DATA0_ADDR[11:0], 5'b00000, 3'b010, 5'd8, 7'b0000011}:
+							// CSRs -> data0, 使用指令: csrrs x8, acmd_regno_nxt[11:0], x0
+							{acmd_regno_nxt[11:0], 5'd0, 3'b010, 5'd8, 7'b1110011};
+					regs_rw_inst[2] <= # SIM_DELAY 
+						acmd_write_nxt ? 
+							// data0 -> CSRs, 使用指令: csrrw x0, acmd_regno_nxt[11:0], x8
+							{acmd_regno_nxt[11:0], 5'd8, 3'b001, 5'd0, 7'b1110011}:
+							// CSRs -> data0, 使用指令: sw x8, DATA0_ADDR[11:0](x0)
+							{DATA0_ADDR[11:5], 5'd8, 5'b00000, 3'b010, DATA0_ADDR[4:0], 7'b0100011};
+					regs_rw_inst[3] <= # SIM_DELAY 32'h7b202473; // csrrs x8, dscratch0, x0
+					regs_rw_inst[4] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[5] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[6] <= # SIM_DELAY 32'h00100073; // EBREAK
+				end
+			end
+			else
+			begin
+				// 存储器读写
+				if(acmd_write_nxt)
+				begin
+					// 写存储器, data0 -> [data1]
+					regs_rw_inst[0] <= # SIM_DELAY 32'h7b241073; // csrrw x0, dscratch0, x8
+					regs_rw_inst[1] <= # SIM_DELAY 32'h7b349073; // csrrw x0, dscratch1, x9
+					regs_rw_inst[2] <= # SIM_DELAY 
+						// 使用指令: lw x8, DATA1_ADDR[11:0](x0)
+						{DATA1_ADDR[11:0], 5'b00000, 3'b010, 5'd8, 7'b0000011};
+					regs_rw_inst[3] <= # SIM_DELAY 
+						// 使用指令: lw x9, DATA0_ADDR[11:0](x0)
+						{DATA0_ADDR[11:0], 5'b00000, 3'b010, 5'd9, 7'b0000011};
+					regs_rw_inst[4] <= # SIM_DELAY 
+						// 使用指令: sb/sh/sw x9, 0(x8)
+						{7'd0, 5'd9, 5'd8, acmd_aarsize_nxt, 5'd0, 7'b0100011};
+					regs_rw_inst[5] <= # SIM_DELAY 32'h7b202473; // csrrs x8, dscratch0, x0
+					regs_rw_inst[6] <= # SIM_DELAY 32'h7b3024f3; // csrrs x9, dscratch1, x0
+				end
+				else
+				begin
+					// 读存储器, [data1] -> data0
+					regs_rw_inst[0] <= # SIM_DELAY 32'h7b241073; // csrrw x0, dscratch0, x8
+					regs_rw_inst[1] <= # SIM_DELAY 
+						// 使用指令: lw x8, DATA1_ADDR[11:0](x0)
+						{DATA1_ADDR[11:0], 5'b00000, 3'b010, 5'd8, 7'b0000011};
+					regs_rw_inst[2] <= # SIM_DELAY 
+						// 使用指令: lb/lh/lw x8, 0(x8)
+						{12'd0, 5'd8, acmd_aarsize_nxt, 5'd8, 7'b0000011};
+					regs_rw_inst[3] <= # SIM_DELAY 
+						// 使用指令: sw x8, DATA0_ADDR[11:0](x0)
+						{DATA0_ADDR[11:5], 5'd8, 5'b00000, 3'b010, DATA0_ADDR[4:0], 7'b0100011};
+					regs_rw_inst[4] <= # SIM_DELAY 32'h7b202473; // csrrs x8, dscratch0, x0
+					regs_rw_inst[5] <= # SIM_DELAY 32'h00100073; // EBREAK
+					regs_rw_inst[6] <= # SIM_DELAY 32'h00100073; // EBREAK
+				end
+			end
+		end
 	end
 	
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
-			exec_progbuf <= 1'b0;
+			exec_progbuf <= 32'h0000_0000;
 		else if(
 			((acmd_exec_sts == ACMD_EXEC_STS_IDLE) & start_acmd) | 
-			((acmd_exec_sts == ACMD_EXEC_STS_REGS_RW) & (~exec_progbuf) & acmd_postexec) | 
-			(hart_access_en & hart_access_wen[0] & ({hart_access_addr, 2'b00} == ACMD_FLAGS_ADDR))
+			((acmd_exec_sts == ACMD_EXEC_STS_REGS_RW) & selected_hart_notify_halted & 
+				((exec_progbuf & (32'h0000_0001 << hartsel)) == 32'h0000_0000) & acmd_postexec) | 
+			(hart_access_en & ({hart_access_addr, 2'b00} == (HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_GOING)))
 		)
+		begin
 			exec_progbuf <= # SIM_DELAY 
-				(~(hart_access_en & hart_access_wen[0] & ({hart_access_addr, 2'b00} == ACMD_FLAGS_ADDR))) | hart_access_din[0];
+				(((acmd_exec_sts == ACMD_EXEC_STS_IDLE) & start_acmd) | 
+                    ((acmd_exec_sts == ACMD_EXEC_STS_REGS_RW) & selected_hart_notify_halted & 
+                        ((exec_progbuf & (32'h0000_0001 << hartsel)) == 32'h0000_0000) & acmd_postexec)) ? 
+                (32'h0000_0001 << hartsel):
+                (
+					({{8{hart_access_wen[3]}}, {8{hart_access_wen[2]}}, {8{hart_access_wen[1]}}, {8{hart_access_wen[0]}}} & 
+						hart_access_din) | 
+					({{8{~hart_access_wen[3]}}, {8{~hart_access_wen[2]}}, {8{~hart_access_wen[1]}}, {8{~hart_access_wen[0]}}} & 
+						exec_progbuf)
+				);
+		end
 	end
 	
 	always @(posedge clk or negedge rst_n)
@@ -876,18 +1080,25 @@ module jtag_dm #(
 			acmd_exec_sts <= ACMD_EXEC_STS_IDLE;
 		else if(
 			((acmd_exec_sts == ACMD_EXEC_STS_IDLE) & start_acmd) | 
-			((acmd_exec_sts == ACMD_EXEC_STS_REGS_RW) & (~exec_progbuf)) | 
-			((acmd_exec_sts == ACMD_EXEC_STS_PROGBUF) & (~exec_progbuf))
+			(((acmd_exec_sts == ACMD_EXEC_STS_REGS_RW) | 
+				(acmd_exec_sts == ACMD_EXEC_STS_PROGBUF) | (acmd_exec_sts == ACMD_EXEC_STS_MEM_RW)) & 
+				selected_hart_notify_halted & 
+				((exec_progbuf & (32'h0000_0001 << hartsel)) == 32'h0000_0000))
 		)
 		begin
 			case(acmd_exec_sts)
 				ACMD_EXEC_STS_IDLE:
 					acmd_exec_sts <= # SIM_DELAY 
-						acmd_transfer_nxt ? ACMD_EXEC_STS_REGS_RW:ACMD_EXEC_STS_PROGBUF;
+						(acmd_cmdtype_nxt == 8'd0) ? 
+							(acmd_transfer_nxt ? 
+								ACMD_EXEC_STS_REGS_RW:ACMD_EXEC_STS_PROGBUF):
+							ACMD_EXEC_STS_MEM_RW;
 				ACMD_EXEC_STS_REGS_RW:
 					acmd_exec_sts <= # SIM_DELAY 
 						acmd_postexec ? ACMD_EXEC_STS_PROGBUF:ACMD_EXEC_STS_IDLE;
 				ACMD_EXEC_STS_PROGBUF:
+					acmd_exec_sts <= # SIM_DELAY ACMD_EXEC_STS_IDLE;
+				ACMD_EXEC_STS_MEM_RW:
 					acmd_exec_sts <= # SIM_DELAY ACMD_EXEC_STS_IDLE;
 				default:
 					acmd_exec_sts <= # SIM_DELAY ACMD_EXEC_STS_IDLE;
@@ -896,53 +1107,61 @@ module jtag_dm #(
 	end
 	
 	/** 存储映射读 **/
-	// 注意: 这些寄存器(RO)位于存储映射(地址 = PROGBUF0_ADDR~(PROGBUF0_ADDR + 4 * PROGBUF_SIZE))上!
-	wire[31:0] progbuf_mem_rd[0:PROGBUF_SIZE];
+	// 注意: 这些寄存器(RO)位于存储映射(地址 = PROGBUF0_ADDR~(PROGBUF0_ADDR + 64))上!
+	wire[31:0] progbuf_mem_rd[0:16];
 	reg[31:0] hart_access_dout_r;
 	
 	assign hart_access_dout = hart_access_dout_r;
 	
 	genvar progbuf_mem_rd_i;
 	generate
-		for(progbuf_mem_rd_i = 0;progbuf_mem_rd_i < PROGBUF_SIZE + 1;progbuf_mem_rd_i = progbuf_mem_rd_i + 1)
+		for(progbuf_mem_rd_i = 0;progbuf_mem_rd_i <= 16;progbuf_mem_rd_i = progbuf_mem_rd_i + 1)
 		begin
 			assign progbuf_mem_rd[progbuf_mem_rd_i] = 
 				(acmd_exec_sts == ACMD_EXEC_STS_PROGBUF) ? 
-					progbuf[progbuf_mem_rd_i]:(
-						(progbuf_mem_rd_i == 0) ? regs_rw_inst_0:
-						(progbuf_mem_rd_i == 1) ? regs_rw_inst_1:
-							regs_rw_inst_2
+					progbuf[(progbuf_mem_rd_i >= PROGBUF_SIZE) ? PROGBUF_SIZE:progbuf_mem_rd_i]:(
+						(progbuf_mem_rd_i == 0) ? regs_rw_inst[0]:
+						(progbuf_mem_rd_i == 1) ? regs_rw_inst[1]:
+						(progbuf_mem_rd_i == 2) ? regs_rw_inst[2]:
+						(progbuf_mem_rd_i == 3) ? regs_rw_inst[3]:
+						(progbuf_mem_rd_i == 4) ? regs_rw_inst[4]:
+						(progbuf_mem_rd_i == 5) ? regs_rw_inst[5]:
+						(progbuf_mem_rd_i == 6) ? regs_rw_inst[6]:
+							32'h00100073 // 隐含的EBREAK指令
 					);
 		end
 	endgenerate
 	
-	// 预设一些Debug Mode下的服务程序???
 	always @(posedge clk)
 	begin
 		if(hart_access_en)
 		begin
 			case({hart_access_addr, 2'b00})
 				DATA0_ADDR: hart_access_dout_r <= # SIM_DELAY abstract_data0;
+				DATA1_ADDR: hart_access_dout_r <= # SIM_DELAY abstract_data1;
 				
-				PROGBUF0_ADDR + 0: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 0) ? 0:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 4: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 1) ? 1:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 8: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 2) ? 2:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 12: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 3) ? 3:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 16: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 4) ? 4:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 20: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 5) ? 5:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 24: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 6) ? 6:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 28: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 7) ? 7:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 32: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 8) ? 8:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 36: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 9) ? 9:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 40: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 10) ? 10:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 44: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 11) ? 11:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 48: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 12) ? 12:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 52: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 13) ? 13:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 56: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 14) ? 14:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 60: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 15) ? 15:PROGBUF_SIZE];
-				PROGBUF0_ADDR + 64: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[(PROGBUF_SIZE >= 16) ? 16:PROGBUF_SIZE];
+				PROGBUF0_ADDR + 0: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[0];
+				PROGBUF0_ADDR + 4: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[1];
+				PROGBUF0_ADDR + 8: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[2];
+				PROGBUF0_ADDR + 12: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[3];
+				PROGBUF0_ADDR + 16: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[4];
+				PROGBUF0_ADDR + 20: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[5];
+				PROGBUF0_ADDR + 24: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[6];
+				PROGBUF0_ADDR + 28: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[7];
+				PROGBUF0_ADDR + 32: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[8];
+				PROGBUF0_ADDR + 36: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[9];
+				PROGBUF0_ADDR + 40: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[10];
+				PROGBUF0_ADDR + 44: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[11];
+				PROGBUF0_ADDR + 48: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[12];
+				PROGBUF0_ADDR + 52: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[13];
+				PROGBUF0_ADDR + 56: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[14];
+				PROGBUF0_ADDR + 60: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[15];
+				PROGBUF0_ADDR + 64: hart_access_dout_r <= # SIM_DELAY progbuf_mem_rd[16];
 				
-				ACMD_FLAGS_ADDR: hart_access_dout_r <= # SIM_DELAY {31'd0, exec_progbuf};
+				HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_HALTED: hart_access_dout_r <= # SIM_DELAY 32'h0000_0000;
+				HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_RESUMING: hart_access_dout_r <= # SIM_DELAY 32'h0000_0000;
+				HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_GOING: hart_access_dout_r <= # SIM_DELAY 32'h0000_0000 | exec_progbuf[HARTS_N-1:0];
+				HART_ACMD_CTRT_ADDR + HART_ACMD_CTRL_RESUME_REQ: hart_access_dout_r <= # SIM_DELAY 32'h0000_0000 | hart_req_resume;
 				
 				default: hart_access_dout_r <= # SIM_DELAY 32'h0000_0000;
 			endcase
@@ -960,6 +1179,7 @@ module jtag_dm #(
 		begin
 			case(dmi_regaddr)
 				ADDR_DATA0: s_dmi_prdata_r <= # SIM_DELAY abstract_data0;
+				ADDR_DATA1: s_dmi_prdata_r <= # SIM_DELAY abstract_data1;
 				ADDR_DMCONTROL: s_dmi_prdata_r <= # SIM_DELAY {
 					1'b0, // haltreq
 					1'b0, // resumereq
@@ -981,7 +1201,7 @@ module jtag_dm #(
 					1'b0, // reserved(0.13.2), ndmresetpending(1.0)
 					1'b0, // reserved(0.13.2), stickyunavail(1.0)
 					1'b1, // impebreak
-					1'b0, // reserved
+					2'b00, // reserved
 					dmstatus_havereset[hartsel], // allhavereset
 					dmstatus_havereset[hartsel], // anyhavereset
 					dmstatus_resumeack[hartsel], // allresumeack
@@ -1005,7 +1225,7 @@ module jtag_dm #(
 					SCRATCH_N[3:0], // nscratch
 					3'd0, // reserved
 					1'b1, // dataaccess: memory
-					4'd1, // datasize
+					4'd2, // datasize
 					DATA0_ADDR[11:0] // dataaddr
 				};
 				ADDR_HALTSUM0: s_dmi_prdata_r <= # SIM_DELAY {
@@ -1031,7 +1251,7 @@ module jtag_dm #(
 				ADDR_ABSTRACTAUTO: s_dmi_prdata_r <= # SIM_DELAY {
 					abstractauto_autoexecprogbuf, // autoexecprogbuf
 					4'd0, // reserved
-					{11'd0, abstractauto_autoexecdata} // autoexecdata
+					{10'd0, abstractauto_autoexecdata} // autoexecdata
 				};
 				ADDR_SBCS: s_dmi_prdata_r <= # SIM_DELAY {
 					3'd1, // sbversion
@@ -1054,7 +1274,7 @@ module jtag_dm #(
 				ADDR_CONFSTRPTR3: s_dmi_prdata_r <= # SIM_DELAY 32'h31322720;
 				ADDR_NEXTDM: s_dmi_prdata_r <= # SIM_DELAY NEXT_DM_ADDR;
 				ADDR_PROGBUF_BASE + 0: s_dmi_prdata_r <= # SIM_DELAY 
-					progbuf[0];
+					(PROGBUF_SIZE >= 1) ? progbuf[0]:32'h0000_0000;
 				ADDR_PROGBUF_BASE + 1: s_dmi_prdata_r <= # SIM_DELAY 
 					(PROGBUF_SIZE >= 2) ? progbuf[(PROGBUF_SIZE >= 2) ? 1:0]:32'h0000_0000;
 				ADDR_PROGBUF_BASE + 2: s_dmi_prdata_r <= # SIM_DELAY 

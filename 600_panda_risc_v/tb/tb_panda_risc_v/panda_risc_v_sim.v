@@ -165,11 +165,16 @@ module panda_risc_v_sim #(
 		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
 		.imem_baseaddr(imem_baseaddr),
 		.imem_addr_range(imem_addr_range),
+		.dm_regs_baseaddr(32'hFFFF_F800),
+		.dm_regs_addr_range(1024),
 		.en_inst_cmd_fwd(en_inst_cmd_fwd),
 		.en_inst_rsp_bck(en_inst_rsp_bck),
 		.en_data_cmd_fwd(en_data_cmd_fwd),
 		.en_data_rsp_bck(en_data_rsp_bck),
 		.sgn_period_mul(sgn_period_mul),
+		.debug_supported("false"),
+		.DEBUG_ROM_ADDR(32'h0000_0600),
+		.dscratch_n(1),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_u(
 		.clk(clk),
@@ -206,7 +211,10 @@ module panda_risc_v_sim #(
 		
 		.sw_itr_req(sw_itr_req),
 		.tmr_itr_req(tmr_itr_req),
-		.ext_itr_req(ext_itr_req)
+		.ext_itr_req(ext_itr_req),
+		
+		.dbg_halt_req(1'b0),
+		.dbg_halt_on_reset_req(1'b0)
 	);
 	
 	icb_sram_ctrler #(

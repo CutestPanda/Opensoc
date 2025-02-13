@@ -181,6 +181,8 @@ module tb_panda_risc_v_dcd_dsptc();
 							  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	wire[31:0] m_alu_pc_of_inst; // 指令对应的PC
 	wire m_alu_is_b_inst; // 是否B指令
+	wire m_alu_is_jal_inst; // 是否JAL指令
+	wire m_alu_is_jalr_inst; // 是否JALR指令
 	wire m_alu_is_ecall_inst; // 是否ECALL指令
 	wire m_alu_is_mret_inst; // 是否MRET指令
 	wire m_alu_is_csr_rw_inst; // 是否CSR读写指令
@@ -232,7 +234,7 @@ module tb_panda_risc_v_dcd_dsptc();
 	assign s_if_res_valid = m_axis_if.valid;
 	assign m_axis_if.ready = s_if_res_ready;
 	
-	assign s0_axis_if.data = {3'dx, 4'd0, m_alu_inst_id, 
+	assign s0_axis_if.data = {1'bx, m_alu_is_jalr_inst, m_alu_is_jal_inst, 4'd0, m_alu_inst_id, 
 		m_alu_op_mode, m_alu_op1, m_alu_op2, m_alu_addr_gen_sel, m_alu_err_code, 
 		m_alu_pc_of_inst, m_alu_is_b_inst, m_alu_is_ecall_inst, m_alu_is_mret_inst, m_alu_is_csr_rw_inst, m_alu_is_fence_i_inst, 
 		m_alu_brc_pc_upd, m_alu_prdt_jump, 
@@ -293,6 +295,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.s_if_res_data(s_if_res_data),
 		.s_if_res_msg(s_if_res_msg),
 		.s_if_res_id(s_if_res_id),
+		.s_if_res_is_first_inst_after_rst(1'bx),
 		.s_if_res_valid(s_if_res_valid),
 		.s_if_res_ready(s_if_res_ready),
 		
@@ -303,10 +306,15 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_alu_err_code(m_alu_err_code),
 		.m_alu_pc_of_inst(m_alu_pc_of_inst),
 		.m_alu_is_b_inst(m_alu_is_b_inst),
+		.m_alu_is_jal_inst(m_alu_is_jal_inst),
+		.m_alu_is_jalr_inst(m_alu_is_jalr_inst),
 		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
 		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_is_csr_rw_inst(m_alu_is_csr_rw_inst),
 		.m_alu_is_fence_i_inst(m_alu_is_fence_i_inst),
+		.m_alu_is_ebreak_inst(),
+		.m_alu_is_dret_inst(),
+		.m_alu_is_first_inst_after_rst(),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),

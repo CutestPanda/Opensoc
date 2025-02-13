@@ -35,6 +35,7 @@ SOFTWARE.
 	APB-TIMER  0x4000_2000~0x4000_2FFF 4KB
 	PLIC       0xF000_0000~0xF03F_FFFF 4MB
 	CLINT      0xF400_0000~0xF7FF_FFFF 64MB
+	调试模块   0xFFFF_F800~0xFFFF_FBFF 1KB
 
 外部中断 -> 
 	中断#1 GPIO0中断
@@ -45,11 +46,12 @@ SOFTWARE.
 指令存储器的前2KB为Boot程序
 
 协议:
+JTAG SLAVE
 GPIO
 I2C MASTER
 
 作者: 陈家耀
-日期: 2025/02/01
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -63,6 +65,13 @@ module panda_soc_top #(
 	// 时钟和复位
 	input wire osc_clk, // 外部晶振时钟输入
 	input wire ext_resetn, // 外部复位输入
+	
+	// JTAG从机
+	input wire tck,
+	input wire trst_n,
+	input wire tms,
+	input wire tdi,
+	output wire tdo,
 	
 	// BOOT模式(1'b0 -> UART编程, 1'b1 -> 正常运行)
 	input wire boot,
@@ -110,8 +119,10 @@ module panda_soc_top #(
 	endgenerate
 	
 	/** 复位处理 **/
+	wire sw_reset; // 软件服务请求
 	wire sys_resetn; // 系统复位输出
 	wire sys_reset_req; // 系统复位请求
+	wire sys_reset_fns; // 系统复位完成
 	
 	panda_risc_v_reset #(
 		.simulation_delay(simulation_delay)
@@ -120,10 +131,116 @@ module panda_soc_top #(
 		
 		.ext_resetn(pll_locked),
 		
-		.sw_reset(1'b0),
+		.sw_reset(sw_reset),
 		
 		.sys_resetn(sys_resetn),
-		.sys_reset_req(sys_reset_req)
+		.sys_reset_req(sys_reset_req),
+		.sys_reset_fns(sys_reset_fns)
+	);
+	
+	/** 调试机制 **/
+	// DMI
+    wire[8:0] dmi_paddr;
+    wire dmi_psel;
+    wire dmi_penable;
+    wire dmi_pwrite;
+    wire[31:0] dmi_pwdata;
+    wire dmi_pready;
+    wire[31:0] dmi_prdata;
+    wire dmi_pslverr;
+	// 复位控制
+	wire dbg_sys_reset_req;
+	wire dbg_hart_reset_req;
+	// HART暂停请求
+	wire dbg_halt_req; // 来自调试器的暂停请求
+	wire dbg_halt_on_reset_req; // 来自调试器的复位释放后暂停请求
+	// HART对DM内容的访问(存储器从接口)
+	wire hart_access_en;
+	wire[3:0] hart_access_wen;
+	wire[29:0] hart_access_addr;
+	wire[31:0] hart_access_din;
+	wire[31:0] hart_access_dout;
+	
+	assign sw_reset = dbg_sys_reset_req | dbg_hart_reset_req;
+	
+	jtag_dtm #(
+		.JTAG_VERSION(4'h1),
+		.DTMCS_IDLE_HINT(3'd5),
+		.ABITS(7),
+		.SYN_STAGE(2),
+		.SIM_DELAY(simulation_delay)
+	)jtag_dtm_u(
+		.tck(tck),
+		.trst_n(trst_n),
+		.tms(tms),
+		.tdi(tdi),
+		.tdo(tdo),
+		.tdo_oen(),
+		
+		.m_apb_aclk(pll_clk_out),
+		.m_apb_aresetn(pll_locked),
+		
+		.dmihardreset_req(),
+		
+		.m_paddr(dmi_paddr),
+		.m_psel(dmi_psel),
+		.m_penable(dmi_penable),
+		.m_pwrite(dmi_pwrite),
+		.m_pwdata(dmi_pwdata),
+		.m_pready(dmi_pready),
+		.m_prdata(dmi_prdata),
+		.m_pslverr(dmi_pslverr)
+	);
+	
+	jtag_dm #(
+		.ABITS(7),
+		.HARTS_N(1),
+		.SCRATCH_N(2),
+		.SBUS_SUPPORTED("false"),
+		.NEXT_DM_ADDR(32'h0000_0000),
+		.PROGBUF_SIZE(2),
+		.DATA0_ADDR(32'hFFFF_F800),
+		.PROGBUF0_ADDR(32'hFFFF_F900),
+		.HART_ACMD_CTRT_ADDR(32'hFFFF_FA00),
+		.SIM_DELAY(simulation_delay)
+	)jtag_dm_u(
+		.clk(pll_clk_out),
+		.rst_n(pll_locked),
+		
+		.s_dmi_paddr(dmi_paddr),
+		.s_dmi_psel(dmi_psel),
+		.s_dmi_penable(dmi_penable),
+		.s_dmi_pwrite(dmi_pwrite),
+		.s_dmi_pwdata(dmi_pwdata),
+		.s_dmi_pready(dmi_pready),
+		.s_dmi_prdata(dmi_prdata),
+		.s_dmi_pslverr(dmi_pslverr),
+		
+		.sys_reset_req(dbg_sys_reset_req),
+		.sys_reset_fns(sys_reset_fns),
+		.hart_reset_req(dbg_hart_reset_req),
+		.hart_reset_fns(sys_reset_fns),
+		
+		.hart_req_halt(dbg_halt_req),
+		.hart_req_halt_on_reset(dbg_halt_on_reset_req),
+		
+		.hart_access_en(hart_access_en),
+		.hart_access_wen(hart_access_wen),
+		.hart_access_addr(hart_access_addr),
+		.hart_access_din(hart_access_din),
+		.hart_access_dout(hart_access_dout),
+		
+		.m_icb_cmd_sbus_addr(),
+		.m_icb_cmd_sbus_read(),
+		.m_icb_cmd_sbus_wdata(),
+		.m_icb_cmd_sbus_wmask(),
+		.m_icb_cmd_sbus_valid(),
+		.m_icb_cmd_sbus_ready(1'b1),
+		
+		.m_icb_rsp_sbus_rdata(32'dx),
+		.m_icb_rsp_sbus_err(1'b1),
+		.m_icb_rsp_sbus_valid(1'b1),
+		.m_icb_rsp_sbus_ready()
 	);
 	
 	/** 小胖达RISC-V 最小处理器系统 **/
@@ -210,6 +327,8 @@ module panda_soc_top #(
 		.en_alu_csr_rw_bypass("true"),
 		.imem_baseaddr(32'h0000_0000),
 		.imem_addr_range(imem_depth * 4),
+		.dm_regs_baseaddr(32'hFFFF_F800),
+		.dm_regs_addr_range(1024),
 		.dmem_baseaddr(32'h1000_0000),
 		.dmem_addr_range(dmem_depth * 4),
 		.plic_baseaddr(32'hF000_0000),
@@ -225,6 +344,9 @@ module panda_soc_top #(
 		.imem_init_file(imem_init_file),
 		.sgn_period_mul(sgn_period_mul),
 		.rtc_psc_r(50 * 1000),
+		.debug_supported("true"),
+		.DEBUG_ROM_ADDR(32'h0000_0600),
+		.dscratch_n(2),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_min_proc_sys_u(
 		.clk(pll_clk_out),
@@ -267,7 +389,16 @@ module panda_soc_top #(
 		.ibus_timeout(),
 		.dbus_timeout(),
 		
-		.ext_itr_req_vec(ext_itr_req_vec)
+		.ext_itr_req_vec(ext_itr_req_vec),
+		
+		.hart_access_en(hart_access_en),
+		.hart_access_wen(hart_access_wen),
+		.hart_access_addr(hart_access_addr),
+		.hart_access_din(hart_access_din),
+		.hart_access_dout(hart_access_dout),
+		
+		.dbg_halt_req(dbg_halt_req),
+		.dbg_halt_on_reset_req(dbg_halt_on_reset_req)
 	);
 	
 	/** AXI-APB桥 **/

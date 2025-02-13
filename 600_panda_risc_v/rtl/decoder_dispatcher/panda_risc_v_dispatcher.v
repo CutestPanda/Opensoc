@@ -46,7 +46,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -73,7 +73,7 @@ module panda_risc_v_dispatcher #(
 	                     打包的ALU操作信息[67:0]}
 	*/
 	input wire[70:0] s_dispatch_req_msg_reused, // 复用的派遣信息
-	input wire[10:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
+	input wire[14:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	input wire[31:0] s_dispatch_req_pc_of_inst, // 指令对应的PC
 	input wire[31:0] s_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
 	input wire[4:0] s_dispatch_req_rd_id, // RD索引
@@ -82,6 +82,7 @@ module panda_risc_v_dispatcher #(
 	                                         //     3'b010 -> 指令地址非对齐, 3'b011 -> 指令总线访问失败, 
 									         //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	input wire[inst_id_width-1:0] s_dispatch_req_inst_id, // 指令编号
+	input wire s_dispatch_req_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	input wire s_dispatch_req_valid,
 	output wire s_dispatch_req_ready,
 	
@@ -95,10 +96,15 @@ module panda_risc_v_dispatcher #(
 									 //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	output wire[31:0] m_alu_pc_of_inst, // 指令对应的PC
 	output wire m_alu_is_b_inst, // 是否B指令
+	output wire m_alu_is_jal_inst, // 是否JAL指令
+	output wire m_alu_is_jalr_inst, // 是否JALR指令
 	output wire m_alu_is_ecall_inst, // 是否ECALL指令
 	output wire m_alu_is_mret_inst, // 是否MRET指令
 	output wire m_alu_is_csr_rw_inst, // 是否CSR读写指令
 	output wire m_alu_is_fence_i_inst, // 是否FENCE.I指令
+	output wire m_alu_is_ebreak_inst, // 是否EBREAK指令
+	output wire m_alu_is_dret_inst, // 是否DRET指令
+	output wire m_alu_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
@@ -147,6 +153,10 @@ module panda_risc_v_dispatcher #(
 	
 	/** 常量 **/
 	// 打包的指令类型标志各项的起始索引
+	localparam integer INST_TYPE_FLAG_IS_JALR_INST_SID = 14;
+	localparam integer INST_TYPE_FLAG_IS_JAL_INST_SID = 13;
+	localparam integer INST_TYPE_FLAG_IS_DRET_INST_SID = 12;
+	localparam integer INST_TYPE_FLAG_IS_EBREAK_INST_SID = 11;
 	localparam integer INST_TYPE_FLAG_IS_FENCE_I_INST_SID = 10;
 	localparam integer INST_TYPE_FLAG_IS_FENCE_INST_SID = 9;
 	localparam integer INST_TYPE_FLAG_IS_MRET_INST_SID = 8;
@@ -247,10 +257,15 @@ module panda_risc_v_dispatcher #(
 	assign m_alu_err_code = s_dispatch_req_err_code;
 	assign m_alu_pc_of_inst = s_dispatch_req_pc_of_inst;
 	assign m_alu_is_b_inst = is_b_inst;
+	assign m_alu_is_jal_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_JAL_INST_SID];
+	assign m_alu_is_jalr_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_JALR_INST_SID];
 	assign m_alu_is_ecall_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_ECALL_INST_SID];
 	assign m_alu_is_mret_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_MRET_INST_SID];
 	assign m_alu_is_csr_rw_inst = is_csr_rw_inst;
 	assign m_alu_is_fence_i_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_FENCE_I_INST_SID];
+	assign m_alu_is_ebreak_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_EBREAK_INST_SID];
+	assign m_alu_is_dret_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_DRET_INST_SID];
+	assign m_alu_is_first_inst_after_rst = s_dispatch_req_is_first_inst_after_rst;
 	assign m_alu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
 	assign m_alu_prdt_jump = dispatch_req_prdt_jump;
 	assign m_alu_rd_id = s_dispatch_req_rd_id;

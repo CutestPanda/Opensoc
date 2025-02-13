@@ -40,9 +40,10 @@ ICB主机#3接ICB到AXI-Lite桥并引出AXI-Lite主机
 
 协议:
 AXI-Lite MASTER
+MEM MASTER
 
 作者: 陈家耀
-日期: 2025/02/01
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -73,6 +74,8 @@ module panda_risc_v_min_proc_sys #(
 	// 总线控制单元配置
 	parameter imem_baseaddr = 32'h0000_0000, // 指令存储器基址
 	parameter integer imem_addr_range = 16 * 1024, // 指令存储器地址区间长度
+	parameter dm_regs_baseaddr = 32'hFFFF_F800, // DM寄存器区基址
+	parameter integer dm_regs_addr_range = 1024, // DM寄存器区地址区间长度
 	parameter dmem_baseaddr = 32'h1000_0000, // 数据存储器基地址
 	parameter integer dmem_addr_range = 16 * 1024, // 数据存储器地址区间长度
 	parameter plic_baseaddr = 32'hF000_0000, // PLIC基址
@@ -92,6 +95,10 @@ module panda_risc_v_min_proc_sys #(
 	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
 	// RTC预分频系数
 	parameter integer rtc_psc_r = 50 * 1000000,
+	// 调试配置
+	parameter debug_supported = "true", // 是否需要支持Debug
+	parameter DEBUG_ROM_ADDR = 32'h0000_0600, // Debug ROM基地址
+	parameter integer dscratch_n = 1, // dscratch寄存器的个数(1 | 2)
 	// 仿真配置
 	parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -152,7 +159,18 @@ module panda_risc_v_min_proc_sys #(
 	
 	// 外部中断请求向量
 	// 注意: 中断请求保持有效直到中断清零!
-	input wire[62:0] ext_itr_req_vec
+	input wire[62:0] ext_itr_req_vec,
+	
+	// HART对DM内容的访问(存储器主接口)
+	output wire hart_access_en,
+	output wire[3:0] hart_access_wen,
+	output wire[29:0] hart_access_addr,
+	output wire[31:0] hart_access_din,
+	input wire[31:0] hart_access_dout,
+	
+	// 调试控制
+	input wire dbg_halt_req, // 来自调试器的暂停请求
+	input wire dbg_halt_on_reset_req // 来自调试器的复位释放后暂停请求
 );
 	
 	/** 小胖达RISC-V CPU核 **/
@@ -205,11 +223,16 @@ module panda_risc_v_min_proc_sys #(
 		.en_alu_csr_rw_bypass(en_alu_csr_rw_bypass),
 		.imem_baseaddr(imem_baseaddr),
 		.imem_addr_range(imem_addr_range),
+		.dm_regs_baseaddr(dm_regs_baseaddr),
+		.dm_regs_addr_range(dm_regs_addr_range),
 		.en_inst_cmd_fwd(en_inst_cmd_fwd),
 		.en_inst_rsp_bck(en_inst_rsp_bck),
 		.en_data_cmd_fwd(en_data_cmd_fwd),
 		.en_data_rsp_bck(en_data_rsp_bck),
 		.sgn_period_mul(sgn_period_mul),
+		.debug_supported(debug_supported),
+		.DEBUG_ROM_ADDR(DEBUG_ROM_ADDR),
+		.dscratch_n(dscratch_n),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_u(
 		.clk(clk),
@@ -246,7 +269,10 @@ module panda_risc_v_min_proc_sys #(
 		
 		.sw_itr_req(sw_itr_req),
 		.tmr_itr_req(tmr_itr_req),
-		.ext_itr_req(ext_itr_req)
+		.ext_itr_req(ext_itr_req),
+		
+		.dbg_halt_req(dbg_halt_req),
+		.dbg_halt_on_reset_req(dbg_halt_on_reset_req)
 	);
 	
 	/** ICB-SRAM控制器 **/
@@ -263,6 +289,9 @@ module panda_risc_v_min_proc_sys #(
 	wire s_icb_imem_ctrler_rsp_err;
 	wire s_icb_imem_ctrler_rsp_valid;
 	wire s_icb_imem_ctrler_rsp_ready;
+	// ITCM与DM寄存器区选择
+	wire itcm_sel;
+	reg itcm_sel_d;
 	// SRAM存储器主接口
 	wire imem_clk;
     wire imem_rst;
@@ -282,6 +311,15 @@ module panda_risc_v_min_proc_sys #(
 	assign m_icb_rsp_inst_err = s_icb_imem_ctrler_rsp_err;
 	assign m_icb_rsp_inst_valid = s_icb_imem_ctrler_rsp_valid;
 	assign s_icb_imem_ctrler_rsp_ready = m_icb_rsp_inst_ready;
+	
+	assign itcm_sel = 
+		(debug_supported == "false") | 
+		(({imem_addr, 2'b00} >= imem_baseaddr) & ({imem_addr, 2'b00} < (imem_baseaddr + imem_addr_range)));
+	
+	always @(posedge clk)
+	begin
+		itcm_sel_d <= # simulation_delay itcm_sel;
+	end
 	
 	icb_sram_ctrler #(
 		.en_unaligned_transfer("true"),
@@ -312,6 +350,24 @@ module panda_risc_v_min_proc_sys #(
 	);
 	
 	/** 指令存储器 **/
+	wire itcm_en;
+    wire[3:0] itcm_wen;
+    wire[29:0] itcm_addr;
+    wire[31:0] itcm_din;
+    wire[31:0] itcm_dout;
+	
+	assign hart_access_en = imem_en & (~itcm_sel);
+	assign hart_access_wen = imem_wen;
+	assign hart_access_addr = imem_addr;
+	assign hart_access_din = imem_din;
+	
+	assign itcm_en = imem_en & itcm_sel;
+	assign itcm_wen = imem_wen;
+	assign itcm_addr = imem_addr;
+	assign itcm_din = imem_din;
+	
+	assign imem_dout = ((debug_supported == "false") | itcm_sel_d) ? itcm_dout:hart_access_dout;
+	
 	bram_single_port #(
 		.style("LOW_LATENCY"),
 		.rw_mode("read_first"),
@@ -323,11 +379,11 @@ module panda_risc_v_min_proc_sys #(
 	)imem_u(
 		.clk(imem_clk),
 		
-		.en(imem_en),
-		.wen(imem_wen),
-		.addr(imem_addr),
-		.din(imem_din),
-		.dout(imem_dout)
+		.en(itcm_en),
+		.wen(itcm_wen),
+		.addr(itcm_addr),
+		.din(itcm_din),
+		.dout(itcm_dout)
 	);
 	
 	/** ICB一从四主分发器 **/

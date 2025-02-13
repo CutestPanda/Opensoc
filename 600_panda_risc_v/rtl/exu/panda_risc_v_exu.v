@@ -59,7 +59,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -85,6 +85,10 @@ module panda_risc_v_exu #(
 	parameter init_mhartid = 32'h00_00_00_00, // mhartid状态寄存器复位值
 	// 乘法器配置
 	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
+	// 调试配置
+	parameter debug_supported = "true", // 是否需要支持Debug
+	parameter DEBUG_ROM_ADDR = 32'h0000_0600, // Debug ROM基地址
+	parameter integer dscratch_n = 1, // dscratch寄存器的个数(1 | 2)
 	// 仿真配置
     parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -124,10 +128,15 @@ module panda_risc_v_exu #(
 									//     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	input wire[31:0] s_alu_pc_of_inst, // 指令对应的PC
 	input wire s_alu_is_b_inst, // 是否B指令
+	input wire s_alu_is_jal_inst, // 是否JAL指令
+	input wire s_alu_is_jalr_inst, // 是否JALR指令
 	input wire s_alu_is_ecall_inst, // 是否ECALL指令
 	input wire s_alu_is_mret_inst, // 是否MRET指令
 	input wire s_alu_is_csr_rw_inst, // 是否CSR读写指令
 	input wire s_alu_is_fence_i_inst, // 是否FENCE.I指令
+	input wire s_alu_is_ebreak_inst, // 是否EBREAK指令
+	input wire s_alu_is_dret_inst, // 是否DRET指令
+	input wire s_alu_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	input wire[31:0] s_alu_brc_pc_upd, // 分支预测失败时修正的PC
 	input wire s_alu_prdt_jump, // 是否预测跳转
 	input wire[4:0] s_alu_rd_id, // RD索引
@@ -208,7 +217,11 @@ module panda_risc_v_exu #(
 	
 	// ALU/CSR原子读写单元的数据旁路
 	input wire dcd_reg_file_rd_p0_bypass, // 需要旁路到译码器给出的通用寄存器堆读端口#0
-	input wire dcd_reg_file_rd_p1_bypass // 需要旁路到译码器给出的通用寄存器堆读端口#1
+	input wire dcd_reg_file_rd_p1_bypass, // 需要旁路到译码器给出的通用寄存器堆读端口#1
+	
+	// 调试控制
+	input wire dbg_halt_req, // 来自调试器的暂停请求
+	input wire dbg_halt_on_reset_req // 来自调试器的复位释放后暂停请求
 );
 	
 	/** 交付单元 **/
@@ -224,10 +237,15 @@ module panda_risc_v_exu #(
 							  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	wire[31:0] s_pst_pc_of_inst; // 指令对应的PC
 	wire s_pst_is_b_inst; // 是否B指令
+	wire s_pst_is_jal_inst; // 是否JAL指令
+	wire s_pst_is_jalr_inst; // 是否JALR指令
 	wire s_pst_is_ecall_inst; // 是否ECALL指令
 	wire s_pst_is_mret_inst; // 是否MRET指令
 	wire s_pst_is_fence_i_inst; // 是否FENCE.I指令
-	wire[31:0] s_pst_brc_pc_upd; // 分支预测失败时修正的PC(仅在B指令下有效)
+	wire s_pst_is_ebreak_inst; // 是否EBREAK指令
+	wire s_pst_is_dret_inst; // 是否DRET指令
+	wire s_pst_is_first_inst_after_rst; // 是否复位释放后的第1条指令
+	wire[31:0] s_pst_brc_pc_upd; // 分支预测失败时修正的PC(仅在B指令或FENCE.I指令下有效)
 	wire s_pst_prdt_jump; // 是否预测跳转
 	wire s_pst_is_long_inst; // 是否长指令
 	wire s_pst_valid;
@@ -256,14 +274,30 @@ module panda_risc_v_exu #(
 	// 退出中断/异常处理
 	wire itr_expt_ret; // 退出中断/异常(指示)
 	wire[31:0] mepc_ret_addr; // mepc状态寄存器定义的中断/异常返回地址
+	// 进入调试模式
+	wire dbg_mode_enter; // 进入调试模式(指示)
+	wire[2:0] dbg_mode_cause; // 进入调试模式的原因
+	wire[31:0] dbg_mode_ret_addr; // 调试模式返回地址
+	// 退出调试模式
+	wire dbg_mode_ret; // 退出调试模式(指示)
+	wire[31:0] dpc_ret_addr; // dpc状态寄存器定义的调试模式返回地址
+	// 调试状态
+	wire dcsr_ebreakm_v; // dcsr状态寄存器EBREAKM域
+	wire dcsr_step_v; // dcsr状态寄存器STEP域
+	wire in_dbg_mode; // 当前处于调试模式(标志)
 	
 	assign s_pst_inst = s_alu_op2;
 	assign s_pst_err_code = s_alu_err_code;
 	assign s_pst_pc_of_inst = s_alu_pc_of_inst;
 	assign s_pst_is_b_inst = s_alu_is_b_inst;
+	assign s_pst_is_jal_inst = s_alu_is_jal_inst;
+	assign s_pst_is_jalr_inst = s_alu_is_jalr_inst;
 	assign s_pst_is_ecall_inst = s_alu_is_ecall_inst;
 	assign s_pst_is_mret_inst = s_alu_is_mret_inst;
 	assign s_pst_is_fence_i_inst = s_alu_is_fence_i_inst;
+	assign s_pst_is_ebreak_inst = s_alu_is_ebreak_inst;
+	assign s_pst_is_dret_inst = s_alu_is_dret_inst;
+	assign s_pst_is_first_inst_after_rst = s_alu_is_first_inst_after_rst;
 	assign s_pst_brc_pc_upd = s_alu_brc_pc_upd;
 	assign s_pst_prdt_jump = s_alu_prdt_jump;
 	assign s_pst_is_long_inst = s_alu_is_long_inst;
@@ -271,6 +305,8 @@ module panda_risc_v_exu #(
 	assign s_alu_ready = s_pst_ready;
 	
 	panda_risc_v_commit #(
+		.DEBUG_ROM_ADDR(DEBUG_ROM_ADDR),
+		.debug_supported(debug_supported),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_commit_u(
 		.clk(clk),
@@ -285,9 +321,14 @@ module panda_risc_v_exu #(
 		.s_pst_err_code(s_pst_err_code),
 		.s_pst_pc_of_inst(s_pst_pc_of_inst),
 		.s_pst_is_b_inst(s_pst_is_b_inst),
+		.s_pst_is_jal_inst(s_pst_is_jal_inst),
+		.s_pst_is_jalr_inst(s_pst_is_jalr_inst),
 		.s_pst_is_ecall_inst(s_pst_is_ecall_inst),
 		.s_pst_is_mret_inst(s_pst_is_mret_inst),
 		.s_pst_is_fence_i_inst(s_pst_is_fence_i_inst),
+		.s_pst_is_ebreak_inst(s_pst_is_ebreak_inst),
+		.s_pst_is_dret_inst(s_pst_is_dret_inst),
+		.s_pst_is_first_inst_after_rst(s_pst_is_first_inst_after_rst),
 		.s_pst_brc_pc_upd(s_pst_brc_pc_upd),
 		.s_pst_prdt_jump(s_pst_prdt_jump),
 		.s_pst_is_long_inst(s_pst_is_long_inst),
@@ -324,7 +365,20 @@ module panda_risc_v_exu #(
 		
 		.flush_req(flush_req),
 		.flush_ack(flush_ack),
-		.flush_addr(flush_addr)
+		.flush_addr(flush_addr),
+		
+		.dbg_mode_enter(dbg_mode_enter),
+		.dbg_mode_cause(dbg_mode_cause),
+		.dbg_mode_ret_addr(dbg_mode_ret_addr),
+		
+		.dbg_mode_ret(dbg_mode_ret),
+		.dpc_ret_addr(dpc_ret_addr),
+		
+		.dbg_halt_req(dbg_halt_req),
+		.dbg_halt_on_reset_req(dbg_halt_on_reset_req),
+		.dcsr_ebreakm_v(dcsr_ebreakm_v),
+		.dcsr_step_v(dcsr_step_v),
+		.in_dbg_mode(in_dbg_mode)
 	);
 	
 	/** ALU **/
@@ -389,6 +443,8 @@ module panda_risc_v_exu #(
 		.init_marchid(init_marchid),
 		.init_mimpid(init_mimpid),
 		.init_mhartid(init_mhartid),
+		.debug_supported(debug_supported),
+		.dscratch_n(dscratch_n),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_csr_rw_u(
 		.clk(clk),
@@ -409,6 +465,17 @@ module panda_risc_v_exu #(
 		
 		.itr_expt_ret(itr_expt_ret),
 		.mepc_ret_addr(mepc_ret_addr),
+		
+		.dbg_mode_enter(dbg_mode_enter),
+		.dbg_mode_cause(dbg_mode_cause),
+		.dbg_mode_ret_addr(dbg_mode_ret_addr),
+		
+		.dbg_mode_ret(dbg_mode_ret),
+		.dpc_ret_addr(dpc_ret_addr),
+		
+		.dcsr_ebreakm_v(dcsr_ebreakm_v),
+		.dcsr_step_v(dcsr_step_v),
+		.in_dbg_mode(in_dbg_mode),
 		
 		.inst_retire_cnt_en(inst_retire_cnt_en),
 		

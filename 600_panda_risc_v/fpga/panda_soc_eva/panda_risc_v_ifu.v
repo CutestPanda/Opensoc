@@ -43,7 +43,7 @@ REQ/ACK
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -101,6 +101,7 @@ module panda_risc_v_ifu #(
 	output wire[127:0] m_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	output wire[3:0] m_if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
 	output wire[inst_id_width-1:0] m_if_res_id, // 指令编号
+	output wire m_if_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire m_if_res_valid,
 	input wire m_if_res_ready,
 	
@@ -201,6 +202,8 @@ module panda_risc_v_ifu #(
 		.is_mret_inst(),
 		.is_fence_inst(),
 		.is_fence_i_inst(),
+		.is_ebreak_inst(),
+		.is_dret_inst(),
 		.jump_ofs_imm(jump_ofs_imm),
 		.rs1_vld(),
 		.rs2_vld(),
@@ -268,6 +271,7 @@ module panda_risc_v_ifu #(
 		.if_res_data(m_if_res_data),
 		.if_res_msg(m_if_res_msg),
 		.m_if_res_id(m_if_res_id),
+		.m_if_res_is_first_inst_after_rst(m_if_res_is_first_inst_after_rst),
 		.if_res_valid(m_if_res_valid),
 		.if_res_ready(m_if_res_ready),
 		

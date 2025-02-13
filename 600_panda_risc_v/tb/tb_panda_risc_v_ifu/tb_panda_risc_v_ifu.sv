@@ -251,6 +251,7 @@ module tb_panda_risc_v_ifu();
 		.m_if_res_data(m_if_res_data),
 		.m_if_res_msg(m_if_res_msg),
 		.m_if_res_id(m_if_res_id),
+		.m_if_res_is_first_inst_after_rst(),
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		

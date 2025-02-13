@@ -28,7 +28,8 @@ SOFTWARE.
 
 描述:
 实现CSR原子读写
-部分CSR在进入或退出中断/异常处理时中断更新
+部分CSR在进入或退出中断/异常处理时更新
+可选Debug相关CSR
 
 注意：
 未考虑WIRI/WPRI/WLRL/WARL特性
@@ -37,7 +38,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2024/12/09
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -54,6 +55,8 @@ module panda_risc_v_csr_rw #(
 	parameter init_marchid = 32'h00_00_00_00, // marchid状态寄存器复位值
 	parameter init_mimpid = 32'h31_2E_30_30, // mimpid状态寄存器复位值
 	parameter init_mhartid = 32'h00_00_00_00, // mhartid状态寄存器复位值
+	parameter debug_supported = "true", // 是否需要支持Debug
+	parameter integer dscratch_n = 1, // dscratch寄存器的个数(1 | 2)
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -78,6 +81,20 @@ module panda_risc_v_csr_rw #(
 	// 退出中断/异常处理
 	input wire itr_expt_ret, // 退出中断/异常(指示)
 	output wire[31:0] mepc_ret_addr, // mepc状态寄存器定义的中断/异常返回地址
+	
+	// 进入调试模式
+	input wire dbg_mode_enter, // 进入调试模式(指示)
+	input wire[2:0] dbg_mode_cause, // 进入调试模式的原因
+	input wire[31:0] dbg_mode_ret_addr, // 调试模式返回地址
+	
+	// 退出调试模式
+	input wire dbg_mode_ret, // 退出调试模式(指示)
+	output wire[31:0] dpc_ret_addr, // dpc状态寄存器定义的调试模式返回地址
+	
+	// 调试状态
+	output wire dcsr_ebreakm_v, // dcsr状态寄存器EBREAKM域
+	output wire dcsr_step_v, // dcsr状态寄存器STEP域
+	input wire in_dbg_mode, // 当前处于调试模式(标志)
 	
 	// 性能监测
 	input wire inst_retire_cnt_en, // 退休指令计数器的计数使能
@@ -110,6 +127,10 @@ module panda_risc_v_csr_rw #(
 	localparam CSR_MCAUSE_ADDR = 12'h342;
 	localparam CSR_MTVAL_ADDR = 12'h343;
 	localparam CSR_MIP_ADDR = 12'h344;
+	localparam CSR_DCSR_ADDR = 12'h7B0;
+	localparam CSR_DPC_ADDR = 12'h7B1;
+	localparam CSR_DSCRATCH0_ADDR = 12'h7B2;
+	localparam CSR_DSCRATCH1_ADDR = 12'h7B3;
 	localparam CSR_MCYCLE_ADDR = 12'hB00;
 	localparam CSR_MINSTRET_ADDR = 12'hB02;
 	localparam CSR_MCYCLEH_ADDR = 12'hB80;
@@ -140,6 +161,10 @@ module panda_risc_v_csr_rw #(
 	wire[31:0] mcycleh_dout;
 	wire[31:0] minstret_dout;
 	wire[31:0] minstreth_dout;
+	wire[31:0] dcsr_dout;
+	wire[31:0] dpc_dout;
+	wire[31:0] dscratch0_dout;
+	wire[31:0] dscratch1_dout;
 	
 	assign csr_atom_rw_dout = 
 		({32{csr_atom_rw_addr == CSR_MSTATUS_ADDR}} & mstatus_dout) | 
@@ -158,7 +183,13 @@ module panda_risc_v_csr_rw #(
 		({32{csr_atom_rw_addr == CSR_MCYCLE_ADDR}} & mcycle_dout) | 
 		({32{csr_atom_rw_addr == CSR_MCYCLEH_ADDR}} & mcycleh_dout) | 
 		({32{csr_atom_rw_addr == CSR_MINSTRET_ADDR}} & minstret_dout) | 
-		({32{csr_atom_rw_addr == CSR_MINSTRETH_ADDR}} & minstreth_dout);
+		({32{csr_atom_rw_addr == CSR_MINSTRETH_ADDR}} & minstreth_dout) | 
+		({32{csr_atom_rw_addr == CSR_DCSR_ADDR}} & ((debug_supported == "true") ? dcsr_dout:32'h0000_0000)) | 
+		({32{csr_atom_rw_addr == CSR_DPC_ADDR}} & ((debug_supported == "true") ? dpc_dout:32'h0000_0000)) | 
+		({32{csr_atom_rw_addr == CSR_DSCRATCH0_ADDR}} & 
+			(((debug_supported == "true") & (dscratch_n >= 1)) ? dscratch0_dout:32'h0000_0000)) | 
+		({32{csr_atom_rw_addr == CSR_DSCRATCH1_ADDR}} & 
+			(((debug_supported == "true") & (dscratch_n >= 2)) ? dscratch1_dout:32'h0000_0000));
 	
 	/** 机器模式状态寄存器(mstatus) **/
 	reg mstatus_mie; // MIE域
@@ -515,7 +546,8 @@ module panda_risc_v_csr_rw #(
 	begin
 		if(~resetn)
 			mcycle_mcycle <= 32'd0;
-		else
+		else if(((~in_dbg_mode) | (debug_supported == "false")) | 
+			(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLE_ADDR)))
 			mcycle_mcycle <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLE_ADDR)) ? 
 					// 从CSR原子读写载入
@@ -531,7 +563,8 @@ module panda_risc_v_csr_rw #(
 	begin
 		if(~resetn)
 			mcycleh_mcycleh <= 32'd0;
-		else if((&mcycle_mcycle) | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLEH_ADDR)))
+		else if((((~in_dbg_mode) | (debug_supported == "false")) & (&mcycle_mcycle)) | 
+			(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLEH_ADDR)))
 			mcycleh_mcycleh <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLEH_ADDR)) ? 
 					// 从CSR原子读写载入
@@ -560,7 +593,8 @@ module panda_risc_v_csr_rw #(
 	begin
 		if(~resetn)
 			minstret_minstret <= 32'd0;
-		else if(inst_retire_cnt_en | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRET_ADDR)))
+		else if((((~in_dbg_mode) | (debug_supported == "false")) & inst_retire_cnt_en) | 
+			(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRET_ADDR)))
 			minstret_minstret <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRET_ADDR)) ? 
 					// 从CSR原子读写载入
@@ -576,7 +610,8 @@ module panda_risc_v_csr_rw #(
 	begin
 		if(~resetn)
 			minstreth_minstreth <= 32'd0;
-		else if((inst_retire_cnt_en & (&minstret_minstret)) | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRETH_ADDR)))
+		else if((((~in_dbg_mode) | (debug_supported == "false")) & inst_retire_cnt_en & (&minstret_minstret)) | 
+			(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRETH_ADDR)))
 			minstreth_minstreth <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRETH_ADDR)) ? 
 					// 从CSR原子读写载入
@@ -585,6 +620,129 @@ module panda_risc_v_csr_rw #(
 					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (minstreth_minstreth & csr_atom_rw_upd_mask_v))):
 					// 自增
 					(minstreth_minstreth + 32'd1);
+	end
+	
+	/** 调试模式控制/状态寄存器(dcsr) **/
+	reg dcsr_ebreakm; // EBREAKM域
+	reg[2:0] dcsr_cause; // CAUSE域
+	reg dcsr_step; // STEP域
+	
+	assign dcsr_ebreakm_v = dcsr_ebreakm;
+	assign dcsr_step_v = dcsr_step;
+	
+	assign dcsr_dout = {
+		4'd4, // debugver
+		1'b0, // reserved
+		3'b000, // extcause
+		4'b0000, // reserved
+		1'b0, // cetrig
+		1'b0, // pelp
+		1'b0, // ebreakvs
+		1'b0, // ebreakvu
+		dcsr_ebreakm, // ebreakm
+		1'b0, // reserved
+		1'b0, // ebreaks
+		1'b0, // ebreaku
+		1'b0, // stepie
+		1'b1, // stopcount
+		1'b0, // stoptime
+		dcsr_cause, // cause
+		1'b0, // v
+		1'b0, // mprven
+		1'b0, // nmip
+		dcsr_step, // step
+		2'b11 // prv
+	};
+	
+	// EBREAKM域
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			dcsr_ebreakm <= 1'b0;
+		else if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_DCSR_ADDR))
+			dcsr_ebreakm <= # simulation_delay 
+				// 从CSR原子读写载入
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[15]) | 
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (dcsr_ebreakm | csr_atom_rw_upd_mask_v[15])) | 
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (dcsr_ebreakm & csr_atom_rw_upd_mask_v[15]));
+	end
+	// CAUSE域
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			dcsr_cause <= 3'b000;
+		else if(dbg_mode_enter)
+			dcsr_cause <= # simulation_delay dbg_mode_cause;
+	end
+	// STEP域
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			dcsr_step <= 1'b0;
+		else if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_DCSR_ADDR))
+			dcsr_step <= # simulation_delay 
+				// 从CSR原子读写载入
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v[2]) | 
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (dcsr_step | csr_atom_rw_upd_mask_v[2])) | 
+				({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (dcsr_step & csr_atom_rw_upd_mask_v[2]));
+	end
+	
+	/** 调试模式PC寄存器(dpc) **/
+	reg[31:0] dpc_dpc; // DPC域
+	
+	assign dpc_ret_addr = dpc_dpc;
+	
+	assign dpc_dout = {
+		dpc_dpc // dpc
+	};
+	
+	// DPC域
+	always @(posedge clk)
+	begin
+		if(dbg_mode_enter | (csr_atom_rw_valid & (csr_atom_rw_addr == CSR_DPC_ADDR)))
+			dpc_dpc <= # simulation_delay 
+				// 进入调试模式时锁存返回地址
+				dbg_mode_enter ? dbg_mode_ret_addr:
+				// 从CSR原子读写载入
+				(({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (dpc_dpc | csr_atom_rw_upd_mask_v)) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (dpc_dpc & csr_atom_rw_upd_mask_v)));
+	end
+	
+	/** 调试模式擦写寄存器#0(dscratch0) **/
+	reg[31:0] dscratch0_dscratch0; // DSCRATCH0域
+	
+	assign dscratch0_dout = {
+		dscratch0_dscratch0 // dscratch0
+	};
+	
+	// DSCRATCH0域
+	always @(posedge clk)
+	begin
+		if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_DSCRATCH0_ADDR))
+			dscratch0_dscratch0 <= # simulation_delay 
+				// 从CSR原子读写载入
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (dscratch0_dscratch0 | csr_atom_rw_upd_mask_v)) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (dscratch0_dscratch0 & csr_atom_rw_upd_mask_v));
+	end
+	
+	/** 调试模式擦写寄存器#1(dscratch1) **/
+	reg[31:0] dscratch1_dscratch1; // DSCRATCH1域
+	
+	assign dscratch1_dout = {
+		dscratch1_dscratch1 // dscratch1
+	};
+	
+	// DSCRATCH1域
+	always @(posedge clk)
+	begin
+		if(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_DSCRATCH1_ADDR))
+			dscratch1_dscratch1 <= # simulation_delay 
+				// 从CSR原子读写载入
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (dscratch1_dscratch1 | csr_atom_rw_upd_mask_v)) | 
+				({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (dscratch1_dscratch1 & csr_atom_rw_upd_mask_v));
 	end
 	
 endmodule

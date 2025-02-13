@@ -28,6 +28,7 @@ SOFTWARE.
 
 描述:
 进行分支确认并处理中断/异常, 产生冲刷请求, 完成指令的交付(确认/取消)
+可选的调试模式实现
 
 注意：
 每当CPU进入中断/异常时, 全局中断使能自动关闭, 因此不支持中断嵌套
@@ -38,8 +39,8 @@ SOFTWARE.
 分支预测失败导致的重新跳转具有最高的优先级, 其次才是中断/异常
 中断/异常优先级: 外部中断 > 软件中断 > 计时器中断 > 来自LSU的异常 > 同步异常
 
-1条ECALL指令可能会被中断请求/LSU异常请求覆盖, 且在返回时这条ECALL指令被跳过
-带有同步异常的指令会被中断请求/LSU异常请求覆盖, 且在返回时重新取这条指令
+1条ECALL指令可能会被调试事件/中断请求/LSU异常请求覆盖
+带有同步异常的指令会被调试事件/中断请求/LSU异常请求覆盖
 
 考虑设置1个异常指令缓存以避免ECALL/同步异常被覆盖???
 
@@ -47,11 +48,13 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
 module panda_risc_v_commit #(
+	parameter DEBUG_ROM_ADDR = 32'h0000_0600, // Debug ROM基地址
+	parameter debug_supported = "true", // 是否需要支持Debug
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -71,10 +74,15 @@ module panda_risc_v_commit #(
 									//     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	input wire[31:0] s_pst_pc_of_inst, // 指令对应的PC
 	input wire s_pst_is_b_inst, // 是否B指令
+	input wire s_pst_is_jal_inst, // 是否JAL指令
+	input wire s_pst_is_jalr_inst, // 是否JALR指令
 	input wire s_pst_is_ecall_inst, // 是否ECALL指令
 	input wire s_pst_is_mret_inst, // 是否MRET指令
 	input wire s_pst_is_fence_i_inst, // 是否FENCE.I指令
-	input wire[31:0] s_pst_brc_pc_upd, // 分支预测失败时修正的PC(仅在B指令下有效)
+	input wire s_pst_is_ebreak_inst, // 是否EBREAK指令
+	input wire s_pst_is_dret_inst, // 是否DRET指令
+	input wire s_pst_is_first_inst_after_rst, // 是否复位释放后的第1条指令
+	input wire[31:0] s_pst_brc_pc_upd, // 分支预测失败时修正的PC(仅在B指令或FENCE.I指令下有效)
 	input wire s_pst_prdt_jump, // 是否预测跳转
 	input wire s_pst_is_long_inst, // 是否长指令(L/S, 乘除法)
 	input wire s_pst_valid,
@@ -119,7 +127,23 @@ module panda_risc_v_commit #(
 	// 冲刷控制
 	output wire flush_req, // 冲刷请求
 	input wire flush_ack, // 冲刷应答
-	output wire[31:0] flush_addr // 冲刷地址
+	output wire[31:0] flush_addr, // 冲刷地址
+	
+	// 进入调试模式
+	output wire dbg_mode_enter, // 进入调试模式(指示)
+	output wire[2:0] dbg_mode_cause, // 进入调试模式的原因
+	output wire[31:0] dbg_mode_ret_addr, // 调试模式返回地址
+	
+	// 退出调试模式
+	output wire dbg_mode_ret, // 退出调试模式(指示)
+	input wire[31:0] dpc_ret_addr, // dpc状态寄存器定义的调试模式返回地址
+	
+	// 调试状态
+	input wire dbg_halt_req, // 来自调试器的暂停请求
+	input wire dbg_halt_on_reset_req, // 来自调试器的复位释放后暂停请求
+	input wire dcsr_ebreakm_v, // dcsr状态寄存器EBREAKM域
+	input wire dcsr_step_v, // dcsr状态寄存器STEP域
+	output wire in_dbg_mode // 当前处于调试模式(标志)
 );
 	
 	/** 常量 **/
@@ -145,9 +169,88 @@ module panda_risc_v_commit #(
 	// LSU错误类型
 	localparam LSU_LOAD_ACCESS_FAULT = 1'b0; // 读存储映射总线错误
 	localparam LSU_STORE_ACCESS_FAULT = 1'b1; // 写存储映射总线错误
+	// 进入调试模式的原因
+	localparam DBG_CAUSE_CODE_EBREAK = 3'd1; // 执行了1条EBREAK指令
+	localparam DBG_CAUSE_CODE_HALTREQ = 3'd3; // 调试器暂停请求
+	localparam DBG_CAUSE_CODE_STEP = 3'd4; // 单步调试
+	localparam DBG_CAUSE_CODE_RST_HALTREQ = 3'd5; // 复位释放后暂停请求
+	
+	/** 调试模式 **/
+	reg in_dbg_mode_r; // 当前处于调试模式(标志)
+	reg first_inst_after_dret; // 退出调试模式后的第1条指令(标志)
+	wire[31:0] dbg_nxt_inst_addr; // 调试结束后下1条有效指令的地址
+	// 有效的进入调试模式请求
+	wire dbg_req_halt; // 有效的调试器暂停请求
+	wire dbg_req_halt_on_reset; // 有效的调试器复位释放后暂停请求
+	wire dbg_req_ebreakm; // 有效的机器模式EBREAK调试请求
+	wire dbg_req_step; // 有效的单步调试请求
+	wire dbg_req; // 当前有导致进入调试模式的事件(标志)
+	// 许可的进入调试模式请求
+	wire dbg_grant_halt; // 许可的调试器暂停请求
+	wire dbg_grant_halt_on_reset; // 许可的调试器复位释放后暂停请求
+	wire dbg_grant_ebreakm; // 许可的机器模式EBREAK调试请求
+	wire dbg_grant_step; // 许可的单步调试请求
+	
+	assign dbg_mode_enter = 
+		(debug_supported == "true") & // 需要支持Debug
+		s_pst_valid & s_pst_ready & // 当前指令交付完成
+		dbg_req; // 当前有导致进入调试模式的事件
+	assign dbg_mode_cause = 
+		({3{dbg_grant_halt}} & DBG_CAUSE_CODE_HALTREQ) | 
+		({3{dbg_grant_halt_on_reset}} & DBG_CAUSE_CODE_RST_HALTREQ) | 
+		({3{dbg_grant_ebreakm}} & DBG_CAUSE_CODE_EBREAK) | 
+		({3{dbg_grant_step}} & DBG_CAUSE_CODE_STEP);
+	assign dbg_mode_ret_addr = 
+		({32{dbg_grant_halt}} & dbg_nxt_inst_addr) | 
+		({32{dbg_grant_halt_on_reset}} & dbg_nxt_inst_addr) | 
+		({32{dbg_grant_ebreakm}} & s_pst_pc_of_inst) | 
+		({32{dbg_grant_step}} & dbg_nxt_inst_addr);
+	
+	assign dbg_mode_ret = 
+		(debug_supported == "true") & // 需要支持Debug
+		in_dbg_mode & // 当前处于调试模式
+		s_pst_valid & s_pst_ready & // 当前指令交付完成
+		(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_dret_inst; // 待交付指令没有异常且为DRET指令
+	
+	assign in_dbg_mode = (debug_supported == "true") ? in_dbg_mode_r:1'b0;
+	
+	assign dbg_req_halt = dbg_halt_req & (~in_dbg_mode);
+	assign dbg_req_halt_on_reset = s_pst_valid & s_pst_is_first_inst_after_rst & dbg_halt_on_reset_req & (~in_dbg_mode);
+	assign dbg_req_ebreakm = s_pst_valid & s_pst_is_ebreak_inst & dcsr_ebreakm_v & (~in_dbg_mode);
+	assign dbg_req_step = dcsr_step_v & first_inst_after_dret;
+	assign dbg_req = dbg_req_halt | dbg_req_halt_on_reset | dbg_req_ebreakm | dbg_req_step;
+	
+	// 各种导致进入调试模式的事件的优先级: resethaltreq > haltreq > ebreak > step
+	assign dbg_grant_halt = (~dbg_req_halt_on_reset) & dbg_req_halt;
+	assign dbg_grant_halt_on_reset = dbg_req_halt_on_reset;
+	assign dbg_grant_ebreakm = (~dbg_req_halt_on_reset) & (~dbg_req_halt) & dbg_req_ebreakm;
+	assign dbg_grant_step = (~dbg_req_halt_on_reset) & (~dbg_req_halt) & (~dbg_req_ebreakm) & dbg_req_step;
+	
+	// 当前处于调试模式(标志)
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			in_dbg_mode_r <= 1'b0;
+		else if(dbg_mode_enter | dbg_mode_ret)
+			in_dbg_mode_r <= # simulation_delay dbg_mode_enter;
+	end
+	
+	// 退出调试模式后的第1条指令(标志)
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			first_inst_after_dret <= 1'b0;
+		else if(s_pst_valid & s_pst_ready)
+			first_inst_after_dret <= # simulation_delay dbg_mode_ret;
+	end
 	
 	/** 分支确认 **/
 	wire brc_prdt_failed; // 分支预测失败(标志)
+	
+	assign dbg_nxt_inst_addr = 
+		(brc_prdt_failed | s_pst_is_jal_inst | s_pst_is_jalr_inst) ? 
+			s_pst_brc_pc_upd:
+			(s_pst_pc_of_inst + 3'd4);
 	
 	assign brc_prdt_failed = 
 		s_pst_valid & // 当前有待交付的指令
@@ -171,9 +274,10 @@ module panda_risc_v_commit #(
 	// 正在处理的中断/异常(标志)
 	reg trap_processing;
 	
-	// 问题: ECALL/同步异常可能会被中断请求/LSU异常请求覆盖而得不到处理!
+	// 问题: ECALL/同步异常可能会被调试事件/中断请求/LSU异常请求覆盖而得不到处理!
 	assign itr_expt_enter = 
 		s_pst_valid & s_pst_ready & // 当前指令交付完成
+		((~dbg_req) | (debug_supported == "false")) & // 当前没有导致进入调试模式的事件
 		(~brc_prdt_failed) & // 当前指令不是分支预测失败的B指令
 		(sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | sync_expt_req_vld | // 当前有中断/异常
 			((~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_ecall_inst)); // 待交付指令没有异常且为ECALL指令
@@ -199,8 +303,8 @@ module panda_risc_v_commit #(
 		({8{(~ext_itr_req_vld) & (~sw_itr_req_vld) & (~tmr_itr_req_vld) & (~lsu_expt_req_vld) & 
 			(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_ecall_inst}} & EXPT_CODE_ENV_CALL_FROM_M); // 机器模式环境调用
 	// 注意: 若指令带有同步异常, 则其返回地址为PC, 否则为PC + 4!
-	// 问题: 1条ECALL指令可能会被中断请求/LSU异常请求覆盖, 且在返回时这条ECALL指令被跳过;
-	//       带有同步异常的指令会被中断请求/LSU异常请求覆盖, 且在返回时重新取这条指令!
+	// 问题: 1条ECALL指令可能会被调试事件/中断请求/LSU异常请求覆盖!
+	//       带有同步异常的指令会被调试事件/中断请求/LSU异常请求覆盖!
 	assign itr_expt_ret_addr = s_pst_pc_of_inst + {~sync_expt_req_vld, 2'b00};
 	assign itr_expt_val = 
 		({32{lsu_expt_req_granted}} & 
@@ -218,12 +322,15 @@ module panda_risc_v_commit #(
 	
 	// 注意: 每当CPU进入中断/异常时, 全局中断使能自动关闭, 因此不支持中断嵌套!
 	assign sw_itr_req_vld = 
+		(((~dcsr_step_v) & (~in_dbg_mode)) | (debug_supported == "false")) & // dcsr状态寄存器STEP域有效或当前处于调试模式时屏蔽中断
 		mstatus_mie_v & mie_msie_v & // 软件中断已使能
 		sw_itr_req; // 软件中断请求有效
 	assign tmr_itr_req_vld = 
+		(((~dcsr_step_v) & (~in_dbg_mode)) | (debug_supported == "false")) & // dcsr状态寄存器STEP域有效或当前处于调试模式时屏蔽中断
 		mstatus_mie_v & mie_mtie_v & // 计时器中断已使能
 		tmr_itr_req; // 计时器中断请求有效
 	assign ext_itr_req_vld = 
+		(((~dcsr_step_v) & (~in_dbg_mode)) | (debug_supported == "false")) & // dcsr状态寄存器STEP域有效或当前处于调试模式时屏蔽中断
 		mstatus_mie_v & mie_meie_v & // 外部中断已使能
 		ext_itr_req; // 外部中断请求有效
 	assign lsu_expt_req_vld = 
@@ -260,21 +367,55 @@ module panda_risc_v_commit #(
 	end
 	
 	/** 冲刷控制 **/
+	wire dbg_req_flush; // 进入调试模式导致冲刷
+	wire ebreak_flush; // EBREAK指令导致冲刷
+	wire dret_flush; // DRET指令导致冲刷
+	wire brc_prdt_failed_flush; // 分支预测失败导致冲刷
+	wire itr_expt_flush; // 中断/异常导致冲刷
 	reg flush_processing; // 正在处理的冲刷(标志)
+	
+	assign dbg_req_flush = dbg_mode_enter;
+	assign ebreak_flush = 
+		s_pst_valid & s_pst_ready & (~(s_pst_err_code[0] | s_pst_err_code[1])) & // 当前指令交付完成, 且待交付指令没有异常
+		s_pst_is_ebreak_inst & // 当前指令是EBREAK指令
+		(in_dbg_mode | dcsr_ebreakm_v); // 目前处于调试模式, 或者dcsr中ebreakm域置位
+	assign dret_flush = 
+		s_pst_valid & s_pst_ready & (~(s_pst_err_code[0] | s_pst_err_code[1])) & // 当前指令交付完成, 且待交付指令没有异常
+		s_pst_is_dret_inst & // 当前指令是DRET指令
+		in_dbg_mode; // 目前处于调试模式
+	assign brc_prdt_failed_flush = 
+		brc_prdt_failed & ((~dbg_req) | (debug_supported == "false")); // 分支预测失败且当前没有导致进入调试模式的事件
+	assign itr_expt_flush = 
+		sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | sync_expt_req_vld; // 当前有中断/异常
 	
 	assign flush_req = 
 		s_pst_valid & s_pst_ready & // 当前指令交付完成
-		(brc_prdt_failed | // 分支预测失败
-			((~(s_pst_err_code[0] | s_pst_err_code[1])) & 
-				(s_pst_is_ecall_inst | s_pst_is_mret_inst | s_pst_is_fence_i_inst)) | // 待交付指令没有异常且为ECALL/MRET/FENCE.I指令
-			sw_itr_req_vld | tmr_itr_req_vld | ext_itr_req_vld | lsu_expt_req_vld | sync_expt_req_vld); // 当前有中断/异常
+		(
+			((dbg_req_flush | ebreak_flush | dret_flush) & (debug_supported == "true")) | // 进入调试模式或EBREAK指令或DRET指令导致冲刷
+			brc_prdt_failed_flush | // 分支预测失败导致冲刷
+			itr_expt_flush | // 中断/异常导致冲刷
+			(
+				(~(s_pst_err_code[0] | s_pst_err_code[1])) & 
+				(s_pst_is_ecall_inst | s_pst_is_mret_inst | s_pst_is_fence_i_inst)
+			) // 待交付指令没有异常且为ECALL/MRET/FENCE.I指令
+		);
 	assign flush_addr = 
 		// 分支预测失败或者是FENCE.I指令时冲刷到修正的PC
-		({32{brc_prdt_failed | ((~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_fence_i_inst)}} & s_pst_brc_pc_upd) | 
+		({32{brc_prdt_failed_flush | ((~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_fence_i_inst)}} & s_pst_brc_pc_upd) | 
 		// 中断/异常返回时冲刷到mepc状态寄存器定义的中断/异常返回地址
 		({32{(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_mret_inst}} & mepc_ret_addr) | 
+		// 若为EBREAK指令或者进入调试模式, 且需要支持Debug, 则冲刷到Debug ROM基地址
+		({32{(((~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_ebreak_inst) | dbg_req_flush) & (debug_supported == "true")}} & 
+			DEBUG_ROM_ADDR) | 
+		// 若为DRET指令, 且需要支持Debug, 则冲刷到dpc状态寄存器定义的调试模式返回地址
+		({32{(~(s_pst_err_code[0] | s_pst_err_code[1])) & s_pst_is_dret_inst & (debug_supported == "true")}} & dpc_ret_addr) | 
 		// 其余情况冲刷到中断/异常向量表基地址
-		({32{(~brc_prdt_failed) & (~s_pst_is_fence_i_inst) & (~s_pst_is_mret_inst)}} & itr_expt_vec_baseaddr);
+		({32{(~brc_prdt_failed_flush) & 
+			((s_pst_err_code[0] | s_pst_err_code[1]) | ((~s_pst_is_fence_i_inst) & (~s_pst_is_mret_inst))) & 
+			(
+				(((s_pst_err_code[0] | s_pst_err_code[1]) | ((~s_pst_is_ebreak_inst) & (~s_pst_is_dret_inst))) & (~dbg_req_flush)) | 
+				(debug_supported == "false")
+			)}} & itr_expt_vec_baseaddr);
 	
 	// 正在处理的冲刷(标志)
 	always @(posedge clk or negedge resetn)

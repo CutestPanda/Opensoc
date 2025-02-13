@@ -1,0 +1,78 @@
+(1)SiFive提供的debug rom
+存储映射:
+	HALTED HART暂停时写入mhartid
+	GOING HART开始执行Program Buffer时写0
+	RESUMING HART继续运行时写入mhartid
+	EXCEPTION HART遇到异常时写0
+	FLAGS DM用来通知HART执行Program Buffer或恢复运行的标志向量
+
+entry:
+	jal x0, 24 ;跳转到<_entry>
+	addi x0, x0, 0 ;NOP
+resume:
+	jal x0, 88 ;跳转到<_resume>
+	addi x0, x0, 0 ;NOP
+exception:
+	jal x0, 56 ;跳转到<_exception>
+	addi x0, x0, 0 ;NOP
+
+_entry:
+	fence iorw, iorw ;FENCH
+	csrrw x0, dscratch0, x8 ;将x8保存到dscratch0
+entry_loop:
+	csrrs x8, mhartid, x0 ;读取mhartid, 存入x8
+	sw x8, 256(x0) ;(*HALTED) = mhartid, 通知DM当前HART已经暂停
+	lbu x8, 1024(x8) ;获取标志向量, 令x8 = (u8)(*FLAGS)
+	andi x8, x8, 1 ;x8 &= 1, 判断是否需要执行Program Buffer
+	bne x8, x0, 36 ;如果x8不为0, 则跳转到<going>
+	csrrs x8, mhartid, x0 ;读取mhartid, 存入x8
+	lbu x8, 1024(x8) ;获取标志向量, 令x8 = (u8)(*FLAGS)
+	andi x8, x8, 2 ;x8 &= 2, 判断是否需要恢复运行
+	bne x8, x0, -56 ;如果x8不为0, 则跳转到<resume>
+	jal x0, -36 ;跳转到<entry_loop>
+
+_exception:
+	sw x0, 280(x0) ;(*EXCEPTION) = 0, 通知DM当前HART遇到异常
+	csrrs x8, dscratch0, x0 ;从dscratch0恢复x8
+	ebreak
+
+going:
+	sw x0, 264(x0) ;(*GOING) = 0, 通知DM当前HART开始执行Program Buffer
+	csrrs x8, dscratch0, x0 ;从dscratch0恢复x8
+	jal x0, -1372 ;跳转到Program Buffer
+
+_resume:
+	csrrs x8, mhartid, x0 ;读取mhartid, 存入x8
+	sw x8, 272(x0) ;(*RESUMING) = mhartid, 通知DM当前HART继续运行
+	csrrs x8, dscratch0, x0 ;从dscratch0恢复x8
+	dret ;退出调试模式
+
+(2)小胖达risc-v的debug rom
+entry:
+	jal x0, 8 ;跳转到<_entry>
+	addi x0, x0, 0 ;NOP
+
+_entry:
+	fence iorw, iorw ;FENCH
+	csrrw x0, dscratch0, x8 ;将x8保存到dscratch0
+entry_loop:
+	addi x8, x0, 0 ;x8 = HARTID
+	sw x8, -1536(x0) ;(*FFFFFA00) = HARTID, 通知DM当前HART已经暂停
+	lbu x8, -1528(x0) ;获取执行程序缓存区标志向量, 令x8 = (u8)(*FFFFFA08)
+	andi x8, x8, 1 ;x8 &= 1, 判断是否需要执行程序缓存区
+	bne x8, x0, 20 ;如果x8不为0, 则跳转到<going>
+	lbu x8, -1524(x0) ;获取继续运行标志向量, 令x8 = (u8)(*FFFFFA0C)
+	andi x8, x8, 1 ;x8 &= 1, 判断是否要继续运行
+	bne x8, x0, 20 ;如果x8不为0, 则跳转到<resume>
+	jal x0, -32 ;跳转到<entry_loop>
+
+going:
+	sw x0, -1528(x0) ;(*FFFFFA08) = 0, 通知DM当前HART开始执行程序缓存区
+	csrrs x8, dscratch0, x0 ;从dscratch0恢复x8
+	jalr x0, -1792(x0) ;跳转到Program Buffer, 即地址0xFFFFF900
+
+resume:
+	addi x8, x0, 0 ;x8 = HARTID
+	sw x8, -1532(x0) ;(*FFFFFA04) = HARTID, 通知DM当前HART继续运行
+	csrrs x8, dscratch0, x0 ;从dscratch0恢复x8
+	dret ;退出调试模式

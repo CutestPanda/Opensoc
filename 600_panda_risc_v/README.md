@@ -10,12 +10,11 @@
  - 可运行C程序
  - 支持中断/异常，可处理多达63个外部中断
  - 在最小处理器系统中配备ITCM、DTCM、PLIC和CLINT
- - 支持UART编程烧录
+ - 支持JTAG在线调试, 支持UART编程烧录
  - 易于移植到FPGA
 
 小胖达MCU尚未支持以下特性：  
 
- - JTAG在线调试（包括对EBREAK指令的支持）
  - ICache和DCache
 
 ## 文件结构
@@ -70,14 +69,20 @@
 |APB-GPIO|0x4000_0000 ~ 0x4000_0FFF|4KB|
 |APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|
 |APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|
-|PLIC|0xF000_0000~0xF03F_FFFF|4MB|
-|CLINT|0xF400_0000~0xF7FF_FFFF|64MB|
+|PLIC|0xF000_0000 ~ 0xF03F_FFFF|4MB|
+|CLINT|0xF400_0000 ~ 0xF7FF_FFFF|64MB|
+|调试模块|0xFFFF_F800 ~ 0xFFFF_FBFF|1KB|
 
 #### <center>I/O表</center>
 |I/O|说明|
 |---|---|
 |osc_clk|外部晶振时钟输入|
 |ext_resetn|外部复位输入, 低有效|
+|tck|JTAG时钟输入, 不用时上拉到高电平|
+|trst_n|JTAG复位输入, 不用时上拉到高电平|
+|tms|JTAG模式输入, 不用时上拉到高电平|
+|tdi|JTAG数据输入, 不用时上拉到高电平|
+|tdo|JTAG数据输出|
 |boot|编程模式, 拨码开关, 1'b0 -> UART编程, 1'b1 -> 正常运行|
 |gpio0[7:0]|LED|
 |gpio0[9:8]|拨码开关|
@@ -103,7 +108,7 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 > 在**600_panda_risc_v/fpga/vivado_prj**下提供了基于ZYNQ7020的示例Vivado工程。
 
 ## 下载与调试
-目前只支持UART编程烧录。  
+可通过JTAG或UART来进行编程烧录。  
 
 #### UART编程烧录
 将boot引脚对应的拨码开关拨到**低电平**，此时CPU运行bootrom程序。  
@@ -113,3 +118,25 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 ![说明3](../img/panda_risc_v_3.png)  
 最后，将boot引脚对应的拨码开关拨到**高电平**，复位CPU，即可见CPU运行烧录的程序。  
 > 如果提示无法接收到编程应答，那么可以在打开串口后（输入了要连接的串口后），按一下外部复位引脚。  
+
+#### JTAG下载调试
+连接好DapLink。  
+在**600_panda_risc_v/tools/openocd**下打开命令行终端，输入：  
+`` .\openocd.exe -f panda_risc_v.cfg ``  
+然后，在同一目录再打开另外1个命令行终端，输入：  
+`` telnet localhost 4444 ``  
+接着，如果该目录下有bin文件，可以在**telnet**命令行终端输入以下命令来下载程序：  
+`` load_image tube_scan.bin 0x00000800 ``  
+最后，让处理器从0x00000800地址继续运行，在**telnet**命令行终端输入：  
+`` resume 0x00000800 ``  
+下面列举一些常用命令用于在线调试：  
+```
+暂停处理器：halt
+处理器继续运行：resume [地址]
+设置1个32位断点：bp [地址] 4
+清除1个32位断点：rbp [地址]
+单步执行：step
+查看寄存器：reg [通用寄存器号/CSR名]
+读取内存：mdw [地址] [32位数据的个数]
+写入内存：mww [地址] [32位数据]
+```

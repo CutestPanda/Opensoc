@@ -36,7 +36,7 @@ SOFTWARE.
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -67,6 +67,8 @@ module panda_risc_v #(
 	// 总线控制单元配置
 	parameter imem_baseaddr = 32'h0000_0000, // 指令存储器基址
 	parameter integer imem_addr_range = 16 * 1024, // 指令存储器地址区间长度
+	parameter dm_regs_baseaddr = 32'hFFFF_F800, // DM寄存器区基址
+	parameter integer dm_regs_addr_range = 1024, // DM寄存器区地址区间长度
 	// 指令/数据ICB主机AXIS寄存器片配置
 	parameter en_inst_cmd_fwd = "true", // 使能指令ICB主机命令通道前向寄存器
 	parameter en_inst_rsp_bck = "true", // 使能指令ICB主机响应通道后向寄存器
@@ -74,6 +76,10 @@ module panda_risc_v #(
 	parameter en_data_rsp_bck = "true", // 使能数据ICB主机响应通道后向寄存器
 	// 乘法器配置
 	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
+	// 调试配置
+	parameter debug_supported = "true", // 是否需要支持Debug
+	parameter DEBUG_ROM_ADDR = 32'h0000_0600, // Debug ROM基地址
+	parameter integer dscratch_n = 1, // dscratch寄存器的个数(1 | 2)
 	// 仿真配置
 	parameter real simulation_delay = 1 // 仿真延时
 )(
@@ -125,7 +131,11 @@ module panda_risc_v #(
 	// 注意: 中断请求保持有效直到中断清零!
 	input wire sw_itr_req, // 软件中断请求
 	input wire tmr_itr_req, // 计时器中断请求
-	input wire ext_itr_req // 外部中断请求
+	input wire ext_itr_req, // 外部中断请求
+	
+	// 调试控制
+	input wire dbg_halt_req, // 来自调试器的暂停请求
+	input wire dbg_halt_on_reset_req // 来自调试器的复位释放后暂停请求
 );
 	
 	/** 指令ICB主机(命令通道输出寄存器片) **/
@@ -353,6 +363,9 @@ module panda_risc_v #(
 	panda_risc_v_biu #(
 		.imem_baseaddr(imem_baseaddr),
 		.imem_addr_range(imem_addr_range),
+		.dm_regs_baseaddr(dm_regs_baseaddr),
+		.dm_regs_addr_range(dm_regs_addr_range),
+		.debug_supported(debug_supported),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_biu_u(
 		.clk(clk),
@@ -423,6 +436,7 @@ module panda_risc_v #(
 	wire[127:0] m_if_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[3:0] m_if_res_msg; // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
 	wire[inst_id_width-1:0] m_if_res_id; // 指令编号
+	wire m_if_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire m_if_res_valid;
 	wire m_if_res_ready;
 	// 数据相关性跟踪(指令进入取指队列)
@@ -497,6 +511,7 @@ module panda_risc_v #(
 		.m_if_res_data(m_if_res_data),
 		.m_if_res_msg(m_if_res_msg),
 		.m_if_res_id(m_if_res_id),
+		.m_if_res_is_first_inst_after_rst(m_if_res_is_first_inst_after_rst),
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		
@@ -537,6 +552,7 @@ module panda_risc_v #(
 	wire[127:0] s_if_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[3:0] s_if_res_msg; // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
 	wire[inst_id_width-1:0] s_if_res_id; // 指令编号
+	wire s_if_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire s_if_res_valid;
 	wire s_if_res_ready;
 	// ALU执行请求
@@ -549,10 +565,15 @@ module panda_risc_v #(
 							  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	wire[31:0] m_alu_pc_of_inst; // 指令对应的PC
 	wire m_alu_is_b_inst; // 是否B指令
+	wire m_alu_is_jal_inst; // 是否JAL指令
+	wire m_alu_is_jalr_inst; // 是否JALR指令
 	wire m_alu_is_ecall_inst; // 是否ECALL指令
 	wire m_alu_is_mret_inst; // 是否MRET指令
 	wire m_alu_is_csr_rw_inst; // 是否CSR读写指令
 	wire m_alu_is_fence_i_inst; // 是否FENCE.I指令
+	wire m_alu_is_ebreak_inst; // 是否EBREAK指令
+	wire m_alu_is_dret_inst; // 是否DRET指令
+	wire m_alu_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] m_alu_brc_pc_upd; // 分支预测失败时修正的PC
 	wire m_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] m_alu_rd_id; // RD索引
@@ -603,6 +624,7 @@ module panda_risc_v #(
 	assign s_if_res_data = m_if_res_data;
 	assign s_if_res_msg = m_if_res_msg;
 	assign s_if_res_id = m_if_res_id;
+	assign s_if_res_is_first_inst_after_rst = m_if_res_is_first_inst_after_rst;
 	assign s_if_res_valid = m_if_res_valid;
 	assign m_if_res_ready = s_if_res_ready;
 	
@@ -637,6 +659,7 @@ module panda_risc_v #(
 		.s_if_res_data(s_if_res_data),
 		.s_if_res_msg(s_if_res_msg),
 		.s_if_res_id(s_if_res_id),
+		.s_if_res_is_first_inst_after_rst(s_if_res_is_first_inst_after_rst),
 		.s_if_res_valid(s_if_res_valid),
 		.s_if_res_ready(s_if_res_ready),
 		
@@ -647,10 +670,15 @@ module panda_risc_v #(
 		.m_alu_err_code(m_alu_err_code),
 		.m_alu_pc_of_inst(m_alu_pc_of_inst),
 		.m_alu_is_b_inst(m_alu_is_b_inst),
+		.m_alu_is_jal_inst(m_alu_is_jal_inst),
+		.m_alu_is_jalr_inst(m_alu_is_jalr_inst),
 		.m_alu_is_ecall_inst(m_alu_is_ecall_inst),
 		.m_alu_is_mret_inst(m_alu_is_mret_inst),
 		.m_alu_is_csr_rw_inst(m_alu_is_csr_rw_inst),
 		.m_alu_is_fence_i_inst(m_alu_is_fence_i_inst),
+		.m_alu_is_ebreak_inst(m_alu_is_ebreak_inst),
+		.m_alu_is_dret_inst(m_alu_is_dret_inst),
+		.m_alu_is_first_inst_after_rst(m_alu_is_first_inst_after_rst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),
@@ -708,10 +736,15 @@ module panda_risc_v #(
 							  //     3'b110 -> 读存储映射地址非对齐, 3'b111 -> 写存储映射地址非对齐)
 	wire[31:0] s_alu_pc_of_inst; // 指令对应的PC
 	wire s_alu_is_b_inst; // 是否B指令
+	wire s_alu_is_jal_inst; // 是否JAL指令
+	wire s_alu_is_jalr_inst; // 是否JALR指令
 	wire s_alu_is_ecall_inst; // 是否ECALL指令
 	wire s_alu_is_mret_inst; // 是否MRET指令
 	wire s_alu_is_csr_rw_inst; // 是否CSR读写指令
 	wire s_alu_is_fence_i_inst; // 是否FENCE.I指令
+	wire s_alu_is_ebreak_inst; // 是否EBREAK指令
+	wire s_alu_is_dret_inst; // 是否DRET指令
+	wire s_alu_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] s_alu_brc_pc_upd; // 分支预测失败时修正的PC
 	wire s_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] s_alu_rd_id; // RD索引
@@ -787,10 +820,15 @@ module panda_risc_v #(
 	assign s_alu_err_code = m_alu_err_code;
 	assign s_alu_pc_of_inst = m_alu_pc_of_inst;
 	assign s_alu_is_b_inst = m_alu_is_b_inst;
+	assign s_alu_is_jal_inst = m_alu_is_jal_inst;
+	assign s_alu_is_jalr_inst = m_alu_is_jalr_inst;
 	assign s_alu_is_ecall_inst = m_alu_is_ecall_inst;
 	assign s_alu_is_mret_inst = m_alu_is_mret_inst;
 	assign s_alu_is_csr_rw_inst = m_alu_is_csr_rw_inst;
 	assign s_alu_is_fence_i_inst = m_alu_is_fence_i_inst;
+	assign s_alu_is_ebreak_inst = m_alu_is_ebreak_inst;
+	assign s_alu_is_dret_inst = m_alu_is_dret_inst;
+	assign s_alu_is_first_inst_after_rst = m_alu_is_first_inst_after_rst;
 	assign s_alu_brc_pc_upd = m_alu_brc_pc_upd;
 	assign s_alu_prdt_jump = m_alu_prdt_jump;
 	assign s_alu_rd_id = m_alu_rd_id;
@@ -850,6 +888,9 @@ module panda_risc_v #(
 		.init_mimpid(init_mimpid),
 		.init_mhartid(init_mhartid),
 		.sgn_period_mul(sgn_period_mul),
+		.debug_supported(debug_supported),
+		.DEBUG_ROM_ADDR(DEBUG_ROM_ADDR),
+		.dscratch_n(dscratch_n),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_exu_u(
 		.clk(clk),
@@ -878,10 +919,15 @@ module panda_risc_v #(
 		.s_alu_err_code(s_alu_err_code),
 		.s_alu_pc_of_inst(s_alu_pc_of_inst),
 		.s_alu_is_b_inst(s_alu_is_b_inst),
+		.s_alu_is_jal_inst(s_alu_is_jal_inst),
+		.s_alu_is_jalr_inst(s_alu_is_jalr_inst),
 		.s_alu_is_ecall_inst(s_alu_is_ecall_inst),
 		.s_alu_is_mret_inst(s_alu_is_mret_inst),
 		.s_alu_is_csr_rw_inst(s_alu_is_csr_rw_inst),
 		.s_alu_is_fence_i_inst(s_alu_is_fence_i_inst),
+		.s_alu_is_ebreak_inst(s_alu_is_ebreak_inst),
+		.s_alu_is_dret_inst(s_alu_is_dret_inst),
+		.s_alu_is_first_inst_after_rst(s_alu_is_first_inst_after_rst),
 		.s_alu_brc_pc_upd(s_alu_brc_pc_upd),
 		.s_alu_prdt_jump(s_alu_prdt_jump),
 		.s_alu_rd_id(s_alu_rd_id),
@@ -948,7 +994,10 @@ module panda_risc_v #(
 		.dpc_trace_retire_valid(dpc_trace_retire_valid),
 		
 		.dcd_reg_file_rd_p0_bypass(dcd_reg_file_rd_p0_bypass),
-		.dcd_reg_file_rd_p1_bypass(dcd_reg_file_rd_p1_bypass)
+		.dcd_reg_file_rd_p1_bypass(dcd_reg_file_rd_p1_bypass),
+		
+		.dbg_halt_req(dbg_halt_req),
+		.dbg_halt_on_reset_req(dbg_halt_on_reset_req)
 	);
 	
 	/** 数据相关性监测器 **/

@@ -38,7 +38,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2024/12/07
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -57,7 +57,9 @@ module panda_risc_v_reset #(
 	// 系统复位输出
 	output wire sys_resetn,
 	// 系统复位请求
-	output wire sys_reset_req
+	output wire sys_reset_req,
+	// 系统复位完成
+	output wire sys_reset_fns
 );
 	
 	/** 内部配置 **/
@@ -71,9 +73,11 @@ module panda_risc_v_reset #(
 	wire ext_resetn_processed; // 经过处理后的外部复位
 	reg[RST_RELEASE_DELAY_PERIOD_N-1:0] rst_n_d; // 系统复位延迟链
 	reg reset_req; // 系统复位请求
+	reg sys_reset_fns_r; // 系统复位完成
 	
 	assign sys_resetn = rst_n_d[RST_RELEASE_DELAY_PERIOD_N-1];
 	assign sys_reset_req = reset_req;
+	assign sys_reset_fns = sys_reset_fns_r;
 	
 	assign ext_resetn_processed = (EN_EXT_RSTN_FILTER == "true") ? ext_resetn_filtered:(ext_resetn & (~sw_reset));
 	
@@ -110,6 +114,15 @@ module panda_risc_v_reset #(
 		else
 			// 复位释放后的第1个clk产生系统复位请求
 			reset_req <= # simulation_delay (~rst_n_d[RST_RELEASE_DELAY_PERIOD_N-1]) & rst_n_d[RST_RELEASE_DELAY_PERIOD_N-2];
+	end
+	
+	// 系统复位完成
+	always @(posedge clk or negedge ext_resetn)
+	begin
+		if(~ext_resetn)
+			sys_reset_fns_r <= 1'b0;
+		else if(((~(|ext_resetn_d)) | sw_reset) | ((~sys_reset_fns_r) & reset_req))
+			sys_reset_fns_r <= # simulation_delay (~((~(|ext_resetn_d)) | sw_reset)) & reset_req;
 	end
 	
 endmodule

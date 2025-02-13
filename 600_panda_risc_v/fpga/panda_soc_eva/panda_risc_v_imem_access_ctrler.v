@@ -44,7 +44,7 @@ IMEM访问请求的生命周期:
 REQ/ACK
 
 作者: 陈家耀
-日期: 2025/01/31
+日期: 2025/02/13
 ********************************************************************/
 
 
@@ -105,6 +105,7 @@ module panda_risc_v_imem_access_ctrler #(
 	output wire[127:0] if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	output wire[3:0] if_res_msg, // 取指附加信息({是否预测跳转(1bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
 	output wire[inst_id_width-1:0] m_if_res_id, // 指令编号
+	output wire m_if_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire if_res_valid,
 	input wire if_res_ready,
 	
@@ -146,11 +147,13 @@ module panda_risc_v_imem_access_ctrler #(
 	localparam integer PRE_DCD_MSG_IS_MRET_INST_SID = 10;
 	localparam integer PRE_DCD_MSG_IS_FENCE_INST_SID = 11;
 	localparam integer PRE_DCD_MSG_IS_FENCE_I_INST_SID = 12;
-	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 13;
-	localparam integer PRE_DCD_MSG_RD_VLD_SID = 34;
-	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 35;
-	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 36;
-	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 37;
+	localparam integer PRE_DCD_MSG_IS_EBREAK_INST_SID = 13;
+	localparam integer PRE_DCD_MSG_IS_DRET_INST_SID = 14;
+	localparam integer PRE_DCD_MSG_JUMP_OFS_IMM_SID = 15;
+	localparam integer PRE_DCD_MSG_RD_VLD_SID = 36;
+	localparam integer PRE_DCD_MSG_RS2_VLD_SID = 37;
+	localparam integer PRE_DCD_MSG_RS1_VLD_SID = 38;
+	localparam integer PRE_DCD_MSG_CSR_ADDR_SID = 39;
 	
 	/**
 	取指结果缓存区
@@ -256,6 +259,7 @@ module panda_risc_v_imem_access_ctrler #(
 	wire[1:0] processing_imem_access_req_n_with_rst_flush; // 考虑复位/冲刷后的滞外的IMEM访问请求个数
 	reg[31:0] pc_regs; // PC寄存器
 	reg[31:0] pc_buf_regs[0:2]; // 指令对应PC值缓存寄存器组
+	reg fisrt_inst_flags[0:2]; // 复位释放后第1条指令标志缓存寄存器组
 	reg[2:0] pc_buf_wptr; // 指令对应PC值缓存区写指针
 	wire pc_buf_wen; // 指令对应PC值缓存区写使能
 	reg inst_suppress_buf_regs[0:2]; // 取指结果镇压标志缓存寄存器组
@@ -289,9 +293,9 @@ module panda_risc_v_imem_access_ctrler #(
 	assign imem_access_req_valid = (processing_imem_access_req_n != 2'b11) & (~dpc_trace_tb_full) & 
 		(to_rst | to_flush | (now_inst_vld & ((~is_jalr_inst) | jalr_allow)));
 	
-	// 指令对应的PC
 	// 读端口位于取指结果处, 因此使用取指结果缓存区读指针
-	assign if_res_data[127:96] = pc_buf_regs[if_res_buf_rptr];
+	assign if_res_data[127:96] = pc_buf_regs[if_res_buf_rptr]; // 指令对应的PC
+	assign m_if_res_is_first_inst_after_rst = fisrt_inst_flags[if_res_buf_rptr]; // 是否复位释放后的第1条指令
 	
 	assign now_inst_vld = vld_inst_gotten | common_imem_access_req_pending;
 	assign processing_imem_access_req_n_with_rst_flush = 
@@ -425,6 +429,20 @@ module panda_risc_v_imem_access_ctrler #(
 					(pc_buf_regs_i == 0): // 复位/冲刷时固定写第1项
 					pc_buf_wptr[pc_buf_regs_i]))
 					pc_buf_regs[pc_buf_regs_i] <= # simulation_delay new_pc;
+			end
+		end
+	endgenerate
+	// 写复位释放后第1条指令标志缓存寄存器组
+	genvar fisrt_inst_flags_i;
+	generate
+		for(fisrt_inst_flags_i = 0;fisrt_inst_flags_i < 3;fisrt_inst_flags_i = fisrt_inst_flags_i + 1)
+		begin
+			always @(posedge clk)
+			begin
+				if(pc_buf_wen & ((to_rst | to_flush) ? 
+					(fisrt_inst_flags_i == 0): // 复位/冲刷时固定写第1项
+					pc_buf_wptr[fisrt_inst_flags_i]))
+					fisrt_inst_flags[fisrt_inst_flags_i] <= # simulation_delay to_rst;
 			end
 		end
 	endgenerate

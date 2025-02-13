@@ -44,13 +44,16 @@ CPU核内数据ICB总线可以根据地址区间访问外部的指令/数据ICB�
 ICB MASTER/SLAVE
 
 作者: 陈家耀
-日期: 2025/01/15
+日期: 2025/02/13
 ********************************************************************/
 
 
 module panda_risc_v_biu #(
 	parameter imem_baseaddr = 32'h0000_0000, // 指令存储器基址
 	parameter integer imem_addr_range = 16 * 1024, // 指令存储器地址区间长度
+	parameter dm_regs_baseaddr = 32'hFFFF_F800, // DM寄存器区基址
+	parameter integer dm_regs_addr_range = 1024, // DM寄存器区地址区间长度
+	parameter debug_supported = "true", // 是否需要支持Debug
 	parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -121,7 +124,10 @@ module panda_risc_v_biu #(
 	wire dbus_access_imem; // 数据总线访问指令存储器(标志)
 	wire dbus_access_peripherals; // 数据总线访问外设(标志)
 	
-	assign dbus_access_imem = (s_icb_cmd_data_addr >= imem_baseaddr) & (s_icb_cmd_data_addr < (imem_baseaddr + imem_addr_range));
+	assign dbus_access_imem = 
+		((s_icb_cmd_data_addr >= imem_baseaddr) & (s_icb_cmd_data_addr < (imem_baseaddr + imem_addr_range))) | 
+		((debug_supported == "true") & 
+			(s_icb_cmd_data_addr >= dm_regs_baseaddr) & (s_icb_cmd_data_addr < (dm_regs_baseaddr + dm_regs_addr_range)));
 	assign dbus_access_peripherals = ~dbus_access_imem;
 	
 	assign m_icb_cmd_data_addr = s_icb_cmd_data_addr;
