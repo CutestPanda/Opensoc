@@ -20,6 +20,7 @@ if __name__ == "__main__":
     file_bat.writelines("make\n")
     file_bat.writelines("copy " + target_name + ".bin ..\\\\..\\\\..\\\\scripts\\\\" + target_name + ".bin\n")
     file_bat.writelines("copy " + target_name + ".dump ..\\\\..\\\\..\\\\scripts\\\\" + target_name + ".dump\n")
+    file_bat.writelines("copy " + target_name + " ..\\\\..\\\\..\\\\scripts\\\\" + target_name + ".elf\n")
     file_bat.writelines("make clean\n")
     file_bat.writelines("cd ../../../scripts\n")
     file_bat.writelines("python gen_imem_init_txt.py --file " + target_name + "\n")

@@ -4,6 +4,7 @@ import argparse
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", type=str, default="unknown", help="target to make")
+    parser.add_argument("--debug", action="store_true", help="attatch symbol message")
     opt = parser.parse_args()
     
     return opt
@@ -21,6 +22,8 @@ if __name__ == "__main__":
     file.writelines("\n")
     file.writelines("TARGET = " + target + "\n")
     file.writelines("\n")
+    if opt.debug == True:
+        file.writelines("CFLAGS += -g\n")
     file.writelines("#CFLAGS += -DSIMULATION\n")
     file.writelines("#CFLAGS += -O2\n")
     file.writelines("#ASM_SRCS +=\n")

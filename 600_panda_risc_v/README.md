@@ -51,7 +51,8 @@
 
 ## 创建软件项目
 1.先在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
-`` python .\gen_makefile.py --target your_prj_name ``  
+`` python .\gen_makefile.py --target your_prj_name --debug ``  
+其中，--debug表示在需要在.elf文件中添加调试信息，这是可选的。  
 2.然后在**600_panda_risc_v/software/test**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
 3.在**600_panda_risc_v/software/test/your_prj_name**下编写若干.c和.h。  
 > 软件项目引用了**600_panda_risc_v/software/lib**下的驱动或工具程序，其使用的外设都能在Opensoc仓库里找到。  
@@ -119,7 +120,7 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 最后，将boot引脚对应的拨码开关拨到**高电平**，复位CPU，即可见CPU运行烧录的程序。  
 > 如果提示无法接收到编程应答，那么可以在打开串口后（输入了要连接的串口后），按一下外部复位引脚。  
 
-#### JTAG下载调试
+#### JTAG下载
 连接好DapLink，3v3可以不连，**nRST需要连接**。  
 ![说明4](../img/panda_risc_v_4.jpg)  
 在**600_panda_risc_v/tools/openocd**下打开命令行终端，输入：  
@@ -130,14 +131,11 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 `` load_image tube_scan.bin 0x00000800 ``  
 最后，让处理器从0x00000800地址继续运行，在**telnet**命令行终端输入：  
 `` resume 0x00000800 ``  
-下面列举一些常用命令用于在线调试：  
-```
-暂停处理器：halt
-处理器继续运行：resume [地址]
-设置1个32位断点：bp [地址] 4
-清除1个32位断点：rbp [地址]
-单步执行：step
-查看寄存器：reg [通用寄存器号/CSR名]
-读取内存：mdw [地址] [32位数据的个数]
-写入内存：mww [地址] [32位数据]
-```
+
+#### JTAG调试
+GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经包含了gdb工具，位于tools/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin。  
+将当前程序的elf文件（如tube_scan.elf，elf文件应当带有调试信息）复制到gdb工具所在目录，打开命令行终端，输入：  
+`` .\riscv-none-embed-gdb.exe tube_scan.elf ``  
+然后，再输入：  
+`` target remote localhost:3333 ``  
+此时，可以使用[GDB命令](https://blog.csdn.net/ys1115/article/details/130563975)进行在线调试。  
