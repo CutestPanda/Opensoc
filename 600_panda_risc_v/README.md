@@ -121,7 +121,7 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 
 #### JTAG下载调试
 连接好DapLink，3v3可以不连，**nRST需要连接**。  
-![说明4](../img/panda_risc_v_4.png)  
+![说明4](../img/panda_risc_v_4.jpg)  
 在**600_panda_risc_v/tools/openocd**下打开命令行终端，输入：  
 `` .\openocd.exe -f panda_risc_v.cfg ``  
 然后，在同一目录再打开另外1个命令行终端，输入：  
