@@ -123,6 +123,7 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 #### JTAG下载
 连接好DapLink，3v3可以不连，**nRST需要连接**。  
 ![说明4](../img/panda_risc_v_4.jpg)  
+确保您的电脑已经打开了Telnet服务，否则请去控制面板/程序/启动或改变Windows功能下，找到Telnet Client并打开。  
 在**600_panda_risc_v/tools/openocd**下打开命令行终端，输入：  
 `` .\openocd.exe -f panda_risc_v.cfg ``  
 然后，在同一目录再打开另外1个命令行终端，输入：  
@@ -133,6 +134,7 @@ ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此
 `` resume 0x00000800 ``  
 
 #### JTAG调试
+JTAG调试应在完成JTAG下载后再进行。  
 GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经包含了gdb工具，位于tools/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin。  
 将当前程序的elf文件（如tube_scan.elf，elf文件应当带有调试信息）复制到gdb工具所在目录，打开命令行终端，输入：  
 `` .\riscv-none-embed-gdb.exe tube_scan.elf ``  
