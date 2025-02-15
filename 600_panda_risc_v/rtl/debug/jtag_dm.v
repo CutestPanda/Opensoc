@@ -29,12 +29,12 @@ SOFTWARE.
 描述:
 实现DM寄存器, 支持以下调试特性:
 	(1)系统总线访问(System Bus Access), 可选
-	(2)抽象命令(Abstract Command)下的GPRs读写和程序缓存区(Program Buffer)执行, 可选
+	(2)抽象命令(Abstract Command)下的GPRs/CSRs读写、存储器访问(Access Memory)和程序缓存区(Program Buffer)执行, 可选
 	(3)复位释放后暂停(resethaltreq)
 
 尚不支持以下特性:
 	(1)多HART选择
-	(2)抽象命令(Abstract Command)下的非GPRs寄存器读写、存储器访问(Access Memory)、快速访问(Quick Access)
+	(2)抽象命令(Abstract Command)下的浮点寄存器读写和快速访问(Quick Access)
 	(3)HART运行时通过抽象命令读写寄存器
 
 参见《The RISC-V Debug Specification》(Version 1.0.0-rc4, Revised 2024-12-05: Frozen)
