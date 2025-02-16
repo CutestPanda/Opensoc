@@ -1,27 +1,3 @@
-/*
-MIT License
-
-Copyright (c) 2024 Panda, 2257691535@qq.com
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 `timescale 1ns / 1ps
 /********************************************************************
 本模块: 数据相关性监测器
@@ -303,47 +279,5 @@ module panda_risc_v_data_dpc_monitor #(
 				(~inst_dpc_trace_msg[alu_csr_rw_bypass_i][INST_DPC_TRACE_MSG_IS_LONG_INST]);
 		end
 	endgenerate
-	
-	/** 仿真信号 **/
-	reg[31:0] inst_not_valid_n; // 处于"指令尚未被取出"阶段的条目数
-	reg[31:0] inst_at_ifq_n; // 处于"指令在取指队列里"阶段的条目数
-	reg[31:0] inst_at_dsptc_msg_n; // 处于"指令在派遣信息里"阶段的条目数
-	reg[31:0] inst_at_exu_n; // 处于"指令执行中"阶段的条目数
-	
-	integer i1;
-	always @(*)
-	begin
-		inst_not_valid_n = 0;
-		
-		for(i1 = 0;i1 < dpc_trace_inst_n;i1 = i1 + 1)
-			inst_not_valid_n = inst_not_valid_n + inst_life_cycle_vec[i1][INST_NOT_VALID_STAGE_FID];
-	end
-	
-	integer i2;
-	always @(*)
-	begin
-		inst_at_ifq_n = 0;
-		
-		for(i2 = 0;i2 < dpc_trace_inst_n;i2 = i2 + 1)
-			inst_at_ifq_n = inst_at_ifq_n + inst_life_cycle_vec[i2][INST_IFQ_STAGE_FID];
-	end
-	
-	integer i3;
-	always @(*)
-	begin
-		inst_at_dsptc_msg_n = 0;
-		
-		for(i3 = 0;i3 < dpc_trace_inst_n;i3 = i3 + 1)
-			inst_at_dsptc_msg_n = inst_at_dsptc_msg_n + inst_life_cycle_vec[i3][INST_DSPTC_MSG_STAGE_FID];
-	end
-	
-	integer i4;
-	always @(*)
-	begin
-		inst_at_exu_n = 0;
-		
-		for(i4 = 0;i4 < dpc_trace_inst_n;i4 = i4 + 1)
-			inst_at_exu_n = inst_at_exu_n + inst_life_cycle_vec[i4][INST_EXU_STAGE_FID];
-	end
 	
 endmodule
