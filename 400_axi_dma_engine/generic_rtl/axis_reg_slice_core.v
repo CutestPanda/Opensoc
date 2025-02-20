@@ -43,8 +43,8 @@ s_ready <- 后向寄存器 <- (前向反馈的ready) <- m_ready
 
 
 module axis_reg_slice_core #(
-    parameter forward_registered = "true", // 是否使能前向寄存器
-    parameter back_registered = "true", // 是否使能后向寄存器
+    parameter forward_registered = "false", // 是否使能前向寄存器
+    parameter back_registered = "false", // 是否使能后向寄存器
     parameter payload_width = 32, // 负载位宽
     parameter real simulation_delay = 0 // 仿真延时
 )(

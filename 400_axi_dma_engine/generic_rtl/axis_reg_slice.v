@@ -44,8 +44,8 @@ AXIS MASTER/SLAVE
 module axis_reg_slice #(
     parameter integer data_width = 32, // 数据位宽(必须能被8整除)
     parameter integer user_width = 1, // 用户信号位宽(必须>=1, 不用时悬空即可)
-    parameter forward_registered = "true", // 是否使能前向寄存器
-    parameter back_registered = "true", // 是否使能后向寄存器
+    parameter forward_registered = "false", // 是否使能前向寄存器
+    parameter back_registered = "false", // 是否使能后向寄存器
     parameter en_ready = "true", // 是否使用ready信号
     parameter real simulation_delay = 1 // 仿真延时
 )(
