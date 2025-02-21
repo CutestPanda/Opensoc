@@ -38,11 +38,12 @@ AXI MASTER
 AXIS MASTER/SLAVE
 
 作者: 陈家耀
-日期: 2025/02/20
+日期: 2025/02/21
 ********************************************************************/
 
 
 module axi_frame_buffer #(
+	parameter ONLY_FRAME_RD = "false", // 是否仅启用读像素通道
 	parameter integer PIX_WIDTH = 16, // 像素位宽
 	parameter integer BUS_WIDTH = 32, // 总线数据位宽
 	parameter integer FRAME_W = 1920, // 帧宽度(以像素个数计)
@@ -270,6 +271,7 @@ module axi_frame_buffer #(
 		frame_buffer_ctrl_u/frame_fetched_r -> ...
 	*/
 	frame_buffer_ctrl #(
+		.ONLY_FRAME_RD(ONLY_FRAME_RD),
 		.PIX_WIDTH(PIX_WIDTH),
 		.STREAM_WIDTH(BUS_WIDTH),
 		.FRAME_W(FRAME_W),
@@ -379,7 +381,7 @@ module axi_frame_buffer #(
 	
 	axi_dma_engine #(
 		.EN_RD_CHN("true"),
-		.EN_WT_CHN("true"),
+		.EN_WT_CHN((ONLY_FRAME_RD == "true") ? "false":"true"),
 		.DATA_WIDTH(BUS_WIDTH),
 		.MAX_BURST_LEN(MAX_BURST_LEN),
 		.S_CMD_AXIS_COMMON_CLOCK("true"),

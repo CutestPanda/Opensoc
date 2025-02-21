@@ -30,11 +30,13 @@ SOFTWARE.
 (1)帧读取
 产生MM2S命令, MM2S数据流 -> 输出视频流
 帧缓存未启动时输出{PIX_WIDTH{1'b1}}
-提前若干行检查是否要开始视频输出和是否要重复当前帧
+提前若干行检查帧缓存是否启动和下一帧是否已处理, 以确定是否要开始视频输出和是否要重复当前帧
 
 (2)帧写入
 产生S2MM命令, 输入视频流 -> S2MM数据流
-提前若干行检查是否要忽略输入视频流
+提前若干行检查下一帧是否未填充, 以确定是否要忽略输入视频流
+
+帧的生命周期: 未填充 -> 已填充 -> 已处理
 
 注意：
 帧缓存区最大存储帧数必须>=3
@@ -43,11 +45,12 @@ SOFTWARE.
 AXIS MASTER/SLAVE
 
 作者: 陈家耀
-日期: 2025/02/20
+日期: 2025/02/21
 ********************************************************************/
 
 
 module frame_buffer_ctrl #(
+	parameter ONLY_FRAME_RD = "false", // 是否仅启用读像素通道
 	parameter integer PIX_WIDTH = 16, // 像素位宽
 	parameter integer STREAM_WIDTH = 32, // 数据流位宽
 	parameter integer FRAME_W = 1920, // 帧宽度(以像素个数计)
@@ -253,7 +256,11 @@ module frame_buffer_ctrl #(
 	reg[7:0] frame_buffer_rptr; // 帧缓存读指针
 	wire[7:0] frame_buffer_rptr_add1; // 帧缓存读指针 + 1
 	
-	assign frame_processing_wen = on_frame_processed & (|(frame_processing_ptr & frame_filled_vec));
+	assign frame_processing_wen = on_frame_processed & 
+		((ONLY_FRAME_RD == "true") ? 
+			((~|(frame_processing_ptr & frame_processed_vec))):
+			(|(frame_processing_ptr & frame_filled_vec))
+		);
 	
 	assign frame_buffer_wptr_add1 = 
 		(|(frame_buffer_wptr & (8'b0000_0001 << frame_buffer_max_store_n_sub1))) ? 
@@ -419,13 +426,14 @@ module frame_buffer_ctrl #(
 	reg prepare_to_ignore_vin; // 准备忽略输入视频流(标志)
 	reg to_ignore_vin; // 忽略输入视频流(标志)
 	
-	assign s_vin_axis_ready = to_ignore_vin | s_s2mm_axis_ready;
+	assign s_vin_axis_ready = (ONLY_FRAME_RD == "true") | to_ignore_vin | s_s2mm_axis_ready;
 	
-	assign s_s2mm_axis_data = s_vin_axis_data;
-	assign s_s2mm_axis_last = s_vin_axis_last & (vin_rid == (FRAME_H - 1));
-	assign s_s2mm_axis_valid = (~to_ignore_vin) & s_vin_axis_valid;
+	assign s_s2mm_axis_data = (ONLY_FRAME_RD == "true") ? {PIX_WIDTH{1'b0}}:s_vin_axis_data;
+	assign s_s2mm_axis_last = (ONLY_FRAME_RD == "false") & s_vin_axis_last & (vin_rid == (FRAME_H - 1));
+	assign s_s2mm_axis_valid = (ONLY_FRAME_RD == "false") & (~to_ignore_vin) & s_vin_axis_valid;
 	
 	assign frame_buffer_wen = 
+		(ONLY_FRAME_RD == "false") & 
 		s_vin_axis_valid & s_vin_axis_ready & s_vin_axis_last & (vin_rid == (FRAME_H - 1)) & 
 		(~to_ignore_vin);
 	
@@ -503,10 +511,10 @@ module frame_buffer_ctrl #(
 	
 	assign m_s2mm_cmd_axis_data = {
 		FRAME_SIZE[23:0],
-		s2mm_baseaddr
+		(ONLY_FRAME_RD == "true") ? 32'd0:s2mm_baseaddr
 	};
 	assign m_s2mm_cmd_axis_user = 1'b0;
-	assign m_s2mm_cmd_axis_valid = s2mm_cmd_valid;
+	assign m_s2mm_cmd_axis_valid = (ONLY_FRAME_RD == "false") & s2mm_cmd_valid;
 	
 	assign s2mm_baseaddr_nxf = 
 		(|(frame_buffer_wptr & (8'b0000_0001 << frame_buffer_max_store_n_sub1))) ? 
