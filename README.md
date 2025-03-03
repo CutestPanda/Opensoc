@@ -42,6 +42,7 @@ AXI-最大池化单元
 AXI-上采样单元  
 AXIS-浮点计算单元  
 AXI-通用DMA引擎  
+AXI-双线性插值缩放  
 
 ## 准备开发的IP
 AXI-DDR3控制器  
