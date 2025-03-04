@@ -38,7 +38,7 @@ PC地址非对齐时不发起ICB传输, 且允许在没有处理中的传输时�
 ICB MASTER
 
 作者: 陈家耀
-日期: 2024/10/14
+日期: 2025/03/04
 ********************************************************************/
 
 
@@ -46,6 +46,7 @@ module panda_risc_v_ibus_ctrler #(
 	parameter integer imem_access_timeout_th = 16, // 指令总线访问超时周期数(必须>=1)
 	parameter integer inst_addr_alignment_width = 32, // 指令地址对齐位宽(16 | 32)
 	parameter pc_unaligned_imdt_resp = "false", // 是否允许PC地址非对齐时立即响应
+	parameter en_extra_resp_latency = "false", // 是否允许额外的指令存储器访问应答时延
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -241,22 +242,32 @@ module panda_risc_v_ibus_ctrler #(
 	end
 	
 	/** 指令ICB主机响应通道 **/
+	// 返回的响应类型
 	wire resp_with_normal; // 返回响应(正常)
 	wire resp_with_pc_unaligned; // 返回响应(指令地址非对齐)
 	wire resp_with_bus_err; // 返回响应(总线错误)
 	wire resp_with_timeout; // 返回响应(访问超时)
+	// 当前的指令存储器访问应答
+	wire[31:0] imem_access_resp_rdata_w;
+	wire[1:0] imem_access_resp_err_w; // 错误类型(2'b00 -> 正常, 2'b01 -> 指令地址非对齐, 
+								      //          2'b10 -> 指令总线访问错误, 2'b11 -> 响应超时)
+	wire imem_access_resp_valid_w;
+	// 延迟1clk的指令存储器访问应答
+	reg[31:0] imem_access_resp_rdata_r;
+	reg[1:0] imem_access_resp_err_r; // 错误类型(2'b00 -> 正常, 2'b01 -> 指令地址非对齐, 
+								     //          2'b10 -> 指令总线访问错误, 2'b11 -> 响应超时)
+	reg imem_access_resp_valid_r;
 	
-	assign imem_access_resp_rdata = 
-		resp_with_normal ? m_icb_rsp_rdata:NOP_INST; // 除非返回正常响应, 否则输出NOP指令
-	assign imem_access_resp_err = 
-		({2{resp_with_normal}} & IMEM_ACCESS_NORMAL)
-		| ({2{resp_with_pc_unaligned}} & IMEM_ACCESS_PC_UNALIGNED)
-		| ({2{resp_with_bus_err}} & IMEM_ACCESS_BUS_ERR)
-		| ({2{resp_with_timeout}} & IMEM_ACCESS_TIMEOUT); // 将"响应超时"编码为2'b11, 使得"响应超时"的优先级最高
-	assign imem_access_resp_valid = 
-		(m_icb_rsp_valid & m_icb_rsp_ready) | // ICB主机响应通道上完成传输
-		resp_with_pc_unaligned | // 给出当前的地址非对齐请求的响应
-		resp_with_timeout; // ICB主机访问超时
+	assign imem_access_resp_rdata = (en_extra_resp_latency == "true") ? imem_access_resp_rdata_r:imem_access_resp_rdata_w;
+	assign imem_access_resp_err = (en_extra_resp_latency == "true") ? imem_access_resp_err_r:imem_access_resp_err_w;
+	assign imem_access_resp_valid = (en_extra_resp_latency == "true") ? imem_access_resp_valid_r:imem_access_resp_valid_w;
+	
+	// ICB主机响应握手条件: m_icb_rsp_valid & (~m_icb_timeout_flag)
+	//     & (~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout))
+	assign m_icb_rsp_ready = 
+		(~m_icb_timeout_flag) & // ICB主机访问超时后不再允许新的访问请求
+		// 当给出当前的地址非对齐请求的响应时, 镇压ICB主机的响应通道
+		(~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout));
 	
 	assign resp_with_normal = m_icb_rsp_valid & m_icb_rsp_ready & (~m_icb_rsp_err);
 	assign resp_with_pc_unaligned = 
@@ -267,11 +278,34 @@ module panda_risc_v_ibus_ctrler #(
 	assign resp_with_bus_err = m_icb_rsp_valid & m_icb_rsp_ready & m_icb_rsp_err;
 	assign resp_with_timeout = m_icb_timeout_idct;
 	
-	// ICB主机响应握手条件: m_icb_rsp_valid & (~m_icb_timeout_flag)
-	//     & (~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout))
-	assign m_icb_rsp_ready = 
-		(~m_icb_timeout_flag) & // ICB主机访问超时后不再允许新的访问请求
-		// 当给出当前的地址非对齐请求的响应时, 镇压ICB主机的响应通道
-		(~((~no_trans_processing) & trans_msg_fifo_pc_unaligned_flag_dout));
+	assign imem_access_resp_rdata_w = 
+		resp_with_normal ? m_icb_rsp_rdata:NOP_INST; // 除非返回正常响应, 否则输出NOP指令
+	assign imem_access_resp_err_w = 
+		({2{resp_with_normal}} & IMEM_ACCESS_NORMAL)
+		| ({2{resp_with_pc_unaligned}} & IMEM_ACCESS_PC_UNALIGNED)
+		| ({2{resp_with_bus_err}} & IMEM_ACCESS_BUS_ERR)
+		| ({2{resp_with_timeout}} & IMEM_ACCESS_TIMEOUT); // 将"响应超时"编码为2'b11, 使得"响应超时"的优先级最高
+	assign imem_access_resp_valid_w = 
+		(m_icb_rsp_valid & m_icb_rsp_ready) | // ICB主机响应通道上完成传输
+		resp_with_pc_unaligned | // 给出当前的地址非对齐请求的响应
+		resp_with_timeout; // ICB主机访问超时
+	
+	// 延迟1clk的指令存储器访问应答
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			{imem_access_resp_rdata_r, imem_access_resp_err_r} <= {NOP_INST, IMEM_ACCESS_NORMAL};
+		else if(imem_access_resp_valid_w)
+			{imem_access_resp_rdata_r, imem_access_resp_err_r} <= # simulation_delay 
+				{imem_access_resp_rdata_w, imem_access_resp_err_w};
+	end
+	
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			imem_access_resp_valid_r <= 1'b0;
+		else
+			imem_access_resp_valid_r <= # simulation_delay imem_access_resp_valid_w;
+	end
     
 endmodule

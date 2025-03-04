@@ -43,7 +43,7 @@ REQ/ACK
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/14
 ********************************************************************/
 
 
@@ -144,6 +144,7 @@ module panda_risc_v_ifu #(
 		.imem_access_timeout_th(imem_access_timeout_th),
 		.inst_addr_alignment_width(inst_addr_alignment_width),
 		.pc_unaligned_imdt_resp(pc_unaligned_imdt_resp),
+		.en_extra_resp_latency("false"),
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_ibus_ctrler_u(
 		.clk(clk),
