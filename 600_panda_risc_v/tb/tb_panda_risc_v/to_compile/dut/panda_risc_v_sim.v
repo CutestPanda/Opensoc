@@ -198,6 +198,7 @@ module panda_risc_v_sim #(
 	icb_sram_ctrler #(
 		.en_unaligned_transfer("true"),
 		.wt_trans_imdt_resp("false"),
+		.en_rdata_realignment("false"),
 		.simulation_delay(simulation_delay)
 	)icb_inst_ram_ctrler_u(
 		.s_icb_aclk(clk),
@@ -226,6 +227,7 @@ module panda_risc_v_sim #(
 	icb_sram_ctrler #(
 		.en_unaligned_transfer("true"),
 		.wt_trans_imdt_resp("false"),
+		.en_rdata_realignment("false"),
 		.simulation_delay(simulation_delay)
 	)icb_data_ram_ctrler_u(
 		.s_icb_aclk(clk),

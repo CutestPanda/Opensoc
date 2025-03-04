@@ -24,6 +24,7 @@
 **scripts**: 用于编译、UART编程烧录的脚本  
 **software**: 外设驱动、软件程序示例  
 **tb**: 测试平台  
+**tb/tb_panda_risc_v**下提供了本处理器核的仿真平台。  
 **tools**: GNU工具链，openocd  
 
 ## 配置编译环境

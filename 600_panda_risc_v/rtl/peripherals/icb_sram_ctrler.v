@@ -39,13 +39,14 @@ ICB SLAVE
 MEM MASTER
 
 作者: 陈家耀
-日期: 2024/10/14
+日期: 2025/03/04
 ********************************************************************/
 
 
 module icb_sram_ctrler #(
 	parameter en_unaligned_transfer = "true", // 是否允许非对齐传输
 	parameter wt_trans_imdt_resp = "false", // 是否允许写传输立即响应
+	parameter en_rdata_realignment = "false", // 是否启用读数据重对齐
     parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -82,6 +83,7 @@ module icb_sram_ctrler #(
 	
 	/** ICB从机命令通道 **/
 	reg bram_rw_pending; // BRAM读写传输进行中(标志)
+	reg[1:0] bram_rw_low_addr; // 延迟1clk的BRAM读写低位地址
 	wire on_start_bram_rw; // 启动BRAM读写传输(指示)
 	wire on_finish_bram_rw; // BRAM读写传输完成(指示)
 	
@@ -110,8 +112,18 @@ module icb_sram_ctrler #(
 			bram_rw_pending <= #simulation_delay on_start_bram_rw;
 	end
 	
+	// 延迟1clk的BRAM读写低位地址
+	always @(posedge s_icb_aclk)
+	begin
+		if(on_start_bram_rw)
+			bram_rw_low_addr <= # simulation_delay 
+				(en_rdata_realignment == "true") ? 
+					s_icb_cmd_addr[1:0]:
+					2'b00;
+	end
+	
 	/** ICB从机响应通道 **/
-	assign s_icb_rsp_rdata = bram_dout;
+	assign s_icb_rsp_rdata = bram_dout >> {bram_rw_low_addr, 3'b000};
 	assign s_icb_rsp_err = 1'b0;
 	assign s_icb_rsp_valid = bram_rw_pending 
 		| ((wt_trans_imdt_resp == "true") & s_icb_cmd_valid & (~s_icb_cmd_read)); // 允许写传输立即响应
