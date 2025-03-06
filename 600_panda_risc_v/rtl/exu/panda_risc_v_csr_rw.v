@@ -38,7 +38,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/06
 ********************************************************************/
 
 
@@ -551,9 +551,9 @@ module panda_risc_v_csr_rw #(
 			mcycle_mcycle <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLE_ADDR)) ? 
 					// 从CSR原子读写载入
-					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mcycle_mcycle | csr_atom_rw_upd_mask_v)) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mcycle_mcycle & csr_atom_rw_upd_mask_v))):
+					(({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (mcycle_mcycle | csr_atom_rw_upd_mask_v)) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mcycle_mcycle & csr_atom_rw_upd_mask_v))):
 					// 自增
 					(mcycle_mcycle + 32'd1);
 	end
@@ -568,9 +568,9 @@ module panda_risc_v_csr_rw #(
 			mcycleh_mcycleh <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MCYCLEH_ADDR)) ? 
 					// 从CSR原子读写载入
-					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (mcycleh_mcycleh | csr_atom_rw_upd_mask_v)) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (mcycleh_mcycleh & csr_atom_rw_upd_mask_v))):
+					(({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (mcycleh_mcycleh | csr_atom_rw_upd_mask_v)) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (mcycleh_mcycleh & csr_atom_rw_upd_mask_v))):
 					// 自增
 					(mcycleh_mcycleh + 32'd1);
 	end
@@ -598,9 +598,9 @@ module panda_risc_v_csr_rw #(
 			minstret_minstret <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRET_ADDR)) ? 
 					// 从CSR原子读写载入
-					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (minstret_minstret | csr_atom_rw_upd_mask_v)) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (minstret_minstret & csr_atom_rw_upd_mask_v))):
+					(({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (minstret_minstret | csr_atom_rw_upd_mask_v)) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (minstret_minstret & csr_atom_rw_upd_mask_v))):
 					// 自增
 					(minstret_minstret + 32'd1);
 	end
@@ -615,9 +615,9 @@ module panda_risc_v_csr_rw #(
 			minstreth_minstreth <= # simulation_delay 
 				(csr_atom_rw_valid & (csr_atom_rw_addr == CSR_MINSTRETH_ADDR)) ? 
 					// 从CSR原子读写载入
-					(({csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD} & csr_atom_rw_upd_mask_v) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_SET} & (minstreth_minstreth | csr_atom_rw_upd_mask_v)) | 
-					({csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR} & (minstreth_minstreth & csr_atom_rw_upd_mask_v))):
+					(({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_LOAD}} & csr_atom_rw_upd_mask_v) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_SET}} & (minstreth_minstreth | csr_atom_rw_upd_mask_v)) | 
+					({32{csr_atom_rw_upd_type == CSR_UPD_TYPE_CLR}} & (minstreth_minstreth & csr_atom_rw_upd_mask_v))):
 					// 自增
 					(minstreth_minstreth + 32'd1);
 	end
