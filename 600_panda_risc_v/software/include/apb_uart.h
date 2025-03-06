@@ -1,8 +1,8 @@
 /************************************************************************************************************************
-APB-UARTÇı¶¯(½Ó¿ÚÍ·ÎÄ¼ş)
-@brief  APB-UARTÇı¶¯
+APB-UARTé©±åŠ¨(æ¥å£å¤´æ–‡ä»¶)
+@brief  APB-UARTé©±åŠ¨
 @date   2024/08/28
-@author ³Â¼ÒÒ«
+@author é™ˆå®¶è€€
 ************************************************************************************************************************/
 
 #include <stdint.h>
@@ -16,45 +16,45 @@ APB-UARTÇı¶¯(½Ó¿ÚÍ·ÎÄ¼ş)
 #define __APB_UART_H
 
 typedef struct{
-	uint32_t fifo_cs; // ÊÕ·¢fifo¿ØÖÆ
-	uint32_t itr_status_en; // ÖĞ¶Ï¿ØÖÆ
-	uint32_t tx_itr_th; // ·¢ËÍÖĞ¶ÏãĞÖµ
-	uint32_t rx_itr_th; // ½ÓÊÕÖĞ¶ÏãĞÖµ
+	uint32_t fifo_cs; // æ”¶å‘fifoæ§åˆ¶
+	uint32_t itr_status_en; // ä¸­æ–­æ§åˆ¶
+	uint32_t tx_itr_th; // å‘é€ä¸­æ–­é˜ˆå€¼
+	uint32_t rx_itr_th; // æ¥æ”¶ä¸­æ–­é˜ˆå€¼
 }ApbUARTHd;
 
 typedef struct{
-	ApbUARTHd* hardware; // APB-UART¼Ä´æÆ÷½Ó¿Ú(½á¹¹ÌåÖ¸Õë)
-	uint8_t itr_en; // µ±Ç°µÄÖĞ¶ÏÊ¹ÄÜÏòÁ¿
+	ApbUARTHd* hardware; // APB-UARTå¯„å­˜å™¨æ¥å£(ç»“æ„ä½“æŒ‡é’ˆ)
+	uint8_t itr_en; // å½“å‰çš„ä¸­æ–­ä½¿èƒ½å‘é‡
 }ApbUART;
 
 typedef struct{
-	uint16_t tx_bytes_n_th; // UART·¢ËÍÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-	uint16_t tx_idle_th; // UART·¢ËÍÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ
-	uint16_t rx_bytes_n_th; // UART½ÓÊÕÖĞ¶Ï×Ö½ÚÊıãĞÖµ
-	uint16_t rx_idle_th; // UART½ÓÊÕÖĞ¶ÏIDLEÖÜÆÚÊıãĞÖµ
+	uint16_t tx_bytes_n_th; // UARTå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+	uint16_t tx_idle_th; // UARTå‘é€ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼
+	uint16_t rx_bytes_n_th; // UARTæ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+	uint16_t rx_idle_th; // UARTæ¥æ”¶ä¸­æ–­IDLEå‘¨æœŸæ•°é˜ˆå€¼
 }ApbUartItrThConfig;
 
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ÖĞ¶ÏÀàĞÍÑÚÂë
-#define APB_UART_TX_BYTES_N_ITR_MASK 0x01 // UART·¢ËÍ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶Ï
-#define APB_UART_TX_IDLE_ITR_MASK 0x02 // UART·¢ËÍIDLEÖĞ¶Ï
-#define APB_UART_RX_BYTES_N_ITR_MASK 0x04 // UART½ÓÊÕ´ïµ½¹æ¶¨×Ö½ÚÊıÖĞ¶Ï
-#define APB_UART_RX_IDLE_ITR_MASK 0x08 // UART½ÓÊÕIDLEÖĞ¶Ï
-#define APB_UART_RX_ERR_ITR_MASK 0x10 // UART½ÓÊÕFIFOÒç³öÖĞ¶Ï
+// ä¸­æ–­ç±»å‹æ©ç 
+#define APB_UART_TX_BYTES_N_ITR_MASK 0x01 // UARTå‘é€è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­
+#define APB_UART_TX_IDLE_ITR_MASK 0x02 // UARTå‘é€IDLEä¸­æ–­
+#define APB_UART_RX_BYTES_N_ITR_MASK 0x04 // UARTæ¥æ”¶è¾¾åˆ°è§„å®šå­—èŠ‚æ•°ä¸­æ–­
+#define APB_UART_RX_IDLE_ITR_MASK 0x08 // UARTæ¥æ”¶IDLEä¸­æ–­
+#define APB_UART_RX_ERR_ITR_MASK 0x10 // UARTæ¥æ”¶FIFOæº¢å‡ºä¸­æ–­
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void apb_uart_init(ApbUART* uart, uint32_t base_addr); // ³õÊ¼»¯APB-UART
+void apb_uart_init(ApbUART* uart, uint32_t base_addr); // åˆå§‹åŒ–APB-UART
 
-int apb_uart_send_byte(ApbUART* uart, uint8_t byte); // APB-UART·¢ËÍÒ»¸ö×Ö½Ú
-int apb_uart_rev_byte(ApbUART* uart, uint8_t* byte); // APB-UART»ñÈ¡Ò»¸ö½ÓÊÕ×Ö½Ú
+int apb_uart_send_byte(ApbUART* uart, uint8_t byte); // APB-UARTå‘é€ä¸€ä¸ªå­—èŠ‚
+int apb_uart_rev_byte(ApbUART* uart, uint8_t* byte); // APB-UARTè·å–ä¸€ä¸ªæ¥æ”¶å­—èŠ‚
 
-void apb_uart_enable_itr(ApbUART* uart, uint8_t itr_mask, const ApbUartItrThConfig* config); // APB-UARTÊ¹ÄÜÖĞ¶Ï
-void apb_uart_disable_itr(ApbUART* uart); // APB-UART³ıÄÜÖĞ¶Ï
-uint8_t apb_uart_get_itr_status(ApbUART* uart); // APB-UART»ñÈ¡ÖĞ¶Ï×´Ì¬
-void apb_uart_clear_itr_flag(ApbUART* uart); // APB-UARTÇå³ıÖĞ¶Ï±êÖ¾
+void apb_uart_enable_itr(ApbUART* uart, uint8_t itr_mask, const ApbUartItrThConfig* config); // APB-UARTä½¿èƒ½ä¸­æ–­
+void apb_uart_disable_itr(ApbUART* uart); // APB-UARTé™¤èƒ½ä¸­æ–­
+uint8_t apb_uart_get_itr_status(ApbUART* uart); // APB-UARTè·å–ä¸­æ–­çŠ¶æ€
+void apb_uart_clear_itr_flag(ApbUART* uart); // APB-UARTæ¸…é™¤ä¸­æ–­æ ‡å¿—
 
-void uart_printf(ApbUART* uart, char *fmt, ...); // APB-UART¸ñÊ½»¯·¢ËÍ×Ö·û´®
+void uart_printf(ApbUART* uart, char *fmt, ...); // APB-UARTæ ¼å¼åŒ–å‘é€å­—ç¬¦ä¸²

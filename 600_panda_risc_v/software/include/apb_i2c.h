@@ -2,11 +2,11 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ÖĞ¶ÏÀàĞÍÑÚÂë
-#define I2C_TX_BYTES_N_ITR_MASK 0x01 // I2C·¢ËÍÖ¸¶¨×Ö½ÚÊıÖĞ¶Ï±êÖ¾
-#define I2C_SLAVE_RESP_ERR_ITR_MASK 0x02 // I2C´Ó»úÏìÓ¦´íÎóÖĞ¶Ï±êÖ¾
-#define I2C_RX_BYTES_N_ITR_MASK 0x04 // I2C½ÓÊÕÖ¸¶¨×Ö½ÚÊıÖĞ¶Ï±êÖ¾
-#define I2C_RX_OVF_ITR_MASK 0x08 // I2C½ÓÊÕÒç³öÖĞ¶Ï±êÖ¾
+// ä¸­æ–­ç±»å‹æ©ç 
+#define I2C_TX_BYTES_N_ITR_MASK 0x01 // I2Cå‘é€æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ ‡å¿—
+#define I2C_SLAVE_RESP_ERR_ITR_MASK 0x02 // I2Cä»æœºå“åº”é”™è¯¯ä¸­æ–­æ ‡å¿—
+#define I2C_RX_BYTES_N_ITR_MASK 0x04 // I2Cæ¥æ”¶æŒ‡å®šå­—èŠ‚æ•°ä¸­æ–­æ ‡å¿—
+#define I2C_RX_OVF_ITR_MASK 0x08 // I2Cæ¥æ”¶æº¢å‡ºä¸­æ–­æ ‡å¿—
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -14,31 +14,31 @@
 #define __APB_I2C_H
 
 typedef struct{
-	uint32_t fifo_cs; // ÊÕ·¢fifo¿ØÖÆ
-	uint32_t itr_status_en; // ÖĞ¶ÏÊ¹ÄÜ
-	uint32_t itr_th; // ÔËĞĞÊ±²ÎÊı
-	uint32_t itr_flag_status; // ÖĞ¶Ï±êÖ¾ºÍ×´Ì¬ĞÅÏ¢
+	uint32_t fifo_cs; // æ”¶å‘fifoæ§åˆ¶
+	uint32_t itr_status_en; // ä¸­æ–­ä½¿èƒ½
+	uint32_t itr_th; // è¿è¡Œæ—¶å‚æ•°
+	uint32_t itr_flag_status; // ä¸­æ–­æ ‡å¿—å’ŒçŠ¶æ€ä¿¡æ¯
 }ApbI2CHd;
 
 typedef struct{
-	ApbI2CHd* hardware; // APB-I2C¼Ä´æÆ÷½Ó¿Ú(½á¹¹ÌåÖ¸Õë)
+	ApbI2CHd* hardware; // APB-I2Cå¯„å­˜å™¨æ¥å£(ç»“æ„ä½“æŒ‡é’ˆ)
 }ApbI2C;
 
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void apb_i2c_init(ApbI2C* i2c, uint32_t base_addr); // ³õÊ¼»¯APB-I2C
+void apb_i2c_init(ApbI2C* i2c, uint32_t base_addr); // åˆå§‹åŒ–APB-I2C
 
-int apb_i2c_start_wt_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t* data, uint8_t len); // APB-I2CÆô¶¯Ğ´´«Êä
-int apb_i2c_start_rd_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t len); // APB-I2CÆô¶¯¶Á´«Êä
+int apb_i2c_start_wt_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t* data, uint8_t len); // APB-I2Cå¯åŠ¨å†™ä¼ è¾“
+int apb_i2c_start_rd_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t len); // APB-I2Cå¯åŠ¨è¯»ä¼ è¾“
 
-int apb_i2c_get_rx_byte(ApbI2C* i2c, uint8_t* byte); // ´Ó½ÓÊÕFIFO»ñÈ¡Ò»¸ö×Ö½ÚÊı¾İ
+int apb_i2c_get_rx_byte(ApbI2C* i2c, uint8_t* byte); // ä»æ¥æ”¶FIFOè·å–ä¸€ä¸ªå­—èŠ‚æ•°æ®
 
-// APB-I2CÅäÖÃÔËĞĞÊ±²ÎÊı
+// APB-I2Cé…ç½®è¿è¡Œæ—¶å‚æ•°
 void apb_i2c_config_params(ApbI2C* i2c, uint8_t tx_bytes_n_th, uint8_t rx_bytes_n_th, uint8_t scl_div_n);
 
-void apb_i2c_enable_itr(ApbI2C* i2c, uint8_t itr_en); // APB-I2CÊ¹ÄÜÖĞ¶Ï
-void apb_i2c_disable_itr(ApbI2C* i2c); // APB-I2C³ıÄÜÖĞ¶Ï
-uint8_t apb_i2c_get_itr_status(ApbI2C* i2c, uint16_t* tx_bytes_n, uint16_t* rx_bytes_n); // APB-I2C»ñÈ¡ÖĞ¶Ï×´Ì¬
-void apb_i2c_clear_itr_flag(ApbI2C* i2c); // APB-I2CÇå³ıÖĞ¶Ï±êÖ¾
+void apb_i2c_enable_itr(ApbI2C* i2c, uint8_t itr_en); // APB-I2Cä½¿èƒ½ä¸­æ–­
+void apb_i2c_disable_itr(ApbI2C* i2c); // APB-I2Cé™¤èƒ½ä¸­æ–­
+uint8_t apb_i2c_get_itr_status(ApbI2C* i2c, uint16_t* tx_bytes_n, uint16_t* rx_bytes_n); // APB-I2Cè·å–ä¸­æ–­çŠ¶æ€
+void apb_i2c_clear_itr_flag(ApbI2C* i2c); // APB-I2Cæ¸…é™¤ä¸­æ–­æ ‡å¿—

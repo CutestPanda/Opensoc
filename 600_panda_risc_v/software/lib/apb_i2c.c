@@ -1,25 +1,25 @@
 /************************************************************************************************************************
-APB-I2CÇý¶¯(Ö÷Ô´ÎÄ¼þ)
-@brief  APB-I2CÇý¶¯
+APB-I2Cé©±åŠ¨(ä¸»æºæ–‡ä»¶)
+@brief  APB-I2Cé©±åŠ¨
 @date   2024/08/28
-@author ³Â¼ÒÒ«
-@eidt   2024/08/28 1.00 ´´½¨ÁËµÚÒ»¸öÕýÊ½°æ±¾
+@author é™ˆå®¶è€€
+@eidt   2024/08/28 1.00 åˆ›å»ºäº†ç¬¬ä¸€ä¸ªæ­£å¼ç‰ˆæœ¬
 ************************************************************************************************************************/
 
 #include "../include/apb_i2c.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static int apb_i2c_tx(ApbI2C* i2c, uint8_t byte, uint8_t is_last); // Ïò·¢ËÍFIFOÐ´ÈëÒ»¸ö×Ö½ÚÊý¾Ý
+static int apb_i2c_tx(ApbI2C* i2c, uint8_t byte, uint8_t is_last); // å‘å‘é€FIFOå†™å…¥ä¸€ä¸ªå­—èŠ‚æ•°æ®
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*************************
 @init
 @public
-@brief  ³õÊ¼»¯APB-I2C
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-        base_addr APB-I2CÍâÉè»ùµØÖ·
+@brief  åˆå§‹åŒ–APB-I2C
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+        base_addr APB-I2Cå¤–è®¾åŸºåœ°å€
 @return none
 *************************/
 void apb_i2c_init(ApbI2C* i2c, uint32_t base_addr){
@@ -29,16 +29,16 @@ void apb_i2c_init(ApbI2C* i2c, uint32_t base_addr){
 /*************************
 @io
 @public
-@brief  APB-I2CÆô¶¯Ð´´«Êä
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-        slave_addr ´Ó»úµØÖ·
-        data ´ý·¢ËÍ×Ö½Ú»º³åÇø(Ê×µØÖ·)
-        len ´ý·¢ËÍ×Ö½ÚÊý
-@attention Ïò·¢ËÍfifoÐ´Êý¾Ý¿ÉÄÜ»á²úÉú×èÈû
-@return ÊÇ·ñ³É¹¦
+@brief  APB-I2Cå¯åŠ¨å†™ä¼ è¾“
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+        slave_addr ä»Žæœºåœ°å€
+        data å¾…å‘é€å­—èŠ‚ç¼“å†²åŒº(é¦–åœ°å€)
+        len å¾…å‘é€å­—èŠ‚æ•°
+@attention å‘å‘é€fifoå†™æ•°æ®å¯èƒ½ä¼šäº§ç”Ÿé˜»å¡ž
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 int apb_i2c_start_wt_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t* data, uint8_t len){
-	if(len > 15){ // Ã¿¸öI2CÊý¾Ý°ü²»ÄÜ³¬¹ý15×Ö½Ú
+	if(len > 15){ // æ¯ä¸ªI2Cæ•°æ®åŒ…ä¸èƒ½è¶…è¿‡15å­—èŠ‚
 		return -1;
 	}else{
 		while(apb_i2c_tx(i2c, slave_addr, 0));
@@ -54,15 +54,15 @@ int apb_i2c_start_wt_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t* data, uint8
 /*************************
 @io
 @public
-@brief  APB-I2CÆô¶¯¶Á´«Êä
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-        slave_addr ´Ó»úµØÖ·
-        len ´ý½ÓÊÕ×Ö½ÚÊý
-@attention Ïò·¢ËÍfifoÐ´Êý¾Ý¿ÉÄÜ»á²úÉú×èÈû
-@return ÊÇ·ñ³É¹¦
+@brief  APB-I2Cå¯åŠ¨è¯»ä¼ è¾“
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+        slave_addr ä»Žæœºåœ°å€
+        len å¾…æŽ¥æ”¶å­—èŠ‚æ•°
+@attention å‘å‘é€fifoå†™æ•°æ®å¯èƒ½ä¼šäº§ç”Ÿé˜»å¡ž
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 int apb_i2c_start_rd_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t len){
-	if(len > 15){ // Ã¿¸öI2CÊý¾Ý°ü²»ÄÜ³¬¹ý15×Ö½Ú
+	if(len > 15){ // æ¯ä¸ªI2Cæ•°æ®åŒ…ä¸èƒ½è¶…è¿‡15å­—èŠ‚
 		return -1;
 	}else{
 		while(apb_i2c_tx(i2c, slave_addr | 0x01, 0));
@@ -75,10 +75,10 @@ int apb_i2c_start_rd_trans(ApbI2C* i2c, uint8_t slave_addr, uint8_t len){
 /*************************
 @io
 @public
-@brief  ´Ó½ÓÊÕFIFO»ñÈ¡Ò»¸ö×Ö½ÚÊý¾Ý
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-        byte ½ÓÊÕ×Ö½Ú»º³åÇø(Ê×µØÖ·)
-@return ÊÇ·ñ³É¹¦
+@brief  ä»ŽæŽ¥æ”¶FIFOèŽ·å–ä¸€ä¸ªå­—èŠ‚æ•°æ®
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+        byte æŽ¥æ”¶å­—èŠ‚ç¼“å†²åŒº(é¦–åœ°å€)
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 int apb_i2c_get_rx_byte(ApbI2C* i2c, uint8_t* byte){
 	volatile uint32_t* LocalAddr = &(i2c->hardware->fifo_cs);
@@ -98,9 +98,9 @@ int apb_i2c_get_rx_byte(ApbI2C* i2c, uint8_t* byte){
 /*************************
 @cfg
 @public
-@brief  APB-I2CÊ¹ÄÜÖÐ¶Ï
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-        itr_en ÖÐ¶ÏÊ¹ÄÜÏòÁ¿
+@brief  APB-I2Cä½¿èƒ½ä¸­æ–­
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+        itr_en ä¸­æ–­ä½¿èƒ½å‘é‡
 @return none
 *************************/
 void apb_i2c_enable_itr(ApbI2C* i2c, uint8_t itr_en){
@@ -110,8 +110,8 @@ void apb_i2c_enable_itr(ApbI2C* i2c, uint8_t itr_en){
 /*************************
 @cfg
 @public
-@brief  APB-I2C³ýÄÜÖÐ¶Ï
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
+@brief  APB-I2Cé™¤èƒ½ä¸­æ–­
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_i2c_disable_itr(ApbI2C* i2c){
@@ -121,11 +121,11 @@ void apb_i2c_disable_itr(ApbI2C* i2c){
 /*************************
 @cfg
 @public
-@brief  APB-I2CÅäÖÃÔËÐÐÊ±²ÎÊý
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-			  tx_bytes_n_th I2C·¢ËÍÖÐ¶Ï×Ö½ÚÊýãÐÖµ
-				rx_bytes_n_th I2C½ÓÊÕÖÐ¶Ï×Ö½ÚÊýãÐÖµ
-				scl_div_n I2CÊ±ÖÓ·ÖÆµÏµÊý
+@brief  APB-I2Cé…ç½®è¿è¡Œæ—¶å‚æ•°
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+			  tx_bytes_n_th I2Cå‘é€ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+				rx_bytes_n_th I2CæŽ¥æ”¶ä¸­æ–­å­—èŠ‚æ•°é˜ˆå€¼
+				scl_div_n I2Cæ—¶é’Ÿåˆ†é¢‘ç³»æ•°
 @return none
 *************************/
 void apb_i2c_config_params(ApbI2C* i2c, uint8_t tx_bytes_n_th, uint8_t rx_bytes_n_th, uint8_t scl_div_n){
@@ -136,11 +136,11 @@ void apb_i2c_config_params(ApbI2C* i2c, uint8_t tx_bytes_n_th, uint8_t rx_bytes_
 /*************************
 @sts
 @public
-@brief  APB-I2C»ñÈ¡ÖÐ¶Ï×´Ì¬
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-			  tx_bytes_n I2C·¢ËÍ×Ö½ÚÊý(Ö¸Õë)
-				rx_bytes_n I2C½ÓÊÕ×Ö½ÚÊý(Ö¸Õë)
-@return ÖÐ¶Ï×´Ì¬
+@brief  APB-I2CèŽ·å–ä¸­æ–­çŠ¶æ€
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+			  tx_bytes_n I2Cå‘é€å­—èŠ‚æ•°(æŒ‡é’ˆ)
+				rx_bytes_n I2CæŽ¥æ”¶å­—èŠ‚æ•°(æŒ‡é’ˆ)
+@return ä¸­æ–­çŠ¶æ€
 *************************/
 uint8_t apb_i2c_get_itr_status(ApbI2C* i2c, uint16_t* tx_bytes_n, uint16_t* rx_bytes_n){
 	uint8_t itr_status = ((uint8_t)(i2c->hardware->itr_flag_status >> 1)) & 0x0000000F;
@@ -156,8 +156,8 @@ uint8_t apb_i2c_get_itr_status(ApbI2C* i2c, uint16_t* tx_bytes_n, uint16_t* rx_b
 /*************************
 @sts
 @public
-@brief  APB-I2CÇå³ýÖÐ¶Ï±êÖ¾
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
+@brief  APB-I2Cæ¸…é™¤ä¸­æ–­æ ‡å¿—
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_i2c_clear_itr_flag(ApbI2C* i2c){
@@ -169,11 +169,11 @@ void apb_i2c_clear_itr_flag(ApbI2C* i2c){
 /*************************
 @io
 @private
-@brief  Ïò·¢ËÍFIFOÐ´ÈëÒ»¸ö×Ö½ÚÊý¾Ý
-@param  i2c APB-I2C(½á¹¹ÌåÖ¸Õë)
-        byte ´ýÐ´ÈëµÄ×Ö½ÚÊý¾Ý
-			  is_last ¸½´øµÄlastÖ¸Ê¾
-@return ÊÇ·ñ³É¹¦
+@brief  å‘å‘é€FIFOå†™å…¥ä¸€ä¸ªå­—èŠ‚æ•°æ®
+@param  i2c APB-I2C(ç»“æž„ä½“æŒ‡é’ˆ)
+        byte å¾…å†™å…¥çš„å­—èŠ‚æ•°æ®
+			  is_last é™„å¸¦çš„lastæŒ‡ç¤º
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 static int apb_i2c_tx(ApbI2C* i2c, uint8_t byte, uint8_t is_last){
 	uint32_t fifo_cs = i2c->hardware->fifo_cs;

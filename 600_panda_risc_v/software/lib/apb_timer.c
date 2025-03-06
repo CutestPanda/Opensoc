@@ -1,28 +1,28 @@
 /************************************************************************************************************************
-APB-TIMERÇı¶¯(Ö÷Ô´ÎÄ¼ş)
-@brief  APB-TIMERÇı¶¯
+APB-TIMERé©±åŠ¨(ä¸»æºæ–‡ä»¶)
+@brief  APB-TIMERé©±åŠ¨
 @date   2024/09/21
-@author ³Â¼ÒÒ«
-@eidt   2024/09/21 1.00 ´´½¨ÁËµÚÒ»¸öÕıÊ½°æ±¾
+@author é™ˆå®¶è€€
+@eidt   2024/09/21 1.00 åˆ›å»ºäº†ç¬¬ä¸€ä¸ªæ­£å¼ç‰ˆæœ¬
 ************************************************************************************************************************/
 
 #include "../include/apb_timer.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// ²¶»ñ/±È½ÏÑ¡Ôñ
-#define CAP_SEL 0x00 // ²¶»ñ
-#define CMP_SEL 0x01 // ±È½Ï
+// æ•è·/æ¯”è¾ƒé€‰æ‹©
+#define CAP_SEL 0x00 // æ•è·
+#define CMP_SEL 0x01 // æ¯”è¾ƒ
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*************************
 @init
 @public
-@brief  ³õÊ¼»¯APB-TIMER
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-        base_addr APB-TIMERÍâÉè»ùµØÖ·
-				config APB-TIMER³õÊ¼»¯ÅäÖÃ(½á¹¹ÌåÖ¸Õë)
+@brief  åˆå§‹åŒ–APB-TIMER
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+        base_addr APB-TIMERå¤–è®¾åŸºåœ°å€
+				config APB-TIMERåˆå§‹åŒ–é…ç½®(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* config){
@@ -40,11 +40,11 @@ void init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* c
 	
 	for(uint8_t i = 0;i < 4;i++){
 		if(((config->cap_cmp_sel >> i) & 0x01) == CAP_SEL){
-			// µ±Ç°Í¨µÀÑ¡ÔñÊäÈë²¶»ñ
+			// å½“å‰é€šé“é€‰æ‹©è¾“å…¥æ•è·
 			timer->hardware->chn_hd[i].cap_config = ((uint32_t)config->edge_filter_th[i]) | 
 				(((uint32_t)config->edge_detect_type[i]) << 8);
 		}else{
-			// µ±Ç°Í¨µÀÑ¡ÔñÊä³ö±È½Ï
+			// å½“å‰é€šé“é€‰æ‹©è¾“å‡ºæ¯”è¾ƒ
 			timer->hardware->chn_hd[i].cap_cmp = config->cmp[i];
 		}
 	}
@@ -53,9 +53,9 @@ void init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* c
 /*************************
 @cfg
 @public
-@brief  APB-TIMERÊ¹ÄÜÖĞ¶Ï
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-        itr_en ÖĞ¶ÏÊ¹ÄÜÏòÁ¿
+@brief  APB-TIMERä½¿èƒ½ä¸­æ–­
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+        itr_en ä¸­æ–­ä½¿èƒ½å‘é‡
 @return none
 *************************/
 void apb_timer_enable_itr(ApbTimer* timer, uint8_t itr_en){
@@ -65,8 +65,8 @@ void apb_timer_enable_itr(ApbTimer* timer, uint8_t itr_en){
 /*************************
 @cfg
 @public
-@brief  APB-TIMER³ıÄÜÖĞ¶Ï
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
+@brief  APB-TIMERé™¤èƒ½ä¸­æ–­
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_timer_disable_itr(ApbTimer* timer){
@@ -76,9 +76,9 @@ void apb_timer_disable_itr(ApbTimer* timer){
 /*************************
 @sts
 @public
-@brief  APB-TIMER»ñÈ¡ÖĞ¶Ï×´Ì¬
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-@return ÖĞ¶Ï±êÖ¾ÏòÁ¿
+@brief  APB-TIMERè·å–ä¸­æ–­çŠ¶æ€
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+@return ä¸­æ–­æ ‡å¿—å‘é‡
 *************************/
 uint8_t apb_timer_get_itr_status(ApbTimer* timer){
 	return (uint8_t)(timer->hardware->itr_flag >> 8);
@@ -87,8 +87,8 @@ uint8_t apb_timer_get_itr_status(ApbTimer* timer){
 /*************************
 @cfg
 @public
-@brief  APB-TIMERÇå³ıÖĞ¶Ï±êÖ¾
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
+@brief  APB-TIMERæ¸…é™¤ä¸­æ–­æ ‡å¿—
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_timer_clear_itr_flag(ApbTimer* timer){
@@ -98,8 +98,8 @@ void apb_timer_clear_itr_flag(ApbTimer* timer){
 /*************************
 @ctrl
 @public
-@brief  APB-TIMERÆô¶¯¶¨Ê±Æ÷
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
+@brief  APB-TIMERå¯åŠ¨å®šæ—¶å™¨
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_timer_start(ApbTimer* timer){
@@ -109,8 +109,8 @@ void apb_timer_start(ApbTimer* timer){
 /*************************
 @ctrl
 @public
-@brief  APB-TIMERÔİÍ£¶¨Ê±Æ÷
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
+@brief  APB-TIMERæš‚åœå®šæ—¶å™¨
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_timer_stop(ApbTimer* timer){
@@ -120,8 +120,8 @@ void apb_timer_stop(ApbTimer* timer){
 /*************************
 @ctrl
 @public
-@brief  APB-TIMERÖØÖÃ¶¨Ê±Æ÷
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
+@brief  APB-TIMERé‡ç½®å®šæ—¶å™¨
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_timer_reset(ApbTimer* timer){
@@ -131,9 +131,9 @@ void apb_timer_reset(ApbTimer* timer){
 /*************************
 @set
 @public
-@brief  APB-TIMERÉèÖÃÔ¤·ÖÆµÏµÊı
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-		    prescale Ô¤·ÖÆµÏµÊı
+@brief  APB-TIMERè®¾ç½®é¢„åˆ†é¢‘ç³»æ•°
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+		    prescale é¢„åˆ†é¢‘ç³»æ•°
 @return none
 *************************/
 void apb_timer_set_prescale(ApbTimer* timer, uint32_t prescale){
@@ -144,9 +144,9 @@ void apb_timer_set_prescale(ApbTimer* timer, uint32_t prescale){
 /*************************
 @set
 @public
-@brief  APB-TIMERÉèÖÃ×Ô¶¯×°ÔØÖµ
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-		    auto_load ×Ô¶¯×°ÔØÖµ
+@brief  APB-TIMERè®¾ç½®è‡ªåŠ¨è£…è½½å€¼
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+		    auto_load è‡ªåŠ¨è£…è½½å€¼
 @return none
 *************************/
 void apb_timer_set_autoload(ApbTimer* timer, uint32_t auto_load){
@@ -157,9 +157,9 @@ void apb_timer_set_autoload(ApbTimer* timer, uint32_t auto_load){
 /*************************
 @set
 @public
-@brief  APB-TIMERÉèÖÃ¼ÆÊıÖµ
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-		    cnt ¼ÆÊıÖµ
+@brief  APB-TIMERè®¾ç½®è®¡æ•°å€¼
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+		    cnt è®¡æ•°å€¼
 @return none
 *************************/
 void apb_timer_set_cnt(ApbTimer* timer, uint32_t cnt){
@@ -169,11 +169,11 @@ void apb_timer_set_cnt(ApbTimer* timer, uint32_t cnt){
 /*************************
 @set
 @public
-@brief  APB-TIMERÉèÖÃÄ³¸öÍ¨µÀµÄ±È½ÏÖµ
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-		    chn_id Í¨µÀ±àºÅ
-				cmp ±È½ÏÖµ
-@return ÊÇ·ñ³É¹¦
+@brief  APB-TIMERè®¾ç½®æŸä¸ªé€šé“çš„æ¯”è¾ƒå€¼
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+		    chn_id é€šé“ç¼–å·
+				cmp æ¯”è¾ƒå€¼
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 int apb_timer_set_cmp(ApbTimer* timer, uint8_t chn_id, uint32_t cmp){
 	if((chn_id <= timer->chn_n - 1) && (((timer->cap_cmp_sel >> chn_id) & 0x01) == CMP_SEL)){
@@ -188,12 +188,12 @@ int apb_timer_set_cmp(ApbTimer* timer, uint8_t chn_id, uint32_t cmp){
 /*************************
 @set
 @public
-@brief  APB-TIMERÉèÖÃÄ³¸öÍ¨µÀµÄ²¶»ñÅäÖÃ
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-		    chn_id Í¨µÀ±àºÅ
-			  edge_detect_type ±ßÑØ¼ì²âÀàĞÍ
-				edge_filter_th ±ßÑØÂË²¨ãĞÖµ
-@return ÊÇ·ñ³É¹¦
+@brief  APB-TIMERè®¾ç½®æŸä¸ªé€šé“çš„æ•è·é…ç½®
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+		    chn_id é€šé“ç¼–å·
+			  edge_detect_type è¾¹æ²¿æ£€æµ‹ç±»å‹
+				edge_filter_th è¾¹æ²¿æ»¤æ³¢é˜ˆå€¼
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 int apb_timer_set_cap_config(ApbTimer* timer, uint8_t chn_id, 
 	uint8_t edge_detect_type, uint8_t edge_filter_th){
@@ -210,9 +210,9 @@ int apb_timer_set_cap_config(ApbTimer* timer, uint8_t chn_id,
 /*************************
 @get
 @public
-@brief  APB-TIMER»ñÈ¡Ô¤·ÖÆµÏµÊı
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-@return Ô¤·ÖÆµÏµÊı
+@brief  APB-TIMERè·å–é¢„åˆ†é¢‘ç³»æ•°
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+@return é¢„åˆ†é¢‘ç³»æ•°
 *************************/
 uint32_t apb_timer_get_prescale(ApbTimer* timer){
 	return timer->prescale;
@@ -221,9 +221,9 @@ uint32_t apb_timer_get_prescale(ApbTimer* timer){
 /*************************
 @get
 @public
-@brief  APB-TIMER»ñÈ¡×Ô¶¯×°ÔØÖµ
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-@return ×Ô¶¯×°ÔØÖµ
+@brief  APB-TIMERè·å–è‡ªåŠ¨è£…è½½å€¼
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+@return è‡ªåŠ¨è£…è½½å€¼
 *************************/
 uint32_t apb_timer_get_autoload(ApbTimer* timer){
 	return timer->auto_load;
@@ -232,9 +232,9 @@ uint32_t apb_timer_get_autoload(ApbTimer* timer){
 /*************************
 @get
 @public
-@brief  APB-TIMER»ñÈ¡¼ÆÊıÖµ
-@param  timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-@return µ±Ç°¼ÆÊıÖµ
+@brief  APB-TIMERè·å–è®¡æ•°å€¼
+@param  timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+@return å½“å‰è®¡æ•°å€¼
 *************************/
 uint32_t apb_timer_get_cnt(ApbTimer* timer){
 	return timer->hardware->count;
@@ -243,10 +243,10 @@ uint32_t apb_timer_get_cnt(ApbTimer* timer){
 /*************************
 @get
 @public
-@brief  APB-TIMER»ñÈ¡Ä³¸öÍ¨µÀµÄ²¶»ñÖµ
-@param  chn_id Í¨µÀ±àºÅ
-				timer APB-TIMER(½á¹¹ÌåÖ¸Õë)
-@return ²¶»ñÖµ
+@brief  APB-TIMERè·å–æŸä¸ªé€šé“çš„æ•è·å€¼
+@param  chn_id é€šé“ç¼–å·
+				timer APB-TIMER(ç»“æ„ä½“æŒ‡é’ˆ)
+@return æ•è·å€¼
 *************************/
 uint32_t apb_timer_get_cap(ApbTimer* timer, uint8_t chn_id){
 	if(chn_id > timer->chn_n - 1){

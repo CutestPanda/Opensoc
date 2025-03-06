@@ -1,126 +1,126 @@
 /************************************************************************************************************************
-APB-TIMERÇı¶¯(½Ó¿ÚÍ·ÎÄ¼ş)
-@brief  APB-TIMERÇı¶¯
+APB-TIMERé©±åŠ¨(æ¥å£å¤´æ–‡ä»¶)
+@brief  APB-TIMERé©±åŠ¨
 @date   2024/09/21
-@author ³Â¼ÒÒ«
+@author é™ˆå®¶è€€
 ************************************************************************************************************************/
 
 #include <stdint.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Í¨µÀ±àºÅ
-#define APB_TIMER_CH0 0x00 // Í¨µÀ0
-#define APB_TIMER_CH1 0x01 // Í¨µÀ1
-#define APB_TIMER_CH2 0x02 // Í¨µÀ2
-#define APB_TIMER_CH3 0x03 // Í¨µÀ3
+// é€šé“ç¼–å·
+#define APB_TIMER_CH0 0x00 // é€šé“0
+#define APB_TIMER_CH1 0x01 // é€šé“1
+#define APB_TIMER_CH2 0x02 // é€šé“2
+#define APB_TIMER_CH3 0x03 // é€šé“3
 
-// ²¶»ñ/±È½ÏÑ¡Ôñ
-#define CAP_SEL_CHN0 0x00 // Í¨µÀ0ÉèÎª²¶»ñÄ£Ê½
-#define CMP_SEL_CHN0 0x01 // Í¨µÀ0ÉèÎª±È½ÏÄ£Ê½
-#define CAP_SEL_CHN1 0x00 // Í¨µÀ1ÉèÎª²¶»ñÄ£Ê½
-#define CMP_SEL_CHN1 0x02 // Í¨µÀ1ÉèÎª±È½ÏÄ£Ê½
-#define CAP_SEL_CHN2 0x00 // Í¨µÀ2ÉèÎª²¶»ñÄ£Ê½
-#define CMP_SEL_CHN2 0x04 // Í¨µÀ2ÉèÎª±È½ÏÄ£Ê½
-#define CAP_SEL_CHN3 0x00 // Í¨µÀ3ÉèÎª²¶»ñÄ£Ê½
-#define CMP_SEL_CHN3 0x08 // Í¨µÀ3ÉèÎª±È½ÏÄ£Ê½
+// æ•è·/æ¯”è¾ƒé€‰æ‹©
+#define CAP_SEL_CHN0 0x00 // é€šé“0è®¾ä¸ºæ•è·æ¨¡å¼
+#define CMP_SEL_CHN0 0x01 // é€šé“0è®¾ä¸ºæ¯”è¾ƒæ¨¡å¼
+#define CAP_SEL_CHN1 0x00 // é€šé“1è®¾ä¸ºæ•è·æ¨¡å¼
+#define CMP_SEL_CHN1 0x02 // é€šé“1è®¾ä¸ºæ¯”è¾ƒæ¨¡å¼
+#define CAP_SEL_CHN2 0x00 // é€šé“2è®¾ä¸ºæ•è·æ¨¡å¼
+#define CMP_SEL_CHN2 0x04 // é€šé“2è®¾ä¸ºæ¯”è¾ƒæ¨¡å¼
+#define CAP_SEL_CHN3 0x00 // é€šé“3è®¾ä¸ºæ•è·æ¨¡å¼
+#define CMP_SEL_CHN3 0x08 // é€šé“3è®¾ä¸ºæ¯”è¾ƒæ¨¡å¼
 
-// ÊäÈë²¶»ñ±ßÑØ¼ì²âÀàĞÍ
-#define CAP_POS_EDGE 0x00 // ²¶»ñÉÏÉıÑØ
-#define CAP_NEG_EDGE 0x01 // ²¶»ñÏÂ½µÑØ
-#define CAP_BOTH_EDGE 0x02 // ²¶»ñË«ÑØ
+// è¾“å…¥æ•è·è¾¹æ²¿æ£€æµ‹ç±»å‹
+#define CAP_POS_EDGE 0x00 // æ•è·ä¸Šå‡æ²¿
+#define CAP_NEG_EDGE 0x01 // æ•è·ä¸‹é™æ²¿
+#define CAP_BOTH_EDGE 0x02 // æ•è·åŒæ²¿
 
-// ÖĞ¶ÏÀàĞÍÑÚÂë
-#define ITR_TIMER_ELAPSED_MASK 0x01 // ¼ÆÊıÒç³öÖĞ¶Ï
-#define ITR_INPUT_CAP_CHN0_MASK 0x02 // Í¨µÀ0ÊäÈë²¶»ñÖĞ¶Ï
-#define ITR_INPUT_CAP_CHN1_MASK 0x04 // Í¨µÀ1ÊäÈë²¶»ñÖĞ¶Ï
-#define ITR_INPUT_CAP_CHN2_MASK 0x08 // Í¨µÀ2ÊäÈë²¶»ñÖĞ¶Ï
-#define ITR_INPUT_CAP_CHN3_MASK 0x10 // Í¨µÀ3ÊäÈë²¶»ñÖĞ¶Ï
+// ä¸­æ–­ç±»å‹æ©ç 
+#define ITR_TIMER_ELAPSED_MASK 0x01 // è®¡æ•°æº¢å‡ºä¸­æ–­
+#define ITR_INPUT_CAP_CHN0_MASK 0x02 // é€šé“0è¾“å…¥æ•è·ä¸­æ–­
+#define ITR_INPUT_CAP_CHN1_MASK 0x04 // é€šé“1è¾“å…¥æ•è·ä¸­æ–­
+#define ITR_INPUT_CAP_CHN2_MASK 0x08 // é€šé“2è¾“å…¥æ•è·ä¸­æ–­
+#define ITR_INPUT_CAP_CHN3_MASK 0x10 // é€šé“3è¾“å…¥æ•è·ä¸­æ–­
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef __APB_TIMER_H
 #define __APB_TIMER_H
 
-// APB-TIMER²¶»ñ/±È½ÏÍ¨µÀ(¼Ä´æÆ÷Ó³Éä½á¹¹Ìå)
+// APB-TIMERæ•è·/æ¯”è¾ƒé€šé“(å¯„å­˜å™¨æ˜ å°„ç»“æ„ä½“)
 typedef struct{
-	uint32_t cap_cmp; // ²¶»ñ/±È½ÏÖµ
-	uint32_t cap_config; // ²¶»ñÅäÖÃ
+	uint32_t cap_cmp; // æ•è·/æ¯”è¾ƒå€¼
+	uint32_t cap_config; // æ•è·é…ç½®
 }ApbTimerChnHd;
 
-// APB-TIMER(¼Ä´æÆ÷Ó³Éä½á¹¹Ìå)
+// APB-TIMER(å¯„å­˜å™¨æ˜ å°„ç»“æ„ä½“)
 typedef struct{
-	uint32_t prescale; // Ô¤·ÖÆµÏµÊı - 1
-	uint32_t auto_load; // ×Ô¶¯×°ÔØÖµ - 1
-	uint32_t count; // ¶¨Ê±Æ÷¼ÆÊıÖµ
-	uint32_t ctrl; // ¶¨Ê±Æ÷¿ª¹Ø, ²¶»ñ/±È½ÏÑ¡Ôñ
-	uint32_t itr_en; // ÖĞ¶ÏÊ¹ÄÜ
-	uint32_t itr_flag; // ÖĞ¶Ï±êÖ¾
-	ApbTimerChnHd chn_hd[4]; // ²¶»ñ/±È½ÏÍ¨µÀ(¼Ä´æÆ÷Çø)
+	uint32_t prescale; // é¢„åˆ†é¢‘ç³»æ•° - 1
+	uint32_t auto_load; // è‡ªåŠ¨è£…è½½å€¼ - 1
+	uint32_t count; // å®šæ—¶å™¨è®¡æ•°å€¼
+	uint32_t ctrl; // å®šæ—¶å™¨å¼€å…³, æ•è·/æ¯”è¾ƒé€‰æ‹©
+	uint32_t itr_en; // ä¸­æ–­ä½¿èƒ½
+	uint32_t itr_flag; // ä¸­æ–­æ ‡å¿—
+	ApbTimerChnHd chn_hd[4]; // æ•è·/æ¯”è¾ƒé€šé“(å¯„å­˜å™¨åŒº)
 }ApbTimerHd;
 
-// APB-TIMER(ÍâÉè½á¹¹Ìå)
+// APB-TIMER(å¤–è®¾ç»“æ„ä½“)
 typedef struct{
-	ApbTimerHd* hardware; // APB-TIMER¼Ä´æÆ÷½Ó¿Ú(½á¹¹ÌåÖ¸Õë)
-	uint32_t prescale; // Ô¤·ÖÆµÏµÊı - 1(±¸·İÖµ)
-	uint32_t auto_load; // ×Ô¶¯×°ÔØÖµ - 1(±¸·İÖµ)
-	uint8_t cap_cmp_sel; // ²¶»ñ/±È½ÏÑ¡Ôñ(±¸·İÖµ)
-	uint8_t chn_n; // Í¨µÀÊı
+	ApbTimerHd* hardware; // APB-TIMERå¯„å­˜å™¨æ¥å£(ç»“æ„ä½“æŒ‡é’ˆ)
+	uint32_t prescale; // é¢„åˆ†é¢‘ç³»æ•° - 1(å¤‡ä»½å€¼)
+	uint32_t auto_load; // è‡ªåŠ¨è£…è½½å€¼ - 1(å¤‡ä»½å€¼)
+	uint8_t cap_cmp_sel; // æ•è·/æ¯”è¾ƒé€‰æ‹©(å¤‡ä»½å€¼)
+	uint8_t chn_n; // é€šé“æ•°
 }ApbTimer;
 
-// APB-TIMER(³õÊ¼»¯ÅäÖÃ½á¹¹Ìå)
+// APB-TIMER(åˆå§‹åŒ–é…ç½®ç»“æ„ä½“)
 typedef struct{
-	uint8_t cap_cmp_sel; // ²¶»ñ/±È½ÏÑ¡Ôñ
-	uint8_t chn_n; // Í¨µÀÊı
-	uint32_t prescale; // Ô¤·ÖÆµÏµÊı - 1
-	uint32_t auto_load; // ×Ô¶¯×°ÔØÖµ - 1
-	uint32_t cmp[4]; // ±È½ÏÖµ
-	uint8_t edge_detect_type[4]; // ±ßÑØ¼ì²âÀàĞÍ
-	uint8_t edge_filter_th[4]; // ±ßÑØÂË²¨ãĞÖµ
+	uint8_t cap_cmp_sel; // æ•è·/æ¯”è¾ƒé€‰æ‹©
+	uint8_t chn_n; // é€šé“æ•°
+	uint32_t prescale; // é¢„åˆ†é¢‘ç³»æ•° - 1
+	uint32_t auto_load; // è‡ªåŠ¨è£…è½½å€¼ - 1
+	uint32_t cmp[4]; // æ¯”è¾ƒå€¼
+	uint8_t edge_detect_type[4]; // è¾¹æ²¿æ£€æµ‹ç±»å‹
+	uint8_t edge_filter_th[4]; // è¾¹æ²¿æ»¤æ³¢é˜ˆå€¼
 }ApbTimerConfig;
 
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// APB-TIMERÆô¶¯¶¨Ê±Æ÷
+// APB-TIMERå¯åŠ¨å®šæ—¶å™¨
 #define __apb_timer_start(timer) (timer)->hardware->ctrl = (((uint32_t)(timer)->cap_cmp_sel) << 8) | 0x00000001
-// APB-TIMERÔİÍ£¶¨Ê±Æ÷
+// APB-TIMERæš‚åœå®šæ—¶å™¨
 #define __apb_timer_stop(timer) (timer)->hardware->ctrl = (((uint32_t)(timer)->cap_cmp_sel) << 8)
-// APB-TIMERÖØÖÃ¶¨Ê±Æ÷
+// APB-TIMERé‡ç½®å®šæ—¶å™¨
 #define __apb_timer_reset(timer) (timer)->hardware->count = (timer)->auto_load
 
-// APB-TIMERÉèÖÃ¼ÆÊıÖµ
+// APB-TIMERè®¾ç½®è®¡æ•°å€¼
 #define __apb_timer_set_cnt(timer, cnt) (timer)->hardware->count = cnt
 
-// APB-TIMER»ñÈ¡Ô¤·ÖÆµÏµÊı
+// APB-TIMERè·å–é¢„åˆ†é¢‘ç³»æ•°
 #define __apb_timer_get_prescale(timer) ((timer)->prescale)
-// APB-TIMER»ñÈ¡×Ô¶¯×°ÔØÖµ
+// APB-TIMERè·å–è‡ªåŠ¨è£…è½½å€¼
 #define __apb_timer_get_autoload(timer) ((timer)->auto_load)
-// APB-TIMER»ñÈ¡¼ÆÊıÖµ
+// APB-TIMERè·å–è®¡æ•°å€¼
 #define __apb_timer_get_cnt(timer) ((timer)->hardware->count)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* config); // ³õÊ¼»¯APB-TIMER
+void init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* config); // åˆå§‹åŒ–APB-TIMER
 
-void apb_timer_enable_itr(ApbTimer* timer, uint8_t itr_en); // APB-TIMERÊ¹ÄÜÖĞ¶Ï
-void apb_timer_disable_itr(ApbTimer* timer); // APB-TIMER³ıÄÜÖĞ¶Ï
-uint8_t apb_timer_get_itr_status(ApbTimer* timer); // APB-TIMER»ñÈ¡ÖĞ¶Ï×´Ì¬
-void apb_timer_clear_itr_flag(ApbTimer* timer); // APB-TIMERÇå³ıÖĞ¶Ï±êÖ¾
+void apb_timer_enable_itr(ApbTimer* timer, uint8_t itr_en); // APB-TIMERä½¿èƒ½ä¸­æ–­
+void apb_timer_disable_itr(ApbTimer* timer); // APB-TIMERé™¤èƒ½ä¸­æ–­
+uint8_t apb_timer_get_itr_status(ApbTimer* timer); // APB-TIMERè·å–ä¸­æ–­çŠ¶æ€
+void apb_timer_clear_itr_flag(ApbTimer* timer); // APB-TIMERæ¸…é™¤ä¸­æ–­æ ‡å¿—
 
-void apb_timer_start(ApbTimer* timer); // APB-TIMERÆô¶¯¶¨Ê±Æ÷
-void apb_timer_stop(ApbTimer* timer); // APB-TIMERÔİÍ£¶¨Ê±Æ÷
-void apb_timer_reset(ApbTimer* timer); // APB-TIMERÖØÖÃ¶¨Ê±Æ÷
+void apb_timer_start(ApbTimer* timer); // APB-TIMERå¯åŠ¨å®šæ—¶å™¨
+void apb_timer_stop(ApbTimer* timer); // APB-TIMERæš‚åœå®šæ—¶å™¨
+void apb_timer_reset(ApbTimer* timer); // APB-TIMERé‡ç½®å®šæ—¶å™¨
 
-void apb_timer_set_prescale(ApbTimer* timer, uint32_t prescale); // APB-TIMERÉèÖÃÔ¤·ÖÆµÏµÊı
-void apb_timer_set_autoload(ApbTimer* timer, uint32_t auto_load); // APB-TIMERÉèÖÃ×Ô¶¯×°ÔØÖµ
-void apb_timer_set_cnt(ApbTimer* timer, uint32_t cnt); // APB-TIMERÉèÖÃ¼ÆÊıÖµ
-int apb_timer_set_cmp(ApbTimer* timer, uint8_t chn_id, uint32_t cmp); // APB-TIMERÉèÖÃÄ³¸öÍ¨µÀµÄ±È½ÏÖµ
+void apb_timer_set_prescale(ApbTimer* timer, uint32_t prescale); // APB-TIMERè®¾ç½®é¢„åˆ†é¢‘ç³»æ•°
+void apb_timer_set_autoload(ApbTimer* timer, uint32_t auto_load); // APB-TIMERè®¾ç½®è‡ªåŠ¨è£…è½½å€¼
+void apb_timer_set_cnt(ApbTimer* timer, uint32_t cnt); // APB-TIMERè®¾ç½®è®¡æ•°å€¼
+int apb_timer_set_cmp(ApbTimer* timer, uint8_t chn_id, uint32_t cmp); // APB-TIMERè®¾ç½®æŸä¸ªé€šé“çš„æ¯”è¾ƒå€¼
 int apb_timer_set_cap_config(ApbTimer* timer, uint8_t chn_id, 
-	uint8_t edge_detect_type, uint8_t edge_filter_th); // APB-TIMERÉèÖÃÄ³¸öÍ¨µÀµÄ²¶»ñÅäÖÃ
+	uint8_t edge_detect_type, uint8_t edge_filter_th); // APB-TIMERè®¾ç½®æŸä¸ªé€šé“çš„æ•è·é…ç½®
 
-uint32_t apb_timer_get_prescale(ApbTimer* timer); // APB-TIMER»ñÈ¡Ô¤·ÖÆµÏµÊı
-uint32_t apb_timer_get_autoload(ApbTimer* timer); // APB-TIMER»ñÈ¡×Ô¶¯×°ÔØÖµ
-uint32_t apb_timer_get_cnt(ApbTimer* timer); // APB-TIMER»ñÈ¡¼ÆÊıÖµ
-uint32_t apb_timer_get_cap(ApbTimer* timer, uint8_t chn_id); // APB-TIMER»ñÈ¡Ä³¸öÍ¨µÀµÄ²¶»ñÖµ
+uint32_t apb_timer_get_prescale(ApbTimer* timer); // APB-TIMERè·å–é¢„åˆ†é¢‘ç³»æ•°
+uint32_t apb_timer_get_autoload(ApbTimer* timer); // APB-TIMERè·å–è‡ªåŠ¨è£…è½½å€¼
+uint32_t apb_timer_get_cnt(ApbTimer* timer); // APB-TIMERè·å–è®¡æ•°å€¼
+uint32_t apb_timer_get_cap(ApbTimer* timer, uint8_t chn_id); // APB-TIMERè·å–æŸä¸ªé€šé“çš„æ•è·å€¼

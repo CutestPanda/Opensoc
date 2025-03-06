@@ -1,8 +1,8 @@
 /************************************************************************************************************************
-PLICÇı¶¯(½Ó¿ÚÍ·ÎÄ¼ş)
-@brief  PLICÇı¶¯
+PLICé©±åŠ¨(æ¥å£å¤´æ–‡ä»¶)
+@brief  PLICé©±åŠ¨
 @date   2025/01/22
-@author ³Â¼ÒÒ«
+@author é™ˆå®¶è€€
 ************************************************************************************************************************/
 
 #include <stdint.h>
@@ -13,18 +13,18 @@ PLICÇı¶¯(½Ó¿ÚÍ·ÎÄ¼ş)
 #define __PLIC_H
 
 typedef struct{
-	uint32_t base_addr; // PLIC»ùµØÖ·
+	uint32_t base_addr; // PLICåŸºåœ°å€
 }PLIC;
 
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void plic_init(PLIC* plic, uint32_t base_addr); // ³õÊ¼»¯PLIC
+void plic_init(PLIC* plic, uint32_t base_addr); // åˆå§‹åŒ–PLIC
 
-void plic_set_threshold(PLIC* plic, uint32_t threshold); // ÅäÖÃPLICÖĞ¶ÏãĞÖµ
-void plic_enable_interrupt(PLIC* plic, uint32_t source); // Ê¹ÄÜPLICÖĞ¶ÏÔ´
-void plic_disable_interrupt(PLIC * plic, uint32_t source); // ³ıÄÜPLICÖĞ¶ÏÔ´
-void plic_set_priority(PLIC * plic, uint32_t source, uint32_t priority); // PLICÉèÖÃÖĞ¶ÏÓÅÏÈ¼¶
-uint32_t plic_claim_interrupt(PLIC* plic); // PLIC»ñÈ¡ÖĞ¶ÏÔ´
-void plic_complete_interrupt(PLIC* plic, uint32_t source); // PLICÍê³ÉÖĞ¶Ï
+void plic_set_threshold(PLIC* plic, uint32_t threshold); // é…ç½®PLICä¸­æ–­é˜ˆå€¼
+void plic_enable_interrupt(PLIC* plic, uint32_t source); // ä½¿èƒ½PLICä¸­æ–­æº
+void plic_disable_interrupt(PLIC * plic, uint32_t source); // é™¤èƒ½PLICä¸­æ–­æº
+void plic_set_priority(PLIC * plic, uint32_t source, uint32_t priority); // PLICè®¾ç½®ä¸­æ–­ä¼˜å…ˆçº§
+uint32_t plic_claim_interrupt(PLIC* plic); // PLICè·å–ä¸­æ–­æº
+void plic_complete_interrupt(PLIC* plic, uint32_t source); // PLICå®Œæˆä¸­æ–­

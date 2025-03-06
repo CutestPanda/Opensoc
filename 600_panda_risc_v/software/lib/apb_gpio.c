@@ -1,9 +1,9 @@
 /************************************************************************************************************************
-APB-GPIOÇý¶¯(Ö÷Ô´ÎÄ¼þ)
-@brief  APB-GPIOÇý¶¯
+APB-GPIOé©±åŠ¨(ä¸»æºæ–‡ä»¶)
+@brief  APB-GPIOé©±åŠ¨
 @date   2024/08/23
-@author ³Â¼ÒÒ«
-@eidt   2024/08/23 1.00 ´´½¨ÁËµÚÒ»¸öÕýÊ½°æ±¾
+@author é™ˆå®¶è€€
+@eidt   2024/08/23 1.00 åˆ›å»ºäº†ç¬¬ä¸€ä¸ªæ­£å¼ç‰ˆæœ¬
 ************************************************************************************************************************/
 
 #include "../include/apb_gpio.h"
@@ -13,9 +13,9 @@ APB-GPIOÇý¶¯(Ö÷Ô´ÎÄ¼þ)
 /*************************
 @init
 @public
-@brief  ³õÊ¼»¯APB-GPIO
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
-        base_addr APB-GPIOÍâÉè»ùµØÖ·
+@brief  åˆå§‹åŒ–APB-GPIO
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
+        base_addr APB-GPIOå¤–è®¾åŸºåœ°å€
 @return none
 *************************/
 void apb_gpio_init(ApbGPIO* apb_gpio, uint32_t base_addr){
@@ -25,10 +25,10 @@ void apb_gpio_init(ApbGPIO* apb_gpio, uint32_t base_addr){
 /*************************
 @io
 @public
-@brief  APB-GPIOÐ´µçÆ½
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
-        mask Ð´µçÆ½ÑÚÂë
-        value ´ýÐ´µçÆ½Öµ
+@brief  APB-GPIOå†™ç”µå¹³
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
+        mask å†™ç”µå¹³æŽ©ç 
+        value å¾…å†™ç”µå¹³å€¼
 @return none
 *************************/
 void apb_gpio_write_pin(ApbGPIO* apb_gpio, uint32_t mask, uint32_t value){
@@ -39,9 +39,9 @@ void apb_gpio_write_pin(ApbGPIO* apb_gpio, uint32_t mask, uint32_t value){
 /*************************
 @io
 @public
-@brief  APB-GPIO¶ÁµçÆ½
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
-@return ¶ÁÈ¡µ½µÄµçÆ½Öµ
+@brief  APB-GPIOè¯»ç”µå¹³
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
+@return è¯»å–åˆ°çš„ç”µå¹³å€¼
 *************************/
 uint32_t apb_gpio_read_pin(ApbGPIO* apb_gpio){
 	return apb_gpio->hardware->in_v;
@@ -50,9 +50,9 @@ uint32_t apb_gpio_read_pin(ApbGPIO* apb_gpio){
 /*************************
 @io
 @public
-@brief  APB-GPIOÉèÖÃÈýÌ¬ÃÅ·½Ïò
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
-        dire ·½ÏòÏòÁ¿(0±íÊ¾Êä³ö, 1±íÊ¾ÊäÈë)
+@brief  APB-GPIOè®¾ç½®ä¸‰æ€é—¨æ–¹å‘
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
+        dire æ–¹å‘å‘é‡(0è¡¨ç¤ºè¾“å‡º, 1è¡¨ç¤ºè¾“å…¥)
 @return none
 *************************/
 void apb_gpio_set_direction(ApbGPIO* apb_gpio, uint32_t dire){
@@ -63,9 +63,9 @@ void apb_gpio_set_direction(ApbGPIO* apb_gpio, uint32_t dire){
 /*************************
 @cfg
 @public
-@brief  APB-GPIOÊ¹ÄÜÖÐ¶Ï
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
-        itr_en ÖÐ¶ÏÊ¹ÄÜÏòÁ¿
+@brief  APB-GPIOä½¿èƒ½ä¸­æ–­
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
+        itr_en ä¸­æ–­ä½¿èƒ½å‘é‡
 @return none
 *************************/
 void apb_gpio_enable_itr(ApbGPIO* apb_gpio, uint32_t itr_en){
@@ -76,8 +76,8 @@ void apb_gpio_enable_itr(ApbGPIO* apb_gpio, uint32_t itr_en){
 /*************************
 @cfg
 @public
-@brief  APB-GPIO³ýÄÜÖÐ¶Ï
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
+@brief  APB-GPIOé™¤èƒ½ä¸­æ–­
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_gpio_disable_itr(ApbGPIO* apb_gpio){
@@ -87,9 +87,9 @@ void apb_gpio_disable_itr(ApbGPIO* apb_gpio){
 /*************************
 @sts
 @public
-@brief  APB-GPIO»ñÈ¡ÖÐ¶Ï×´Ì¬
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
-@return ÖÐ¶Ï×´Ì¬ÏòÁ¿
+@brief  APB-GPIOèŽ·å–ä¸­æ–­çŠ¶æ€
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
+@return ä¸­æ–­çŠ¶æ€å‘é‡
 *************************/
 uint32_t apb_gpio_get_itr_status(ApbGPIO* apb_gpio){
 	return apb_gpio->hardware->itr_status;
@@ -98,8 +98,8 @@ uint32_t apb_gpio_get_itr_status(ApbGPIO* apb_gpio){
 /*************************
 @cfg
 @public
-@brief  APB-GPIOÇå³ýÖÐ¶Ï±êÖ¾
-@param  apb_gpio APB-GPIO(½á¹¹ÌåÖ¸Õë)
+@brief  APB-GPIOæ¸…é™¤ä¸­æ–­æ ‡å¿—
+@param  apb_gpio APB-GPIO(ç»“æž„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_gpio_clear_itr_flag(ApbGPIO* apb_gpio){

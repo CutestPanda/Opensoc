@@ -1,9 +1,9 @@
 /************************************************************************************************************************
-APB-UARTÇı¶¯(Ö÷Ô´ÎÄ¼ş)
-@brief  APB-UARTÇı¶¯
+APB-UARTé©±åŠ¨(ä¸»æºæ–‡ä»¶)
+@brief  APB-UARTé©±åŠ¨
 @date   2024/08/28
-@author ³Â¼ÒÒ«
-@eidt   2024/08/28 1.00 ´´½¨ÁËµÚÒ»¸öÕıÊ½°æ±¾
+@author é™ˆå®¶è€€
+@eidt   2024/08/28 1.00 åˆ›å»ºäº†ç¬¬ä¸€ä¸ªæ­£å¼ç‰ˆæœ¬
 ************************************************************************************************************************/
 
 #include "../include/apb_uart.h"
@@ -13,9 +13,9 @@ APB-UARTÇı¶¯(Ö÷Ô´ÎÄ¼ş)
 /*************************
 @init
 @public
-@brief  ³õÊ¼»¯APB-UART
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
-        base_addr APB-UARTÍâÉè»ùµØÖ·
+@brief  åˆå§‹åŒ–APB-UART
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
+        base_addr APB-UARTå¤–è®¾åŸºåœ°å€
 @return none
 *************************/
 void apb_uart_init(ApbUART* uart, uint32_t base_addr){
@@ -26,10 +26,10 @@ void apb_uart_init(ApbUART* uart, uint32_t base_addr){
 /*************************
 @io
 @public
-@brief  APB-UART·¢ËÍÒ»¸ö×Ö½Ú
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
-        byte ´ı·¢ËÍµÄ×Ö½ÚÊı¾İ
-@return ÊÇ·ñ³É¹¦
+@brief  APB-UARTå‘é€ä¸€ä¸ªå­—èŠ‚
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
+        byte å¾…å‘é€çš„å­—èŠ‚æ•°æ®
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 int apb_uart_send_byte(ApbUART* uart, uint8_t byte){
 	uint32_t fifo_cs = uart->hardware->fifo_cs;
@@ -53,10 +53,10 @@ int apb_uart_send_byte(ApbUART* uart, uint8_t byte){
 /*************************
 @io
 @public
-@brief  APB-UART»ñÈ¡Ò»¸ö½ÓÊÕ×Ö½Ú
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
-        byte ½ÓÊÕ×Ö½ÚÊı¾İ»º³åÇø(Ê×µØÖ·)
-@return ÊÇ·ñ³É¹¦
+@brief  APB-UARTè·å–ä¸€ä¸ªæ¥æ”¶å­—èŠ‚
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
+        byte æ¥æ”¶å­—èŠ‚æ•°æ®ç¼“å†²åŒº(é¦–åœ°å€)
+@return æ˜¯å¦æˆåŠŸ
 *************************/
 int apb_uart_rev_byte(ApbUART* uart, uint8_t* byte){
 	uint32_t fifo_cs = uart->hardware->fifo_cs;
@@ -79,10 +79,10 @@ int apb_uart_rev_byte(ApbUART* uart, uint8_t* byte){
 /*************************
 @cfg
 @public
-@brief  APB-UARTÊ¹ÄÜÖĞ¶Ï
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
-        itr_mask ÖĞ¶ÏÊ¹ÄÜÏòÁ¿
-				config ÊÕ·¢ÖĞ¶ÏãĞÖµÅäÖÃ(½á¹¹ÌåÖ¸Õë)
+@brief  APB-UARTä½¿èƒ½ä¸­æ–­
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
+        itr_mask ä¸­æ–­ä½¿èƒ½å‘é‡
+				config æ”¶å‘ä¸­æ–­é˜ˆå€¼é…ç½®(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_uart_enable_itr(ApbUART* uart, uint8_t itr_mask, const ApbUartItrThConfig* config){
@@ -98,8 +98,8 @@ void apb_uart_enable_itr(ApbUART* uart, uint8_t itr_mask, const ApbUartItrThConf
 /*************************
 @cfg
 @public
-@brief  APB-UART³ıÄÜÖĞ¶Ï
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
+@brief  APB-UARTé™¤èƒ½ä¸­æ–­
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_uart_disable_itr(ApbUART* uart){
@@ -110,9 +110,9 @@ void apb_uart_disable_itr(ApbUART* uart){
 /*************************
 @sts
 @public
-@brief  APB-UART»ñÈ¡ÖĞ¶Ï×´Ì¬
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
-@return ÖĞ¶Ï×´Ì¬
+@brief  APB-UARTè·å–ä¸­æ–­çŠ¶æ€
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
+@return ä¸­æ–­çŠ¶æ€
 *************************/
 uint8_t apb_uart_get_itr_status(ApbUART* uart){
 	uint32_t itr_status_en = uart->hardware->itr_status_en;
@@ -123,8 +123,8 @@ uint8_t apb_uart_get_itr_status(ApbUART* uart){
 /*************************
 @cfg
 @public
-@brief  APB-UARTÇå³ıÖĞ¶Ï±êÖ¾
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
+@brief  APB-UARTæ¸…é™¤ä¸­æ–­æ ‡å¿—
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
 @return none
 *************************/
 void apb_uart_clear_itr_flag(ApbUART* uart){
@@ -134,10 +134,10 @@ void apb_uart_clear_itr_flag(ApbUART* uart){
 /*************************
 @io
 @public
-@brief  APB-UART¸ñÊ½»¯·¢ËÍ×Ö·û´®
-@param  uart APB-UART(½á¹¹ÌåÖ¸Õë)
-			  fmt ¸ñÊ½»¯×Ö·û´®
-        ... ×Ö·û´®¸½¼Ó²ÎÊı
+@brief  APB-UARTæ ¼å¼åŒ–å‘é€å­—ç¬¦ä¸²
+@param  uart APB-UART(ç»“æ„ä½“æŒ‡é’ˆ)
+			  fmt æ ¼å¼åŒ–å­—ç¬¦ä¸²
+        ... å­—ç¬¦ä¸²é™„åŠ å‚æ•°
 @return none
 *************************/
 void uart_printf(ApbUART* uart, char *fmt, ...){
