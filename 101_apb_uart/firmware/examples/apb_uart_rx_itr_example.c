@@ -31,7 +31,7 @@ static ApbUART uart; // APB-UART外设结构体
 void USER_UART_Handler(void){
 	uint8_t byte;
 	
-	while(apb_uart_rev_byte(&uart, &byte)){ // 收集UART数据包
+	while(!apb_uart_rev_byte(&uart, &byte)){ // 收集UART数据包
 		apb_uart_send_byte(&uart, byte); // 按原样发回
 	}
 	
