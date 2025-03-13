@@ -1,25 +1,9 @@
 Archive member included to satisfy reference by file (symbol)
 
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-atexit.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o (atexit)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o (exit)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-fini.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o (__libc_fini_array)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o) (_global_impure_ptr)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-init.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o (__libc_init_array)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o (memset)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o)
                               ./bsp/apb_uart.o (vsnprintf)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__atexit.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-atexit.o) (__register_exitproc)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o) (__call_exitprocs)
-d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
-                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__atexit.o) (__retarget_lock_acquire_recursive)
+d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
+                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o) (_impure_ptr)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-svfprintf.o)
                               d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o) (_svfprintf_r)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-freer.o)
@@ -54,12 +38,16 @@ d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/r
                               d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-mprec.o) (_calloc_r)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-locale.o)
                               d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-localeconv.o) (__global_locale)
+d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-mlock.o) (__retarget_lock_acquire_recursive)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-mbtowc_r.o)
                               d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-locale.o) (__ascii_mbtowc)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memcpy.o)
                               d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-mprec.o) (memcpy)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memmove.o)
                               d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-svfiprintf.o) (memmove)
+d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
+                              d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-callocr.o) (memset)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-reallocr.o)
                               d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-svfiprintf.o) (_realloc_r)
 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-reent.o)
@@ -126,13 +114,6 @@ __lock___sfp_recursive_mutex
 
 Discarded input sections
 
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- .sdata.__dso_handle
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
  .group         0x0000000000000000        0xc ./bsp/apb_gpio.o
  .group         0x0000000000000000        0xc ./bsp/apb_gpio.o
  .group         0x0000000000000000        0xc ./bsp/apb_gpio.o
@@ -537,25 +518,6 @@ Discarded input sections
  .debug_macro   0x0000000000000000      0x16f ./main.o
  .debug_macro   0x0000000000000000       0x28 ./main.o
  .debug_macro   0x0000000000000000       0x16 ./main.o
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-atexit.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-atexit.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-atexit.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-fini.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-fini.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-fini.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
- .sdata._impure_ptr
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-init.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-init.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-init.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
  .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o)
  .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o)
  .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o)
@@ -564,31 +526,15 @@ Discarded input sections
  .text.vsnprintf
                 0x0000000000000000       0x24 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o)
  .debug_frame   0x0000000000000000       0x50 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-vsnprintf.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__atexit.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__atexit.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__atexit.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_init
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_init_recursive
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_close
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_close_recursive
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_acquire
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_try_acquire
-                0x0000000000000000        0x8 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_try_acquire_recursive
-                0x0000000000000000        0x8 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
- .text.__retarget_lock_release
-                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
+ .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
+ .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
+ .data.impure_data
+                0x0000000000000000      0x428 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
+ .sdata._impure_ptr
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
+ .sdata2._global_impure_ptr
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
  .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-svfprintf.o)
  .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-svfprintf.o)
  .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-svfprintf.o)
@@ -812,6 +758,31 @@ Discarded input sections
  .sbss._PathLocale
                 0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-locale.o)
  .debug_frame   0x0000000000000000       0x78 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-locale.o)
+ .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_init
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_init_recursive
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_close
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_close_recursive
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_acquire
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_acquire_recursive
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_try_acquire
+                0x0000000000000000        0x8 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_try_acquire_recursive
+                0x0000000000000000        0x8 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_release
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .text.__retarget_lock_release_recursive
+                0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ .debug_frame   0x0000000000000000       0xb0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
+ COMMON         0x0000000000000000       0x21 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
  .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-mbtowc_r.o)
  .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-mbtowc_r.o)
  .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-mbtowc_r.o)
@@ -830,6 +801,9 @@ Discarded input sections
  .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memmove.o)
  .text.memmove  0x0000000000000000      0x120 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memmove.o)
  .debug_frame   0x0000000000000000       0x20 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memmove.o)
+ .text          0x0000000000000000       0xdc d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
+ .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
+ .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
  .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-reallocr.o)
  .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-reallocr.o)
  .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-reallocr.o)
@@ -953,10 +927,6 @@ Discarded input sections
  .text.__clzsi2
                 0x0000000000000000       0x94 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
  .debug_frame   0x0000000000000000       0x20 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32\libgcc.a(_clzsi2.o)
- .text          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtend.o
- .data          0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtend.o
- .bss           0x0000000000000000        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtend.o
- .eh_frame      0x0000000000000000        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtend.o
 
 Memory Configuration
 
@@ -967,8 +937,6 @@ ram              0x0000000010000000 0x0000000000008000 axw !rl
 
 Linker script and memory map
 
-LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
-LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
 LOAD ./bsp/apb_gpio.o
 LOAD ./bsp/apb_i2c.o
 LOAD ./bsp/apb_timer.o
@@ -989,185 +957,106 @@ LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/
 LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libc.a
 END GROUP
 LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32\libgcc.a
-LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtend.o
                 0x0000000000002000                __stack_size = DEFINED (__stack_size)?__stack_size:0x2000
 
-.init           0x0000000000000800       0x64
+.init           0x0000000000000800       0x60
  *(SORT_NONE(.init))
- .init          0x0000000000000800       0x64 ./bsp/start.o
-                0x0000000000000800                start_entry
-                0x0000000000000860                _exit
+ .init          0x0000000000000800       0x60 ./bsp/start.o
+                0x0000000000000800                _start
 
-.text           0x0000000000000864     0x1514
+.text           0x0000000000000860      0xfa4
  *(.text.unlikely .text.unlikely.*)
  *(.text.startup .text.startup.*)
- .text.startup.register_fini
-                0x0000000000000864       0x1c d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
  *(.text .text.*)
- .text          0x0000000000000880       0x44 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
-                0x0000000000000880                _start
-                0x00000000000008c0                _fini
-                0x00000000000008c0                _init
- .text.deregister_tm_clones
-                0x00000000000008c4       0x20 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- .text.register_tm_clones
-                0x00000000000008e4       0x34 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- .text.__do_global_dtors_aux
-                0x0000000000000918       0x48 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- .text.frame_dummy
-                0x0000000000000960       0x38 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
  .text.apb_gpio_init
-                0x0000000000000998       0x30 ./bsp/apb_gpio.o
-                0x0000000000000998                apb_gpio_init
+                0x0000000000000860       0x30 ./bsp/apb_gpio.o
+                0x0000000000000860                apb_gpio_init
  .text.apb_gpio_set_direction
-                0x00000000000009c8       0x40 ./bsp/apb_gpio.o
-                0x00000000000009c8                apb_gpio_set_direction
+                0x0000000000000890       0x40 ./bsp/apb_gpio.o
+                0x0000000000000890                apb_gpio_set_direction
  .text.apb_uart_init
-                0x0000000000000a08       0x38 ./bsp/apb_uart.o
-                0x0000000000000a08                apb_uart_init
+                0x00000000000008d0       0x38 ./bsp/apb_uart.o
+                0x00000000000008d0                apb_uart_init
  .text.apb_uart_send_byte
-                0x0000000000000a40       0xa4 ./bsp/apb_uart.o
-                0x0000000000000a40                apb_uart_send_byte
+                0x0000000000000908       0xa4 ./bsp/apb_uart.o
+                0x0000000000000908                apb_uart_send_byte
  .text.apb_uart_rev_byte
-                0x0000000000000ae4       0xa4 ./bsp/apb_uart.o
-                0x0000000000000ae4                apb_uart_rev_byte
+                0x00000000000009ac       0xa4 ./bsp/apb_uart.o
+                0x00000000000009ac                apb_uart_rev_byte
  .text.apb_uart_enable_itr
-                0x0000000000000b88       0xd8 ./bsp/apb_uart.o
-                0x0000000000000b88                apb_uart_enable_itr
+                0x0000000000000a50       0xd8 ./bsp/apb_uart.o
+                0x0000000000000a50                apb_uart_enable_itr
  .text.apb_uart_clear_itr_flag
-                0x0000000000000c60       0x4c ./bsp/apb_uart.o
-                0x0000000000000c60                apb_uart_clear_itr_flag
+                0x0000000000000b28       0x4c ./bsp/apb_uart.o
+                0x0000000000000b28                apb_uart_clear_itr_flag
  .text.pre_init
-                0x0000000000000cac       0x34 ./bsp/init.o
-                0x0000000000000cac                pre_init
+                0x0000000000000b74       0x34 ./bsp/init.o
+                0x0000000000000b74                pre_init
  .text.plic_init
-                0x0000000000000ce0       0x30 ./bsp/plic.o
-                0x0000000000000ce0                plic_init
+                0x0000000000000ba8       0x30 ./bsp/plic.o
+                0x0000000000000ba8                plic_init
  .text.plic_set_threshold
-                0x0000000000000d10       0x60 ./bsp/plic.o
-                0x0000000000000d10                plic_set_threshold
+                0x0000000000000bd8       0x60 ./bsp/plic.o
+                0x0000000000000bd8                plic_set_threshold
  .text.plic_enable_interrupt
-                0x0000000000000d70       0xa4 ./bsp/plic.o
-                0x0000000000000d70                plic_enable_interrupt
+                0x0000000000000c38       0xa4 ./bsp/plic.o
+                0x0000000000000c38                plic_enable_interrupt
  .text.plic_set_priority
-                0x0000000000000e14       0x4c ./bsp/plic.o
-                0x0000000000000e14                plic_set_priority
+                0x0000000000000cdc       0x4c ./bsp/plic.o
+                0x0000000000000cdc                plic_set_priority
  .text.plic_claim_interrupt
-                0x0000000000000e60       0x5c ./bsp/plic.o
-                0x0000000000000e60                plic_claim_interrupt
+                0x0000000000000d28       0x5c ./bsp/plic.o
+                0x0000000000000d28                plic_claim_interrupt
  .text.plic_complete_interrupt
-                0x0000000000000ebc       0x64 ./bsp/plic.o
-                0x0000000000000ebc                plic_complete_interrupt
- .text.entry    0x0000000000000f20      0x128 ./bsp/trap_entry.o
-                0x0000000000000f20                trap_entry
+                0x0000000000000d84       0x64 ./bsp/plic.o
+                0x0000000000000d84                plic_complete_interrupt
+ .text.entry    0x0000000000000de8      0x128 ./bsp/trap_entry.o
+                0x0000000000000de8                trap_entry
  .text.trap_handler
-                0x0000000000001048       0x80 ./bsp/trap_handler.o
-                0x0000000000001048                trap_handler
+                0x0000000000000f10       0x80 ./bsp/trap_handler.o
+                0x0000000000000f10                trap_handler
  .text.serr_handler
-                0x00000000000010c8       0x18 ./bsp/trap_handler.o
-                0x00000000000010c8                serr_handler
- .text.xputc    0x00000000000010e0       0x60 ./bsp/xprintf.o
-                0x00000000000010e0                xputc
- .text.xputs    0x0000000000001140       0x50 ./bsp/xprintf.o
-                0x0000000000001140                xputs
+                0x0000000000000f90       0x18 ./bsp/trap_handler.o
+                0x0000000000000f90                serr_handler
+ .text.xputc    0x0000000000000fa8       0x6c ./bsp/xprintf.o
+                0x0000000000000fa8                xputc
+ .text.xputs    0x0000000000001014       0x50 ./bsp/xprintf.o
+                0x0000000000001014                xputs
  .text.xvprintf
-                0x0000000000001190      0x4a0 ./bsp/xprintf.o
- .text.xprintf  0x0000000000001630       0x60 ./bsp/xprintf.o
-                0x0000000000001630                xprintf
+                0x0000000000001064      0x4a0 ./bsp/xprintf.o
+ .text.xprintf  0x0000000000001504       0x60 ./bsp/xprintf.o
+                0x0000000000001504                xprintf
  .text.ext_irq_handler
-                0x0000000000001690       0x68 ./main.o
-                0x0000000000001690                ext_irq_handler
+                0x0000000000001564       0x68 ./main.o
+                0x0000000000001564                ext_irq_handler
  .text.uart0_itr_handler
-                0x00000000000016f8       0x84 ./main.o
+                0x00000000000015cc       0x84 ./main.o
  .text.uart_putc
-                0x000000000000177c       0x3c ./main.o
- .text.main     0x00000000000017b8      0x16c ./main.o
-                0x00000000000017b8                main
- .text.atexit   0x0000000000001924       0x14 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-atexit.o)
-                0x0000000000001924                atexit
- .text.exit     0x0000000000001938       0x38 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o)
-                0x0000000000001938                exit
- .text.__libc_fini_array
-                0x0000000000001970       0x60 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-fini.o)
-                0x0000000000001970                __libc_fini_array
- .text.__libc_init_array
-                0x00000000000019d0       0x98 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-init.o)
-                0x00000000000019d0                __libc_init_array
- .text          0x0000000000001a68       0xdc d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-memset.o)
-                0x0000000000001a68                memset
- .text.__register_exitproc
-                0x0000000000001b44       0xf0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__atexit.o)
-                0x0000000000001b44                __register_exitproc
- .text.__call_exitprocs
-                0x0000000000001c34      0x13c d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
-                0x0000000000001c34                __call_exitprocs
- .text.__retarget_lock_acquire_recursive
-                0x0000000000001d70        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
-                0x0000000000001d70                __retarget_lock_acquire_recursive
- .text.__retarget_lock_release_recursive
-                0x0000000000001d74        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
-                0x0000000000001d74                __retarget_lock_release_recursive
+                0x0000000000001650       0x3c ./main.o
+ .text.main     0x000000000000168c      0x178 ./main.o
+                0x000000000000168c                main
  *(.gnu.linkonce.t.*)
-
-.eh_frame       0x0000000000001d78        0x0
- .eh_frame      0x0000000000001d78        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
-
-.sdata2._global_impure_ptr
-                0x0000000000001d78        0x4
- .sdata2._global_impure_ptr
-                0x0000000000001d78        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
-                0x0000000000001d78                _global_impure_ptr
-
-.rela.dyn       0x0000000000001d7c        0x0
- .rela.text     0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.deregister_tm_clones
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.register_tm_clones
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.__do_global_dtors_aux
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.frame_dummy
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.init     0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.trap_handler
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.xputc
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.main
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.__libc_fini_array
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.__libc_init_array
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.text.startup.register_fini
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
- .rela.sdata.__atexit_recursive_mutex
-                0x0000000000001d7c        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32/crt0.o
-                0x0000000000001d7c                . = ALIGN (0x4)
+                0x0000000000001804                . = ALIGN (0x4)
                 [!provide]                        PROVIDE (__etext = .)
                 [!provide]                        PROVIDE (_etext = .)
                 [!provide]                        PROVIDE (etext = .)
 
-.preinit_array  0x0000000000001d7c        0x0
-                0x0000000000001d7c                PROVIDE (__preinit_array_start = .)
+.preinit_array  0x0000000000001804        0x0
+                [!provide]                        PROVIDE (__preinit_array_start = .)
  *(.preinit_array)
-                0x0000000000001d7c                PROVIDE (__preinit_array_end = .)
+                [!provide]                        PROVIDE (__preinit_array_end = .)
 
-.init_array     0x0000000000001d7c        0x8
-                0x0000000000001d7c                PROVIDE (__init_array_start = .)
+.init_array     0x0000000000001804        0x0
+                [!provide]                        PROVIDE (__init_array_start = .)
  *(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*))
- .init_array.00000
-                0x0000000000001d7c        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
  *(.init_array EXCLUDE_FILE(*crtend?.o *crtend.o *crtbegin?.o *crtbegin.o) .ctors)
- .init_array    0x0000000000001d80        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
-                0x0000000000001d84                PROVIDE (__init_array_end = .)
+                [!provide]                        PROVIDE (__init_array_end = .)
 
-.fini_array     0x0000000000001d84        0x4
-                0x0000000000001d84                PROVIDE (__fini_array_start = .)
+.fini_array     0x0000000000001804        0x0
+                [!provide]                        PROVIDE (__fini_array_start = .)
  *(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*))
  *(.fini_array EXCLUDE_FILE(*crtend?.o *crtend.o *crtbegin?.o *crtbegin.o) .dtors)
- .fini_array    0x0000000000001d84        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
-                0x0000000000001d88                PROVIDE (__fini_array_end = .)
+                [!provide]                        PROVIDE (__fini_array_end = .)
 
 .ctors
  *crtbegin.o(.ctors)
@@ -1183,15 +1072,15 @@ LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/
  *(SORT_BY_NAME(.dtors.*))
  *(.dtors)
 
-.lalign         0x0000000000001d88        0x0
-                0x0000000000001d88                . = ALIGN (0x4)
-                0x0000000000001d88                PROVIDE (_data_lma = .)
+.lalign         0x0000000000001804        0x0
+                0x0000000000001804                . = ALIGN (0x4)
+                0x0000000000001804                PROVIDE (_data_lma = .)
 
-.dalign         0x0000000010000000        0x0 load address 0x0000000000001d88
+.dalign         0x0000000010000000        0x0 load address 0x0000000000001804
                 0x0000000010000000                . = ALIGN (0x4)
                 0x0000000010000000                PROVIDE (_data = .)
 
-.data           0x0000000010000000      0x4f0 load address 0x0000000000001d88
+.data           0x0000000010000000       0xc0 load address 0x0000000000001804
  *(.rdata)
  *(.rodata .rodata.*)
  .rodata.xvprintf
@@ -1199,77 +1088,57 @@ LOAD d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/
  .rodata        0x000000001000005c       0x56 ./main.o
  *(.gnu.linkonce.r.*)
  *(.data .data.*)
- *fill*         0x00000000100000b2        0x6 
- .data.impure_data
-                0x00000000100000b8      0x428 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-impure.o)
  *(.gnu.linkonce.d.*)
-                0x00000000100004e0                . = ALIGN (0x8)
-                0x0000000010000ce0                PROVIDE (__global_pointer$ = (. + 0x800))
+                0x00000000100000b8                . = ALIGN (0x8)
+ *fill*         0x00000000100000b2        0x6 
+                0x00000000100008b8                PROVIDE (__global_pointer$ = (. + 0x800))
  *(.sdata .sdata.*)
- .sdata.__atexit_recursive_mutex
-                0x00000000100004e0        0x4 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
-                0x00000000100004e0                __atexit_recursive_mutex
  *(.gnu.linkonce.s.*)
-                0x00000000100004e8                . = ALIGN (0x8)
- *fill*         0x00000000100004e4        0x4 
+                0x00000000100000b8                . = ALIGN (0x8)
  *(.srodata.cst16)
  *(.srodata.cst8)
  *(.srodata.cst4)
  *(.srodata.cst2)
  *(.srodata .srodata.*)
- .srodata       0x00000000100004e8        0x8 ./main.o
+ .srodata       0x00000000100000b8        0x8 ./main.o
 
-.tm_clone_table
-                0x00000000100004f0        0x0 load address 0x0000000000002278
- .tm_clone_table
-                0x00000000100004f0        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- .tm_clone_table
-                0x00000000100004f0        0x0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtend.o
-                0x00000000100004f0                . = ALIGN (0x4)
-                0x00000000100004f0                PROVIDE (_edata = .)
+.rela.dyn       0x00000000100000c0        0x0 load address 0x00000000000018c4
+ .rela.init     0x00000000100000c0        0x0 ./bsp/apb_gpio.o
+ .rela.text.trap_handler
+                0x00000000100000c0        0x0 ./bsp/apb_gpio.o
+ .rela.text.xputc
+                0x00000000100000c0        0x0 ./bsp/apb_gpio.o
+ .rela.text.main
+                0x00000000100000c0        0x0 ./bsp/apb_gpio.o
+                0x00000000100000c0                . = ALIGN (0x4)
+                0x00000000100000c0                PROVIDE (_edata = .)
                 [!provide]                        PROVIDE (edata = .)
                 [!provide]                        PROVIDE (_fbss = .)
-                0x00000000100004f0                PROVIDE (__bss_start = .)
+                0x00000000100000c0                PROVIDE (__bss_start = .)
 
-.bss            0x00000000100004f0      0x160
+.bss            0x00000000100000c0      0x120
  *(.sbss*)
- .sbss.completed.3272
-                0x00000000100004f0        0x1 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
- *fill*         0x00000000100004f1        0x3 
- .sbss.outptr   0x00000000100004f4        0x4 ./bsp/xprintf.o
- .sbss.gpio0    0x00000000100004f8        0x8 ./main.o
- .sbss.uart0    0x0000000010000500        0x8 ./main.o
- .sbss.plic     0x0000000010000508        0x4 ./main.o
+ .sbss.outptr   0x00000000100000c0        0x4 ./bsp/xprintf.o
+ .sbss.gpio0    0x00000000100000c4        0x8 ./main.o
+ .sbss.uart0    0x00000000100000cc        0x8 ./main.o
+ .sbss.plic     0x00000000100000d4        0x4 ./main.o
  .sbss.uart_rx_n
-                0x000000001000050c        0x2 ./main.o
+                0x00000000100000d8        0x2 ./main.o
  *(.gnu.linkonce.sb.*)
  *(.bss .bss.*)
- *fill*         0x000000001000050e        0x2 
- .bss.object.3277
-                0x0000000010000510       0x18 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/rv32im/ilp32/crtbegin.o
+ *fill*         0x00000000100000da        0x2 
  .bss.uart_rx_buf
-                0x0000000010000528      0x100 ./main.o
+                0x00000000100000dc      0x100 ./main.o
  *(.gnu.linkonce.b.*)
  *(COMMON)
- COMMON         0x0000000010000628        0x4 ./bsp/xprintf.o
-                0x0000000010000628                xfunc_out
- COMMON         0x000000001000062c       0x21 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)
-                0x000000001000062c                __lock___atexit_recursive_mutex
-                0x0000000010000630                __lock___arc4random_mutex
-                0x0000000010000634                __lock___env_recursive_mutex
-                0x0000000010000638                __lock___sinit_recursive_mutex
-                0x000000001000063c                __lock___malloc_recursive_mutex
-                0x0000000010000640                __lock___at_quick_exit_mutex
-                0x0000000010000644                __lock___dd_hash_mutex
-                0x0000000010000648                __lock___tz_mutex
-                0x000000001000064c                __lock___sfp_recursive_mutex
-                0x0000000010000650                . = ALIGN (0x4)
- *fill*         0x000000001000064d        0x3 
-                0x0000000010000650                . = ALIGN (0x8)
-                0x0000000010000650                PROVIDE (_end = .)
+ COMMON         0x00000000100001dc        0x4 ./bsp/xprintf.o
+                0x00000000100001dc                xfunc_out
+                0x00000000100001e0                . = ALIGN (0x4)
+                0x00000000100001e0                . = ALIGN (0x8)
+                0x00000000100001e0                PROVIDE (_end = .)
                 [!provide]                        PROVIDE (end = .)
 
-.stack          0x0000000010006000     0x2000 load address 0x0000000010000650
+.stack          0x0000000010006000     0x2000 load address 0x00000000100001e0
                 [!provide]                        PROVIDE (_heap_end = .)
                 0x0000000000002000                . = __stack_size
  *fill*         0x0000000010006000     0x2000 
@@ -1372,16 +1241,16 @@ OUTPUT(uart_rx_tx.elf elf32-littleriscv)
  .debug_macro   0x0000000000001bdb       0x16 ./bsp/xprintf.o
  .debug_macro   0x0000000000001bf1      0x238 ./main.o
 
-.debug_line     0x0000000000000000     0x2091
+.debug_line     0x0000000000000000     0x208b
  .debug_line    0x0000000000000000      0x342 ./bsp/apb_gpio.o
  .debug_line    0x0000000000000342      0x700 ./bsp/apb_uart.o
  .debug_line    0x0000000000000a42      0x1e7 ./bsp/init.o
  .debug_line    0x0000000000000c29      0x435 ./bsp/plic.o
- .debug_line    0x000000000000105e       0xb7 ./bsp/start.o
- .debug_line    0x0000000000001115      0x1f8 ./bsp/trap_entry.o
- .debug_line    0x000000000000130d      0x20e ./bsp/trap_handler.o
- .debug_line    0x000000000000151b      0x5e7 ./bsp/xprintf.o
- .debug_line    0x0000000000001b02      0x58f ./main.o
+ .debug_line    0x000000000000105e       0xb1 ./bsp/start.o
+ .debug_line    0x000000000000110f      0x1f8 ./bsp/trap_entry.o
+ .debug_line    0x0000000000001307      0x20e ./bsp/trap_handler.o
+ .debug_line    0x0000000000001515      0x5e7 ./bsp/xprintf.o
+ .debug_line    0x0000000000001afc      0x58f ./main.o
 
 .debug_str      0x0000000000000000     0x7c47
  .debug_str     0x0000000000000000     0x332c ./bsp/apb_gpio.o
@@ -1413,7 +1282,7 @@ OUTPUT(uart_rx_tx.elf elf32-littleriscv)
  .comment       0x0000000000000039       0x3a ./bsp/xprintf.o
  .comment       0x0000000000000039       0x3a ./main.o
 
-.debug_frame    0x0000000000000000      0x6f4
+.debug_frame    0x0000000000000000      0x4d8
  .debug_frame   0x0000000000000000      0x110 ./bsp/apb_gpio.o
  .debug_frame   0x0000000000000110      0x118 ./bsp/apb_uart.o
  .debug_frame   0x0000000000000228       0x30 ./bsp/init.o
@@ -1421,10 +1290,3 @@ OUTPUT(uart_rx_tx.elf elf32-littleriscv)
  .debug_frame   0x0000000000000348       0x50 ./bsp/trap_handler.o
  .debug_frame   0x0000000000000398       0xa8 ./bsp/xprintf.o
  .debug_frame   0x0000000000000440       0x98 ./main.o
- .debug_frame   0x00000000000004d8       0x20 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-atexit.o)
- .debug_frame   0x00000000000004f8       0x28 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-exit.o)
- .debug_frame   0x0000000000000520       0x34 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-fini.o)
- .debug_frame   0x0000000000000554       0x3c d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-init.o)
- .debug_frame   0x0000000000000590       0x48 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__atexit.o)
- .debug_frame   0x00000000000005d8       0x6c d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-__call_atexit.o)
- .debug_frame   0x0000000000000644       0xb0 d:/gnu-mcu-eclipse-riscv-none-gcc-8.2.0-2.2-20190521-0004-win64/bin/../lib/gcc/riscv-none-embed/8.2.0/../../../../riscv-none-embed/lib/rv32im/ilp32\libg.a(lib_a-lock.o)

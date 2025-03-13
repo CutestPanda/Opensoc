@@ -1,12 +1,10 @@
 
     .section .init;
-    .globl start_entry;
-    .type start_entry,@function
-    .globl _exit;
-    .type _exit,@function
+    .globl _start;
+    .type _start,@function
 
 
-start_entry:
+_start:
 .option push
 .option norelax
 	la gp, __global_pointer$
@@ -41,6 +39,3 @@ start_entry:
 
 loop:
     j loop
-
-_exit:
-	j _exit

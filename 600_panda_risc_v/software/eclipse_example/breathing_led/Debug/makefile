@@ -59,7 +59,7 @@ main-build: breathing_led.elf secondary-outputs
 breathing_led.elf: $(OBJS) $(USER_OBJS) makefile objects.mk $(OPTIONAL_TOOL_DEPS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GNU RISC-V Cross C Linker'
-	riscv-none-embed-gcc -march=rv32im -mabi=ilp32 -mcmodel=medlow -msmall-data-limit=8 -mno-save-restore -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -g3 -T "E:\eclipse-workspace\breathing_led\bsp\link.lds" -Xlinker --gc-sections -Wl,-Map,"breathing_led.map" -o "breathing_led.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	riscv-none-embed-gcc -march=rv32im -mabi=ilp32 -mcmodel=medlow -msmall-data-limit=8 -mno-save-restore -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -g3 -T "E:\eclipse-workspace\breathing_led\bsp\link.lds" -Xlinker --gc-sections -Wl,-Map,"breathing_led.map" -nostartfiles -Wl,--gc-sections -Wl,--check-sections -o "breathing_led.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

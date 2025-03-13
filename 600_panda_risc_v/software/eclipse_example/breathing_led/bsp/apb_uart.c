@@ -108,6 +108,7 @@ void apb_uart_disable_itr(ApbUART* uart){
 	volatile uint32_t* LocalAddr = &(uart->hardware->itr_status_en);
 	
 	*LocalAddr = 0x00000000;
+
 	uart->itr_en = 0x00;
 }
 
@@ -119,7 +120,8 @@ void apb_uart_disable_itr(ApbUART* uart){
 @return 中断状态
 *************************/
 uint8_t apb_uart_get_itr_status(ApbUART* uart){
-	uint32_t itr_status_en = uart->hardware->itr_status_en;
+	volatile uint32_t* LocalAddr = &(uart->hardware->itr_status_en);
+	uint32_t itr_status_en = *LocalAddr;
 	
 	return (uint8_t)(itr_status_en >> 17) & 0x1F;
 }
@@ -132,7 +134,9 @@ uint8_t apb_uart_get_itr_status(ApbUART* uart){
 @return none
 *************************/
 void apb_uart_clear_itr_flag(ApbUART* uart){
-	uart->hardware->itr_status_en = 0x00000001 | (uart->itr_en << 1);
+	volatile uint32_t* LocalAddr = &(uart->hardware->itr_status_en);
+
+	*LocalAddr = 0x00000001 | (uart->itr_en << 1);
 }
 
 /*************************

@@ -49,7 +49,8 @@ uart_rx_tx.siz \
 
 
 # All Target
-all: main-build
+all:
+	+@$(MAKE) --no-print-directory main-build && $(MAKE) --no-print-directory post-build
 
 # Main-build Target
 main-build: uart_rx_tx.elf secondary-outputs
@@ -58,7 +59,7 @@ main-build: uart_rx_tx.elf secondary-outputs
 uart_rx_tx.elf: $(OBJS) $(USER_OBJS) makefile objects.mk $(OPTIONAL_TOOL_DEPS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GNU RISC-V Cross C Linker'
-	riscv-none-embed-gcc -march=rv32im -mabi=ilp32 -mcmodel=medlow -msmall-data-limit=8 -mno-save-restore -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -g3 -T "E:\eclipse-workspace\uart_rx_tx\bsp\link.lds" -Xlinker --gc-sections -Wl,-Map,"uart_rx_tx.map" -o "uart_rx_tx.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	riscv-none-embed-gcc -march=rv32im -mabi=ilp32 -mcmodel=medlow -msmall-data-limit=8 -mno-save-restore -O0 -fmessage-length=0 -fsigned-char -ffunction-sections -fdata-sections -g3 -T "E:\eclipse-workspace\uart_rx_tx\bsp\link.lds" -Xlinker --gc-sections -Wl,-Map,"uart_rx_tx.map" -nostartfiles -Wl,--gc-sections -Wl,--check-sections -o "uart_rx_tx.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -79,8 +80,12 @@ clean:
 	-$(RM) $(SX_DEPS)$(OBJS)$(SECONDARY_FLASH)$(SECONDARY_SIZE)$(ASM_DEPS)$(S_UPPER_DEPS)$(C_DEPS) uart_rx_tx.elf
 	-@echo ' '
 
+post-build:
+	-riscv-none-embed-objcopy -O binary "uart_rx_tx.elf" "uart_rx_tx.bin"
+	-@echo ' '
+
 secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_SIZE)
 
-.PHONY: all clean dependents main-build
+.PHONY: all clean dependents main-build post-build
 
 -include ../makefile.targets
