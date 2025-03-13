@@ -12,6 +12,7 @@
  - 在最小处理器系统中配备ITCM、DTCM、PLIC和CLINT
  - 支持JTAG在线调试，支持UART编程烧录
  - 易于移植到FPGA
+ - 支持Eclipse IDE
 
 小胖达MCU尚未支持以下特性：  
 
@@ -71,6 +72,7 @@
 |APB-GPIO|0x4000_0000 ~ 0x4000_0FFF|4KB|
 |APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|
 |APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|
+|APB-UART|0x4000_3000 ~ 0x4000_3FFF|4KB|
 |PLIC|0xF000_0000 ~ 0xF03F_FFFF|4MB|
 |CLINT|0xF400_0000 ~ 0xF7FF_FFFF|64MB|
 |调试模块|0xFFFF_F800 ~ 0xFFFF_FBFF|1KB|
@@ -142,3 +144,53 @@ GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经
 然后，再输入：  
 `` target remote localhost:3333 ``  
 此时，可以使用[GDB命令](https://blog.csdn.net/ys1115/article/details/130563975)进行在线调试。  
+
+## 使用Eclipse IDE
+1.下载Eclipse（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)里的eclipse-embedcpp-2025-03-R-win32-x86_64.zip）  
+2.将压缩包里的eclipse文件夹解压到任意目录，eclipse是免安装的，其中的eclipse.exe就是可执行程序，可以将它发送到桌面快捷方式。  
+3.安装Eclipse Embedded CDT
+打开Eclipse，选择Help菜单栏下的Eclipse Marketplace。  
+![说明5](../img/panda_risc_v_5.png)  
+搜索eclipse embedded，安装Eclipse Embedded CDT。  
+![说明6](../img/panda_risc_v_6.png)  
+重新启动Eclipse。  
+4.配置risc-v工具链  
+打开Eclipse，选择Window菜单栏下的Preferences。  
+![说明7](../img/panda_risc_v_7.png)  
+配置好Build工具的路径，Build工具就是我们在"配置编译环境"小节所安装的MAKE工具，注意要找到其中的bin目录。  
+![说明8](../img/panda_risc_v_8.png)  
+配置好Openocd工具的路径，它位于**600_panda_risc_v/tools/openocd**下。  
+![说明9](../img/panda_risc_v_9.png)  
+配置好GNU的路径，GNU就是我们在"配置编译环境"小节所安装的GNU工具链，注意要找到其中的bin目录。  
+请先按照下图选择好Default toolchain，即riscv-none-embed-gcc。  
+![说明10](../img/panda_risc_v_10.png)  
+重新启动Eclipse。  
+5.导入示例工程  
+打开Eclipse，选择File菜单栏下的Open Projects from File System，点击Directory按钮，  
+选择**600_panda_risc_v/software/eclipse_example**下的示例工程文件夹**breathing_led**，点击Finish按钮。  
+6.配置工程  
+选中工程，打开工程属性配置界面。  
+![说明11](../img/panda_risc_v_11.png)  
+配置如下，其中Build后命令为：  
+`` riscv-none-embed-objcopy -O binary "${ProjName}.elf" "${ProjName}.bin" ``  
+![说明12](../img/panda_risc_v_12.png)  
+![说明13](../img/panda_risc_v_13.png)  
+![说明14](../img/panda_risc_v_14.png)  
+![说明15](../img/panda_risc_v_15.png)  
+7.编译工程  
+选中工程，点左上角的小锤子。  
+8.创建Debug配置  
+选中工程，右键，选择Run As下的Run Configurations。  
+创建一个GDB OpenOCD Debugging（右键，点击New Configuration）。  
+配置如下，修改Config options为**600_panda_risc_v/tools/openocd**下的**panda_risc_v.cfg**。  
+GDB启动时命令如下：  
+````
+set remotetimeout 250
+set arch riscv:rv32
+````
+![说明16](../img/panda_risc_v_16.png)  
+配置CPU运行/重新运行时的命令：  
+`` set $pc=0x800 ``  
+![说明17](../img/panda_risc_v_17.png)  
+在连接好Daplink，boot引脚为低电平，CPU复位释放后，点击RUN即开始运行程序。  
+此外，可以选择Debug As来进行在线调试。  
