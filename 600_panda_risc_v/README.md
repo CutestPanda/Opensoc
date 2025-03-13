@@ -182,7 +182,8 @@ GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经
 8.创建Debug配置  
 选中工程，右键，选择Run As下的Run Configurations。  
 创建一个GDB OpenOCD Debugging（右键，点击New Configuration）。  
-配置如下，修改Config options为**600_panda_risc_v/tools/openocd**下的**panda_risc_v.cfg**。  
+配置如下，修改Config options为**600_panda_risc_v/tools/openocd**下的**panda_risc_v.cfg**，格式如下：  
+`` -f ".cfg文件的路径" ``  
 GDB启动时命令如下：  
 ````
 set remotetimeout 250
