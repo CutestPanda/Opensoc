@@ -17,7 +17,7 @@
 小胖达MCU尚未支持以下特性：  
 
  - ICache和DCache
-
+   
 ## 文件结构
 **doc**: 设计文档、参考手册  
 **fpga**: 测评SOC源码、Vivado工程  
@@ -27,7 +27,7 @@
 **tb**: 测试平台  
 **tb/tb_panda_risc_v**下提供了本处理器核的仿真平台。  
 **tools**: GNU工具链，openocd  
-
+   
 ## 配置编译环境
 1.下载MAKE工具和GNU工具链（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)）  
 2.安装MAKE工具  
@@ -43,22 +43,26 @@
 然后，为当前python环境安装pyserial库，打开命令行终端并执行：  
 `` pip install pyserial ``  
 > 作者在测试时使用的是python3.12。  
-
+   
 ## 编译C程序
+<u>若使用Eclipse IDE进行开发，可跳过本节。</u>  
+   
 在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
 `` python .\compile.py --target flow_led ``  
 等待出现"请按任意键继续. . ."后，键入`` ENTER ``，并退出终端。  
 > 生成的flow_led.txt是十六进制的机器码文本文件，flow_led.bin是二进制的机器码文件，flow_led.dump是汇编指令文件。  
 其中，flow_led对应**600_panda_risc_v/software/test**下的软件项目**flow_led**。  
-
+   
 ## 创建软件项目
+<u>若使用Eclipse IDE进行开发，可跳过本节。</u>  
+   
 1.先在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
 `` python .\gen_makefile.py --target your_prj_name --debug ``  
 其中，--debug表示在需要在.elf文件中添加调试信息，这是可选的。  
 2.然后在**600_panda_risc_v/software/test**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
 3.在**600_panda_risc_v/software/test/your_prj_name**下编写若干.c和.h。  
 > 软件项目引用了**600_panda_risc_v/software/lib**下的驱动或工具程序，其使用的外设都能在Opensoc仓库里找到。  
-
+   
 ## 搭建硬件工程
 测评SOC的所有源码都在**600_panda_risc_v/fpga/panda_soc_eva**下，  
 请修改**imem_init_file**参数为**boot_rom.txt**所在的路径（在**600_panda_risc_v/fpga**下），注意修改PLL的例化。  
@@ -110,8 +114,9 @@
 ext_itr_req_vec[0]对应中断号1，ext_itr_req_vec[1]对应中断号2，以此类推。  
 
 > 在**600_panda_risc_v/fpga/vivado_prj**下提供了基于ZYNQ7020的示例Vivado工程。
-
+   
 ## 下载与调试
+<u>若使用Eclipse IDE进行开发，可跳过本节。</u>  
 可通过JTAG或UART来进行编程烧录。  
 
 #### UART编程烧录
@@ -144,7 +149,7 @@ GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经
 然后，再输入：  
 `` target remote localhost:3333 ``  
 此时，可以使用[GDB命令](https://blog.csdn.net/ys1115/article/details/130563975)进行在线调试。  
-
+   
 ## 使用Eclipse IDE
 1.下载Eclipse（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)里的eclipse-embedcpp-2025-03-R-win32-x86_64.zip）  
 2.将压缩包里的eclipse文件夹解压到任意目录，eclipse是免安装的，其中的eclipse.exe就是可执行程序，可以将它发送到桌面快捷方式。  
