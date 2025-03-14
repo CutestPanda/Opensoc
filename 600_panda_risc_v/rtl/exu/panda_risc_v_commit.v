@@ -48,7 +48,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/14
 ********************************************************************/
 
 
@@ -83,6 +83,7 @@ module panda_risc_v_commit #(
 	input wire s_pst_is_dret_inst, // 是否DRET指令
 	input wire s_pst_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	input wire[31:0] s_pst_brc_pc_upd, // 分支预测失败时修正的PC(仅在B指令或FENCE.I指令下有效)
+	input wire[31:0] s_pst_prdt_pc, // 分支预测的PC
 	input wire s_pst_prdt_jump, // 是否预测跳转
 	input wire s_pst_is_long_inst, // 是否长指令(L/S, 乘除法)
 	input wire s_pst_valid,
@@ -247,10 +248,14 @@ module panda_risc_v_commit #(
 	/** 分支确认 **/
 	wire brc_prdt_failed; // 分支预测失败(标志)
 	
+	// 问题: 考虑当前指令带有同步异常的情况???
 	assign dbg_nxt_inst_addr = 
-		(brc_prdt_failed | s_pst_is_jal_inst | s_pst_is_jalr_inst) ? 
-			s_pst_brc_pc_upd:
-			(s_pst_pc_of_inst + 3'd4);
+		// 是JAL/JALR指令, 或者是B指令且预测失败, 则下1条有效指令的地址为分支预测失败时修正的PC
+		({32{s_pst_is_jal_inst | s_pst_is_jalr_inst | (s_pst_is_b_inst & (s_pst_prdt_jump ^ cfr_jump))}} & s_pst_brc_pc_upd) | 
+		// 是B指令且预测成功, 则下1条有效指令的地址为分支预测的PC
+		({32{s_pst_is_b_inst & (~(s_pst_prdt_jump ^ cfr_jump))}} & s_pst_prdt_pc) | 
+		// 不是JAL/JALR/B指令, 则下1条有效指令的地址为PC + 4
+		({32{~(s_pst_is_jal_inst | s_pst_is_jalr_inst | s_pst_is_b_inst)}} & (s_pst_pc_of_inst + 3'd4));
 	
 	assign brc_prdt_failed = 
 		s_pst_valid & // 当前有待交付的指令

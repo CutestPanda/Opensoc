@@ -46,7 +46,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/14
 ********************************************************************/
 
 
@@ -76,6 +76,7 @@ module panda_risc_v_dispatcher #(
 	input wire[14:0] s_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	input wire[31:0] s_dispatch_req_pc_of_inst, // 指令对应的PC
 	input wire[31:0] s_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
+	input wire[31:0] s_dispatch_req_prdt_pc, // 分支预测的PC
 	input wire[4:0] s_dispatch_req_rd_id, // RD索引
 	input wire s_dispatch_req_rd_vld, // 是否需要写RD
 	input wire[2:0] s_dispatch_req_err_code, // 错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
@@ -106,6 +107,7 @@ module panda_risc_v_dispatcher #(
 	output wire m_alu_is_dret_inst, // 是否DRET指令
 	output wire m_alu_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire[31:0] m_alu_brc_pc_upd, // 分支预测失败时修正的PC
+	output wire[31:0] m_alu_prdt_pc, // 分支预测的PC
 	output wire m_alu_prdt_jump, // 是否预测跳转
 	output wire[4:0] m_alu_rd_id, // RD索引
 	output wire m_alu_rd_vld, // 是否需要写RD
@@ -267,6 +269,7 @@ module panda_risc_v_dispatcher #(
 	assign m_alu_is_dret_inst = s_dispatch_req_inst_type_packeted[INST_TYPE_FLAG_IS_DRET_INST_SID];
 	assign m_alu_is_first_inst_after_rst = s_dispatch_req_is_first_inst_after_rst;
 	assign m_alu_brc_pc_upd = s_dispatch_req_brc_pc_upd_store_din; // 分支预测失败时修正的PC
+	assign m_alu_prdt_pc = s_dispatch_req_prdt_pc;
 	assign m_alu_prdt_jump = dispatch_req_prdt_jump;
 	assign m_alu_rd_id = s_dispatch_req_rd_id;
 	assign m_alu_rd_vld = s_dispatch_req_rd_vld;

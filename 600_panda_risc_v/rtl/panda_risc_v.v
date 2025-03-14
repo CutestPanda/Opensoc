@@ -36,7 +36,7 @@ SOFTWARE.
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/14
 ********************************************************************/
 
 
@@ -575,6 +575,7 @@ module panda_risc_v #(
 	wire m_alu_is_dret_inst; // 是否DRET指令
 	wire m_alu_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] m_alu_brc_pc_upd; // 分支预测失败时修正的PC
+	wire[31:0] m_alu_prdt_pc; // 分支预测的PC
 	wire m_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] m_alu_rd_id; // RD索引
 	wire m_alu_rd_vld; // 是否需要写RD
@@ -680,6 +681,7 @@ module panda_risc_v #(
 		.m_alu_is_dret_inst(m_alu_is_dret_inst),
 		.m_alu_is_first_inst_after_rst(m_alu_is_first_inst_after_rst),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
+		.m_alu_prdt_pc(m_alu_prdt_pc),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),
 		.m_alu_rd_vld(m_alu_rd_vld),
@@ -746,6 +748,7 @@ module panda_risc_v #(
 	wire s_alu_is_dret_inst; // 是否DRET指令
 	wire s_alu_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] s_alu_brc_pc_upd; // 分支预测失败时修正的PC
+	wire[31:0] s_alu_prdt_pc; // 分支预测的PC
 	wire s_alu_prdt_jump; // 是否预测跳转
 	wire[4:0] s_alu_rd_id; // RD索引
 	wire s_alu_rd_vld; // 是否需要写RD
@@ -830,6 +833,7 @@ module panda_risc_v #(
 	assign s_alu_is_dret_inst = m_alu_is_dret_inst;
 	assign s_alu_is_first_inst_after_rst = m_alu_is_first_inst_after_rst;
 	assign s_alu_brc_pc_upd = m_alu_brc_pc_upd;
+	assign s_alu_prdt_pc = m_alu_prdt_pc;
 	assign s_alu_prdt_jump = m_alu_prdt_jump;
 	assign s_alu_rd_id = m_alu_rd_id;
 	assign s_alu_rd_vld = m_alu_rd_vld;
@@ -929,6 +933,7 @@ module panda_risc_v #(
 		.s_alu_is_dret_inst(s_alu_is_dret_inst),
 		.s_alu_is_first_inst_after_rst(s_alu_is_first_inst_after_rst),
 		.s_alu_brc_pc_upd(s_alu_brc_pc_upd),
+		.s_alu_prdt_pc(s_alu_prdt_pc),
 		.s_alu_prdt_jump(s_alu_prdt_jump),
 		.s_alu_rd_id(s_alu_rd_id),
 		.s_alu_rd_vld(s_alu_rd_vld),

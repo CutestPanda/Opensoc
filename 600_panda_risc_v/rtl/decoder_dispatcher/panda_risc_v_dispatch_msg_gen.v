@@ -38,7 +38,7 @@ IFU取指结果 -> 向通用寄存器读控制提交请求 -> 译码单元 -> �
 无
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/14
 ********************************************************************/
 
 
@@ -92,6 +92,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	output wire[14:0] m_dispatch_req_inst_type_packeted, // 打包的指令类型标志
 	output wire[31:0] m_dispatch_req_pc_of_inst, // 指令对应的PC
 	output wire[31:0] m_dispatch_req_brc_pc_upd_store_din, // 分支预测失败时修正的PC或用于写存储映射的数据
+	output wire[31:0] m_dispatch_req_prdt_pc, // 分支预测的PC
 	output wire[4:0] m_dispatch_req_rd_id, // RD索引
 	output wire m_dispatch_req_rd_vld, // 是否需要写RD
 	output wire[2:0] m_dispatch_req_err_code, // 错误类型(3'b000 -> 正常, 3'b001 -> 非法指令, 
@@ -247,6 +248,8 @@ module panda_risc_v_dispatch_msg_gen #(
 	wire[31:0] rs2_v;
 	// 分支预测失败时修正的PC
 	wire[31:0] brc_pc_upd;
+	// 分支预测的PC
+	wire[31:0] prdt_pc;
 	// 读写通用寄存器堆标志
 	wire rs1_vld; // 是否需要读RS1
 	wire rs2_vld; // 是否需要读RS2
@@ -299,6 +302,7 @@ module panda_risc_v_dispatch_msg_gen #(
 		
 		.prdt_jump(if_res_prdt_jump),
 		.brc_pc_upd(brc_pc_upd),
+		.prdt_pc(prdt_pc),
 		
 		.rs1_vld(rs1_vld),
 		.rs2_vld(rs2_vld),
@@ -342,6 +346,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	reg[14:0] dispatch_inst_type_packeted; // 打包的指令类型标志
 	reg[31:0] dispatch_pc_of_inst; // 指令对应的PC
 	reg[31:0] dispatch_brc_pc_upd_store_din; // 分支预测失败时修正的PC或用于写存储映射的数据
+	reg[31:0] dispatch_prdt_pc; // 分支预测的PC
 	reg[4:0] dispatch_rd_id; // RD索引
 	reg dispatch_rd_vld; // 是否需要写RD
 	reg[2:0] dispatch_err_code; // 错误类型
@@ -353,6 +358,7 @@ module panda_risc_v_dispatch_msg_gen #(
 	assign m_dispatch_req_inst_type_packeted = dispatch_inst_type_packeted;
 	assign m_dispatch_req_pc_of_inst = dispatch_pc_of_inst;
 	assign m_dispatch_req_brc_pc_upd_store_din = dispatch_brc_pc_upd_store_din;
+	assign m_dispatch_req_prdt_pc = dispatch_prdt_pc;
 	assign m_dispatch_req_rd_id = dispatch_rd_id;
 	assign m_dispatch_req_rd_vld = dispatch_rd_vld;
 	assign m_dispatch_req_err_code = dispatch_err_code;
@@ -413,6 +419,12 @@ module panda_risc_v_dispatch_msg_gen #(
 		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
 			dispatch_brc_pc_upd_store_din <= # simulation_delay 
 				dcd_res_inst_type_packeted[INST_TYPE_FLAG_IS_STORE_INST_SID] ? rs2_v:brc_pc_upd;
+	end
+	// 分支预测的PC
+	always @(posedge clk)
+	begin
+		if(s_reg_file_rd_res_valid & s_reg_file_rd_res_ready) // 取走源寄存器读结果时保存派遣信息
+			dispatch_prdt_pc <= # simulation_delay prdt_pc;
 	end
 	// RD索引
 	always @(posedge clk)

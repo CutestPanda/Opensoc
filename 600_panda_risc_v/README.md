@@ -26,7 +26,7 @@
 **software**: 外设驱动、软件程序示例  
 **tb**: 测试平台  
 **tb/tb_panda_risc_v**下提供了本处理器核的仿真平台。  
-**tools**: GNU工具链，openocd  
+**tools**: GNU工具链，openocd，串口助手  
    
 ## 配置编译环境
 1.下载MAKE工具和GNU工具链（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)）  
@@ -100,6 +100,7 @@
 |i2c0_sda|OLED显示屏SDA|
 |uart0_tx|串口发送端|
 |uart0_rx|串口接收端|
+|pwm0_o|PWM输出|
 
 #### <center>外部中断表</center>
 |中断号|说明|

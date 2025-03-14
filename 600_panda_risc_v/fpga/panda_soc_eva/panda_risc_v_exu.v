@@ -59,7 +59,7 @@ REQ/ACK
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/14
 ********************************************************************/
 
 
@@ -138,6 +138,7 @@ module panda_risc_v_exu #(
 	input wire s_alu_is_dret_inst, // 是否DRET指令
 	input wire s_alu_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	input wire[31:0] s_alu_brc_pc_upd, // 分支预测失败时修正的PC
+	input wire[31:0] s_alu_prdt_pc, // 分支预测的PC
 	input wire s_alu_prdt_jump, // 是否预测跳转
 	input wire[4:0] s_alu_rd_id, // RD索引
 	input wire s_alu_rd_vld, // 是否需要写RD
@@ -246,6 +247,7 @@ module panda_risc_v_exu #(
 	wire s_pst_is_dret_inst; // 是否DRET指令
 	wire s_pst_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] s_pst_brc_pc_upd; // 分支预测失败时修正的PC(仅在B指令或FENCE.I指令下有效)
+	wire[31:0] s_pst_prdt_pc; // 分支预测的PC
 	wire s_pst_prdt_jump; // 是否预测跳转
 	wire s_pst_is_long_inst; // 是否长指令
 	wire s_pst_valid;
@@ -299,6 +301,7 @@ module panda_risc_v_exu #(
 	assign s_pst_is_dret_inst = s_alu_is_dret_inst;
 	assign s_pst_is_first_inst_after_rst = s_alu_is_first_inst_after_rst;
 	assign s_pst_brc_pc_upd = s_alu_brc_pc_upd;
+	assign s_pst_prdt_pc = s_alu_prdt_pc;
 	assign s_pst_prdt_jump = s_alu_prdt_jump;
 	assign s_pst_is_long_inst = s_alu_is_long_inst;
 	assign s_pst_valid = s_alu_valid;
@@ -330,6 +333,7 @@ module panda_risc_v_exu #(
 		.s_pst_is_dret_inst(s_pst_is_dret_inst),
 		.s_pst_is_first_inst_after_rst(s_pst_is_first_inst_after_rst),
 		.s_pst_brc_pc_upd(s_pst_brc_pc_upd),
+		.s_pst_prdt_pc(s_pst_prdt_pc),
 		.s_pst_prdt_jump(s_pst_prdt_jump),
 		.s_pst_is_long_inst(s_pst_is_long_inst),
 		.s_pst_valid(s_pst_valid),

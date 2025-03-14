@@ -316,6 +316,7 @@ module tb_panda_risc_v_dcd_dsptc();
 		.m_alu_is_dret_inst(),
 		.m_alu_is_first_inst_after_rst(),
 		.m_alu_brc_pc_upd(m_alu_brc_pc_upd),
+		.m_alu_prdt_pc(),
 		.m_alu_prdt_jump(m_alu_prdt_jump),
 		.m_alu_rd_id(m_alu_rd_id),
 		.m_alu_rd_vld(m_alu_rd_vld),

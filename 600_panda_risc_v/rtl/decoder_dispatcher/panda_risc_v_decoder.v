@@ -50,7 +50,7 @@ ALU操作 ->
 无
 
 作者: 陈家耀
-日期: 2025/02/13
+日期: 2025/03/14
 ********************************************************************/
 
 
@@ -88,6 +88,7 @@ module panda_risc_v_decoder(
 	// 分支预测回退处理
 	input wire prdt_jump, // 是否预测跳转
 	output wire[31:0] brc_pc_upd, // 分支预测失败时修正的PC
+	output wire[31:0] prdt_pc, // 分支预测的PC
 	
 	// 读写通用寄存器堆标志
 	output wire rs1_vld, // 是否需要读RS1
@@ -302,7 +303,13 @@ module panda_risc_v_decoder(
 		(((is_b_inst & prdt_jump) | is_fence_i_inst) ? (32'd2 << inst_len_type): // 若为B指令且预测跳转, 预测失败时修正到(基址 + 指令长度)
 		                                                                         // 若为FENCE.I指令, 也冲刷到(基址 + 指令长度)
 			{{11{jump_ofs_imm[20]}}, jump_ofs_imm}); // 若为B指令且预测不跳, 预测失败时修正到(基址 + 跳转偏移量)
-			                                         // 若为JAL指令, 也冲刷到(基址 + 跳转偏移量)
+			                                         // 若为JAL或JALR指令, 也冲刷到(基址 + 跳转偏移量)
+	assign prdt_pc = 
+		pc_of_inst + (
+			prdt_jump ? 
+				{{11{jump_ofs_imm[20]}}, jump_ofs_imm}:
+				(32'd2 << inst_len_type)
+		);
 	
 	assign jump_ofs_imm = pre_decoding_msg_packeted[PRE_DCD_MSG_JUMP_OFS_IMM_SID+20:PRE_DCD_MSG_JUMP_OFS_IMM_SID];
 	
