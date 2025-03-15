@@ -205,4 +205,4 @@ set arch riscv:rv32
 `` set $dpc=0x800 ``  
 ![说明18](../img/panda_risc_v_18.png)  
 在连接好Daplink，boot引脚为低电平，CPU复位释放后，点击RUN即开始运行程序。  
-此外，可以选择Debug As来进行在线调试。  
+此外，可以选择Debug As来进行在线调试（**请不要在CPU处于运行状态时设置断点**）。  
