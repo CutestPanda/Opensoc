@@ -59,7 +59,12 @@ I2C MASTER
 module panda_soc_top #(
 	parameter integer imem_depth = 8192, // 指令存储器深度
 	parameter integer dmem_depth = 8192, // 数据存储器深度
+	parameter en_mem_byte_write = "false", // 是否使用RAM的字节使能信号
 	parameter imem_init_file = "E:/scientific_research/risc-v/boot_rom.txt", // 指令存储器初始化文件路径
+	parameter imem_init_file_b0 = "E:/scientific_research/risc-v/boot_rom_b0.txt", // 指令存储器初始化文件路径(字节#0)
+	parameter imem_init_file_b1 = "E:/scientific_research/risc-v/boot_rom_b1.txt", // 指令存储器初始化文件路径(字节#1)
+	parameter imem_init_file_b2 = "E:/scientific_research/risc-v/boot_rom_b2.txt", // 指令存储器初始化文件路径(字节#2)
+	parameter imem_init_file_b3 = "E:/scientific_research/risc-v/boot_rom_b3.txt", // 指令存储器初始化文件路径(字节#3)
 	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
 	parameter uart_prog_supported = "true", // 是否支持UART编程烧录
 	parameter real simulation_delay = 0 // 仿真延时
@@ -87,7 +92,10 @@ module panda_soc_top #(
 	
 	// UART0
     output wire uart0_tx,
-    input wire uart0_rx
+    input wire uart0_rx,
+    
+    // PWM输出
+    output wire pwm0_o
 );
 	
 	/** 内部配置 **/
@@ -346,7 +354,12 @@ module panda_soc_top #(
 		.en_inst_rsp_bck("false"),
 		.en_data_cmd_fwd("true"),
 		.en_data_rsp_bck("true"),
+		.en_mem_byte_write(en_mem_byte_write),
 		.imem_init_file(imem_init_file),
+		.imem_init_file_b0(imem_init_file_b0),
+		.imem_init_file_b1(imem_init_file_b1),
+		.imem_init_file_b2(imem_init_file_b2),
+		.imem_init_file_b3(imem_init_file_b3),
 		.sgn_period_mul(sgn_period_mul),
 		.rtc_psc_r(50 * 1000),
 		.debug_supported("true"),
@@ -678,7 +691,7 @@ module panda_soc_top #(
 	/** APB-TIMER **/
 	apb_timer #(
 		.timer_width(16),
-		.channel_n(0),
+		.channel_n(1),
 		.simulation_delay(simulation_delay)
 	)apb_timer_u(
 		.clk(pll_clk_out),
@@ -694,7 +707,7 @@ module panda_soc_top #(
 		.pslverr_out(m2_apb_pslverr),
 		
 		.cap_in(4'b0000),
-		.cmp_out(),
+		.cmp_out(pwm0_o),
 		
 		.itr(timer0_itr_req)
 	);

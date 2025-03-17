@@ -48,6 +48,8 @@ MEM MASTER
 
 
 module panda_risc_v_min_proc_sys #(
+    // 是否使用RAM的字节使能信号
+    parameter en_mem_byte_write = "false",
 	// 指令总线控制单元配置
 	parameter integer imem_access_timeout_th = 16, // 指令总线访问超时周期数(必须>=1)
 	parameter integer inst_addr_alignment_width = 32, // 指令地址对齐位宽(16 | 32)
@@ -91,6 +93,10 @@ module panda_risc_v_min_proc_sys #(
 	parameter en_data_rsp_bck = "true", // 使能数据ICB主机响应通道后向寄存器
 	// 指令存储器配置
 	parameter imem_init_file = "no_init", // 指令存储器初始化文件路径
+	parameter imem_init_file_b0 = "no_init", // 指令存储器初始化文件路径(字节#0)
+	parameter imem_init_file_b1 = "no_init", // 指令存储器初始化文件路径(字节#1)
+	parameter imem_init_file_b2 = "no_init", // 指令存储器初始化文件路径(字节#2)
+	parameter imem_init_file_b3 = "no_init", // 指令存储器初始化文件路径(字节#3)
 	// 乘法器配置
 	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
 	// RTC预分频系数
@@ -368,23 +374,99 @@ module panda_risc_v_min_proc_sys #(
 	
 	assign imem_dout = ((debug_supported == "false") | itcm_sel_d) ? itcm_dout:hart_access_dout;
 	
-	bram_single_port #(
-		.style("LOW_LATENCY"),
-		.rw_mode("read_first"),
-		.mem_width(32),
-		.mem_depth(imem_addr_range / 4),
-		.INIT_FILE(imem_init_file),
-		.byte_write_mode("true"),
-		.simulation_delay(simulation_delay)
-	)imem_u(
-		.clk(imem_clk),
-		
-		.en(itcm_en),
-		.wen(itcm_wen),
-		.addr(itcm_addr),
-		.din(itcm_din),
-		.dout(itcm_dout)
-	);
+	generate
+	    if(en_mem_byte_write == "false")
+	    begin
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(imem_addr_range / 4),
+                .INIT_FILE(imem_init_file_b0),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )imem_u0(
+                .clk(imem_clk),
+                
+                .en(itcm_en),
+                .wen(itcm_wen[0]),
+                .addr(itcm_addr),
+                .din(itcm_din[7:0]),
+                .dout(itcm_dout[7:0])
+            );
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(imem_addr_range / 4),
+                .INIT_FILE(imem_init_file_b1),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )imem_u1(
+                .clk(imem_clk),
+                
+                .en(itcm_en),
+                .wen(itcm_wen[1]),
+                .addr(itcm_addr),
+                .din(itcm_din[15:8]),
+                .dout(itcm_dout[15:8])
+            );
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(imem_addr_range / 4),
+                .INIT_FILE(imem_init_file_b2),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )imem_u2(
+                .clk(imem_clk),
+                
+                .en(itcm_en),
+                .wen(itcm_wen[2]),
+                .addr(itcm_addr),
+                .din(itcm_din[23:16]),
+                .dout(itcm_dout[23:16])
+            );
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(imem_addr_range / 4),
+                .INIT_FILE(imem_init_file_b3),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )imem_u3(
+                .clk(imem_clk),
+                
+                .en(itcm_en),
+                .wen(itcm_wen[3]),
+                .addr(itcm_addr),
+                .din(itcm_din[31:24]),
+                .dout(itcm_dout[31:24])
+            );
+		end
+		else
+		begin
+	        bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(32),
+                .mem_depth(imem_addr_range / 4),
+                .INIT_FILE(imem_init_file),
+                .byte_write_mode("true"),
+                .simulation_delay(simulation_delay)
+            )imem_u(
+                .clk(imem_clk),
+                
+                .en(itcm_en),
+                .wen(itcm_wen),
+                .addr(itcm_addr),
+                .din(itcm_din),
+                .dout(itcm_dout)
+            );
+		end
+	endgenerate
 	
 	/** ICB一从四主分发器 **/
 	// ICB从机
@@ -597,23 +679,100 @@ module panda_risc_v_min_proc_sys #(
 	);
 	
 	/** 数据存储器 **/
-	bram_single_port #(
-		.style("LOW_LATENCY"),
-		.rw_mode("read_first"),
-		.mem_width(32),
-		.mem_depth(dmem_addr_range / 4),
-		.INIT_FILE("no_init"),
-		.byte_write_mode("true"),
-		.simulation_delay(simulation_delay)
-	)dmem_u(
-		.clk(dmem_clk),
-		
-		.en(dmem_en),
-		.wen(dmem_wen),
-		.addr(dmem_addr),
-		.din(dmem_din),
-		.dout(dmem_dout)
-	);
+	genvar dmem_i;
+	generate
+	    if(en_mem_byte_write == "false")
+	    begin
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(dmem_addr_range / 4),
+                .INIT_FILE("no_init"),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )dmem_u0(
+                .clk(dmem_clk),
+                
+                .en(dmem_en),
+                .wen(dmem_wen[0]),
+                .addr(dmem_addr),
+                .din(dmem_din[7:0]),
+                .dout(dmem_dout[7:0])
+            );
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(dmem_addr_range / 4),
+                .INIT_FILE("no_init"),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )dmem_u1(
+                .clk(dmem_clk),
+                
+                .en(dmem_en),
+                .wen(dmem_wen[1]),
+                .addr(dmem_addr),
+                .din(dmem_din[15:8]),
+                .dout(dmem_dout[15:8])
+            );
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(dmem_addr_range / 4),
+                .INIT_FILE("no_init"),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )dmem_u2(
+                .clk(dmem_clk),
+                
+                .en(dmem_en),
+                .wen(dmem_wen[2]),
+                .addr(dmem_addr),
+                .din(dmem_din[23:16]),
+                .dout(dmem_dout[23:16])
+            );
+            bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(8),
+                .mem_depth(dmem_addr_range / 4),
+                .INIT_FILE("no_init"),
+                .byte_write_mode("false"),
+                .simulation_delay(simulation_delay)
+            )dmem_u3(
+                .clk(dmem_clk),
+                
+                .en(dmem_en),
+                .wen(dmem_wen[3]),
+                .addr(dmem_addr),
+                .din(dmem_din[31:24]),
+                .dout(dmem_dout[31:24])
+            );
+		end
+		else
+		begin
+		    bram_single_port #(
+                .style("LOW_LATENCY"),
+                .rw_mode("read_first"),
+                .mem_width(32),
+                .mem_depth(dmem_addr_range / 4),
+                .INIT_FILE("no_init"),
+                .byte_write_mode("true"),
+                .simulation_delay(simulation_delay)
+            )dmem_u(
+                .clk(dmem_clk),
+                
+                .en(dmem_en),
+                .wen(dmem_wen),
+                .addr(dmem_addr),
+                .din(dmem_din),
+                .dout(dmem_dout)
+            );
+		end
+	endgenerate
 	
 	/** PLIC **/
 	// ICB从机
