@@ -62,7 +62,7 @@ module single_bit_syn #(
 	genvar dff_i;
 	generate
 		for(dff_i = 0;dff_i < SYN_STAGE;dff_i = dff_i + 1)
-		begin
+		begin:dff_chain
 			always @(posedge clk or negedge rst_n)
 			begin
 				if(~rst_n)

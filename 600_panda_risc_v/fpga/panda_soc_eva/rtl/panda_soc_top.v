@@ -33,6 +33,7 @@ SOFTWARE.
 	APB-GPIO   0x4000_0000~0x4000_0FFF 4KB
 	APB-I2C    0x4000_1000~0x4000_1FFF 4KB
 	APB-TIMER  0x4000_2000~0x4000_2FFF 4KB
+	APB-UART   0x4000_3000~0x4000_3FFF 4KB
 	PLIC       0xF000_0000~0xF03F_FFFF 4MB
 	CLINT      0xF400_0000~0xF7FF_FFFF 64MB
 	调试模块   0xFFFF_F800~0xFFFF_FBFF 1KB
@@ -60,6 +61,7 @@ module panda_soc_top #(
 	parameter integer dmem_depth = 8192, // 数据存储器深度
 	parameter imem_init_file = "E:/scientific_research/risc-v/boot_rom.txt", // 指令存储器初始化文件路径
 	parameter sgn_period_mul = "true", // 是否使用单周期乘法器
+	parameter uart_prog_supported = "true", // 是否支持UART编程烧录
 	parameter real simulation_delay = 0 // 仿真延时
 )(
 	// 时钟和复位
@@ -87,6 +89,9 @@ module panda_soc_top #(
     output wire uart0_tx,
     input wire uart0_rx
 );
+	
+	/** 内部配置 **/
+	localparam integer clk_frequency_MHz = 50; // 时钟频率(以MHz计)
 	
 	/** PLL **/
 	wire pll_clk_in;
@@ -301,7 +306,7 @@ module panda_soc_top #(
 	// 复位时的PC
 	always @(posedge pll_clk_out)
 	begin
-		rst_pc <= # simulation_delay boot ? 32'h0000_0800:32'h0000_0000;
+		rst_pc <= # simulation_delay ((uart_prog_supported == "true") & boot) ? 32'h0000_0800:32'h0000_0000;
 	end
 	
 	// 小胖达RISC-V最小处理器系统
@@ -696,7 +701,7 @@ module panda_soc_top #(
 	
 	/** APB-UART **/
 	apb_uart #(
-		.clk_frequency_MHz(50),
+		.clk_frequency_MHz(clk_frequency_MHz),
 		.baud_rate(115200),
 		.tx_rx_fifo_ram_type("bram"),
 		.tx_fifo_depth(2048),
