@@ -679,7 +679,6 @@ module panda_risc_v_min_proc_sys #(
 	);
 	
 	/** 数据存储器 **/
-	genvar dmem_i;
 	generate
 	    if(en_mem_byte_write == "false")
 	    begin
