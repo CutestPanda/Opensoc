@@ -105,6 +105,27 @@ module tb_upsample();
 	end
 	
 	/** 待测模块 **/
+	// 输入像素流
+	wire[s_axis_data_width-1:0] s_axis_data;
+	wire s_axis_valid;
+	wire s_axis_ready;
+	// 输出像素流
+	wire[m_axis_data_width-1:0] m_axis_data;
+	wire[2:0] m_axis_user; // {当前处于最后1个通道, 当前处于最后1行, 当前处于最后1列}
+	wire m_axis_last; // 特征图最后1点
+	wire m_axis_valid;
+	wire m_axis_ready;
+	
+	assign s_axis_data = m_axis_if.data;
+	assign s_axis_valid = m_axis_if.valid;
+	assign m_axis_if.ready = s_axis_ready;
+	
+	assign s_axis_if.data = m_axis_data;
+	assign s_axis_if.user = m_axis_user;
+	assign s_axis_if.last = m_axis_last;
+	assign s_axis_if.valid = m_axis_valid;
+	assign m_axis_ready = s_axis_if.ready;
+	
 	upsample #(
 		.feature_n_per_clk(feature_n_per_clk),
 		.feature_data_width(feature_data_width),
@@ -120,15 +141,15 @@ module tb_upsample();
 		.feature_h(feature_h),
 		.feature_chn_n(feature_chn_n),
 		
-		.s_axis_data(m_axis_if.data),
-		.s_axis_valid(m_axis_if.valid),
-		.s_axis_ready(m_axis_if.ready),
+		.s_axis_data(s_axis_data),
+		.s_axis_valid(s_axis_valid),
+		.s_axis_ready(s_axis_ready),
 		
-		.m_axis_data(s_axis_if.data),
-		.m_axis_user(s_axis_if.user),
-		.m_axis_last(s_axis_if.last),
-		.m_axis_valid(s_axis_if.valid),
-		.m_axis_ready(s_axis_if.ready)
+		.m_axis_data(m_axis_data),
+		.m_axis_user(m_axis_user),
+		.m_axis_last(m_axis_last),
+		.m_axis_valid(m_axis_valid),
+		.m_axis_ready(m_axis_ready)
 	);
 	
 endmodule
