@@ -118,7 +118,7 @@ module axi_upsample #(
     output wire[1:0] m_axi_arburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_arlen,
     output wire[2:0] m_axi_arsize, // const -> 3'b011
-    output wire[3:0] m_axis_arcache, // const -> 4'b0011
+    output wire[3:0] m_axi_arcache, // const -> 4'b0011
     output wire m_axi_arvalid,
     input wire m_axi_arready,
 	// AW
@@ -126,7 +126,7 @@ module axi_upsample #(
     output wire[1:0] m_axi_awburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_awlen,
     output wire[2:0] m_axi_awsize, // const -> 3'b011
-    output wire[3:0] m_axis_awcache, // const -> 4'b0011
+    output wire[3:0] m_axi_awcache, // const -> 4'b0011
     output wire m_axi_awvalid,
     input wire m_axi_awready,
     // B
@@ -268,14 +268,14 @@ module axi_upsample #(
 		.m_axi_arburst(m_axi_arburst),
 		.m_axi_arlen(m_axi_arlen),
 		.m_axi_arsize(m_axi_arsize),
-		.m_axis_arcache(m_axis_arcache),
+		.m_axi_arcache(m_axi_arcache),
 		.m_axi_arvalid(m_axi_arvalid),
 		.m_axi_arready(m_axi_arready),
 		.m_axi_awaddr(m_axi_awaddr),
 		.m_axi_awburst(m_axi_awburst),
 		.m_axi_awlen(m_axi_awlen),
 		.m_axi_awsize(m_axi_awsize),
-		.m_axis_awcache(m_axis_awcache),
+		.m_axi_awcache(m_axi_awcache),
 		.m_axi_awvalid(m_axi_awvalid),
 		.m_axi_awready(m_axi_awready),
 		.m_axi_bresp(m_axi_bresp),

@@ -95,7 +95,7 @@ module axi_dma_for_max_pool #(
     output wire[1:0] m_axi_arburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_arlen,
     output wire[2:0] m_axi_arsize, // const -> 3'b011
-    output wire[3:0] m_axis_arcache, // const -> 4'b0011
+    output wire[3:0] m_axi_arcache, // const -> 4'b0011
     output wire m_axi_arvalid,
     input wire m_axi_arready,
 	// AW
@@ -103,7 +103,7 @@ module axi_dma_for_max_pool #(
     output wire[1:0] m_axi_awburst, // const -> 2'b01(INCR)
     output wire[7:0] m_axi_awlen,
     output wire[2:0] m_axi_awsize, // const -> 3'b011
-    output wire[3:0] m_axis_awcache, // const -> 4'b0011
+    output wire[3:0] m_axi_awcache, // const -> 4'b0011
     output wire m_axi_awvalid,
     input wire m_axi_awready,
     // B
@@ -186,7 +186,7 @@ module axi_dma_for_max_pool #(
 	assign m_axi_arburst = 2'b01;
 	assign m_axi_arlen = last_rd_burst ? remaining_rd_trans_n:(axi_max_burst_len - 1);
 	assign m_axi_arsize = 3'b011;
-	assign m_axis_arcache = 4'b0011;
+	assign m_axi_arcache = 4'b0011;
 	assign m_axi_arvalid = (~mm2s_idle) & (~to_suppress_ar_addr) & rdata_buffer_allow_arvalid & raddr_outstanding_ctrl_allow_arvalid;
 	
 	assign last_rd_burst = remaining_rd_trans_n <= (axi_max_burst_len - 1);
@@ -398,7 +398,7 @@ module axi_dma_for_max_pool #(
 	assign m_axi_awburst = 2'b01;
 	assign m_axi_awlen = last_wt_burst ? remaining_wt_trans_n:(axi_max_burst_len - 1);
 	assign m_axi_awsize = 3'b011;
-	assign m_axis_awcache = 4'b0011;
+	assign m_axi_awcache = 4'b0011;
 	assign m_axi_awvalid = (~s2mm_idle) & (~to_suppress_aw_addr) & wdata_buffer_allow_awvalid & waddr_outstanding_ctrl_allow_awvalid;
 	
 	assign last_wt_burst = remaining_wt_trans_n <= (axi_max_burst_len - 1);
