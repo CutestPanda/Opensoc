@@ -37,10 +37,10 @@ SOFTWARE.
 
 module IS42s32200 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
 
-    parameter addr_bits =      11;
+    parameter addr_bits =      13;
     parameter data_bits =      32;
-    parameter col_bits  =       8;
-    parameter mem_sizes = 524288;
+    parameter col_bits  =       9;
+    parameter mem_sizes = 4194304;
 
     inout     [data_bits - 1 : 0] Dq;
     input     [addr_bits - 1 : 0] Addr;
@@ -130,16 +130,16 @@ module IS42s32200 (Dq, Addr, Ba, Clk, Cke, Cs_n, Ras_n, Cas_n, We_n, Dqm);
     `define   LMR       7
 //***********************************************************************
     // Timing Parameters for -7
-    parameter tAC  =   5.5;  // CAS=3
-    parameter tHZ  =   5.5;
-    parameter tOH  =   2.5;   //CAS=3
-    parameter tMRD =   2.0;     // 2 Clk Cycles, 10 ns
-    parameter tRAS =  49.0;
-    parameter tRC  =  70.0;
-    parameter tRCD =  21.0;
-    parameter tRP  =  21.0;
-    parameter tRRD =  14.0;
-    parameter tDPL =  14.0;      //
+    parameter tAC  =   5;   // CAS=3
+    parameter tHZ  =   5;
+    parameter tOH  =   3;   // CAS=3
+    parameter tMRD =   2.0; // 2 Clk Cycles, 10 ns
+    parameter tRAS =  42.0;
+    parameter tRC  =  60.0;
+    parameter tRCD =  15.0;
+    parameter tRP  =  15.0;
+    parameter tRRD =  14.0; // 2 Clk Cycles???
+    parameter tDPL =  14.0; // 2 Clk Cycles???
 //************************************************************************
     // Timing Check variable
     time  MRD_chk;

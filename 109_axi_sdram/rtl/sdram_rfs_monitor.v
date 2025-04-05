@@ -27,6 +27,7 @@ SOFTWARE.
 本模块: sdram刷新监测器
 
 描述:
+给出自动刷新定时开始指示信号
 检查是否在规定的时间间隔内刷新sdram
 
 注意：
@@ -36,14 +37,16 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2024/04/17
+日期: 2025/03/01
 ********************************************************************/
 
 
 module sdram_rfs_monitor #(
-    parameter real clk_period = 7.0, // 时钟周期
-    parameter real max_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0, // 最大刷新间隔(以ns计)
-    parameter en_expt_tip = "false" // 是否使能异常指示
+    parameter real CLK_PERIOD = 7.0, // 时钟周期(以ns计)
+    parameter real MAX_RFS_ITV = 64.0 * 1000.0 * 1000.0 / 4096.0, // 最大刷新间隔(以ns计)
+    parameter EN_EXPT_TIP = "false", // 是否使能异常指示
+	parameter integer INIT_AUTO_RFS_N = 2, // 初始化时执行自动刷新的次数
+	parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
     input wire clk,
@@ -73,32 +76,34 @@ module sdram_rfs_monitor #(
     endfunction
     
     /** 常量 **/
-    localparam integer max_refresh_itv_p = $floor(max_refresh_itv / clk_period); // 最大刷新间隔周期数
+    localparam integer MAX_RFS_ITV_P = $floor(MAX_RFS_ITV / CLK_PERIOD); // 最大刷新间隔周期数
     // 命令的物理编码(CS_N, RAS_N, CAS_N, WE_N)
     localparam CMD_PHY_AUTO_REFRESH = 4'b0001; // 命令:自动刷新
     
     /** 自动刷新定时开始(指示) **/
-    reg[2:0] init_rfs_cnt; // 初始化时刷新计数器
-    reg start_rfs_timing_reg; // 自动刷新定时开始(指示)
+    reg[INIT_AUTO_RFS_N:0] init_rfs_cnt; // 初始化时刷新计数器
+    reg start_rfs_timing_r; // 自动刷新定时开始(指示)
     reg monitor_en; // 监测使能
     
-    assign start_rfs_timing = start_rfs_timing_reg;
+    assign start_rfs_timing = start_rfs_timing_r;
     
     // 初始化时刷新计数器
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
-            init_rfs_cnt <= 3'b001;
-        else if(({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH) & (~init_rfs_cnt[2]))
-            init_rfs_cnt <= {init_rfs_cnt[1:0], init_rfs_cnt[2]};
+            init_rfs_cnt <= {{INIT_AUTO_RFS_N{1'b0}}, 1'b1};
+        else if(({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH) & (~init_rfs_cnt[INIT_AUTO_RFS_N]))
+            init_rfs_cnt <= # SIM_DELAY {init_rfs_cnt[INIT_AUTO_RFS_N-1:0], init_rfs_cnt[INIT_AUTO_RFS_N]};
     end
     // 自动刷新定时开始(指示)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
-            start_rfs_timing_reg <= 1'b0;
+            start_rfs_timing_r <= 1'b0;
         else
-            start_rfs_timing_reg <= ({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH) & init_rfs_cnt[1];
+            start_rfs_timing_r <= # SIM_DELAY 
+				({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH) & 
+				init_rfs_cnt[INIT_AUTO_RFS_N-1];
     end
     
     // 监测使能
@@ -107,15 +112,15 @@ module sdram_rfs_monitor #(
         if(~rst_n)
             monitor_en <= 1'b0;
         else if(~monitor_en)
-            monitor_en <= start_rfs_timing;
+            monitor_en <= # SIM_DELAY start_rfs_timing;
     end
     
     /** 刷新超时监测 **/
-    reg[clogb2(max_refresh_itv_p-1):0] rfs_timeout_cnt; // 刷新超时计数器
+    reg[clogb2(MAX_RFS_ITV_P-1):0] rfs_timeout_cnt; // 刷新超时计数器
     reg rfs_timeout_cnt_suspend; // 刷新超时计数器挂起
-    reg rfs_timeout_reg; // 刷新超时
+    reg rfs_timeout_r; // 刷新超时(指示)
     
-    assign rfs_timeout = (en_expt_tip == "true") ? rfs_timeout_reg:1'b0;
+    assign rfs_timeout = (EN_EXPT_TIP == "true") & rfs_timeout_r;
     
     // 刷新超时计数器
     always @(posedge clk or negedge rst_n)
@@ -123,9 +128,9 @@ module sdram_rfs_monitor #(
         if(~rst_n)
             rfs_timeout_cnt <= 0;
         else if({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH)
-            rfs_timeout_cnt <= 0;
+            rfs_timeout_cnt <= # SIM_DELAY 0;
         else if(monitor_en & (~rfs_timeout_cnt_suspend))
-            rfs_timeout_cnt <= rfs_timeout_cnt + 1;
+            rfs_timeout_cnt <= # SIM_DELAY rfs_timeout_cnt + 1;
     end
     // 刷新超时计数器挂起
     always @(posedge clk or negedge rst_n)
@@ -133,17 +138,17 @@ module sdram_rfs_monitor #(
         if(~rst_n)
             rfs_timeout_cnt_suspend <= 1'b0;
         else if({sdram_cs_n, sdram_ras_n, sdram_cas_n, sdram_we_n} == CMD_PHY_AUTO_REFRESH)
-            rfs_timeout_cnt_suspend <= 1'b0;
+            rfs_timeout_cnt_suspend <= # SIM_DELAY 1'b0;
         else if(~rfs_timeout_cnt_suspend)
-            rfs_timeout_cnt_suspend <= rfs_timeout_cnt == max_refresh_itv_p - 1;
+            rfs_timeout_cnt_suspend <= # SIM_DELAY rfs_timeout_cnt == MAX_RFS_ITV_P - 1;
     end
-    // 刷新超时
+    // 刷新超时(指示)
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
-            rfs_timeout_reg <= 1'b0;
+            rfs_timeout_r <= 1'b0;
         else
-            rfs_timeout_reg <= rfs_timeout_cnt == max_refresh_itv_p - 1;
+            rfs_timeout_r <= # SIM_DELAY rfs_timeout_cnt == MAX_RFS_ITV_P - 1;
     end
-
+	
 endmodule

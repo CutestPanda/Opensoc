@@ -102,13 +102,13 @@ module bram_simple_dual_port #(
     always @(posedge clk)
     begin
         if(wen_a)
-            # simulation_delay mem[addr_a] <= din_a;
+            mem[addr_a] <= # simulation_delay din_a;
     end
     
     always @(posedge clk)
     begin
         if(ren_b)
-            # simulation_delay ram_data_b <= mem[addr_b];
+            ram_data_b <= # simulation_delay mem[addr_b];
     end
     
     generate
@@ -120,7 +120,7 @@ module bram_simple_dual_port #(
             assign dout_b = data_b;
             
             always @(posedge clk)
-                #simulation_delay data_b <= ram_data_b;
+                data_b <= # simulation_delay ram_data_b;
         end
         else
         begin

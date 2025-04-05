@@ -78,13 +78,13 @@ module ram_based_shift_regs #(
     genvar shift_ffs_i;
     generate
         for(shift_ffs_i = 0;shift_ffs_i < delay_n;shift_ffs_i = shift_ffs_i + 1)
-        begin
+        begin:shift_ffs_blk
             if(en_output_register_init == "false")
             begin
                 always @(posedge clk)
                 begin
                     if(ce)
-                        # simulation_delay shift_ffs[shift_ffs_i] <= (shift_ffs_i == 0) ?
+                        shift_ffs[shift_ffs_i] <= # simulation_delay (shift_ffs_i == 0) ?
                             shift_in:shift_ffs[shift_ffs_i-1];
                 end
             end
@@ -95,7 +95,7 @@ module ram_based_shift_regs #(
                     if(~resetn)
                         shift_ffs[shift_ffs_i] <= output_register_init_v;
                     else if(ce)
-                        # simulation_delay shift_ffs[shift_ffs_i] <= (shift_ffs_i == 0) ?
+                        shift_ffs[shift_ffs_i] <= # simulation_delay (shift_ffs_i == 0) ?
                             shift_in:shift_ffs[shift_ffs_i-1];
                 end
             end
@@ -117,60 +117,57 @@ module ram_based_shift_regs #(
     assign din_a = shift_in;
     
     generate
-		if(shift_type == "ram")
-		begin
-			if(ram_type == "lutram")
-				dram_simple_dual_port #(
-					.mem_width(data_width),
-					.mem_depth(delay_n),
-					.INIT_FILE(INIT_FILE),
-					.use_output_register("true"),
-					.output_register_init_v(output_register_init_v),
-					.simulation_delay(simulation_delay)
-				)ram_u(
-					.clk(clk),
-					.rst_n(resetn),
-					.wen_a(wen_a),
-					.addr_a(addr_a),
-					.din_a(din_a),
-					.ren_b(ren_b),
-					.addr_b(addr_b),
-					.dout_b(dout_b)
-				);
-			else
-				bram_simple_dual_port #(
-					.style("LOW_LATENCY"),
-					.mem_width(data_width),
-					.mem_depth(delay_n),
-					.INIT_FILE(INIT_FILE),
-					.simulation_delay(simulation_delay)
-				)ram_u(
-					.clk(clk),
-					.wen_a(wen_a),
-					.addr_a(addr_a),
-					.din_a(din_a),
-					.ren_b(ren_b),
-					.addr_b(addr_b),
-					.dout_b(dout_b)
-				);
-		end
+        if(ram_type == "lutram")
+            dram_simple_dual_port #(
+                .mem_width(data_width),
+                .mem_depth(delay_n),
+                .INIT_FILE(INIT_FILE),
+                .use_output_register("true"),
+                .output_register_init_v(output_register_init_v),
+                .simulation_delay(simulation_delay)
+            )ram_u(
+                .clk(clk),
+                .rst_n(resetn),
+                .wen_a(wen_a),
+                .addr_a(addr_a),
+                .din_a(din_a),
+                .ren_b(ren_b),
+                .addr_b(addr_b),
+                .dout_b(dout_b)
+            );
+        else
+            bram_simple_dual_port #(
+                .style("LOW_LATENCY"),
+                .mem_width(data_width),
+                .mem_depth(delay_n),
+                .INIT_FILE(INIT_FILE),
+                .simulation_delay(simulation_delay)
+            )ram_u(
+                .clk(clk),
+                .wen_a(wen_a),
+                .addr_a(addr_a),
+                .din_a(din_a),
+                .ren_b(ren_b),
+                .addr_b(addr_b),
+                .dout_b(dout_b)
+            );
     endgenerate
     
     // 读写地址控制
     always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
-        begin
             addr_a <= delay_n - 1;
-            addr_b <= 0;
-        end
         else if(ce)
-        begin
-            # simulation_delay;
-            
-            addr_a <= (addr_a == (delay_n - 1)) ? 0:(addr_a + 1);
-            addr_b <= (addr_b == (delay_n - 1)) ? 0:(addr_b + 1);
-        end
+            addr_a <= # simulation_delay (addr_a == (delay_n - 1)) ? 0:(addr_a + 1);
+    end
+    
+    always @(posedge clk or negedge resetn)
+    begin
+        if(~resetn)
+            addr_b <= 0;
+        else if(ce)
+            addr_b <= # simulation_delay (addr_b == (delay_n - 1)) ? 0:(addr_b + 1);
     end
     
     /** 移位输出 **/

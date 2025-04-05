@@ -55,6 +55,8 @@ module axi_sdram #(
     parameter arb_algorithm = "round-robin", // 读写仲裁算法("round-robin" | "fixed-r" | "fixed-w")
     parameter en_unaligned_transfer = "false", // 是否允许非对齐传输
     parameter real clk_period = 7.0, // 时钟周期
+	parameter real INIT_PAUSE = 250000.0, // 初始等待时间(以ns计)
+	parameter integer INIT_AUTO_RFS_N = 2, // 初始化时执行自动刷新的次数
     parameter real refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.8, // 刷新间隔(以ns计)
     parameter real forced_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0 * 0.9, // 强制刷新间隔(以ns计)
     parameter real max_refresh_itv = 64.0 * 1000.0 * 1000.0 / 4096.0, // 最大刷新间隔(以ns计)
@@ -64,13 +66,14 @@ module axi_sdram #(
     parameter real tRP = 21.0, // (预充电某个bank -> 刷新/激活同一bank/设置模式寄存器)的最小时间要求
     parameter real tRAS_min = 49.0, // (激活某个bank -> 预充电同一bank)的最小时间要求
     parameter real tRAS_max = 100000.0, // (激活某个bank -> 预充电同一bank)的最大时间要求
-    parameter real tWR = 2.0, // (写突发结束 -> 预充电)的最小时间要求
+    parameter real tWR = 2.0 * CLK_PERIOD, // (写突发结束 -> 预充电)的最小时间要求
+	parameter real tRSC = 2.0 * CLK_PERIOD, // 设置模式寄存器的等待时间
     parameter integer rw_data_buffer_depth = 512, // 读写数据buffer深度(512 | 1024 | 2048 | 4096)
     parameter integer cas_latency = 2, // sdram读潜伏期时延(2 | 3)
     parameter en_cmd_s2_axis_reg_slice = "true", // 是否使能第2级命令AXIS寄存器片
     parameter en_cmd_s3_axis_reg_slice = "true", // 是否使能第3级命令AXIS寄存器片
     parameter en_expt_tip = "false", // 是否使能异常指示
-    parameter real sdram_if_signal_delay = 2.5 // sdram接口信号延迟(仅用于仿真)
+    parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
     input wire clk,
@@ -201,10 +204,12 @@ module axi_sdram #(
     /** SDRAM PHY **/
     // sdram突发类型固定为全页, 不使能实时统计写突发长度, 使能第1级命令AXIS寄存器片
     sdram_phy #(
-        .clk_period(clk_period),
-        .refresh_itv(refresh_itv),
-        .forced_refresh_itv(forced_refresh_itv),
-        .max_refresh_itv(max_refresh_itv),
+        .CLK_PERIOD(clk_period),
+		.INIT_PAUSE(INIT_PAUSE),
+		.INIT_AUTO_RFS_N(INIT_AUTO_RFS_N),
+        .RFS_ITV(refresh_itv),
+        .FORCED_RFS_ITV(forced_refresh_itv),
+        .MAX_RFS_ITV(max_refresh_itv),
         .tRC(tRC),
         .tRRD(tRRD),
         .tRCD(tRCD),
@@ -212,17 +217,19 @@ module axi_sdram #(
         .tRAS_min(tRAS_min),
         .tRAS_max(tRAS_max),
         .tWR(tWR),
-        .rw_data_buffer_depth(rw_data_buffer_depth),
-        .burst_len(-1),
-        .cas_latency(cas_latency),
-        .data_width(32),
-        .allow_auto_precharge("false"),
-        .en_cmd_s1_axis_reg_slice("true"),
-        .en_cmd_s2_axis_reg_slice(en_cmd_s2_axis_reg_slice),
-        .en_cmd_s3_axis_reg_slice(en_cmd_s3_axis_reg_slice),
-        .en_imdt_stat_wburst_len("false"),
-        .en_expt_tip(en_expt_tip),
-        .sdram_if_signal_delay(sdram_if_signal_delay)
+		.tRSC(tRSC),
+        .RW_DATA_BUF_DEPTH(rw_data_buffer_depth),
+        .BURST_LEN(-1),
+        .CAS_LATENCY(cas_latency),
+        .DATA_WIDTH(32),
+		.SDRAM_COL_N(256),
+        .ALLOW_AUTO_PRECHARGE("false"),
+        .EN_CMD_S1_AXIS_REG_SLICE("true"),
+        .EN_CMD_S2_AXIS_REG_SLICE(en_cmd_s2_axis_reg_slice),
+        .EN_CMD_S3_AXIS_REG_SLICE(en_cmd_s3_axis_reg_slice),
+        .EN_IMDT_STAT_WBURST_LEN("false"),
+        .EN_EXPT_TIP(en_expt_tip),
+        .SIM_DELAY(SIM_DELAY)
     )sdram_phy_u(
         .clk(clk),
         .rst_n(rst_n),

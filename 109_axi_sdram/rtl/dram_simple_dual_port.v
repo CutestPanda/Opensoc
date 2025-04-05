@@ -102,7 +102,7 @@ module dram_simple_dual_port #(
             always @(posedge clk)
             begin
                 if(wen_a)
-                    # simulation_delay mem[addr_a] <= din_a;
+                    mem[addr_a] <= # simulation_delay din_a;
             end
             
             always @(posedge clk or negedge rst_n)
@@ -110,16 +110,15 @@ module dram_simple_dual_port #(
                 if(~rst_n)
                     dout_b_regs <= output_register_init_v;
                 else if(ren_b)
-                    # simulation_delay dout_b_regs <= mem[addr_b];
+                    dout_b_regs <= # simulation_delay mem[addr_b];
             end
         end
         else
         begin
             always @(posedge clk)
             begin
-                # simulation_delay;
                 if(wen_a)
-                    mem[addr_a] <= din_a;
+                    mem[addr_a] <= # simulation_delay din_a;
             end
             
             assign dout_b = mem[addr_b];

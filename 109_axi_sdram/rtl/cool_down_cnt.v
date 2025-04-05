@@ -37,25 +37,27 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2024/04/13
+日期: 2025/03/02
 ********************************************************************/
 
 
 module cool_down_cnt #(
-    parameter integer max_cd = 20000 // 冷却量的最大值
+    parameter integer max_cd = 20000, // 冷却量的最大值(必须<=65536)
+	parameter EN_TRG_IN_CD = "true", // 是否允许冷却时再触发
+	parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
     input wire clk,
     input wire rst_n,
     
     // 运行时参数
-    input wire[clogb2(max_cd-1):0] cd, // 冷却量 - 1
+    input wire[15:0] cd, // 冷却量 - 1
     
     // 计数器控制/状态
     input wire timer_trigger, // 触发
     output wire timer_done, // 完成
     output wire timer_ready, // 就绪
-    output wire[clogb2(max_cd-1):0] timer_v // 当前计数值
+    output wire[15:0] timer_v // 当前计数值
 );
     
     // 计算log2(bit_depth)
@@ -72,17 +74,23 @@ module cool_down_cnt #(
     reg[clogb2(max_cd-1):0] cd_cnt; // 冷却计数值
     reg timer_ready_reg; // 计数器就绪
     
-    assign timer_done = timer_ready ? (timer_trigger & cd == 0):(cd_cnt == 1);
+    assign timer_done = 
+		timer_ready ? 
+			(timer_trigger & cd[clogb2(max_cd-1):0] == 0):
+			((cd_cnt == 1) & ((EN_TRG_IN_CD == "false") | (~timer_trigger)));
     assign timer_ready = timer_ready_reg;
-    assign timer_v = cd_cnt;
+    assign timer_v = 16'h0000 | cd_cnt;
     
     // 冷却计数值
     always @(posedge clk)
     begin
         if(timer_ready | (cd_cnt == 0))
-            cd_cnt <= cd;
+            cd_cnt <= # SIM_DELAY cd[clogb2(max_cd-1):0];
         else if((~timer_ready) | timer_trigger)
-            cd_cnt <= cd_cnt - 1;
+            cd_cnt <= # SIM_DELAY 
+				((EN_TRG_IN_CD == "true") & timer_trigger) ? 
+					cd[clogb2(max_cd-1):0]:
+					cd_cnt - 1;
     end
     
     // 计数器就绪
@@ -91,7 +99,10 @@ module cool_down_cnt #(
         if(~rst_n)
             timer_ready_reg <= 1'b1;
         else
-            timer_ready_reg <= timer_ready_reg ? (~(timer_trigger & (cd != 0))):(cd_cnt == 1);
+            timer_ready_reg <= # SIM_DELAY 
+				timer_ready_reg ? 
+					(~(timer_trigger & (cd[clogb2(max_cd-1):0] != 0))):
+					((cd_cnt == 1) & ((EN_TRG_IN_CD == "false") | (~timer_trigger)));
     end
 
 endmodule
