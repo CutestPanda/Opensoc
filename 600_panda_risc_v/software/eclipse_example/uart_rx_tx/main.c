@@ -73,7 +73,8 @@ static void uart0_itr_handler(){
 		uart_rx_n++;
 	}
 	
-	apb_uart_clear_itr_flag(&uart0); // 清零中断标志
+	// 清零中断标志
+	apb_uart_clear_itr_flag(&uart0);
 }
 
 static void uart_putc(uint8_t c){
@@ -93,15 +94,17 @@ int main(){
 	plic_set_priority(&plic, UART0_ITR_ID, 1);
 	plic_enable_interrupt(&plic, UART0_ITR_ID);
 	
-	apb_gpio_init(&gpio0, GPIO0_BASEADDE); // 初始化GPIO
-	apb_gpio_set_direction(&gpio0, 0xFFFFFF00); // 设置GPIO方向
+	// 初始化GPIO
+	apb_gpio_init(&gpio0, GPIO0_BASEADDE);
+	apb_gpio_set_direction(&gpio0, 0xFFFFFF00);
 	
-	apb_uart_init(&uart0, UART0_BASEADDE); // 初始化APB-UART
-	// 使能UART接收IDLE中断
+	// 初始化APB-UART
+	apb_uart_init(&uart0, UART0_BASEADDE);
 	const ApbUartItrThConfig uart_config = {10, 60000, 10, 60000};
 	apb_uart_enable_itr(&uart0, APB_UART_RX_IDLE_ITR_MASK, &uart_config);
 	
-	xdev_out(uart_putc); // 重定向字符打印函数
+	// 重定向字符打印函数
+	xdev_out(uart_putc);
 	
 	xprintf("hello world 1\r\nhello world 2\r\n\r\n");
 	

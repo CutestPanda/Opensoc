@@ -73,13 +73,16 @@ void ext_irq_handler(){
 }
 
 static void timer0_itr_handler(){
-	uint8_t itr_sts = apb_timer_get_itr_status(&timer0); // 获取中断标志向量
+	// 获取中断标志向量
+	uint8_t itr_sts = apb_timer_get_itr_status(&timer0);
 	
-	if(itr_sts & ITR_TIMER_ELAPSED_MASK){ // 计数溢出中断
+	if(itr_sts & ITR_TIMER_ELAPSED_MASK){
+		// 计数溢出中断
 		timer0_period_elapsed = 1;
 	}
 	
-	apb_timer_clear_itr_flag(&timer0); // 清除中断标志
+	// 清除中断标志
+	apb_timer_clear_itr_flag(&timer0);
 }
 
 static void uart_putc(uint8_t c){
