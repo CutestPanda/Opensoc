@@ -67,10 +67,27 @@ module sdram_init_cmd_gen #(
             temp = temp >> 1;
     end
     endfunction
-
+	// 向上取整
+    function integer ceil(input real f);
+		integer dec;
+		real frac;
+    begin
+		if(f > 0.0)
+			dec = f - 0.5;
+		else if(f < 0.0)
+			dec = f + 0.5;
+		else
+			dec = 0;
+		
+		frac = f - dec;
+		
+		ceil = ((frac == 0.0) || (f < 0)) ? dec:(dec + 1);
+    end
+    endfunction
+	
     /** 常量 **/
 	// 复位后等待周期数
-    localparam integer RST_WAIT_P = $ceil(INIT_PAUSE / CLK_PERIOD);
+    localparam integer RST_WAIT_P = ceil(INIT_PAUSE / CLK_PERIOD);
     // 命令的逻辑编码
     localparam CMD_LOGI_BANK_PRECHARGE = 3'b001; // 命令:预充电bank
     localparam CMD_LOGI_MR_SET = 3'b100; // 命令:设置模式寄存器

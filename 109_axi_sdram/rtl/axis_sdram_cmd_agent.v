@@ -117,18 +117,35 @@ module axis_sdram_cmd_agent #(
             temp = temp >> 1;
     end
     endfunction
+	// 向上取整
+    function integer ceil(input real f);
+		integer dec;
+		real frac;
+    begin
+		if(f > 0.0)
+			dec = f - 0.5;
+		else if(f < 0.0)
+			dec = f + 0.5;
+		else
+			dec = 0;
+		
+		frac = f - dec;
+		
+		ceil = ((frac == 0.0) || (f < 0)) ? dec:(dec + 1);
+    end
+    endfunction
     
     /** 常量 **/
     localparam rw_data_with_auto_precharge = (BURST_LEN == -1) ? "false":ALLOW_AUTO_PRECHARGE; // 使能读写数据命令的自动预充电
     // 时间要求(以时钟周期计)
-    localparam integer tRC_p = $ceil(tRC / CLK_PERIOD); // (激活某个bank -> 激活同一bank)和(刷新完成时间)的最小时间要求
-    localparam integer tRRD_p = $ceil(tRRD / CLK_PERIOD); // (激活某个bank -> 激活不同bank)的最小时间要求
-    localparam integer tRCD_p = $ceil(tRCD / CLK_PERIOD); // (激活某个bank -> 读写这个bank)的最小时间要求
-    localparam integer tRP_p = $ceil(tRP / CLK_PERIOD); // (预充电某个bank -> 刷新/激活同一bank/设置模式寄存器)的最小时间要求
-    localparam integer tRAS_min_p = $ceil(tRAS_min / CLK_PERIOD); // (激活某个bank -> 预充电同一bank)的最小时间要求
-    localparam integer tRAS_max_p = $ceil(tRAS_max / CLK_PERIOD); // (激活某个bank -> 预充电同一bank)的最大时间要求
-    localparam integer tWR_p = $ceil(tWR / CLK_PERIOD); // (写突发结束 -> 预充电)的最小时间要求
-	localparam integer tRSC_p = $ceil(tRSC / CLK_PERIOD); // 设置模式寄存器的等待时间
+    localparam integer tRC_p = ceil(tRC / CLK_PERIOD); // (激活某个bank -> 激活同一bank)和(刷新完成时间)的最小时间要求
+    localparam integer tRRD_p = ceil(tRRD / CLK_PERIOD); // (激活某个bank -> 激活不同bank)的最小时间要求
+    localparam integer tRCD_p = ceil(tRCD / CLK_PERIOD); // (激活某个bank -> 读写这个bank)的最小时间要求
+    localparam integer tRP_p = ceil(tRP / CLK_PERIOD); // (预充电某个bank -> 刷新/激活同一bank/设置模式寄存器)的最小时间要求
+    localparam integer tRAS_min_p = ceil(tRAS_min / CLK_PERIOD); // (激活某个bank -> 预充电同一bank)的最小时间要求
+    localparam integer tRAS_max_p = ceil(tRAS_max / CLK_PERIOD); // (激活某个bank -> 预充电同一bank)的最大时间要求
+    localparam integer tWR_p = ceil(tWR / CLK_PERIOD); // (写突发结束 -> 预充电)的最小时间要求
+	localparam integer tRSC_p = ceil(tRSC / CLK_PERIOD); // 设置模式寄存器的等待时间
     // 带自动预充电的读 -> tRP + BURST_LEN; 带自动预充电的写 -> tRP + BURST_LEN - 1 + tWR
 	// 注意: 简单起见, 这里考虑max(tRP + BURST_LEN, tRP + BURST_LEN - 1 + tWR)!
     localparam integer tATRFS_p = tRP_p + ((tWR_p > 1) ? tWR_p:1); // (自动预充电完成时间)的最小时间要求

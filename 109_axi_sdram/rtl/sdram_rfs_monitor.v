@@ -74,9 +74,27 @@ module sdram_rfs_monitor #(
             temp = temp >> 1;
     end
     endfunction
+	
+	// 向下取整
+	function integer floor(input real f);
+		integer dec;
+		real frac;
+    begin
+		if(f > 0.0)
+			dec = f - 0.5;
+		else if(f < 0.0)
+			dec = f + 0.5;
+		else
+			dec = 0;
+		
+		frac = f - dec;
+		
+		floor = ((frac == 0.0) || (f >= 0)) ? dec:(dec - 1);
+    end
+    endfunction
     
     /** 常量 **/
-    localparam integer MAX_RFS_ITV_P = $floor(MAX_RFS_ITV / CLK_PERIOD); // 最大刷新间隔周期数
+    localparam integer MAX_RFS_ITV_P = floor(MAX_RFS_ITV / CLK_PERIOD); // 最大刷新间隔周期数
     // 命令的物理编码(CS_N, RAS_N, CAS_N, WE_N)
     localparam CMD_PHY_AUTO_REFRESH = 4'b0001; // 命令:自动刷新
     

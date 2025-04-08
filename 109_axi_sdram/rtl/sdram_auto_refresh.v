@@ -80,10 +80,27 @@ module sdram_auto_refresh #(
             temp = temp >> 1;
     end
     endfunction
+	// 向下取整
+	function integer floor(input real f);
+		integer dec;
+		real frac;
+    begin
+		if(f > 0.0)
+			dec = f - 0.5;
+		else if(f < 0.0)
+			dec = f + 0.5;
+		else
+			dec = 0;
+		
+		frac = f - dec;
+		
+		floor = ((frac == 0.0) || (f >= 0)) ? dec:(dec - 1);
+    end
+    endfunction
 	
     /** 常量 **/
-    localparam integer RFS_ITV_P = $floor(RFS_ITV / CLK_PERIOD); // 刷新间隔周期数
-    localparam integer FORCED_RFS_ITV_P = $floor(FORCED_RFS_ITV / CLK_PERIOD); // 强制刷新间隔周期数
+    localparam integer RFS_ITV_P = floor(RFS_ITV / CLK_PERIOD); // 刷新间隔周期数
+    localparam integer FORCED_RFS_ITV_P = floor(FORCED_RFS_ITV / CLK_PERIOD); // 强制刷新间隔周期数
     localparam RW_DATA_WITH_AUTO_PRECHARGE = (BURST_LEN == -1) ? "false":ALLOW_AUTO_PRECHARGE; // 使能读写数据命令的自动预充电
     // 命令的逻辑编码
     localparam CMD_LOGI_BANK_ACTIVE = 3'b000; // 命令:激活bank
