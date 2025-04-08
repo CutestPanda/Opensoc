@@ -126,6 +126,7 @@ module s_axi_if_for_axi_sdram #(
     localparam CMD_LOGI_RD_DATA = 3'b011; // 命令:读数据
 	
 	/** 仿真 **/
+	/*
 	generate
 		if(SIM_DELAY != 0)
 		begin
@@ -147,6 +148,7 @@ module s_axi_if_for_axi_sdram #(
 			end
 		end
 	endgenerate
+	*/
 	
 	/** AXI从机的写响应通道 **/
 	wire send_bresp; // 发送写响应(指示)
