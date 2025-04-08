@@ -45,7 +45,7 @@ SOFTWARE.
 AXIS MASTER/SLAVE
 
 作者: 陈家耀
-日期: 2025/02/21
+日期: 2025/04/08
 ********************************************************************/
 
 
@@ -56,6 +56,7 @@ module frame_buffer_ctrl #(
 	parameter integer FRAME_W = 1920, // 帧宽度(以像素个数计)
 	parameter integer FRAME_H = 1080, // 帧高度(以像素个数计)
 	parameter integer FRAME_SIZE = FRAME_W * FRAME_H * 2, // 帧大小(以字节计, 必须<2^24)
+	parameter EN_FRAME_POS_PROC = "true", // 是否允许帧的后处理
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -256,7 +257,8 @@ module frame_buffer_ctrl #(
 	reg[7:0] frame_buffer_rptr; // 帧缓存读指针
 	wire[7:0] frame_buffer_rptr_add1; // 帧缓存读指针 + 1
 	
-	assign frame_processing_wen = on_frame_processed & 
+	assign frame_processing_wen = 
+		((EN_FRAME_POS_PROC == "false") | on_frame_processed) & 
 		((ONLY_FRAME_RD == "true") ? 
 			((~|(frame_processing_ptr & frame_processed_vec))):
 			(|(frame_processing_ptr & frame_filled_vec))

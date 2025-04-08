@@ -51,6 +51,7 @@ module axi_frame_buffer #(
 	parameter integer FRAME_SIZE = FRAME_W * FRAME_H * 2, // 帧大小(以字节计, 必须<2^24)
 	parameter integer MAX_BURST_LEN = 32, // 最大的突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter EN_ITR = "true", // 是否启用中断
+	parameter EN_FRAME_POS_PROC = "true", // 是否允许帧的后处理
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// APB从机的时钟和复位
@@ -277,6 +278,7 @@ module axi_frame_buffer #(
 		.FRAME_W(FRAME_W),
 		.FRAME_H(FRAME_H),
 		.FRAME_SIZE(FRAME_SIZE),
+		.EN_FRAME_POS_PROC(EN_FRAME_POS_PROC),
 		.SIM_DELAY(SIM_DELAY)
 	)frame_buffer_ctrl_u(
 		.clk(m_axi_aclk),
