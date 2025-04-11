@@ -171,7 +171,18 @@ GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经
 请先按照下图选择好Default toolchain，即riscv-none-embed-gcc。  
 ![说明10](../img/panda_risc_v_10.png)  
 重新启动Eclipse。  
-5.导入示例工程  
+5.新建或导入例程  
+可以选择新建工程或导入例程。  
+(1)新建工程  
+打开Eclipse，选择File菜单栏 > New > C/C++ Project。  
+选择All，选中C Managed Build。  
+输入工程名，工程类型为Empty Project，工具链为RISC-V Cross GCC。  
+![说明21](../img/panda_risc_v_21.png)  
+点击Next，工具链名称应为xPack GNU RISC-V Embedded GCC (riscv-none-embed-gcc) DEPRECATED。  
+![说明22](../img/panda_risc_v_22.png)  
+点击Finish即可完成新建工程。  
+在工程目录下创建bsp和include文件夹，bsp文件夹存放外设驱动库和链接文件，include文件夹存放头文件（会被自动添加到编译路径里）。  
+(2)导入例程  
 打开Eclipse，选择File菜单栏下的Open Projects from File System，点击Directory按钮，  
 选择**600_panda_risc_v/software/eclipse_example**下的示例工程文件夹**breathing_led**，点击Finish按钮。  
 6.配置工程  
