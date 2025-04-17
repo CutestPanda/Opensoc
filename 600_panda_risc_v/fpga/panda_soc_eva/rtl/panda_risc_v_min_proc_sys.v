@@ -27,13 +27,14 @@ SOFTWARE.
 本模块: 小胖达RISC-V 最小处理器系统
 
 描述:
-将小胖达RISC-V的指令总线接到ICB-SRAM控制器, 并接入指令存储器
+将小胖达RISC-V的指令总线接到ICB-SRAM控制器, 并接入ITCM
 
-将小胖达RISC-V的数据总线接到ICB一从四主分发器, 
-ICB主机#0接ICB-SRAM控制器并接入数据存储器, 
+将小胖达RISC-V的数据总线接到ICB一从五主分发器, 
+ICB主机#0接ICB-SRAM控制器并接入DTCM, 
 ICB主机#1接平台级中断控制器(PLIC), 
 ICB主机#2接处理器局部中断控制器(CLINT),
 ICB主机#3接ICB到AXI-Lite桥并引出AXI-Lite主机
+ICB主机#4接ICB-DCache再通过ICB到AXI-Lite桥引出AXI-Lite主机
 
 注意：
 未使用的外部中断请求信号必须接1'b0
@@ -46,8 +47,15 @@ MEM MASTER
 日期: 2025/02/13
 ********************************************************************/
 
-
 module panda_risc_v_min_proc_sys #(
+	// 数据Cache配置
+	parameter EN_DCACHE = "false", // 是否使用DCACHE
+	parameter EN_DTCM = "true", // 是否启用DTCM
+	parameter integer DCACHE_WAY_N = 2, // 缓存路数(1 | 2 | 4 | 8)
+	parameter integer DCACHE_ENTRY_N = 1024, // 缓存存储条目数
+	parameter integer DCACHE_LINE_WORD_N = 2, // 每个缓存行的字数(1 | 2 | 4 | 8 | 16)
+	parameter integer DCACHE_TAG_WIDTH = 10, // 缓存标签位数
+	parameter integer DCACHE_WBUF_ITEM_N = 2, // 写缓存最多可存的缓存行个数(1~8)
     // 是否使用RAM的字节使能信号
     parameter en_mem_byte_write = "false",
 	// 指令总线控制单元配置
@@ -84,8 +92,10 @@ module panda_risc_v_min_proc_sys #(
 	parameter integer plic_addr_range = 4 * 1024 * 1024, // PLIC地址区间长度
 	parameter clint_baseaddr = 32'hF400_0000, // CLINT基址
 	parameter integer clint_addr_range = 64 * 1024 * 1024, // CLINT地址区间长度
-	parameter ext_baseaddr = 32'h4000_0000, // 拓展总线基地址
-	parameter integer ext_addr_range = 16 * 4096, // 拓展总线地址区间长度
+	parameter ext_peripheral_baseaddr = 32'h4000_0000, // 拓展外设总线基地址
+	parameter integer ext_peripheral_addr_range = 16 * 4096, // 拓展外设总线地址区间长度
+	parameter ext_mem_baseaddr = 32'h6000_0000, // 拓展存储总线基地址
+	parameter integer ext_mem_addr_range = 8 * 1024 * 1024, // 拓展存储总线地址区间长度
 	// 指令/数据ICB主机AXIS寄存器片配置
 	parameter en_inst_cmd_fwd = "true", // 使能指令ICB主机命令通道前向寄存器
 	parameter en_inst_rsp_bck = "true", // 使能指令ICB主机响应通道后向寄存器
@@ -122,7 +132,7 @@ module panda_risc_v_min_proc_sys #(
 	// 实时时钟计数使能
 	input wire rtc_en,
 	
-	// 数据总线(AXI-Lite主机)
+	// 扩展外设总线(AXI-Lite主机)
 	// 读地址通道
     output wire[31:0] m_axi_dbus_araddr,
 	output wire[1:0] m_axi_dbus_arburst, // const -> 2'b01(INCR)
@@ -157,6 +167,42 @@ module panda_risc_v_min_proc_sys #(
 	output wire m_axi_dbus_wlast, // const -> 1'b1
     output wire m_axi_dbus_wvalid,
     input wire m_axi_dbus_wready,
+	
+	// 数据Cache总线(AXI-Lite主机)
+	// 读地址通道
+    output wire[31:0] m_axi_dcache_araddr,
+	output wire[1:0] m_axi_dcache_arburst, // const -> 2'b01(INCR)
+	output wire[7:0] m_axi_dcache_arlen, // const -> 8'd0
+    output wire[2:0] m_axi_dcache_arsize, // const -> 3'b010
+	output wire[3:0] m_axi_dcache_arcache, // const -> 4'b0011
+    output wire m_axi_dcache_arvalid,
+    input wire m_axi_dcache_arready,
+    // 写地址通道
+    output wire[31:0] m_axi_dcache_awaddr,
+    output wire[1:0] m_axi_dcache_awburst, // const -> 2'b01(INCR)
+	output wire[7:0] m_axi_dcache_awlen, // const -> 8'd0
+    output wire[2:0] m_axi_dcache_awsize, // const -> 3'b010
+	output wire[3:0] m_axi_dcache_awcache, // const -> 4'b0011
+    output wire m_axi_dcache_awvalid,
+    input wire m_axi_dcache_awready,
+    // 写响应通道
+    // 2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR
+    input wire[1:0] m_axi_dcache_bresp,
+    input wire m_axi_dcache_bvalid,
+    output wire m_axi_dcache_bready,
+    // 读数据通道
+    input wire[31:0] m_axi_dcache_rdata,
+    // 2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR
+    input wire[1:0] m_axi_dcache_rresp,
+	input wire m_axi_dcache_rlast, // ignored
+    input wire m_axi_dcache_rvalid,
+    output wire m_axi_dcache_rready,
+    // 写数据通道
+    output wire[31:0] m_axi_dcache_wdata,
+    output wire[3:0] m_axi_dcache_wstrb,
+	output wire m_axi_dcache_wlast, // const -> 1'b1
+    output wire m_axi_dcache_wvalid,
+    input wire m_axi_dcache_wready,
 	
 	// 指令总线访问超时标志
 	output wire ibus_timeout,
@@ -379,11 +425,11 @@ module panda_risc_v_min_proc_sys #(
 	    begin
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(imem_addr_range / 4),
                 .INIT_FILE(imem_init_file_b0),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )imem_u0(
                 .clk(imem_clk),
@@ -396,11 +442,11 @@ module panda_risc_v_min_proc_sys #(
             );
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(imem_addr_range / 4),
                 .INIT_FILE(imem_init_file_b1),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )imem_u1(
                 .clk(imem_clk),
@@ -413,11 +459,11 @@ module panda_risc_v_min_proc_sys #(
             );
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(imem_addr_range / 4),
                 .INIT_FILE(imem_init_file_b2),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )imem_u2(
                 .clk(imem_clk),
@@ -430,11 +476,11 @@ module panda_risc_v_min_proc_sys #(
             );
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(imem_addr_range / 4),
                 .INIT_FILE(imem_init_file_b3),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )imem_u3(
                 .clk(imem_clk),
@@ -450,11 +496,11 @@ module panda_risc_v_min_proc_sys #(
 		begin
 	        bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(32),
                 .mem_depth(imem_addr_range / 4),
                 .INIT_FILE(imem_init_file),
-                .byte_write_mode("true"),
+				.byte_write_mode("true"),
                 .simulation_delay(simulation_delay)
             )imem_u(
                 .clk(imem_clk),
@@ -468,7 +514,7 @@ module panda_risc_v_min_proc_sys #(
 		end
 	endgenerate
 	
-	/** ICB一从四主分发器 **/
+	/** ICB一从五主分发器 **/
 	// ICB从机
 	// 命令通道
 	wire[31:0] s_icb_dstb_cmd_addr;
@@ -534,6 +580,19 @@ module panda_risc_v_min_proc_sys #(
 	wire m3_icb_dstb_rsp_err;
 	wire m3_icb_dstb_rsp_valid;
 	wire m3_icb_dstb_rsp_ready;
+	// ICB主机#4
+	// 命令通道
+	wire[31:0] m4_icb_dstb_cmd_addr;
+	wire m4_icb_dstb_cmd_read;
+	wire[31:0] m4_icb_dstb_cmd_wdata;
+	wire[3:0] m4_icb_dstb_cmd_wmask;
+	wire m4_icb_dstb_cmd_valid;
+	wire m4_icb_dstb_cmd_ready;
+	// 响应通道
+	wire[31:0] m4_icb_dstb_rsp_rdata;
+	wire m4_icb_dstb_rsp_err;
+	wire m4_icb_dstb_rsp_valid;
+	wire m4_icb_dstb_rsp_ready;
 	
 	assign s_icb_dstb_cmd_addr = m_icb_cmd_data_addr;
 	assign s_icb_dstb_cmd_read = m_icb_cmd_data_read;
@@ -546,17 +605,19 @@ module panda_risc_v_min_proc_sys #(
 	assign m_icb_rsp_data_valid = s_icb_dstb_rsp_valid;
 	assign s_icb_dstb_rsp_ready = m_icb_rsp_data_ready;
 	
-	icb_1s_to_4m #(
+	icb_1s_to_5m #(
 		.m0_baseaddr(dmem_baseaddr),
 		.m0_addr_range(dmem_addr_range),
 		.m1_baseaddr(plic_baseaddr),
 		.m1_addr_range(plic_addr_range),
 		.m2_baseaddr(clint_baseaddr),
 		.m2_addr_range(clint_addr_range),
-		.m3_baseaddr(ext_baseaddr),
-		.m3_addr_range(ext_addr_range),
+		.m3_baseaddr(ext_peripheral_baseaddr),
+		.m3_addr_range(ext_peripheral_addr_range),
+		.m4_baseaddr(ext_mem_baseaddr),
+		.m4_addr_range(ext_mem_addr_range),
 		.simulation_delay(simulation_delay)
-	)icb_1s_to_4m_u(
+	)icb_1s_to_5m_u(
 		.clk(clk),
 		.resetn(sys_resetn),
 		
@@ -613,7 +674,18 @@ module panda_risc_v_min_proc_sys #(
 		.m3_icb_rsp_rdata(m3_icb_dstb_rsp_rdata),
 		.m3_icb_rsp_err(m3_icb_dstb_rsp_err),
 		.m3_icb_rsp_valid(m3_icb_dstb_rsp_valid),
-		.m3_icb_rsp_ready(m3_icb_dstb_rsp_ready)
+		.m3_icb_rsp_ready(m3_icb_dstb_rsp_ready),
+		
+		.m4_icb_cmd_addr(m4_icb_dstb_cmd_addr),
+		.m4_icb_cmd_read(m4_icb_dstb_cmd_read),
+		.m4_icb_cmd_wdata(m4_icb_dstb_cmd_wdata),
+		.m4_icb_cmd_wmask(m4_icb_dstb_cmd_wmask),
+		.m4_icb_cmd_valid(m4_icb_dstb_cmd_valid),
+		.m4_icb_cmd_ready(m4_icb_dstb_cmd_ready),
+		.m4_icb_rsp_rdata(m4_icb_dstb_rsp_rdata),
+		.m4_icb_rsp_err(m4_icb_dstb_rsp_err),
+		.m4_icb_rsp_valid(m4_icb_dstb_rsp_valid),
+		.m4_icb_rsp_ready(m4_icb_dstb_rsp_ready)
 	);
 	
 	/** ICB-SRAM控制器 **/
@@ -639,16 +711,37 @@ module panda_risc_v_min_proc_sys #(
     wire[31:0] dmem_din;
     wire[31:0] dmem_dout;
 	
-	assign s_icb_dmem_ctrler_cmd_addr = m0_icb_dstb_cmd_addr;
-	assign s_icb_dmem_ctrler_cmd_read = m0_icb_dstb_cmd_read;
-	assign s_icb_dmem_ctrler_cmd_wdata = m0_icb_dstb_cmd_wdata;
-	assign s_icb_dmem_ctrler_cmd_wmask = m0_icb_dstb_cmd_wmask;
-	assign s_icb_dmem_ctrler_cmd_valid = m0_icb_dstb_cmd_valid;
-	assign m0_icb_dstb_cmd_ready = s_icb_dmem_ctrler_cmd_ready;
-	assign m0_icb_dstb_rsp_rdata = s_icb_dmem_ctrler_rsp_rdata;
-	assign m0_icb_dstb_rsp_err = s_icb_dmem_ctrler_rsp_err;
-	assign m0_icb_dstb_rsp_valid = s_icb_dmem_ctrler_rsp_valid;
-	assign s_icb_dmem_ctrler_rsp_ready = m0_icb_dstb_rsp_ready;
+	generate
+		if(EN_DTCM == "true")
+		begin
+			assign s_icb_dmem_ctrler_cmd_addr = m0_icb_dstb_cmd_addr;
+			assign s_icb_dmem_ctrler_cmd_read = m0_icb_dstb_cmd_read;
+			assign s_icb_dmem_ctrler_cmd_wdata = m0_icb_dstb_cmd_wdata;
+			assign s_icb_dmem_ctrler_cmd_wmask = m0_icb_dstb_cmd_wmask;
+			assign s_icb_dmem_ctrler_cmd_valid = m0_icb_dstb_cmd_valid;
+			assign m0_icb_dstb_cmd_ready = s_icb_dmem_ctrler_cmd_ready;
+			assign m0_icb_dstb_rsp_rdata = s_icb_dmem_ctrler_rsp_rdata;
+			assign m0_icb_dstb_rsp_err = s_icb_dmem_ctrler_rsp_err;
+			assign m0_icb_dstb_rsp_valid = s_icb_dmem_ctrler_rsp_valid;
+			assign s_icb_dmem_ctrler_rsp_ready = m0_icb_dstb_rsp_ready;
+		end
+		else
+		begin
+			assign m0_icb_dstb_cmd_ready = 1'b1;
+			
+			assign m0_icb_dstb_rsp_rdata = 32'dx;
+			assign m0_icb_dstb_rsp_err = 1'b1;
+			assign m0_icb_dstb_rsp_valid = 1'b1;
+			
+			assign s_icb_dmem_ctrler_cmd_addr = 32'dx;
+			assign s_icb_dmem_ctrler_cmd_read = 1'bx;
+			assign s_icb_dmem_ctrler_cmd_wdata = 32'dx;
+			assign s_icb_dmem_ctrler_cmd_wmask = 4'bxxxx;
+			assign s_icb_dmem_ctrler_cmd_valid = 1'b0;
+			
+			assign s_icb_dmem_ctrler_rsp_ready = 1'b1;
+		end
+	endgenerate
 	
 	icb_sram_ctrler #(
 		.en_unaligned_transfer("true"),
@@ -684,11 +777,11 @@ module panda_risc_v_min_proc_sys #(
 	    begin
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(dmem_addr_range / 4),
                 .INIT_FILE("no_init"),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )dmem_u0(
                 .clk(dmem_clk),
@@ -701,11 +794,11 @@ module panda_risc_v_min_proc_sys #(
             );
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(dmem_addr_range / 4),
                 .INIT_FILE("no_init"),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )dmem_u1(
                 .clk(dmem_clk),
@@ -718,11 +811,11 @@ module panda_risc_v_min_proc_sys #(
             );
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(dmem_addr_range / 4),
                 .INIT_FILE("no_init"),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )dmem_u2(
                 .clk(dmem_clk),
@@ -735,11 +828,11 @@ module panda_risc_v_min_proc_sys #(
             );
             bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(8),
                 .mem_depth(dmem_addr_range / 4),
                 .INIT_FILE("no_init"),
-                .byte_write_mode("false"),
+				.byte_write_mode("false"),
                 .simulation_delay(simulation_delay)
             )dmem_u3(
                 .clk(dmem_clk),
@@ -755,11 +848,11 @@ module panda_risc_v_min_proc_sys #(
 		begin
 		    bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("read_first"),
+                .rw_mode("no_change"),
                 .mem_width(32),
                 .mem_depth(dmem_addr_range / 4),
                 .INIT_FILE("no_init"),
-                .byte_write_mode("true"),
+				.byte_write_mode("true"),
                 .simulation_delay(simulation_delay)
             )dmem_u(
                 .clk(dmem_clk),
@@ -772,6 +865,220 @@ module panda_risc_v_min_proc_sys #(
             );
 		end
 	endgenerate
+	
+	/** 数据Cache **/
+	// 处理器核ICB从机
+	// [命令通道]
+	wire[31:0] s_dcache_icb_cmd_addr;
+	wire s_dcache_icb_cmd_read;
+	wire[31:0] s_dcache_icb_cmd_wdata;
+	wire[3:0] s_dcache_icb_cmd_wmask;
+	wire s_dcache_icb_cmd_valid;
+	wire s_dcache_icb_cmd_ready;
+	// [响应通道]
+	wire[31:0] s_dcache_icb_rsp_rdata;
+	wire s_dcache_icb_rsp_err; // const -> 1'b0
+	wire s_dcache_icb_rsp_valid;
+	wire s_dcache_icb_rsp_ready;
+	// 访问下级存储器ICB主机
+	// [命令通道]
+	wire[31:0] m_dcache_icb_cmd_addr;
+	wire m_dcache_icb_cmd_read;
+	wire[31:0] m_dcache_icb_cmd_wdata;
+	wire[3:0] m_dcache_icb_cmd_wmask;
+	wire m_dcache_icb_cmd_valid;
+	wire m_dcache_icb_cmd_ready;
+	// [响应通道]
+	wire[31:0] m_dcache_icb_rsp_rdata;
+	wire m_dcache_icb_rsp_err; // ignored
+	wire m_dcache_icb_rsp_valid;
+	wire m_dcache_icb_rsp_ready;
+	// 数据存储器接口
+	wire[DCACHE_WAY_N-1:0] data_sram_clk_a;
+	wire[DCACHE_WAY_N*4*DCACHE_LINE_WORD_N-1:0] data_sram_en_a;
+	wire[DCACHE_WAY_N*4*DCACHE_LINE_WORD_N-1:0] data_sram_wen_a;
+	wire[DCACHE_WAY_N*4*DCACHE_LINE_WORD_N*32-1:0] data_sram_addr_a;
+	wire[DCACHE_WAY_N*4*DCACHE_LINE_WORD_N*8-1:0] data_sram_din_a;
+	wire[DCACHE_WAY_N*4*DCACHE_LINE_WORD_N*8-1:0] data_sram_dout_a;
+	// 标签存储器接口
+	wire[DCACHE_WAY_N-1:0] tag_sram_clk_a;
+	wire[DCACHE_WAY_N-1:0] tag_sram_en_a;
+	wire[DCACHE_WAY_N-1:0] tag_sram_wen_a;
+	wire[DCACHE_WAY_N*32-1:0] tag_sram_addr_a;
+	wire[DCACHE_WAY_N*(DCACHE_TAG_WIDTH+2)-1:0] tag_sram_din_a; // {dirty(1位), valid(1位), tag(CACHE_TAG_WIDTH位)}
+	wire[DCACHE_WAY_N*(DCACHE_TAG_WIDTH+2)-1:0] tag_sram_dout_a; // {dirty(1位), valid(1位), tag(CACHE_TAG_WIDTH位)}
+	// 记录存储器接口
+	// [存储器写端口]
+	wire hot_sram_clk_a;
+	wire hot_sram_wen_a;
+	wire[31:0] hot_sram_waddr_a;
+	wire[23:0] hot_sram_din_a;
+	// [存储器读端口]
+	wire hot_sram_clk_b;
+	wire hot_sram_ren_b;
+	wire[31:0] hot_sram_raddr_b;
+	wire[23:0] hot_sram_dout_b;
+	
+	generate
+		if(EN_DCACHE == "true")
+		begin
+			assign s_dcache_icb_cmd_addr = m4_icb_dstb_cmd_addr;
+			assign s_dcache_icb_cmd_read = m4_icb_dstb_cmd_read;
+			assign s_dcache_icb_cmd_wdata = m4_icb_dstb_cmd_wdata;
+			assign s_dcache_icb_cmd_wmask = m4_icb_dstb_cmd_wmask;
+			assign s_dcache_icb_cmd_valid = m4_icb_dstb_cmd_valid;
+			assign m4_icb_dstb_cmd_ready = s_dcache_icb_cmd_ready;
+			assign m4_icb_dstb_rsp_rdata = s_dcache_icb_rsp_rdata;
+			assign m4_icb_dstb_rsp_err = s_dcache_icb_rsp_err;
+			assign m4_icb_dstb_rsp_valid = s_dcache_icb_rsp_valid;
+			assign s_dcache_icb_rsp_ready = m4_icb_dstb_rsp_ready;
+		end
+		else
+		begin
+			assign m4_icb_dstb_cmd_ready = 1'b1;
+			
+			assign m4_icb_dstb_rsp_rdata = 32'dx;
+			assign m4_icb_dstb_rsp_err = 1'b1;
+			assign m4_icb_dstb_rsp_valid = 1'b1;
+			
+			assign s_dcache_icb_cmd_addr = 32'dx;
+			assign s_dcache_icb_cmd_read = 1'bx;
+			assign s_dcache_icb_cmd_wdata = 32'dx;
+			assign s_dcache_icb_cmd_wmask = 4'bxxxx;
+			assign s_dcache_icb_cmd_valid = 1'b0;
+			
+			assign s_dcache_icb_rsp_ready = 1'b1;
+			
+			assign m_dcache_icb_cmd_ready = 1'b1;
+			
+			assign m_dcache_icb_rsp_rdata = 32'dx;
+			assign m_dcache_icb_rsp_err = 1'b1;
+			assign m_dcache_icb_rsp_valid = 1'b1;
+		end
+	endgenerate
+	
+	icb_dcache #(
+		.CACHE_WAY_N(DCACHE_WAY_N),
+		.CACHE_ENTRY_N(DCACHE_ENTRY_N),
+		.CACHE_LINE_WORD_N(DCACHE_LINE_WORD_N),
+		.CACHE_TAG_WIDTH(DCACHE_TAG_WIDTH),
+		.WBUF_ITEM_N(DCACHE_WBUF_ITEM_N),
+		.SIM_DELAY(simulation_delay)
+	)dcache_u(
+		.aclk(clk),
+		.aresetn(sys_resetn),
+		
+		.s_icb_cmd_addr(s_dcache_icb_cmd_addr),
+		.s_icb_cmd_read(s_dcache_icb_cmd_read),
+		.s_icb_cmd_wdata(s_dcache_icb_cmd_wdata),
+		.s_icb_cmd_wmask(s_dcache_icb_cmd_wmask),
+		.s_icb_cmd_valid(s_dcache_icb_cmd_valid),
+		.s_icb_cmd_ready(s_dcache_icb_cmd_ready),
+		.s_icb_rsp_rdata(s_dcache_icb_rsp_rdata),
+		.s_icb_rsp_err(s_dcache_icb_rsp_err),
+		.s_icb_rsp_valid(s_dcache_icb_rsp_valid),
+		.s_icb_rsp_ready(s_dcache_icb_rsp_ready),
+		
+		.m_icb_cmd_addr(m_dcache_icb_cmd_addr),
+		.m_icb_cmd_read(m_dcache_icb_cmd_read),
+		.m_icb_cmd_wdata(m_dcache_icb_cmd_wdata),
+		.m_icb_cmd_wmask(m_dcache_icb_cmd_wmask),
+		.m_icb_cmd_valid(m_dcache_icb_cmd_valid),
+		.m_icb_cmd_ready(m_dcache_icb_cmd_ready),
+		.m_icb_rsp_rdata(m_dcache_icb_rsp_rdata),
+		.m_icb_rsp_err(m_dcache_icb_rsp_err),
+		.m_icb_rsp_valid(m_dcache_icb_rsp_valid),
+		.m_icb_rsp_ready(m_dcache_icb_rsp_ready),
+		
+		.data_sram_clk_a(data_sram_clk_a),
+		.data_sram_en_a(data_sram_en_a),
+		.data_sram_wen_a(data_sram_wen_a),
+		.data_sram_addr_a(data_sram_addr_a),
+		.data_sram_din_a(data_sram_din_a),
+		.data_sram_dout_a(data_sram_dout_a),
+		
+		.tag_sram_clk_a(tag_sram_clk_a),
+		.tag_sram_en_a(tag_sram_en_a),
+		.tag_sram_wen_a(tag_sram_wen_a),
+		.tag_sram_addr_a(tag_sram_addr_a),
+		.tag_sram_din_a(tag_sram_din_a),
+		.tag_sram_dout_a(tag_sram_dout_a),
+		
+		.hot_sram_clk_a(hot_sram_clk_a),
+		.hot_sram_wen_a(hot_sram_wen_a),
+		.hot_sram_waddr_a(hot_sram_waddr_a),
+		.hot_sram_din_a(hot_sram_din_a),
+		.hot_sram_clk_b(hot_sram_clk_b),
+		.hot_sram_ren_b(hot_sram_ren_b),
+		.hot_sram_raddr_b(hot_sram_raddr_b),
+		.hot_sram_dout_b(hot_sram_dout_b)
+	);
+	
+	genvar dcache_data_sram_i;
+	generate
+		for(dcache_data_sram_i = 0;dcache_data_sram_i < DCACHE_WAY_N*4*DCACHE_LINE_WORD_N;dcache_data_sram_i = dcache_data_sram_i + 1)
+		begin:data_sram_blk
+			bram_single_port #(
+				.style("LOW_LATENCY"),
+				.rw_mode("read_first"),
+				.mem_width(8),
+				.mem_depth(DCACHE_ENTRY_N),
+				.INIT_FILE("no_init"),
+				.byte_write_mode("false"),
+				.simulation_delay(simulation_delay)
+			)dcache_data_sram_u(
+				.clk(data_sram_clk_a[dcache_data_sram_i/(4*DCACHE_LINE_WORD_N)]),
+				
+				.en(data_sram_en_a[dcache_data_sram_i]),
+				.wen(data_sram_wen_a[dcache_data_sram_i]),
+				.addr(data_sram_addr_a[dcache_data_sram_i*32+31:dcache_data_sram_i*32]),
+				.din(data_sram_din_a[dcache_data_sram_i*8+7:dcache_data_sram_i*8]),
+				.dout(data_sram_dout_a[dcache_data_sram_i*8+7:dcache_data_sram_i*8])
+			);
+		end
+	endgenerate
+	
+	genvar dcache_tag_sram_i;
+	generate
+		for(dcache_tag_sram_i = 0;dcache_tag_sram_i < DCACHE_WAY_N;dcache_tag_sram_i = dcache_tag_sram_i + 1)
+		begin:tag_sram_blk
+			bram_single_port #(
+				.style("LOW_LATENCY"),
+				.rw_mode("read_first"),
+				.mem_width(DCACHE_TAG_WIDTH+2),
+				.mem_depth(DCACHE_ENTRY_N),
+				.INIT_FILE(""),
+				.byte_write_mode("false"),
+				.simulation_delay(simulation_delay)
+			)dcache_tag_sram_u(
+				.clk(tag_sram_clk_a[dcache_tag_sram_i]),
+				
+				.en(tag_sram_en_a[dcache_tag_sram_i]),
+				.wen(tag_sram_wen_a[dcache_tag_sram_i]),
+				.addr(tag_sram_addr_a[dcache_tag_sram_i*32+31:dcache_tag_sram_i*32]),
+				.din(tag_sram_din_a[(dcache_tag_sram_i+1)*(DCACHE_TAG_WIDTH+2)-1:dcache_tag_sram_i*(DCACHE_TAG_WIDTH+2)]),
+				.dout(tag_sram_dout_a[(dcache_tag_sram_i+1)*(DCACHE_TAG_WIDTH+2)-1:dcache_tag_sram_i*(DCACHE_TAG_WIDTH+2)])
+			);
+		end
+	endgenerate
+	
+	bram_simple_dual_port #(
+		.style("LOW_LATENCY"),
+		.mem_width(24),
+		.mem_depth(DCACHE_ENTRY_N),
+		.INIT_FILE(""),
+		.simulation_delay(simulation_delay)
+	)dcache_hot_sram_u(
+		.clk(hot_sram_clk_a),
+		
+		.wen_a(hot_sram_wen_a),
+		.addr_a(hot_sram_waddr_a),
+		.din_a(hot_sram_din_a),
+		
+		.ren_b(hot_sram_ren_b),
+		.addr_b(hot_sram_raddr_b),
+		.dout_b(hot_sram_dout_b)
+	);
 	
 	/** PLIC **/
 	// ICB从机
@@ -871,19 +1178,32 @@ module panda_risc_v_min_proc_sys #(
 	);
 	
 	/** ICB到AXI-Lite桥 **/
-	// ICB从机
+	// ICB从机#0
 	// 命令通道
-	wire[31:0] s_icb_bridge_cmd_addr;
-	wire s_icb_bridge_cmd_read;
-	wire[31:0] s_icb_bridge_cmd_wdata;
-	wire[3:0] s_icb_bridge_cmd_wmask;
-	wire s_icb_bridge_cmd_valid;
-	wire s_icb_bridge_cmd_ready;
+	wire[31:0] s0_icb_bridge_cmd_addr;
+	wire s0_icb_bridge_cmd_read;
+	wire[31:0] s0_icb_bridge_cmd_wdata;
+	wire[3:0] s0_icb_bridge_cmd_wmask;
+	wire s0_icb_bridge_cmd_valid;
+	wire s0_icb_bridge_cmd_ready;
 	// 响应通道
-	wire[31:0] s_icb_bridge_rsp_rdata;
-	wire s_icb_bridge_rsp_err;
-	wire s_icb_bridge_rsp_valid;
-	wire s_icb_bridge_rsp_ready;
+	wire[31:0] s0_icb_bridge_rsp_rdata;
+	wire s0_icb_bridge_rsp_err;
+	wire s0_icb_bridge_rsp_valid;
+	wire s0_icb_bridge_rsp_ready;
+	// ICB从机#1
+	// 命令通道
+	wire[31:0] s1_icb_bridge_cmd_addr;
+	wire s1_icb_bridge_cmd_read;
+	wire[31:0] s1_icb_bridge_cmd_wdata;
+	wire[3:0] s1_icb_bridge_cmd_wmask;
+	wire s1_icb_bridge_cmd_valid;
+	wire s1_icb_bridge_cmd_ready;
+	// 响应通道
+	wire[31:0] s1_icb_bridge_rsp_rdata;
+	wire s1_icb_bridge_rsp_err;
+	wire s1_icb_bridge_rsp_valid;
+	wire s1_icb_bridge_rsp_ready;
 	
 	assign m_axi_dbus_arburst = 2'b01;
 	assign m_axi_dbus_arlen = 8'd0;
@@ -895,33 +1215,69 @@ module panda_risc_v_min_proc_sys #(
 	assign m_axi_dbus_awcache = 4'b0011;
 	assign m_axi_dbus_wlast = 1'b1;
 	
-	assign s_icb_bridge_cmd_addr = m3_icb_dstb_cmd_addr;
-	assign s_icb_bridge_cmd_read = m3_icb_dstb_cmd_read;
-	assign s_icb_bridge_cmd_wdata = m3_icb_dstb_cmd_wdata;
-	assign s_icb_bridge_cmd_wmask = m3_icb_dstb_cmd_wmask;
-	assign s_icb_bridge_cmd_valid = m3_icb_dstb_cmd_valid;
-	assign m3_icb_dstb_cmd_ready = s_icb_bridge_cmd_ready;
-	assign m3_icb_dstb_rsp_rdata = s_icb_bridge_rsp_rdata;
-	assign m3_icb_dstb_rsp_err = s_icb_bridge_rsp_err;
-	assign m3_icb_dstb_rsp_valid = s_icb_bridge_rsp_valid;
-	assign s_icb_bridge_rsp_ready = m3_icb_dstb_rsp_ready;
+	assign m_axi_dcache_arburst = 2'b01;
+	assign m_axi_dcache_arlen = 8'd0;
+	assign m_axi_dcache_arsize = 3'b010;
+	assign m_axi_dcache_arcache = 4'b0011;
+	assign m_axi_dcache_awburst = 2'b01;
+	assign m_axi_dcache_awlen = 8'd0;
+	assign m_axi_dcache_awsize = 3'b010;
+	assign m_axi_dcache_awcache = 4'b0011;
+	assign m_axi_dcache_wlast = 1'b1;
+	
+	assign s0_icb_bridge_cmd_addr = m3_icb_dstb_cmd_addr;
+	assign s0_icb_bridge_cmd_read = m3_icb_dstb_cmd_read;
+	assign s0_icb_bridge_cmd_wdata = m3_icb_dstb_cmd_wdata;
+	assign s0_icb_bridge_cmd_wmask = m3_icb_dstb_cmd_wmask;
+	assign s0_icb_bridge_cmd_valid = m3_icb_dstb_cmd_valid;
+	assign m3_icb_dstb_cmd_ready = s0_icb_bridge_cmd_ready;
+	assign m3_icb_dstb_rsp_rdata = s0_icb_bridge_rsp_rdata;
+	assign m3_icb_dstb_rsp_err = s0_icb_bridge_rsp_err;
+	assign m3_icb_dstb_rsp_valid = s0_icb_bridge_rsp_valid;
+	assign s0_icb_bridge_rsp_ready = m3_icb_dstb_rsp_ready;
+	
+	generate
+		if(EN_DCACHE == "true")
+		begin
+			assign s1_icb_bridge_cmd_addr = m_dcache_icb_cmd_addr;
+			assign s1_icb_bridge_cmd_read = m_dcache_icb_cmd_read;
+			assign s1_icb_bridge_cmd_wdata = m_dcache_icb_cmd_wdata;
+			assign s1_icb_bridge_cmd_wmask = m_dcache_icb_cmd_wmask;
+			assign s1_icb_bridge_cmd_valid = m_dcache_icb_cmd_valid;
+			assign m_dcache_icb_cmd_ready = s1_icb_bridge_cmd_ready;
+			assign m_dcache_icb_rsp_rdata = s1_icb_bridge_rsp_rdata;
+			assign m_dcache_icb_rsp_err = s1_icb_bridge_rsp_err;
+			assign m_dcache_icb_rsp_valid = s1_icb_bridge_rsp_valid;
+			assign s1_icb_bridge_rsp_ready = m_dcache_icb_rsp_ready;
+		end
+		else
+		begin
+			assign s1_icb_bridge_cmd_addr = 32'dx;
+			assign s1_icb_bridge_cmd_read = 1'bx;
+			assign s1_icb_bridge_cmd_wdata = 32'dx;
+			assign s1_icb_bridge_cmd_wmask = 4'bxxxx;
+			assign s1_icb_bridge_cmd_valid = 1'b0;
+			
+			assign s1_icb_bridge_rsp_ready = 1'b1;
+		end
+	endgenerate
 	
 	icb_axi_bridge #(
 		.simulation_delay(simulation_delay)
-	)icb_axi_bridge_u(
+	)icb_axi_bridge_u0(
 		.clk(clk),
 		.resetn(sys_resetn),
 		
-		.s_icb_cmd_addr(s_icb_bridge_cmd_addr),
-		.s_icb_cmd_read(s_icb_bridge_cmd_read),
-		.s_icb_cmd_wdata(s_icb_bridge_cmd_wdata),
-		.s_icb_cmd_wmask(s_icb_bridge_cmd_wmask),
-		.s_icb_cmd_valid(s_icb_bridge_cmd_valid),
-		.s_icb_cmd_ready(s_icb_bridge_cmd_ready),
-		.s_icb_rsp_rdata(s_icb_bridge_rsp_rdata),
-		.s_icb_rsp_err(s_icb_bridge_rsp_err),
-		.s_icb_rsp_valid(s_icb_bridge_rsp_valid),
-		.s_icb_rsp_ready(s_icb_bridge_rsp_ready),
+		.s_icb_cmd_addr(s0_icb_bridge_cmd_addr),
+		.s_icb_cmd_read(s0_icb_bridge_cmd_read),
+		.s_icb_cmd_wdata(s0_icb_bridge_cmd_wdata),
+		.s_icb_cmd_wmask(s0_icb_bridge_cmd_wmask),
+		.s_icb_cmd_valid(s0_icb_bridge_cmd_valid),
+		.s_icb_cmd_ready(s0_icb_bridge_cmd_ready),
+		.s_icb_rsp_rdata(s0_icb_bridge_rsp_rdata),
+		.s_icb_rsp_err(s0_icb_bridge_rsp_err),
+		.s_icb_rsp_valid(s0_icb_bridge_rsp_valid),
+		.s_icb_rsp_ready(s0_icb_bridge_rsp_ready),
 		
 		.m_axi_araddr(m_axi_dbus_araddr),
 		.m_axi_arprot(),
@@ -942,6 +1298,44 @@ module panda_risc_v_min_proc_sys #(
 		.m_axi_wstrb(m_axi_dbus_wstrb),
 		.m_axi_wvalid(m_axi_dbus_wvalid),
 		.m_axi_wready(m_axi_dbus_wready)
+	);
+	
+	icb_axi_bridge #(
+		.simulation_delay(simulation_delay)
+	)icb_axi_bridge_u1(
+		.clk(clk),
+		.resetn(sys_resetn),
+		
+		.s_icb_cmd_addr(s1_icb_bridge_cmd_addr),
+		.s_icb_cmd_read(s1_icb_bridge_cmd_read),
+		.s_icb_cmd_wdata(s1_icb_bridge_cmd_wdata),
+		.s_icb_cmd_wmask(s1_icb_bridge_cmd_wmask),
+		.s_icb_cmd_valid(s1_icb_bridge_cmd_valid),
+		.s_icb_cmd_ready(s1_icb_bridge_cmd_ready),
+		.s_icb_rsp_rdata(s1_icb_bridge_rsp_rdata),
+		.s_icb_rsp_err(s1_icb_bridge_rsp_err),
+		.s_icb_rsp_valid(s1_icb_bridge_rsp_valid),
+		.s_icb_rsp_ready(s1_icb_bridge_rsp_ready),
+		
+		.m_axi_araddr(m_axi_dcache_araddr),
+		.m_axi_arprot(),
+		.m_axi_arvalid(m_axi_dcache_arvalid),
+		.m_axi_arready(m_axi_dcache_arready),
+		.m_axi_awaddr(m_axi_dcache_awaddr),
+		.m_axi_awprot(),
+		.m_axi_awvalid(m_axi_dcache_awvalid),
+		.m_axi_awready(m_axi_dcache_awready),
+		.m_axi_bresp(m_axi_dcache_bresp),
+		.m_axi_bvalid(m_axi_dcache_bvalid),
+		.m_axi_bready(m_axi_dcache_bready),
+		.m_axi_rdata(m_axi_dcache_rdata),
+		.m_axi_rresp(m_axi_dcache_rresp),
+		.m_axi_rvalid(m_axi_dcache_rvalid),
+		.m_axi_rready(m_axi_dcache_rready),
+		.m_axi_wdata(m_axi_dcache_wdata),
+		.m_axi_wstrb(m_axi_dcache_wstrb),
+		.m_axi_wvalid(m_axi_dcache_wvalid),
+		.m_axi_wready(m_axi_dcache_wready)
 	);
 	
 endmodule

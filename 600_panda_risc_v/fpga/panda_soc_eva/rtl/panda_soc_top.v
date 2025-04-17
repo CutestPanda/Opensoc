@@ -28,12 +28,13 @@ SOFTWARE.
 
 描述:
 存储映射 ->
-	指令存储器 0x0000_0000~?           imem_depth
-	数据存储器 0x1000_0000~?           dmem_depth
+	ITCM       0x0000_0000~?           imem_depth
+	DTCM       0x1000_0000~?           dmem_depth
 	APB-GPIO   0x4000_0000~0x4000_0FFF 4KB
 	APB-I2C    0x4000_1000~0x4000_1FFF 4KB
 	APB-TIMER  0x4000_2000~0x4000_2FFF 4KB
 	APB-UART   0x4000_3000~0x4000_3FFF 4KB
+	外部DRAM   0x6000_0000~0x6080_0000 8MB            经DCache缓存
 	PLIC       0xF000_0000~0xF03F_FFFF 4MB
 	CLINT      0xF400_0000~0xF7FF_FFFF 64MB
 	调试模块   0xFFFF_F800~0xFFFF_FBFF 1KB
@@ -42,6 +43,8 @@ SOFTWARE.
 	中断#1 GPIO0中断
 	中断#2 TIMER0中断
 	中断#3 UART0中断
+
+可启用DTCM或DCache
 
 注意：
 指令存储器的前2KB为Boot程序
@@ -57,6 +60,13 @@ I2C MASTER
 
 
 module panda_soc_top #(
+	parameter EN_DCACHE = "false", // 是否使用DCACHE
+	parameter EN_DTCM = "true", // 是否启用DTCM
+	parameter integer DCACHE_WAY_N = 2, // 缓存路数(1 | 2 | 4 | 8)
+	parameter integer DCACHE_ENTRY_N = 1024, // 缓存存储条目数
+	parameter integer DCACHE_LINE_WORD_N = 2, // 每个缓存行的字数(1 | 2 | 4 | 8 | 16)
+	parameter integer DCACHE_TAG_WIDTH = 10, // 缓存标签位数
+	parameter integer DCACHE_WBUF_ITEM_N = 2, // 写缓存最多可存的缓存行个数(1~8)
 	parameter integer imem_depth = 8192, // 指令存储器深度
 	parameter integer dmem_depth = 8192, // 数据存储器深度
 	parameter en_mem_byte_write = "false", // 是否使用RAM的字节使能信号
@@ -100,6 +110,7 @@ module panda_soc_top #(
 	
 	/** 内部配置 **/
 	localparam integer clk_frequency_MHz = 50; // 时钟频率(以MHz计)
+	localparam integer PROC_SYS_RST_WAIT_N = 300 * 1000 / (1000 / clk_frequency_MHz); // 处理器系统复位释放等待周期数
 	
 	/** PLL **/
 	wire pll_clk_in;
@@ -136,13 +147,15 @@ module panda_soc_top #(
 	wire sys_resetn; // 系统复位输出
 	wire sys_reset_req; // 系统复位请求
 	wire sys_reset_fns; // 系统复位完成
+	reg[15:0] proc_sys_rst_wait_cnt; // 处理器系统复位释放等待计数器
+	reg proc_sys_rst_n; // 处理器系统复位信号
 	
 	panda_risc_v_reset #(
 		.simulation_delay(simulation_delay)
 	)panda_risc_v_reset_u(
 		.clk(pll_clk_out),
 		
-		.ext_resetn(pll_locked),
+		.ext_resetn(proc_sys_rst_n),
 		
 		.sw_reset(sw_reset),
 		
@@ -150,6 +163,24 @@ module panda_soc_top #(
 		.sys_reset_req(sys_reset_req),
 		.sys_reset_fns(sys_reset_fns)
 	);
+	
+	// 处理器系统复位释放等待计数器
+	always @(posedge pll_clk_out or negedge pll_locked)
+	begin
+		if(~pll_locked)
+			proc_sys_rst_wait_cnt <= 16'd0;
+		else if(~proc_sys_rst_n)
+			proc_sys_rst_wait_cnt <= # simulation_delay proc_sys_rst_wait_cnt + 16'd1;
+	end
+	
+	// 处理器系统复位信号
+	always @(posedge pll_clk_out or negedge pll_locked)
+	begin
+		if(~pll_locked)
+			proc_sys_rst_n <= 1'b0;
+		else if(~proc_sys_rst_n)
+			proc_sys_rst_n <= # simulation_delay proc_sys_rst_wait_cnt == (PROC_SYS_RST_WAIT_N - 1);
+	end
 	
 	/** 调试机制 **/
 	// DMI
@@ -191,7 +222,7 @@ module panda_soc_top #(
 		.tdo_oen(),
 		
 		.m_apb_aclk(pll_clk_out),
-		.m_apb_aresetn(pll_locked),
+		.m_apb_aresetn(proc_sys_rst_n),
 		
 		.dmihardreset_req(),
 		
@@ -218,7 +249,7 @@ module panda_soc_top #(
 		.SIM_DELAY(simulation_delay)
 	)jtag_dm_u(
 		.clk(pll_clk_out),
-		.rst_n(pll_locked),
+		.rst_n(proc_sys_rst_n),
 		
 		.s_dmi_paddr(dmi_paddr),
 		.s_dmi_psel(dmi_psel),
@@ -259,7 +290,7 @@ module panda_soc_top #(
 	/** 小胖达RISC-V 最小处理器系统 **/
 	// 复位时的PC
 	reg[31:0] rst_pc;
-	// 数据总线(AXI-Lite主机)
+	// 扩展外设总线(AXI-Lite主机)
 	// 读地址通道
     wire[31:0] m_axi_dbus_araddr;
 	wire[1:0] m_axi_dbus_arburst; // const -> 2'b01(INCR)
@@ -292,6 +323,39 @@ module panda_soc_top #(
 	wire m_axi_dbus_wlast; // const -> 1'b1
     wire m_axi_dbus_wvalid;
     wire m_axi_dbus_wready;
+	// 数据Cache总线(AXI-Lite主机)
+	// 读地址通道
+    wire[31:0] m_axi_dcache_araddr;
+	wire[1:0] m_axi_dcache_arburst; // const -> 2'b01(INCR)
+	wire[7:0] m_axi_dcache_arlen; // const -> 8'd0
+    wire[2:0] m_axi_dcache_arsize; // const -> 3'b010
+	wire[3:0] m_axi_dcache_arcache; // const -> 4'b0011
+    wire m_axi_dcache_arvalid;
+    wire m_axi_dcache_arready;
+    // 写地址通道
+    wire[31:0] m_axi_dcache_awaddr;
+    wire[1:0] m_axi_dcache_awburst; // const -> 2'b01(INCR)
+	wire[7:0] m_axi_dcache_awlen; // const -> 8'd0
+    wire[2:0] m_axi_dcache_awsize; // const -> 3'b010
+	wire[3:0] m_axi_dcache_awcache; // const -> 4'b0011
+    wire m_axi_dcache_awvalid;
+    wire m_axi_dcache_awready;
+    // 写响应通道
+    wire[1:0] m_axi_dcache_bresp;
+    wire m_axi_dcache_bvalid;
+    wire m_axi_dcache_bready;
+    // 读数据通道
+    wire[31:0] m_axi_dcache_rdata;
+    wire[1:0] m_axi_dcache_rresp;
+	wire m_axi_dcache_rlast; // ignored
+    wire m_axi_dcache_rvalid;
+    wire m_axi_dcache_rready;
+    // 写数据通道
+    wire[31:0] m_axi_dcache_wdata;
+    wire[3:0] m_axi_dcache_wstrb;
+	wire m_axi_dcache_wlast; // const -> 1'b1
+    wire m_axi_dcache_wvalid;
+    wire m_axi_dcache_wready;
 	// 中断请求
 	// 注意: 中断请求保持有效直到中断清零!
 	wire sw_itr_req; // 软件中断请求
@@ -301,6 +365,11 @@ module panda_soc_top #(
 	wire gpio0_itr_req; // GPIO0中断
 	wire timer0_itr_req; // TIMER0中断
 	wire uart0_itr_req; // UART0中断
+	
+	/*
+	说明: 已经引出外部存储器AXI主机(m_axi_dcache_xxx), 该地址区域已经DCache缓存, 
+	      如将参数EN_DCACHE设为"true", 则可将这个AXI主机连接到DRAM控制器
+	*/
 	
 	assign sw_itr_req = 1'b0;
 	assign tmr_itr_req = 1'b0;
@@ -319,9 +388,16 @@ module panda_soc_top #(
 	
 	// 小胖达RISC-V最小处理器系统
 	panda_risc_v_min_proc_sys #(
+		.EN_DCACHE(EN_DCACHE),
+		.EN_DTCM(EN_DTCM),
+		.DCACHE_WAY_N(DCACHE_WAY_N),
+		.DCACHE_ENTRY_N(DCACHE_ENTRY_N),
+		.DCACHE_LINE_WORD_N(DCACHE_LINE_WORD_N),
+		.DCACHE_TAG_WIDTH(DCACHE_TAG_WIDTH),
+		.DCACHE_WBUF_ITEM_N(DCACHE_WBUF_ITEM_N),
 		.imem_access_timeout_th(16),
 		.inst_addr_alignment_width(32),
-		.dbus_access_timeout_th(32),
+		.dbus_access_timeout_th(64),
 		.icb_zero_latency_supported("false"),
 		.en_expt_vec_vectored("false"),
 		.en_performance_monitor("true"),
@@ -348,8 +424,10 @@ module panda_soc_top #(
 		.plic_addr_range(4 * 1024 * 1024),
 		.clint_baseaddr(32'hF400_0000),
 		.clint_addr_range(64 * 1024 * 1024),
-		.ext_baseaddr(32'h4000_0000),
-		.ext_addr_range(16 * 4096),
+		.ext_peripheral_baseaddr(32'h4000_0000),
+		.ext_peripheral_addr_range(16 * 4096),
+		.ext_mem_baseaddr(32'h6000_0000),
+		.ext_mem_addr_range(8 * 1024 * 1024),
 		.en_inst_cmd_fwd("false"),
 		.en_inst_rsp_bck("false"),
 		.en_data_cmd_fwd("true"),
@@ -403,6 +481,34 @@ module panda_soc_top #(
 		.m_axi_dbus_wlast(m_axi_dbus_wlast),
 		.m_axi_dbus_wvalid(m_axi_dbus_wvalid),
 		.m_axi_dbus_wready(m_axi_dbus_wready),
+		
+		.m_axi_dcache_araddr(m_axi_dcache_araddr),
+		.m_axi_dcache_arburst(m_axi_dcache_arburst),
+		.m_axi_dcache_arlen(m_axi_dcache_arlen),
+		.m_axi_dcache_arsize(m_axi_dcache_arsize),
+		.m_axi_dcache_arcache(m_axi_dcache_arcache),
+		.m_axi_dcache_arvalid(m_axi_dcache_arvalid),
+		.m_axi_dcache_arready(m_axi_dcache_arready),
+		.m_axi_dcache_awaddr(m_axi_dcache_awaddr),
+		.m_axi_dcache_awburst(m_axi_dcache_awburst),
+		.m_axi_dcache_awlen(m_axi_dcache_awlen),
+		.m_axi_dcache_awsize(m_axi_dcache_awsize),
+		.m_axi_dcache_awcache(m_axi_dcache_awcache),
+		.m_axi_dcache_awvalid(m_axi_dcache_awvalid),
+		.m_axi_dcache_awready(m_axi_dcache_awready),
+		.m_axi_dcache_bresp(m_axi_dcache_bresp),
+		.m_axi_dcache_bvalid(m_axi_dcache_bvalid),
+		.m_axi_dcache_bready(m_axi_dcache_bready),
+		.m_axi_dcache_rdata(m_axi_dcache_rdata),
+		.m_axi_dcache_rresp(m_axi_dcache_rresp),
+		.m_axi_dcache_rlast(m_axi_dcache_rlast),
+		.m_axi_dcache_rvalid(m_axi_dcache_rvalid),
+		.m_axi_dcache_rready(m_axi_dcache_rready),
+		.m_axi_dcache_wdata(m_axi_dcache_wdata),
+		.m_axi_dcache_wstrb(m_axi_dcache_wstrb),
+		.m_axi_dcache_wlast(m_axi_dcache_wlast),
+		.m_axi_dcache_wvalid(m_axi_dcache_wvalid),
+		.m_axi_dcache_wready(m_axi_dcache_wready),
 		
 		.ibus_timeout(),
 		.dbus_timeout(),

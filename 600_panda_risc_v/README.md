@@ -13,10 +13,12 @@
  - 支持JTAG在线调试，支持UART编程烧录
  - 易于移植到FPGA
  - 支持Eclipse IDE
+ - 支持DCache
 
 小胖达MCU尚未支持以下特性：  
 
- - ICache和DCache
+ - 浮点扩展F和D
+ - 压缩指令扩展C
    
 ## 文件结构
 **doc**: 设计文档、参考手册  
@@ -69,17 +71,18 @@
 在SOC测评工程中，PLL输出时钟的频率是**50MHz**。  
 
 #### <center>存储映射表</center>
-|内容|地址范围|区间长度|
-|---|---|---|
-|指令存储器|0x0000_0000 ~ ?|imem_depth|
-|数据存储器|0x1000_0000 ~ ?|dmem_depth|
-|APB-GPIO|0x4000_0000 ~ 0x4000_0FFF|4KB|
-|APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|
-|APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|
-|APB-UART|0x4000_3000 ~ 0x4000_3FFF|4KB|
-|PLIC|0xF000_0000 ~ 0xF03F_FFFF|4MB|
-|CLINT|0xF400_0000 ~ 0xF7FF_FFFF|64MB|
-|调试模块|0xFFFF_F800 ~ 0xFFFF_FBFF|1KB|
+|内容|地址范围|区间长度|备注|
+|---|---|---|---|
+|ITCM|0x0000_0000 ~ ?|imem_depth|---|
+|DTCM|0x1000_0000 ~ ?|dmem_depth|---|
+|APB-GPIO|0x4000_0000 ~ 0x4000_0FFF|4KB|---|
+|APB-I2C|0x4000_1000 ~ 0x4000_1FFF|4KB|---|
+|APB-TIMER|0x4000_2000 ~ 0x4000_2FFF|4KB|---|
+|APB-UART|0x4000_3000 ~ 0x4000_3FFF|4KB|---|
+|外部DRAM|0x6000_0000 ~ 0x6080_0000|8MB|经DCache缓存|
+|PLIC|0xF000_0000 ~ 0xF03F_FFFF|4MB|---|
+|CLINT|0xF400_0000 ~ 0xF7FF_FFFF|64MB|---|
+|调试模块|0xFFFF_F800 ~ 0xFFFF_FBFF|1KB|---|
 
 #### <center>I/O表</center>
 |I/O|说明|

@@ -24,10 +24,10 @@ SOFTWARE.
 
 `timescale 1ns / 1ps
 /********************************************************************
-本模块: ICB一从四主分发器
+本模块: ICB一从五主分发器
 
 描述:
-将一个ICB从机分发到四个ICB主机
+将一个ICB从机分发到五个ICB主机
 
 注意：
 未处理地址译码错误
@@ -40,7 +40,7 @@ ICB MASTER/SLAVE
 ********************************************************************/
 
 
-module icb_1s_to_4m #(
+module icb_1s_to_5m #(
 	parameter m0_baseaddr = 32'h1000_0000, // 主机#0基地址
 	parameter integer m0_addr_range = 16 * 1024, // 主机#0地址区间长度
 	parameter m1_baseaddr = 32'hF000_0000, // 主机#1基地址
@@ -49,6 +49,8 @@ module icb_1s_to_4m #(
 	parameter integer m2_addr_range = 64 * 1024 * 1024, // 主机#2地址区间长度
 	parameter m3_baseaddr = 32'h4000_0000, // 主机#3基地址
 	parameter integer m3_addr_range = 16 * 4096, // 主机#3地址区间长度
+	parameter m4_baseaddr = 32'h6000_0000, // 主机#4基地址
+	parameter integer m4_addr_range = 8 * 1024 * 1024, // 主机#4地址区间长度
 	parameter real simulation_delay = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -123,7 +125,21 @@ module icb_1s_to_4m #(
 	input wire[31:0] m3_icb_rsp_rdata,
 	input wire m3_icb_rsp_err,
 	input wire m3_icb_rsp_valid,
-	output wire m3_icb_rsp_ready
+	output wire m3_icb_rsp_ready,
+	
+	// ICB主机#4
+	// 命令通道
+	output wire[31:0] m4_icb_cmd_addr,
+	output wire m4_icb_cmd_read,
+	output wire[31:0] m4_icb_cmd_wdata,
+	output wire[3:0] m4_icb_cmd_wmask,
+	output wire m4_icb_cmd_valid,
+	input wire m4_icb_cmd_ready,
+	// 响应通道
+	input wire[31:0] m4_icb_rsp_rdata,
+	input wire m4_icb_rsp_err,
+	input wire m4_icb_rsp_valid,
+	output wire m4_icb_rsp_ready
 );
 	
 	/** 地址译码 **/
@@ -131,27 +147,29 @@ module icb_1s_to_4m #(
 	wire m1_sel;
 	wire m2_sel;
 	wire m3_sel;
+	wire m4_sel;
 	
 	assign m0_sel = (s_icb_cmd_addr >= m0_baseaddr) & (s_icb_cmd_addr < (m0_baseaddr + m0_addr_range));
 	assign m1_sel = (s_icb_cmd_addr >= m1_baseaddr) & (s_icb_cmd_addr < (m1_baseaddr + m1_addr_range));
 	assign m2_sel = (s_icb_cmd_addr >= m2_baseaddr) & (s_icb_cmd_addr < (m2_baseaddr + m2_addr_range));
 	assign m3_sel = (s_icb_cmd_addr >= m3_baseaddr) & (s_icb_cmd_addr < (m3_baseaddr + m3_addr_range));
+	assign m4_sel = (s_icb_cmd_addr >= m4_baseaddr) & (s_icb_cmd_addr < (m4_baseaddr + m4_addr_range));
 	
 	/** 分发信息fifo **/
 	// fifo写端口
 	wire dcd_msg_fifo_wen;
-	wire[3:0] dcd_msg_fifo_din_sel;
+	wire[4:0] dcd_msg_fifo_din_sel;
 	wire dcd_msg_fifo_full_n;
 	// fifo读端口
 	wire dcd_msg_fifo_ren;
-	wire[3:0] dcd_msg_fifo_dout_sel;
+	wire[4:0] dcd_msg_fifo_dout_sel;
 	wire dcd_msg_fifo_empty_n;
 	
 	fifo_based_on_regs #(
 		.fwft_mode("true"),
 		.low_latency_mode("false"),
 		.fifo_depth(4),
-		.fifo_data_width(4),
+		.fifo_data_width(5),
 		.almost_full_th(1),
 		.almost_empty_th(1),
 		.simulation_delay(simulation_delay)
@@ -170,8 +188,13 @@ module icb_1s_to_4m #(
 	
 	/** 命令通道选通 **/
 	assign s_icb_cmd_ready = 
-		dcd_msg_fifo_full_n & 
-		((m0_sel & m0_icb_cmd_ready) | (m1_sel & m1_icb_cmd_ready) | (m2_sel & m2_icb_cmd_ready) | (m3_sel & m3_icb_cmd_ready));
+		dcd_msg_fifo_full_n & (
+			(m0_sel & m0_icb_cmd_ready) | 
+			(m1_sel & m1_icb_cmd_ready) | 
+			(m2_sel & m2_icb_cmd_ready) | 
+			(m3_sel & m3_icb_cmd_ready) | 
+			(m4_sel & m4_icb_cmd_ready)
+		);
 	
 	assign m0_icb_cmd_addr = s_icb_cmd_addr;
 	assign m0_icb_cmd_read = s_icb_cmd_read;
@@ -197,39 +220,57 @@ module icb_1s_to_4m #(
 	assign m3_icb_cmd_wmask = s_icb_cmd_wmask;
 	assign m3_icb_cmd_valid = s_icb_cmd_valid & m3_sel & dcd_msg_fifo_full_n;
 	
+	assign m4_icb_cmd_addr = s_icb_cmd_addr;
+	assign m4_icb_cmd_read = s_icb_cmd_read;
+	assign m4_icb_cmd_wdata = s_icb_cmd_wdata;
+	assign m4_icb_cmd_wmask = s_icb_cmd_wmask;
+	assign m4_icb_cmd_valid = s_icb_cmd_valid & m4_sel & dcd_msg_fifo_full_n;
+	
 	assign dcd_msg_fifo_wen = 
-		s_icb_cmd_valid & 
-		((m0_sel & m0_icb_cmd_ready) | (m1_sel & m1_icb_cmd_ready) | (m2_sel & m2_icb_cmd_ready) | (m3_sel & m3_icb_cmd_ready));
-	assign dcd_msg_fifo_din_sel = {m3_sel, m2_sel, m1_sel, m0_sel};
+		s_icb_cmd_valid & (
+			(m0_sel & m0_icb_cmd_ready) | 
+			(m1_sel & m1_icb_cmd_ready) | 
+			(m2_sel & m2_icb_cmd_ready) | 
+			(m3_sel & m3_icb_cmd_ready) | 
+			(m4_sel & m4_icb_cmd_ready)
+		);
+	assign dcd_msg_fifo_din_sel = {m4_sel, m3_sel, m2_sel, m1_sel, m0_sel};
 	
 	/** 响应通道路由 **/
 	assign s_icb_rsp_rdata = 
 		({32{dcd_msg_fifo_dout_sel[0]}} & m0_icb_rsp_rdata) | 
 		({32{dcd_msg_fifo_dout_sel[1]}} & m1_icb_rsp_rdata) | 
 		({32{dcd_msg_fifo_dout_sel[2]}} & m2_icb_rsp_rdata) | 
-		({32{dcd_msg_fifo_dout_sel[3]}} & m3_icb_rsp_rdata);
+		({32{dcd_msg_fifo_dout_sel[3]}} & m3_icb_rsp_rdata) | 
+		({32{dcd_msg_fifo_dout_sel[4]}} & m4_icb_rsp_rdata);
 	assign s_icb_rsp_err = 
 		(dcd_msg_fifo_dout_sel[0] & m0_icb_rsp_err) | 
 		(dcd_msg_fifo_dout_sel[1] & m1_icb_rsp_err) | 
 		(dcd_msg_fifo_dout_sel[2] & m2_icb_rsp_err) | 
-		(dcd_msg_fifo_dout_sel[3] & m3_icb_rsp_err);
+		(dcd_msg_fifo_dout_sel[3] & m3_icb_rsp_err) | 
+		(dcd_msg_fifo_dout_sel[4] & m4_icb_rsp_err);
 	assign s_icb_rsp_valid = 
-		dcd_msg_fifo_empty_n & 
-		((dcd_msg_fifo_dout_sel[0] & m0_icb_rsp_valid) | 
-		(dcd_msg_fifo_dout_sel[1] & m1_icb_rsp_valid) | 
-		(dcd_msg_fifo_dout_sel[2] & m2_icb_rsp_valid) | 
-		(dcd_msg_fifo_dout_sel[3] & m3_icb_rsp_valid));
+		dcd_msg_fifo_empty_n & (
+			(dcd_msg_fifo_dout_sel[0] & m0_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[1] & m1_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[2] & m2_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[3] & m3_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[4] & m4_icb_rsp_valid)
+		);
 	
 	assign m0_icb_rsp_ready = dcd_msg_fifo_empty_n & dcd_msg_fifo_dout_sel[0] & s_icb_rsp_ready;
 	assign m1_icb_rsp_ready = dcd_msg_fifo_empty_n & dcd_msg_fifo_dout_sel[1] & s_icb_rsp_ready;
 	assign m2_icb_rsp_ready = dcd_msg_fifo_empty_n & dcd_msg_fifo_dout_sel[2] & s_icb_rsp_ready;
 	assign m3_icb_rsp_ready = dcd_msg_fifo_empty_n & dcd_msg_fifo_dout_sel[3] & s_icb_rsp_ready;
+	assign m4_icb_rsp_ready = dcd_msg_fifo_empty_n & dcd_msg_fifo_dout_sel[4] & s_icb_rsp_ready;
 	
 	assign dcd_msg_fifo_ren = 
-		s_icb_rsp_ready & 
-		((dcd_msg_fifo_dout_sel[0] & m0_icb_rsp_valid) | 
-		(dcd_msg_fifo_dout_sel[1] & m1_icb_rsp_valid) | 
-		(dcd_msg_fifo_dout_sel[2] & m2_icb_rsp_valid) | 
-		(dcd_msg_fifo_dout_sel[3] & m3_icb_rsp_valid));
+		s_icb_rsp_ready & (
+			(dcd_msg_fifo_dout_sel[0] & m0_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[1] & m1_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[2] & m2_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[3] & m3_icb_rsp_valid) | 
+			(dcd_msg_fifo_dout_sel[4] & m4_icb_rsp_valid)
+		);
 	
 endmodule
