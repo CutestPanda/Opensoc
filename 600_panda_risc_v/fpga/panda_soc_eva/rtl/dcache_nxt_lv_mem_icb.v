@@ -29,6 +29,7 @@ SOFTWARE.
 描述:
 对读/写下级存储器ICB从机进行仲裁
 支持多种ICB从机仲裁方式: 公平轮询/读优先/写优先
+以一个缓存行(ICB从机上的CACHE_LINE_WORD_N次传输)作为仲裁单位
 
 注意：
 无
@@ -43,6 +44,7 @@ ICB MASTER/SLAVE
 
 module dcache_nxt_lv_mem_icb #(
 	parameter ARB_METHOD = "round-robin", // 仲裁方式(round-robin | read-first | write-first)
+	parameter integer CACHE_LINE_WORD_N = 8, // 每个缓存行的字数(1 | 2 | 4 | 8 | 16)
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -129,24 +131,27 @@ module dcache_nxt_lv_mem_icb #(
 	wire nxt_lv_mem_rd_grant; // 读下级存储器许可
 	wire nxt_lv_mem_wt_grant; // 写下级存储器许可
 	reg sel_wt_when_cflt; // 冲突时选择写请求(标志)
+	reg[CACHE_LINE_WORD_N-1:0] nxt_lv_mem_burst_word_id; // 下级存储器突发访问的字数据编号(独热码)
+	reg nxt_lv_mem_burst_sel_wt; // 本次下级存储器突发访问选择写(标志)
 	
-	assign nxt_lv_mem_rd_req = arb_msg_fifo_full_n & s_rd_icb_cmd_valid;
-	assign nxt_lv_mem_wt_req = arb_msg_fifo_full_n & s_wt_icb_cmd_valid;
+	assign nxt_lv_mem_rd_req = arb_msg_fifo_full_n & (nxt_lv_mem_burst_word_id[0] | (~nxt_lv_mem_burst_sel_wt)) & s_rd_icb_cmd_valid;
+	assign nxt_lv_mem_wt_req = arb_msg_fifo_full_n & (nxt_lv_mem_burst_word_id[0] | nxt_lv_mem_burst_sel_wt) & s_wt_icb_cmd_valid;
 	
-	// 握手条件: arb_msg_fifo_full_n & s_rd_icb_cmd_valid & m_icb_cmd_ready & [读许可]
+	// 握手条件: s_rd_icb_cmd_valid & m_icb_cmd_ready & nxt_lv_mem_rd_grant
 	assign s_rd_icb_cmd_ready = nxt_lv_mem_rd_grant & m_icb_cmd_ready;
 	
-	// 握手条件: arb_msg_fifo_full_n & s_wt_icb_cmd_valid & m_icb_cmd_ready & [写许可]
+	// 握手条件: s_wt_icb_cmd_valid & m_icb_cmd_ready & nxt_lv_mem_wt_grant
 	assign s_wt_icb_cmd_ready = nxt_lv_mem_wt_grant & m_icb_cmd_ready;
 	
 	assign m_icb_cmd_addr = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_addr:s_wt_icb_cmd_addr;
 	assign m_icb_cmd_read = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_read:s_wt_icb_cmd_read;
 	assign m_icb_cmd_wdata = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_wdata:s_wt_icb_cmd_wdata;
 	assign m_icb_cmd_wmask = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_wmask:s_wt_icb_cmd_wmask;
-	// 握手条件: arb_msg_fifo_full_n & (s_rd_icb_cmd_valid | s_wt_icb_cmd_valid) & m_icb_cmd_ready
+	// 握手条件: (nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & m_icb_cmd_ready
 	assign m_icb_cmd_valid = nxt_lv_mem_rd_req | nxt_lv_mem_wt_req;
 	
-	assign arb_msg_fifo_wen = (s_rd_icb_cmd_valid | s_wt_icb_cmd_valid) & m_icb_cmd_ready;
+	// 握手条件: (nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & m_icb_cmd_ready
+	assign arb_msg_fifo_wen = (nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & m_icb_cmd_ready;
 	assign arb_msg_fifo_din = nxt_lv_mem_rd_grant;
 	
 	generate
@@ -166,7 +171,7 @@ module dcache_nxt_lv_mem_icb #(
 			begin
 				if(~aresetn)
 					sel_wt_when_cflt <= 1'b0;
-				else if(arb_msg_fifo_full_n & s_rd_icb_cmd_valid & s_wt_icb_cmd_valid & m_icb_cmd_ready)
+				else if(nxt_lv_mem_rd_req & nxt_lv_mem_wt_req & m_icb_cmd_ready)
 					sel_wt_when_cflt <= # SIM_DELAY ~sel_wt_when_cflt;
 			end
 		end
@@ -181,6 +186,38 @@ module dcache_nxt_lv_mem_icb #(
 			assign nxt_lv_mem_wt_grant = (~nxt_lv_mem_rd_req) & nxt_lv_mem_wt_req;
 		end
 	endgenerate
+	
+	// 下级存储器突发访问的字数据编号(独热码)
+	generate
+		if(CACHE_LINE_WORD_N == 1)
+		begin
+			always @(posedge aclk or negedge aresetn)
+			begin
+				if(~aresetn)
+					nxt_lv_mem_burst_word_id <= 1'b1;
+				else if(m_icb_cmd_valid & m_icb_cmd_ready)
+					nxt_lv_mem_burst_word_id <= # SIM_DELAY 1'b1;
+			end
+		end
+		else
+		begin
+			always @(posedge aclk or negedge aresetn)
+			begin
+				if(~aresetn)
+					nxt_lv_mem_burst_word_id <= {{(CACHE_LINE_WORD_N-1){1'b0}}, 1'b1};
+				else if(m_icb_cmd_valid & m_icb_cmd_ready)
+					nxt_lv_mem_burst_word_id <= # SIM_DELAY 
+						{nxt_lv_mem_burst_word_id[CACHE_LINE_WORD_N-2:0], nxt_lv_mem_burst_word_id[CACHE_LINE_WORD_N-1]};
+			end
+		end
+	endgenerate
+	
+	// 本次下级存储器突发访问选择写(标志)
+	always @(posedge aclk)
+	begin
+		if(m_icb_cmd_valid & m_icb_cmd_ready & nxt_lv_mem_burst_word_id[0])
+			nxt_lv_mem_burst_sel_wt <= # SIM_DELAY s_wt_icb_cmd_valid & s_wt_icb_cmd_ready;
+	end
 	
 	/** ICB接口响应通道 **/
 	assign s_rd_icb_rsp_rdata = m_icb_rsp_rdata;

@@ -327,7 +327,7 @@ module panda_soc_top #(
 	// 读地址通道
     wire[31:0] m_axi_dcache_araddr;
 	wire[1:0] m_axi_dcache_arburst; // const -> 2'b01(INCR)
-	wire[7:0] m_axi_dcache_arlen; // const -> 8'd0
+	wire[7:0] m_axi_dcache_arlen; // const -> DCACHE_LINE_WORD_N - 1
     wire[2:0] m_axi_dcache_arsize; // const -> 3'b010
 	wire[3:0] m_axi_dcache_arcache; // const -> 4'b0011
     wire m_axi_dcache_arvalid;
@@ -335,7 +335,7 @@ module panda_soc_top #(
     // 写地址通道
     wire[31:0] m_axi_dcache_awaddr;
     wire[1:0] m_axi_dcache_awburst; // const -> 2'b01(INCR)
-	wire[7:0] m_axi_dcache_awlen; // const -> 8'd0
+	wire[7:0] m_axi_dcache_awlen; // const -> DCACHE_LINE_WORD_N - 1
     wire[2:0] m_axi_dcache_awsize; // const -> 3'b010
 	wire[3:0] m_axi_dcache_awcache; // const -> 4'b0011
     wire m_axi_dcache_awvalid;
@@ -353,7 +353,7 @@ module panda_soc_top #(
     // 写数据通道
     wire[31:0] m_axi_dcache_wdata;
     wire[3:0] m_axi_dcache_wstrb;
-	wire m_axi_dcache_wlast; // const -> 1'b1
+	wire m_axi_dcache_wlast;
     wire m_axi_dcache_wvalid;
     wire m_axi_dcache_wready;
 	// 中断请求

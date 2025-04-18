@@ -40,7 +40,7 @@ ICB主机#4接ICB-DCache再通过ICB到AXI-Lite桥引出AXI-Lite主机
 未使用的外部中断请求信号必须接1'b0
 
 协议:
-AXI-Lite MASTER
+AXI MASTER
 MEM MASTER
 
 作者: 陈家耀
@@ -168,11 +168,11 @@ module panda_risc_v_min_proc_sys #(
     output wire m_axi_dbus_wvalid,
     input wire m_axi_dbus_wready,
 	
-	// 数据Cache总线(AXI-Lite主机)
+	// 数据Cache总线(AXI主机)
 	// 读地址通道
     output wire[31:0] m_axi_dcache_araddr,
 	output wire[1:0] m_axi_dcache_arburst, // const -> 2'b01(INCR)
-	output wire[7:0] m_axi_dcache_arlen, // const -> 8'd0
+	output wire[7:0] m_axi_dcache_arlen, // const -> DCACHE_LINE_WORD_N - 1
     output wire[2:0] m_axi_dcache_arsize, // const -> 3'b010
 	output wire[3:0] m_axi_dcache_arcache, // const -> 4'b0011
     output wire m_axi_dcache_arvalid,
@@ -180,7 +180,7 @@ module panda_risc_v_min_proc_sys #(
     // 写地址通道
     output wire[31:0] m_axi_dcache_awaddr,
     output wire[1:0] m_axi_dcache_awburst, // const -> 2'b01(INCR)
-	output wire[7:0] m_axi_dcache_awlen, // const -> 8'd0
+	output wire[7:0] m_axi_dcache_awlen, // const -> DCACHE_LINE_WORD_N - 1
     output wire[2:0] m_axi_dcache_awsize, // const -> 3'b010
 	output wire[3:0] m_axi_dcache_awcache, // const -> 4'b0011
     output wire m_axi_dcache_awvalid,
@@ -200,7 +200,7 @@ module panda_risc_v_min_proc_sys #(
     // 写数据通道
     output wire[31:0] m_axi_dcache_wdata,
     output wire[3:0] m_axi_dcache_wstrb,
-	output wire m_axi_dcache_wlast, // const -> 1'b1
+	output wire m_axi_dcache_wlast,
     output wire m_axi_dcache_wvalid,
     input wire m_axi_dcache_wready,
 	
@@ -1215,15 +1215,8 @@ module panda_risc_v_min_proc_sys #(
 	assign m_axi_dbus_awcache = 4'b0011;
 	assign m_axi_dbus_wlast = 1'b1;
 	
-	assign m_axi_dcache_arburst = 2'b01;
-	assign m_axi_dcache_arlen = 8'd0;
-	assign m_axi_dcache_arsize = 3'b010;
 	assign m_axi_dcache_arcache = 4'b0011;
-	assign m_axi_dcache_awburst = 2'b01;
-	assign m_axi_dcache_awlen = 8'd0;
-	assign m_axi_dcache_awsize = 3'b010;
 	assign m_axi_dcache_awcache = 4'b0011;
-	assign m_axi_dcache_wlast = 1'b1;
 	
 	assign s0_icb_bridge_cmd_addr = m3_icb_dstb_cmd_addr;
 	assign s0_icb_bridge_cmd_read = m3_icb_dstb_cmd_read;
@@ -1300,11 +1293,12 @@ module panda_risc_v_min_proc_sys #(
 		.m_axi_wready(m_axi_dbus_wready)
 	);
 	
-	icb_axi_bridge #(
-		.simulation_delay(simulation_delay)
-	)icb_axi_bridge_u1(
-		.clk(clk),
-		.resetn(sys_resetn),
+	dcache_nxt_lv_mem_icb_to_axi #(
+		.CACHE_LINE_WORD_N(DCACHE_LINE_WORD_N),
+		.SIM_DELAY(simulation_delay)
+	)dcache_nxt_lv_mem_icb_to_axi_u(
+		.aclk(clk),
+		.aresetn(sys_resetn),
 		
 		.s_icb_cmd_addr(s1_icb_bridge_cmd_addr),
 		.s_icb_cmd_read(s1_icb_bridge_cmd_read),
@@ -1318,11 +1312,15 @@ module panda_risc_v_min_proc_sys #(
 		.s_icb_rsp_ready(s1_icb_bridge_rsp_ready),
 		
 		.m_axi_araddr(m_axi_dcache_araddr),
-		.m_axi_arprot(),
+		.m_axi_arburst(m_axi_dcache_arburst),
+		.m_axi_arlen(m_axi_dcache_arlen),
+		.m_axi_arsize(m_axi_dcache_arsize),
 		.m_axi_arvalid(m_axi_dcache_arvalid),
 		.m_axi_arready(m_axi_dcache_arready),
 		.m_axi_awaddr(m_axi_dcache_awaddr),
-		.m_axi_awprot(),
+		.m_axi_awburst(m_axi_dcache_awburst),
+		.m_axi_awlen(m_axi_dcache_awlen),
+		.m_axi_awsize(m_axi_dcache_awsize),
 		.m_axi_awvalid(m_axi_dcache_awvalid),
 		.m_axi_awready(m_axi_dcache_awready),
 		.m_axi_bresp(m_axi_dcache_bresp),
@@ -1330,10 +1328,12 @@ module panda_risc_v_min_proc_sys #(
 		.m_axi_bready(m_axi_dcache_bready),
 		.m_axi_rdata(m_axi_dcache_rdata),
 		.m_axi_rresp(m_axi_dcache_rresp),
+		.m_axi_rlast(m_axi_dcache_rlast),
 		.m_axi_rvalid(m_axi_dcache_rvalid),
 		.m_axi_rready(m_axi_dcache_rready),
 		.m_axi_wdata(m_axi_dcache_wdata),
 		.m_axi_wstrb(m_axi_dcache_wstrb),
+		.m_axi_wlast(m_axi_dcache_wlast),
 		.m_axi_wvalid(m_axi_dcache_wvalid),
 		.m_axi_wready(m_axi_dcache_wready)
 	);
