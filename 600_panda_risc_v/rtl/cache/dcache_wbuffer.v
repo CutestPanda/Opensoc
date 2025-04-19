@@ -122,7 +122,7 @@ module dcache_wbuffer #(
 	reg wbuf_full_n; // 写缓存满(标志)
 	reg wbuf_empty_n; // 写缓存空(标志)
 	wire cache_line_icb_cmd_acpt; // 缓存行被ICB主机的命令通道接受
-	reg[WBUF_ITEM_N-1:0] cache_line_icb_cmd_ptr; // 缓存行ICB主机命令发送指针
+	reg[clogb2(WBUF_ITEM_N-1):0] cache_line_icb_cmd_ptr; // 缓存行ICB主机命令发送指针
 	reg[WBUF_ITEM_N-1:0] cache_line_on_trans; // 缓存行已发送到ICB主机的命令通道(标志)
 	
 	assign cache_line_wen = s_cache_line_axis_valid & s_cache_line_axis_ready;
@@ -150,10 +150,12 @@ module dcache_wbuffer #(
 	always @(posedge aclk or negedge aresetn)
 	begin
 		if(~aresetn)
-			cache_line_icb_cmd_ptr <= 8'b0000_0001;
+			cache_line_icb_cmd_ptr <= 0;
 		else if(cache_line_icb_cmd_acpt)
 			cache_line_icb_cmd_ptr <= # SIM_DELAY 
-				(cache_line_icb_cmd_ptr << 1) | (cache_line_icb_cmd_ptr >> (WBUF_ITEM_N-1)); // 循环左移1位
+				(cache_line_icb_cmd_ptr == (WBUF_ITEM_N-1)) ? 
+					0:
+					(cache_line_icb_cmd_ptr + 1);
 	end
 	
 	// 缓存行有效(标志)
@@ -206,11 +208,11 @@ module dcache_wbuffer #(
 				if(~aresetn)
 					cache_line_on_trans[cache_line_on_trans_i] <= 1'b0;
 				else if(
-					(cache_line_icb_cmd_acpt & cache_line_icb_cmd_ptr[cache_line_on_trans_i]) ^ 
+					(cache_line_icb_cmd_acpt & (cache_line_icb_cmd_ptr == cache_line_on_trans_i)) ^ 
 					(cache_line_ren & (cache_line_rptr == cache_line_on_trans_i))
 				)
 					cache_line_on_trans[cache_line_on_trans_i] <= # SIM_DELAY 
-						cache_line_icb_cmd_acpt & cache_line_icb_cmd_ptr[cache_line_on_trans_i];
+						cache_line_icb_cmd_acpt & (cache_line_icb_cmd_ptr == cache_line_on_trans_i);
 			end
 		end
 	endgenerate

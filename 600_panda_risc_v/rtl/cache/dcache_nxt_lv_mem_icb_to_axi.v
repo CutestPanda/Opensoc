@@ -211,10 +211,10 @@ module dcache_nxt_lv_mem_icb_to_axi #(
 	begin
 		if(~aresetn)
 			wdata_fifo_pstr_n <= 10'd0;
-		else if((m_axi_awvalid & m_axi_awready) ^ (m_axi_wvalid & m_axi_wready))
+		else if((m_axi_awvalid & m_axi_awready) | (m_axi_wvalid & m_axi_wready))
 			wdata_fifo_pstr_n <= # SIM_DELAY 
 				wdata_fifo_pstr_n + 
-				((m_axi_awvalid & m_axi_awready) ? 10'd4:10'd0) - 
+				((m_axi_awvalid & m_axi_awready) ? CACHE_LINE_WORD_N:10'd0) - 
 				((m_axi_wvalid & m_axi_wready) ? 10'd1:10'd0);
 	end
 	

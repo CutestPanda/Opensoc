@@ -410,6 +410,7 @@ module icb_dcache #(
 	
 	dcache_nxt_lv_mem_icb #(
 		.ARB_METHOD("round-robin"),
+		.CACHE_LINE_WORD_N(CACHE_LINE_WORD_N),
 		.SIM_DELAY(SIM_DELAY)
 	)dcache_nxt_lv_mem_icb_u(
 		.aclk(aclk),
