@@ -101,7 +101,6 @@ module dcache_nxt_lv_mem_icb_to_axi #(
 	reg[CACHE_LINE_WORD_N-1:0] icb_cmd_word_ofs; // ICB命令通道字偏移码
 	reg[CACHE_LINE_WORD_N-1:0] icb_rsp_word_ofs; // ICB响应通道字偏移码
 	reg[CACHE_LINE_WORD_N-1:0] axi_w_word_ofs; // AXI写数据通道字偏移码
-	reg[9:0] wdata_fifo_pstr_n; // 写数据fifo预存数据量
 	reg[1:0] bresp_lacthed; // 锁存的写响应错误码
 	// [写数据fifo端口]
 	wire wdata_fifo_wen;
@@ -117,12 +116,18 @@ module dcache_nxt_lv_mem_icb_to_axi #(
 	wire burst_msg_fifo_ren;
 	wire burst_msg_fifo_empty_n;
 	wire burst_msg_fifo_dout; // {是否读突发(1位)}
+	// [写突发首地址缓存区]
+	reg[31:0] wburst_baseaddr_buf_regs[0:3]; // 缓存寄存器组
+	reg wburst_baseaddr_buf_wen_d1; // 延迟1clk的写使能
+	reg[1:0] wburst_baseaddr_buf_wptr; // 写指针
+	reg[1:0] wburst_baseaddr_buf_rptr; // 读指针
+	reg[2:0] wburst_allowed_n; // 允许启动的写突发个数
 	
 	assign s_icb_cmd_ready = 
 		s_icb_cmd_read ? (
 			(~icb_cmd_word_ofs[0]) | (burst_msg_fifo_full_n & m_axi_arready)
 		):(
-			((~icb_cmd_word_ofs[0]) | ((wdata_fifo_pstr_n < 10'd256) & burst_msg_fifo_full_n & m_axi_awready)) & wdata_fifo_full_n
+			((~icb_cmd_word_ofs[0]) | burst_msg_fifo_full_n) & wdata_fifo_full_n
 		);
 	
 	assign s_icb_rsp_rdata = 
@@ -151,14 +156,11 @@ module dcache_nxt_lv_mem_icb_to_axi #(
 	
 	assign m_axi_rready = burst_msg_fifo_empty_n & burst_msg_fifo_dout & s_icb_rsp_ready;
 	
-	assign m_axi_awaddr = s_icb_cmd_addr;
+	assign m_axi_awaddr = wburst_baseaddr_buf_regs[wburst_baseaddr_buf_rptr];
 	assign m_axi_awburst = 2'b01;
 	assign m_axi_awlen = CACHE_LINE_WORD_N - 1;
 	assign m_axi_awsize = 3'b010;
-	assign m_axi_awvalid = 
-		s_icb_cmd_valid & (~s_icb_cmd_read) & 
-		icb_cmd_word_ofs[0] & 
-		(wdata_fifo_pstr_n < 10'd256) & burst_msg_fifo_full_n;
+	assign m_axi_awvalid = wburst_allowed_n != 3'b000;
 	
 	assign m_axi_bready = burst_msg_fifo_empty_n & (~burst_msg_fifo_dout) & icb_rsp_word_ofs[0] & s_icb_rsp_ready;
 	
@@ -206,23 +208,62 @@ module dcache_nxt_lv_mem_icb_to_axi #(
 			axi_w_word_ofs <= # SIM_DELAY (axi_w_word_ofs << 1) | (axi_w_word_ofs >> (CACHE_LINE_WORD_N-1));
 	end
 	
-	// 写数据fifo预存数据量
-	always @(posedge aclk or negedge aresetn)
-	begin
-		if(~aresetn)
-			wdata_fifo_pstr_n <= 10'd0;
-		else if((m_axi_awvalid & m_axi_awready) | (m_axi_wvalid & m_axi_wready))
-			wdata_fifo_pstr_n <= # SIM_DELAY 
-				wdata_fifo_pstr_n + 
-				((m_axi_awvalid & m_axi_awready) ? CACHE_LINE_WORD_N:10'd0) - 
-				((m_axi_wvalid & m_axi_wready) ? 10'd1:10'd0);
-	end
-	
 	// 锁存的写响应错误码
 	always @(posedge aclk)
 	begin
 		if(m_axi_bvalid & m_axi_bready)
 			bresp_lacthed <= # SIM_DELAY m_axi_bresp;
+	end
+	
+	// 写突发首地址缓存区寄存器组
+	genvar wburst_baseaddr_buf_regs_i;
+	generate
+		for(wburst_baseaddr_buf_regs_i = 0;wburst_baseaddr_buf_regs_i < 4;wburst_baseaddr_buf_regs_i = wburst_baseaddr_buf_regs_i + 1)
+		begin:wburst_baseaddr_buf_regs_blk
+			always @(posedge aclk)
+			begin
+				if(s_icb_cmd_valid & s_icb_cmd_ready & (~s_icb_cmd_read) & icb_cmd_word_ofs[0] & 
+					(wburst_baseaddr_buf_wptr == wburst_baseaddr_buf_regs_i))
+					wburst_baseaddr_buf_regs[wburst_baseaddr_buf_regs_i] <= # SIM_DELAY s_icb_cmd_addr;
+			end
+		end
+	endgenerate
+	// 延迟1clk的写使能
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			wburst_baseaddr_buf_wen_d1 <= 1'b0;
+		else
+			wburst_baseaddr_buf_wen_d1 <= # SIM_DELAY 
+				s_icb_cmd_valid & s_icb_cmd_ready & (~s_icb_cmd_read) & icb_cmd_word_ofs[CACHE_LINE_WORD_N-1];
+	end
+	// 写突发首地址缓存区写指针
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			wburst_baseaddr_buf_wptr <= 2'b00;
+		else if(wburst_baseaddr_buf_wen_d1)
+			wburst_baseaddr_buf_wptr <= # SIM_DELAY wburst_baseaddr_buf_wptr + 2'b01;
+	end
+	// 写突发首地址缓存区读指针
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			wburst_baseaddr_buf_rptr <= 2'b00;
+		else if(m_axi_awvalid & m_axi_awready)
+			wburst_baseaddr_buf_rptr <= # SIM_DELAY wburst_baseaddr_buf_rptr + 2'b01;
+	end
+	// 允许启动的写突发个数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			wburst_allowed_n <= 3'b000;
+		else if(
+			wburst_baseaddr_buf_wen_d1 ^ 
+			(m_axi_awvalid & m_axi_awready)
+		)
+			wburst_allowed_n <= # SIM_DELAY 
+				wburst_allowed_n + {{2{~wburst_baseaddr_buf_wen_d1}}, 1'b1};
 	end
 	
 	fifo_based_on_regs #(
