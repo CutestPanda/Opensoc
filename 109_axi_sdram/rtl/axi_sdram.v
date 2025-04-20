@@ -44,6 +44,7 @@ SDRAM MASTER
 
 
 module axi_sdram #(
+	parameter integer AXI_ID_WIDTH = 4, // AXI接口ID位宽(1~8)
 	parameter real CLK_PERIOD = 7.0, // 时钟周期(以ns计)
 	parameter real INIT_PAUSE = 250000.0, // 初始等待时间(以ns计)
 	parameter integer INIT_AUTO_RFS_N = 2, // 初始化时执行自动刷新的次数
@@ -77,18 +78,21 @@ module axi_sdram #(
     
     // AXI从机
     // AR
+	input wire[AXI_ID_WIDTH-1:0] s_axi_arid,
     input wire[31:0] s_axi_araddr,
     input wire[7:0] s_axi_arlen,
     input wire[2:0] s_axi_arsize, // 必须是clogb2(DATA_WIDTH/8)
     input wire s_axi_arvalid,
     output wire s_axi_arready,
     // R
+	output wire[AXI_ID_WIDTH-1:0] s_axi_rid,
     output wire[DATA_WIDTH-1:0] s_axi_rdata,
     output wire s_axi_rlast,
     output wire[1:0] s_axi_rresp, // const -> 2'b00
     output wire s_axi_rvalid,
     input wire s_axi_rready,
     // AW
+	input wire[AXI_ID_WIDTH-1:0] s_axi_awid,
     input wire[31:0] s_axi_awaddr,
     input wire[7:0] s_axi_awlen,
     input wire[2:0] s_axi_awsize, // 必须是clogb2(DATA_WIDTH/8)
@@ -101,6 +105,7 @@ module axi_sdram #(
     input wire s_axi_wvalid,
     output wire s_axi_wready,
     // B
+	output wire[AXI_ID_WIDTH-1:0] s_axi_bid,
     output wire[1:0] s_axi_bresp, // const -> 2'b00
     output wire s_axi_bvalid,
     input wire s_axi_bready,
@@ -141,6 +146,7 @@ module axi_sdram #(
     wire s_axis_rd_ready;
 	
 	s_axi_if_for_axi_sdram #(
+		.AXI_ID_WIDTH(AXI_ID_WIDTH),
 		.DATA_WIDTH(DATA_WIDTH),
 		.SDRAM_COL_N(SDRAM_COL_N),
 		.SDRAM_ROW_N(SDRAM_ROW_N),
@@ -150,16 +156,19 @@ module axi_sdram #(
 		.clk(ctrler_aclk),
 		.rst_n(ctrler_aresetn),
 		
+		.s_axi_arid(s_axi_arid),
 		.s_axi_araddr(s_axi_araddr),
 		.s_axi_arlen(s_axi_arlen),
 		.s_axi_arsize(s_axi_arsize),
 		.s_axi_arvalid(s_axi_arvalid),
 		.s_axi_arready(s_axi_arready),
+		.s_axi_rid(s_axi_rid),
 		.s_axi_rdata(s_axi_rdata),
 		.s_axi_rlast(s_axi_rlast),
 		.s_axi_rresp(s_axi_rresp),
 		.s_axi_rvalid(s_axi_rvalid),
 		.s_axi_rready(s_axi_rready),
+		.s_axi_awid(s_axi_awid),
 		.s_axi_awaddr(s_axi_awaddr),
 		.s_axi_awlen(s_axi_awlen),
 		.s_axi_awsize(s_axi_awsize),
@@ -170,6 +179,7 @@ module axi_sdram #(
 		.s_axi_wlast(s_axi_wlast),
 		.s_axi_wvalid(s_axi_wvalid),
 		.s_axi_wready(s_axi_wready),
+		.s_axi_bid(s_axi_bid),
 		.s_axi_bresp(s_axi_bresp),
 		.s_axi_bvalid(s_axi_bvalid),
 		.s_axi_bready(s_axi_bready),

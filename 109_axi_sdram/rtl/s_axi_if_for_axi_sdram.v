@@ -44,6 +44,7 @@ AXIS MASTER/SLAVE
 
 
 module s_axi_if_for_axi_sdram #(
+	parameter integer AXI_ID_WIDTH = 4, // AXI接口ID位宽(1~8)
 	parameter integer DATA_WIDTH = 32, // 数据位宽(8 | 16 | 32 | 64)
 	parameter integer SDRAM_COL_N = 256, // sdram列数(128 | 256 | 512 | 1024)
 	parameter integer SDRAM_ROW_N = 8192, // sdram行数(1024 | 2048 | 4096 | 8192 | 16384)
@@ -56,18 +57,21 @@ module s_axi_if_for_axi_sdram #(
     
     // AXI从机
     // AR
+	input wire[AXI_ID_WIDTH-1:0] s_axi_arid,
     input wire[31:0] s_axi_araddr,
     input wire[7:0] s_axi_arlen,
     input wire[2:0] s_axi_arsize, // 必须是clogb2(DATA_WIDTH/8)
     input wire s_axi_arvalid,
     output wire s_axi_arready,
     // R
+	output wire[AXI_ID_WIDTH-1:0] s_axi_rid,
     output wire[DATA_WIDTH-1:0] s_axi_rdata,
     output wire s_axi_rlast,
     output wire[1:0] s_axi_rresp, // const -> 2'b00
     output wire s_axi_rvalid,
     input wire s_axi_rready,
     // AW
+	input wire[AXI_ID_WIDTH-1:0] s_axi_awid,
     input wire[31:0] s_axi_awaddr,
     input wire[7:0] s_axi_awlen,
     input wire[2:0] s_axi_awsize, // 必须是clogb2(DATA_WIDTH/8)
@@ -80,6 +84,7 @@ module s_axi_if_for_axi_sdram #(
     input wire s_axi_wvalid,
     output wire s_axi_wready,
     // B
+	output wire[AXI_ID_WIDTH-1:0] s_axi_bid,
     output wire[1:0] s_axi_bresp, // const -> 2'b00
     output wire s_axi_bvalid,
     input wire s_axi_bready,
@@ -154,7 +159,11 @@ module s_axi_if_for_axi_sdram #(
 	wire send_bresp; // 发送写响应(指示)
 	wire accept_bresp; // 接受写响应(指示)
 	reg[1:0] bresp_n_to_accept; // 等待接受的写响应数量
+	reg[AXI_ID_WIDTH-1:0] bid_buf_regs[0:2]; // 写响应通道ID号缓存寄存器组
+	reg[1:0] bid_buf_wptr; // 写响应通道ID号缓存区写指针
+	reg[1:0] bid_buf_rptr; // 写响应通道ID号缓存区读指针
 	
+	assign s_axi_bid = bid_buf_regs[bid_buf_rptr];
 	assign s_axi_bresp = 2'b00;
 	assign s_axi_bvalid = bresp_n_to_accept != 2'd0;
 	
@@ -170,6 +179,29 @@ module s_axi_if_for_axi_sdram #(
 			bresp_n_to_accept <= # SIM_DELAY bresp_n_to_accept + {accept_bresp, 1'b1};
 	end
 	
+	// 写响应通道ID号缓存区写指针
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			bid_buf_wptr <= 2'b00;
+		else if(send_bresp)
+			bid_buf_wptr <= # SIM_DELAY 
+				bid_buf_wptr[1] ? 
+					2'b00:
+					(bid_buf_wptr + 2'b01);
+	end
+	// 写响应通道ID号缓存区读指针
+	always @(posedge clk or negedge rst_n)
+	begin
+		if(~rst_n)
+			bid_buf_rptr <= 2'b00;
+		else if(accept_bresp)
+			bid_buf_rptr <= # SIM_DELAY 
+				bid_buf_rptr[1] ? 
+					2'b00:
+					(bid_buf_rptr + 2'b01);
+	end
+	
 	/**
 	写数据包划分
 	
@@ -178,11 +210,11 @@ module s_axi_if_for_axi_sdram #(
 	**/
 	// fifo写端口
 	wire sdram_wt_burst_msg_fifo_wen;
-	wire[11:0] sdram_wt_burst_msg_fifo_din; // {是否划分的最后1次写突发(1bit), 突发长度 - 1(8bit), 首地址的低3位(3bit)}
+	wire[19:0] sdram_wt_burst_msg_fifo_din; // {写事务ID(8bit), 是否划分的最后1次写突发(1bit), 突发长度 - 1(8bit), 首地址的低3位(3bit)}
 	wire sdram_wt_burst_msg_fifo_full_n;
 	// fifo读端口
 	wire sdram_wt_burst_msg_fifo_ren;
-	wire[11:0] sdram_wt_burst_msg_fifo_dout; // {是否划分的最后1次写突发(1bit), 突发长度 - 1(8bit), 首地址的低3位(3bit)}
+	wire[19:0] sdram_wt_burst_msg_fifo_dout; // {写事务ID(8bit), 是否划分的最后1次写突发(1bit), 突发长度 - 1(8bit), 首地址的低3位(3bit)}
 	wire sdram_wt_burst_msg_fifo_empty_n;
 	// 写数据包划分
 	reg[7:0] sdram_wburst_cnt; // sdram写突发传输计数器
@@ -215,7 +247,8 @@ module s_axi_if_for_axi_sdram #(
 		s_axi_wvalid & sdram_wt_burst_msg_fifo_empty_n & 
 		((~(sdram_last_wtrans & sdram_wt_burst_msg_fifo_dout[11])) | (bresp_n_to_accept < 2'd2));
 	
-	assign send_bresp = m_axis_wt_valid & m_axis_wt_ready & sdram_last_wtrans & sdram_wt_burst_msg_fifo_dout[11];
+	assign send_bresp = 
+		m_axis_wt_valid & m_axis_wt_ready & sdram_last_wtrans & sdram_wt_burst_msg_fifo_dout[11] & (bresp_n_to_accept < 2'd2);
 	
 	/*
 	握手条件: 
@@ -250,6 +283,19 @@ module s_axi_if_for_axi_sdram #(
 			                                                8'b1000_0000
 		);
 	
+	// 写响应通道ID号缓存寄存器组
+	genvar bid_buf_regs_i;
+	generate
+		for(bid_buf_regs_i = 0;bid_buf_regs_i < 3;bid_buf_regs_i = bid_buf_regs_i + 1)
+		begin:bid_buf_regs_blk
+			always @(posedge clk)
+			begin
+				if(send_bresp & (bid_buf_wptr == bid_buf_regs_i))
+					bid_buf_regs[bid_buf_regs_i] <= # SIM_DELAY sdram_wt_burst_msg_fifo_dout[19:12];
+			end
+		end
+	endgenerate
+	
 	// sdram写突发传输计数器
 	always @(posedge clk or negedge rst_n)
 	begin
@@ -266,7 +312,7 @@ module s_axi_if_for_axi_sdram #(
 		.fwft_mode("true"),
 		.low_latency_mode("true"),
 		.fifo_depth(4),
-		.fifo_data_width(12),
+		.fifo_data_width(20),
 		.almost_full_th(2),
 		.almost_empty_th(2),
 		.simulation_delay(SIM_DELAY)
@@ -290,16 +336,17 @@ module s_axi_if_for_axi_sdram #(
 	**/
 	// fifo写端口
 	wire axi_rd_trans_msg_fifo_wen;
-	wire[7:0] axi_rd_trans_msg_fifo_din; // {突发长度 - 1(8bit)}
+	wire[15:0] axi_rd_trans_msg_fifo_din; // {ID号(8bit), 突发长度 - 1(8bit)}
 	wire axi_rd_trans_msg_fifo_full_n;
 	// fifo读端口
 	wire axi_rd_trans_msg_fifo_ren;
-	wire[7:0] axi_rd_trans_msg_fifo_dout; // {突发长度 - 1(8bit)}
+	wire[15:0] axi_rd_trans_msg_fifo_dout; // {ID号(8bit), 突发长度 - 1(8bit)}
 	wire axi_rd_trans_msg_fifo_empty_n;
 	// 读传输计数
 	reg[7:0] axi_rburst_cnt; // AXI读事务传输计数器
 	wire axi_last_rtrans; // AXI读事务最后1次传输(标志)
 	
+	assign s_axi_rid = axi_rd_trans_msg_fifo_dout[15:8];
 	assign s_axi_rdata = s_axis_rd_data;
 	assign s_axi_rlast = axi_last_rtrans;
 	assign s_axi_rresp = 2'b00;
@@ -320,7 +367,7 @@ module s_axi_if_for_axi_sdram #(
 		s_axis_rd_valid & s_axi_rready & axi_rd_trans_msg_fifo_empty_n & axi_last_rtrans
 	*/
 	assign axi_rd_trans_msg_fifo_ren = s_axis_rd_valid & s_axi_rready & axi_last_rtrans;
-	assign axi_last_rtrans = axi_rburst_cnt == axi_rd_trans_msg_fifo_dout;
+	assign axi_last_rtrans = axi_rburst_cnt == axi_rd_trans_msg_fifo_dout[7:0];
 	
 	// AXI读事务传输计数器
 	always @(posedge clk or negedge rst_n)
@@ -338,7 +385,7 @@ module s_axi_if_for_axi_sdram #(
 		.fwft_mode("true"),
 		.low_latency_mode("false"),
 		.fifo_depth(4),
-		.fifo_data_width(8),
+		.fifo_data_width(16),
 		.almost_full_th(2),
 		.almost_empty_th(2),
 		.simulation_delay(SIM_DELAY)
@@ -362,11 +409,11 @@ module s_axi_if_for_axi_sdram #(
 	**/
 	// fifo写端口
 	wire axi_trans_msg_fifo_wen;
-	wire[40:0] axi_trans_msg_fifo_din; // {是否读事务(1bit), 突发长度 - 1(8bit), 首地址(32bit)}
+	wire[48:0] axi_trans_msg_fifo_din; // {ID号(8bit), 是否读事务(1bit), 突发长度 - 1(8bit), 首地址(32bit)}
 	wire axi_trans_msg_fifo_full_n;
 	// fifo读端口
 	wire axi_trans_msg_fifo_ren;
-	wire[40:0] axi_trans_msg_fifo_dout; // {是否读事务(1bit), 突发长度 - 1(8bit), 首地址(32bit)}
+	wire[48:0] axi_trans_msg_fifo_dout; // {ID号(8bit), 是否读事务(1bit), 突发长度 - 1(8bit), 首地址(32bit)}
 	wire axi_trans_msg_fifo_empty_n;
 	// 读写仲裁
 	wire axi_rd_req;
@@ -378,13 +425,13 @@ module s_axi_if_for_axi_sdram #(
 	assign s_axi_awready = axi_wt_grant;
 	
 	assign axi_rd_trans_msg_fifo_wen = s_axi_arvalid & s_axi_arready;
-	assign axi_rd_trans_msg_fifo_din = s_axi_arlen;
+	assign axi_rd_trans_msg_fifo_din = {s_axi_arid | 8'h00, s_axi_arlen};
 	
 	assign axi_trans_msg_fifo_wen = (s_axi_arvalid & axi_rd_trans_msg_fifo_full_n) | s_axi_awvalid;
 	assign axi_trans_msg_fifo_din = 
 		axi_rd_grant ? 
-			{1'b1, s_axi_arlen, s_axi_araddr}:
-			{1'b0, s_axi_awlen, s_axi_awaddr};
+			{s_axi_arid | 8'h00, 1'b1, s_axi_arlen, s_axi_araddr}:
+			{s_axi_awid | 8'h00, 1'b0, s_axi_awlen, s_axi_awaddr};
 	
 	assign axi_rd_req = s_axi_arvalid & axi_trans_msg_fifo_full_n & axi_rd_trans_msg_fifo_full_n;
 	assign axi_wt_req = s_axi_awvalid & axi_trans_msg_fifo_full_n;
@@ -393,7 +440,7 @@ module s_axi_if_for_axi_sdram #(
 		.fwft_mode("true"),
 		.low_latency_mode("false"),
 		.fifo_depth(2),
-		.fifo_data_width(41),
+		.fifo_data_width(49),
 		.almost_full_th(1),
 		.almost_empty_th(1),
 		.simulation_delay(SIM_DELAY)
@@ -431,9 +478,11 @@ module s_axi_if_for_axi_sdram #(
 	reg[31:0] burst_baseaddr; // 突发首地址
 	reg[7:0] burst_n_rmn; // 剩余的突发次数 - 1
 	reg is_rd_burst; // 是否读突发(标志)
+	reg[AXI_ID_WIDTH-1:0] aw_id; // AXI写地址ID
 	wire[31:0] burst_baseaddr_cur; // 当前的突发首地址
 	wire[7:0] burst_n_rmn_cur; // 当前的(剩余的突发次数 - 1)
 	wire is_rd_burst_cur; // 当前的是否读突发(标志)
+	wire[AXI_ID_WIDTH-1:0] aw_id_cur; // 当前的AXI写地址ID
 	wire[12:0] burst_endaddr_cur; // 当前的突发结束地址
 	wire crossing_burst_bd; // 跨越突发边界(标志)
 	wire last_burst; // 读/写事务内的最后一次突发(标志)
@@ -491,6 +540,8 @@ module s_axi_if_for_axi_sdram #(
 		(splitting_burst | axi_trans_msg_fifo_empty_n) & 
 		(~is_rd_burst_cur) & 
 		m_axis_usr_cmd_ready;
+	// 写事务ID
+	assign sdram_wt_burst_msg_fifo_din[19:12] = aw_id_cur | 8'h00;
 	// 是否划分的最后1次写突发
 	assign sdram_wt_burst_msg_fifo_din[11] = last_burst;
 	// 突发长度 - 1
@@ -510,6 +561,10 @@ module s_axi_if_for_axi_sdram #(
 		splitting_burst ? 
 			is_rd_burst:
 			axi_trans_msg_fifo_dout[40];
+	assign aw_id_cur = 
+		splitting_burst ? 
+			aw_id:
+			axi_trans_msg_fifo_dout[48:41];
 	
 	assign burst_endaddr_cur = 
 		(
@@ -573,6 +628,16 @@ module s_axi_if_for_axi_sdram #(
 			((~splitting_burst) & axi_trans_msg_fifo_empty_n)
 		)
 			is_rd_burst <= # SIM_DELAY axi_trans_msg_fifo_dout[40];
+	end
+	
+	// AXI写地址ID
+	always @(posedge clk)
+	begin
+		if(
+			(~last_burst) & (is_rd_burst_cur | sdram_wt_burst_msg_fifo_full_n) & m_axis_usr_cmd_ready & 
+			((~splitting_burst) & axi_trans_msg_fifo_empty_n)
+		)
+			aw_id <= # SIM_DELAY axi_trans_msg_fifo_dout[48:41];
 	end
 	
 endmodule
