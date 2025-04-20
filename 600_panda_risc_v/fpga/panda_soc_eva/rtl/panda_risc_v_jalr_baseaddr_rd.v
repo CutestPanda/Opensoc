@@ -134,8 +134,14 @@ module panda_risc_v_jalr_baseaddr_rd #(
 	end
 	
 	/** JALR指令基址读结果 **/
-	// 提示:可以把jalr_baseaddr_vld和jalr_baseaddr_v打1拍以改善时序, 只导致些许的取指性能损失!
-	assign jalr_baseaddr_vld = 
+	wire on_jalr_baseaddr_vld; // JALR指令基址有效(指示)
+	reg jalr_baseaddr_vld_r; // 延迟1clk的JALR指令基址有效(指示)
+	reg[31:0] jalr_baseaddr_v_r; // 锁存的JALR指令基址
+	
+	assign jalr_baseaddr_vld = jalr_baseaddr_vld_r;
+	assign jalr_baseaddr_v = jalr_baseaddr_v_r;
+	
+	assign on_jalr_baseaddr_vld = 
 		(~(to_rst | to_flush)) & 
 		(vld_inst_gotten | to_continue_req_for_reg_file_rd_p0 | to_continue_rd_x1)
 		& is_jalr_inst
@@ -144,9 +150,26 @@ module panda_risc_v_jalr_baseaddr_rd #(
 			((rs1_id == 5'd1) ? (~rs1_raw_dpc):
 				jalr_reg_file_rd_p0_grant)
 		);
-	assign jalr_baseaddr_v = {32{rs1_id != 5'd0}} & (
-		(rs1_id == 5'd1) ? jalr_x1_v:
-			jalr_reg_file_rd_p0_dout
-	);
+	
+	// 延迟1clk的JALR指令基址有效(指示)
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			jalr_baseaddr_vld_r <= 1'b0;
+		else
+			jalr_baseaddr_vld_r <= # simulation_delay on_jalr_baseaddr_vld;
+	end
+	
+	// 锁存的JALR指令基址
+	always @(posedge clk)
+	begin
+		if(on_jalr_baseaddr_vld)
+			jalr_baseaddr_v_r <= # simulation_delay 
+				{32{rs1_id != 5'd0}} & (
+					(rs1_id == 5'd1) ? 
+						jalr_x1_v:
+						jalr_reg_file_rd_p0_dout
+				);
+	end
 	
 endmodule
