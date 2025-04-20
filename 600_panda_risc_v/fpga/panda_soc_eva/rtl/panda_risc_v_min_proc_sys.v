@@ -1293,49 +1293,66 @@ module panda_risc_v_min_proc_sys #(
 		.m_axi_wready(m_axi_dbus_wready)
 	);
 	
-	dcache_nxt_lv_mem_icb_to_axi #(
-		.CACHE_LINE_WORD_N(DCACHE_LINE_WORD_N),
-		.SIM_DELAY(simulation_delay)
-	)dcache_nxt_lv_mem_icb_to_axi_u(
-		.aclk(clk),
-		.aresetn(sys_resetn),
-		
-		.s_icb_cmd_addr(s1_icb_bridge_cmd_addr),
-		.s_icb_cmd_read(s1_icb_bridge_cmd_read),
-		.s_icb_cmd_wdata(s1_icb_bridge_cmd_wdata),
-		.s_icb_cmd_wmask(s1_icb_bridge_cmd_wmask),
-		.s_icb_cmd_valid(s1_icb_bridge_cmd_valid),
-		.s_icb_cmd_ready(s1_icb_bridge_cmd_ready),
-		.s_icb_rsp_rdata(s1_icb_bridge_rsp_rdata),
-		.s_icb_rsp_err(s1_icb_bridge_rsp_err),
-		.s_icb_rsp_valid(s1_icb_bridge_rsp_valid),
-		.s_icb_rsp_ready(s1_icb_bridge_rsp_ready),
-		
-		.m_axi_araddr(m_axi_dcache_araddr),
-		.m_axi_arburst(m_axi_dcache_arburst),
-		.m_axi_arlen(m_axi_dcache_arlen),
-		.m_axi_arsize(m_axi_dcache_arsize),
-		.m_axi_arvalid(m_axi_dcache_arvalid),
-		.m_axi_arready(m_axi_dcache_arready),
-		.m_axi_awaddr(m_axi_dcache_awaddr),
-		.m_axi_awburst(m_axi_dcache_awburst),
-		.m_axi_awlen(m_axi_dcache_awlen),
-		.m_axi_awsize(m_axi_dcache_awsize),
-		.m_axi_awvalid(m_axi_dcache_awvalid),
-		.m_axi_awready(m_axi_dcache_awready),
-		.m_axi_bresp(m_axi_dcache_bresp),
-		.m_axi_bvalid(m_axi_dcache_bvalid),
-		.m_axi_bready(m_axi_dcache_bready),
-		.m_axi_rdata(m_axi_dcache_rdata),
-		.m_axi_rresp(m_axi_dcache_rresp),
-		.m_axi_rlast(m_axi_dcache_rlast),
-		.m_axi_rvalid(m_axi_dcache_rvalid),
-		.m_axi_rready(m_axi_dcache_rready),
-		.m_axi_wdata(m_axi_dcache_wdata),
-		.m_axi_wstrb(m_axi_dcache_wstrb),
-		.m_axi_wlast(m_axi_dcache_wlast),
-		.m_axi_wvalid(m_axi_dcache_wvalid),
-		.m_axi_wready(m_axi_dcache_wready)
-	);
+	generate
+		if(EN_DCACHE == "true")
+		begin
+			dcache_nxt_lv_mem_icb_to_axi #(
+				.CACHE_LINE_WORD_N(DCACHE_LINE_WORD_N),
+				.SIM_DELAY(simulation_delay)
+			)dcache_nxt_lv_mem_icb_to_axi_u(
+				.aclk(clk),
+				.aresetn(sys_resetn),
+				
+				.s_icb_cmd_addr(s1_icb_bridge_cmd_addr),
+				.s_icb_cmd_read(s1_icb_bridge_cmd_read),
+				.s_icb_cmd_wdata(s1_icb_bridge_cmd_wdata),
+				.s_icb_cmd_wmask(s1_icb_bridge_cmd_wmask),
+				.s_icb_cmd_valid(s1_icb_bridge_cmd_valid),
+				.s_icb_cmd_ready(s1_icb_bridge_cmd_ready),
+				.s_icb_rsp_rdata(s1_icb_bridge_rsp_rdata),
+				.s_icb_rsp_err(s1_icb_bridge_rsp_err),
+				.s_icb_rsp_valid(s1_icb_bridge_rsp_valid),
+				.s_icb_rsp_ready(s1_icb_bridge_rsp_ready),
+				
+				.m_axi_araddr(m_axi_dcache_araddr),
+				.m_axi_arburst(m_axi_dcache_arburst),
+				.m_axi_arlen(m_axi_dcache_arlen),
+				.m_axi_arsize(m_axi_dcache_arsize),
+				.m_axi_arvalid(m_axi_dcache_arvalid),
+				.m_axi_arready(m_axi_dcache_arready),
+				.m_axi_awaddr(m_axi_dcache_awaddr),
+				.m_axi_awburst(m_axi_dcache_awburst),
+				.m_axi_awlen(m_axi_dcache_awlen),
+				.m_axi_awsize(m_axi_dcache_awsize),
+				.m_axi_awvalid(m_axi_dcache_awvalid),
+				.m_axi_awready(m_axi_dcache_awready),
+				.m_axi_bresp(m_axi_dcache_bresp),
+				.m_axi_bvalid(m_axi_dcache_bvalid),
+				.m_axi_bready(m_axi_dcache_bready),
+				.m_axi_rdata(m_axi_dcache_rdata),
+				.m_axi_rresp(m_axi_dcache_rresp),
+				.m_axi_rlast(m_axi_dcache_rlast),
+				.m_axi_rvalid(m_axi_dcache_rvalid),
+				.m_axi_rready(m_axi_dcache_rready),
+				.m_axi_wdata(m_axi_dcache_wdata),
+				.m_axi_wstrb(m_axi_dcache_wstrb),
+				.m_axi_wlast(m_axi_dcache_wlast),
+				.m_axi_wvalid(m_axi_dcache_wvalid),
+				.m_axi_wready(m_axi_dcache_wready)
+			);
+		end
+		else
+		begin
+			assign m_axi_dcache_arvalid = 1'b0;
+			
+			assign m_axi_dcache_awvalid = 1'b0;
+			
+			assign m_axi_dcache_bready = 1'b1;
+			
+			assign m_axi_dcache_rready = 1'b1;
+			
+			assign m_axi_dcache_wvalid = 1'b0;
+		end
+	endgenerate
 	
 endmodule
