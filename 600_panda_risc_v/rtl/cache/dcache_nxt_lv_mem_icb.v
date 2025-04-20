@@ -130,6 +130,9 @@ module dcache_nxt_lv_mem_icb #(
 	wire nxt_lv_mem_wt_req; // 写下级存储器请求
 	wire nxt_lv_mem_rd_grant; // 读下级存储器许可
 	wire nxt_lv_mem_wt_grant; // 写下级存储器许可
+	reg grant_held; // 许可保持(标志)
+	reg rd_grant_latched; // 锁存的读许可
+	reg wt_grant_latched; // 锁存的写许可
 	reg sel_wt_when_cflt; // 冲突时选择写请求(标志)
 	reg[CACHE_LINE_WORD_N-1:0] nxt_lv_mem_burst_word_id; // 下级存储器突发访问的字数据编号(独热码)
 	reg nxt_lv_mem_burst_sel_wt; // 本次下级存储器突发访问选择写(标志)
@@ -137,22 +140,42 @@ module dcache_nxt_lv_mem_icb #(
 	assign nxt_lv_mem_rd_req = arb_msg_fifo_full_n & (nxt_lv_mem_burst_word_id[0] | (~nxt_lv_mem_burst_sel_wt)) & s_rd_icb_cmd_valid;
 	assign nxt_lv_mem_wt_req = arb_msg_fifo_full_n & (nxt_lv_mem_burst_word_id[0] | nxt_lv_mem_burst_sel_wt) & s_wt_icb_cmd_valid;
 	
-	// 握手条件: s_rd_icb_cmd_valid & m_icb_cmd_ready & nxt_lv_mem_rd_grant
-	assign s_rd_icb_cmd_ready = nxt_lv_mem_rd_grant & m_icb_cmd_ready;
+	// 握手条件: s_rd_icb_cmd_valid & m_icb_cmd_ready & (grant_held ? rd_grant_latched:nxt_lv_mem_rd_grant)
+	assign s_rd_icb_cmd_ready = (grant_held ? rd_grant_latched:nxt_lv_mem_rd_grant) & m_icb_cmd_ready;
 	
-	// 握手条件: s_wt_icb_cmd_valid & m_icb_cmd_ready & nxt_lv_mem_wt_grant
-	assign s_wt_icb_cmd_ready = nxt_lv_mem_wt_grant & m_icb_cmd_ready;
+	// 握手条件: s_wt_icb_cmd_valid & m_icb_cmd_ready & (grant_held ? wt_grant_latched:nxt_lv_mem_wt_grant)
+	assign s_wt_icb_cmd_ready = (grant_held ? wt_grant_latched:nxt_lv_mem_wt_grant) & m_icb_cmd_ready;
 	
-	assign m_icb_cmd_addr = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_addr:s_wt_icb_cmd_addr;
-	assign m_icb_cmd_read = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_read:s_wt_icb_cmd_read;
-	assign m_icb_cmd_wdata = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_wdata:s_wt_icb_cmd_wdata;
-	assign m_icb_cmd_wmask = nxt_lv_mem_rd_grant ? s_rd_icb_cmd_wmask:s_wt_icb_cmd_wmask;
+	assign m_icb_cmd_addr = (grant_held ? rd_grant_latched:nxt_lv_mem_rd_grant) ? s_rd_icb_cmd_addr:s_wt_icb_cmd_addr;
+	assign m_icb_cmd_read = (grant_held ? rd_grant_latched:nxt_lv_mem_rd_grant) ? s_rd_icb_cmd_read:s_wt_icb_cmd_read;
+	assign m_icb_cmd_wdata = (grant_held ? rd_grant_latched:nxt_lv_mem_rd_grant) ? s_rd_icb_cmd_wdata:s_wt_icb_cmd_wdata;
+	assign m_icb_cmd_wmask = (grant_held ? rd_grant_latched:nxt_lv_mem_rd_grant) ? s_rd_icb_cmd_wmask:s_wt_icb_cmd_wmask;
 	// 握手条件: (nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & m_icb_cmd_ready
 	assign m_icb_cmd_valid = nxt_lv_mem_rd_req | nxt_lv_mem_wt_req;
 	
 	// 握手条件: (nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & m_icb_cmd_ready
 	assign arb_msg_fifo_wen = (nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & m_icb_cmd_ready;
-	assign arb_msg_fifo_din = nxt_lv_mem_rd_grant;
+	assign arb_msg_fifo_din = (grant_held ? rd_grant_latched:nxt_lv_mem_rd_grant);
+	
+	// 许可保持(标志)
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			grant_held <= 1'b0;
+		else if(
+			grant_held ? 
+				m_icb_cmd_ready:
+				((nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & (~m_icb_cmd_ready))
+		)
+			grant_held <= # SIM_DELAY ~grant_held;
+	end
+	
+	// 锁存的读许可, 锁存的写许可
+	always @(posedge aclk)
+	begin
+		if((~grant_held) & (nxt_lv_mem_rd_req | nxt_lv_mem_wt_req) & (~m_icb_cmd_ready))
+			{rd_grant_latched, wt_grant_latched} <= # SIM_DELAY {nxt_lv_mem_rd_grant, nxt_lv_mem_wt_grant};
+	end
 	
 	generate
 		if(ARB_METHOD == "round-robin")
