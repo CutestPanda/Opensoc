@@ -1,103 +1,79 @@
-/*
-MIT License
-
-Copyright (c) 2024 Panda, 2257691535@qq.com
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 `timescale 1ns / 1ps
 /********************************************************************
-æœ¬æ¨¡å—: ç¬¦åˆAXIåè®®çš„Bramæ§åˆ¶å™¨
+±¾Ä£¿é: ·ûºÏAXIĞ­ÒéµÄBram¿ØÖÆÆ÷
 
-æè¿°: 
-AXI-Bramæ§åˆ¶å™¨
-å¯é€‰Bramè¯»å»¶è¿Ÿä¸º1clkæˆ–2clk
-å¯é€‰è¯»ç¼“å†²fifoä»¥æé«˜è¯»ä¼ è¾“çš„æ•ˆç‡
+ÃèÊö: 
+AXI-Bram¿ØÖÆÆ÷
+¿ÉÑ¡Bram¶ÁÑÓ³ÙÎª1clk»ò2clk
+¿ÉÑ¡¶Á»º³åfifoÒÔÌá¸ß¶Á´«ÊäµÄĞ§ÂÊ
 
-æ³¨æ„ï¼š
-Bramä½å®½å›ºå®šä¸º32bit
-å¿…é¡»å…ˆç»™å‡ºè¯»/å†™åœ°å€(AR/AW), å†ç»™å‡ºè¯»/å†™æ•°æ®(R/W), ä¸æ”¯æŒåœ°å€ç¼“å†²(outstanding)
-ä¸æ”¯æŒéå¯¹é½å’Œçª„å¸¦ä¼ è¾“
+×¢Òâ£º
+BramÎ»¿í¹Ì¶¨Îª32bit
+±ØĞëÏÈ¸ø³ö¶Á/Ğ´µØÖ·(AR/AW), ÔÙ¸ø³ö¶Á/Ğ´Êı¾İ(R/W), ²»Ö§³ÖµØÖ·»º³å(outstanding)
+²»Ö§³Ö·Ç¶ÔÆëºÍÕ­´ø´«Êä
 
-åè®®:
+Ğ­Òé:
 AXI SLAVE
 MEM READ/WRITE
 
-ä½œè€…: é™ˆå®¶è€€
-æ—¥æœŸ: 2023/12/09
+×÷Õß: ³Â¼ÒÒ«
+ÈÕÆÚ: 2023/12/09
 ********************************************************************/
 
 
 module axi_bram_ctrler #(
-    parameter integer bram_depth = 2048, // Bramæ·±åº¦
-    parameter integer bram_read_la = 1, // Bramè¯»å»¶è¿Ÿ(1 | 2)
-    parameter en_read_buf_fifo = "true", // æ˜¯å¦ä½¿ç”¨è¯»ç¼“å†²fifo
-    parameter real simulation_delay = 1 // ä»¿çœŸå»¶æ—¶
+    parameter integer bram_depth = 2048, // BramÉî¶È
+    parameter integer bram_read_la = 1, // Bram¶ÁÑÓ³Ù(1 | 2)
+    parameter en_read_buf_fifo = "true", // ÊÇ·ñÊ¹ÓÃ¶Á»º³åfifo
+    parameter real simulation_delay = 1 // ·ÂÕæÑÓÊ±
 )(
-    // æ—¶é’Ÿå’Œå¤ä½
+    // Ê±ÖÓºÍ¸´Î»
     input wire clk,
     input wire rst_n,
     
     // AXI SLAVE
-    // è¯»åœ°å€é€šé“
+    // ¶ÁµØÖ·Í¨µÀ
     input wire[31:0] s_axi_araddr, // assumed to be aligned
     // 2'b00 -> FIXED; 2'b01 -> INCR; 2'b10 -> WRAP; 2'b11 -> RESERVED
     input wire[1:0] s_axi_arburst,
     input wire[3:0] s_axi_arcache, // ignored
-    // å›ºå®šä¼ è¾“ -> len <= 16; å›ç¯ä¼ è¾“ -> len = 2 | 4 | 8 | 16
+    // ¹Ì¶¨´«Êä -> len <= 16; »Ø»·´«Êä -> len = 2 | 4 | 8 | 16
     input wire[7:0] s_axi_arlen,
     input wire s_axi_arlock, // ignored
     input wire[2:0] s_axi_arprot, // ignored
     input wire[2:0] s_axi_arsize, // assumed to be 3'b010(4 byte)
     input wire s_axi_arvalid,
     output wire s_axi_arready,
-    // å†™åœ°å€é€šé“
+    // Ğ´µØÖ·Í¨µÀ
     input wire[31:0] s_axi_awaddr, // assumed to be aligned
     // 2'b00 -> FIXED; 2'b01 -> INCR; 2'b10 -> WRAP; 2'b11 -> RESERVED
     input wire[1:0] s_axi_awburst,
     input wire[3:0] s_axi_awcache, // ignored
-    // å›ºå®šä¼ è¾“ -> len <= 16; å›ç¯ä¼ è¾“ -> len = 2 | 4 | 8 | 16
+    // ¹Ì¶¨´«Êä -> len <= 16; »Ø»·´«Êä -> len = 2 | 4 | 8 | 16
     input wire[7:0] s_axi_awlen,
     input wire s_axi_awlock, // ignored
     input wire[2:0] s_axi_awprot, // ignored
     input wire[2:0] s_axi_awsize, // assumed to be 3'b010(4 byte)
     input wire s_axi_awvalid,
     output wire s_axi_awready,
-    // å†™å“åº”é€šé“
+    // Ğ´ÏìÓ¦Í¨µÀ
     output wire[1:0] s_axi_bresp, // const -> 2'b00(OKAY)
     output wire s_axi_bvalid,
     input wire s_axi_bready,
-    // è¯»æ•°æ®é€šé“
+    // ¶ÁÊı¾İÍ¨µÀ
     output wire[31:0] s_axi_rdata,
     output wire s_axi_rlast,
     output wire[1:0] s_axi_rresp, // const -> 2'b00(OKAY)
     output wire s_axi_rvalid,
     input wire s_axi_rready,
-    // å†™æ•°æ®é€šé“
+    // Ğ´Êı¾İÍ¨µÀ
     input wire[31:0] s_axi_wdata,
     input wire s_axi_wlast,
     input wire[3:0] s_axi_wstrb,
     input wire s_axi_wvalid,
     output wire s_axi_wready,
     
-    // å­˜å‚¨å™¨æ¥å£
+    // ´æ´¢Æ÷½Ó¿Ú
     output wire bram_clk,
     output wire bram_rst,
     output wire bram_en,
@@ -106,11 +82,11 @@ module axi_bram_ctrler #(
     output wire[31:0] bram_din,
     input wire[31:0] bram_dout,
     
-    // AXI-Bramæ§åˆ¶å™¨é”™è¯¯å‘é‡
-    output wire[1:0] axi_bram_ctrler_err // {ä¸æ”¯æŒçš„éå¯¹é½ä¼ è¾“, ä¸æ”¯æŒçš„çª„å¸¦ä¼ è¾“}
+    // AXI-Bram¿ØÖÆÆ÷´íÎóÏòÁ¿
+    output wire[1:0] axi_bram_ctrler_err // {²»Ö§³ÖµÄ·Ç¶ÔÆë´«Êä, ²»Ö§³ÖµÄÕ­´ø´«Êä}
 );
 
-    // è®¡ç®—log2(bit_depth)               
+    // ¼ÆËãlog2(bit_depth)               
     function integer clogb2 (input integer bit_depth);
         integer temp;
     begin
@@ -120,24 +96,24 @@ module axi_bram_ctrler #(
     end                                        
     endfunction
     
-    /** å¸¸é‡ **/
-    // bramæ§åˆ¶å™¨çŠ¶æ€å¸¸é‡
-    localparam bram_ctrler_status_wait_rw_req = 2'b00; // ç­‰å¾…è¯»å†™è¯·æ±‚
-    localparam bram_ctrler_status_reading = 2'b01; // æ­£åœ¨è¯»æ•°æ®
-    localparam bram_ctrler_status_writing = 2'b10; // æ­£åœ¨å†™æ•°æ®
-    localparam bram_ctrler_status_send_wresp = 2'b11; // æ­£åœ¨å‘é€å†™å“åº”
-    // å›ç¯çªå‘åœ°å€åŒºé—´é•¿åº¦
-    localparam wrap_length_8byte = 2'b00; // 8byteåŒºé—´å›ç¯çªå‘
-    localparam wrap_length_16byte = 2'b01; // 16byteåŒºé—´å›ç¯çªå‘
-    localparam wrap_length_32byte = 2'b10; // 32byteåŒºé—´å›ç¯çªå‘
-    localparam wrap_length_64byte = 2'b11; // 64byteåŒºé—´å›ç¯çªå‘
-    // çªå‘ç±»å‹
+    /** ³£Á¿ **/
+    // bram¿ØÖÆÆ÷×´Ì¬³£Á¿
+    localparam bram_ctrler_status_wait_rw_req = 2'b00; // µÈ´ı¶ÁĞ´ÇëÇó
+    localparam bram_ctrler_status_reading = 2'b01; // ÕıÔÚ¶ÁÊı¾İ
+    localparam bram_ctrler_status_writing = 2'b10; // ÕıÔÚĞ´Êı¾İ
+    localparam bram_ctrler_status_send_wresp = 2'b11; // ÕıÔÚ·¢ËÍĞ´ÏìÓ¦
+    // »Ø»·Í»·¢µØÖ·Çø¼ä³¤¶È
+    localparam wrap_length_8byte = 2'b00; // 8byteÇø¼ä»Ø»·Í»·¢
+    localparam wrap_length_16byte = 2'b01; // 16byteÇø¼ä»Ø»·Í»·¢
+    localparam wrap_length_32byte = 2'b10; // 32byteÇø¼ä»Ø»·Í»·¢
+    localparam wrap_length_64byte = 2'b11; // 64byteÇø¼ä»Ø»·Í»·¢
+    // Í»·¢ÀàĞÍ
     localparam burst_fixed = 2'b00;
     localparam burst_incr = 2'b01;
     localparam burst_wrap = 2'b10;
     localparam burst_reserved = 2'b11;
     
-    /** è¯»ç¼“å†²fifo(å¯é€‰) **/
+    /** ¶Á»º³åfifo(¿ÉÑ¡) **/
     wire read_buf_fifo_wen;
     wire[32:0] read_buf_fifo_din;
     wire read_buf_fifo_almost_full_n;
@@ -172,15 +148,15 @@ module axi_bram_ctrler #(
         .fifo_empty_n(read_buf_fifo_empty_n)
     );
 	
-	/** AXIè¯»å†™ä»²è£ **/
-	wire axi_rd_req; // AXIè¯»è¯·æ±‚
-	wire axi_wt_req; // AXIå†™è¯·æ±‚
-	wire axi_rd_grant; // AXIè¯»æˆæƒ
-	wire axi_wt_grant; // AXIå†™æˆæƒ
-	wire axi_rw_arb_valid; // AXIè¯»å†™ä»²è£ç»“æœæœ‰æ•ˆ
-	reg axi_rw_arb_valid_d; // å»¶è¿Ÿ1clkçš„AXIè¯»å†™ä»²è£ç»“æœæœ‰æ•ˆ
+	/** AXI¶ÁĞ´ÖÙ²Ã **/
+	wire axi_rd_req; // AXI¶ÁÇëÇó
+	wire axi_wt_req; // AXIĞ´ÇëÇó
+	wire axi_rd_grant; // AXI¶ÁÊÚÈ¨
+	wire axi_wt_grant; // AXIĞ´ÊÚÈ¨
+	wire axi_rw_arb_valid; // AXI¶ÁĞ´ÖÙ²Ã½á¹ûÓĞĞ§
+	reg axi_rw_arb_valid_d; // ÑÓ³Ù1clkµÄAXI¶ÁĞ´ÖÙ²Ã½á¹ûÓĞĞ§
 	
-	// å»¶è¿Ÿ1clkçš„AXIè¯»å†™ä»²è£ç»“æœæœ‰æ•ˆ
+	// ÑÓ³Ù1clkµÄAXI¶ÁĞ´ÖÙ²Ã½á¹ûÓĞĞ§
 	always @(posedge clk or negedge rst_n)
 	begin
 		if(~rst_n)
@@ -202,13 +178,13 @@ module axi_bram_ctrler #(
 		.arb_valid(axi_rw_arb_valid)
 	);
     
-    /** AXIä»æœºæ¥å£ **/
-    // è¯»å†™æµç¨‹æ§åˆ¶çŠ¶æ€æœº
-    reg[1:0] bram_ctrler_status; // bramæ§åˆ¶å™¨çŠ¶æ€
+    /** AXI´Ó»ú½Ó¿Ú **/
+    // ¶ÁĞ´Á÷³Ì¿ØÖÆ×´Ì¬»ú
+    reg[1:0] bram_ctrler_status; // bram¿ØÖÆÆ÷×´Ì¬
     reg[1:0] s_axi_aw_ar_ready_reg;
     reg s_axi_bvalid_reg;
     reg s_axi_wready_reg;
-    reg now_rw; // å½“å‰æ­£åœ¨è¯»å†™æ•°æ®(æ ‡å¿—)
+    reg now_rw; // µ±Ç°ÕıÔÚ¶ÁĞ´Êı¾İ(±êÖ¾)
     
 	assign {s_axi_awready, s_axi_arready} = s_axi_aw_ar_ready_reg;
 	
@@ -225,7 +201,7 @@ module axi_bram_ctrler #(
 	assign axi_rd_req = s_axi_arvalid & (bram_ctrler_status == bram_ctrler_status_wait_rw_req) & (~axi_rw_arb_valid_d);
 	assign axi_wt_req = s_axi_awvalid & (bram_ctrler_status == bram_ctrler_status_wait_rw_req) & (~axi_rw_arb_valid_d);
     
-    // bramæ§åˆ¶å™¨çŠ¶æ€
+    // bram¿ØÖÆÆ÷×´Ì¬
     always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -241,7 +217,7 @@ module axi_bram_ctrler #(
             # simulation_delay;
             
             case(bram_ctrler_status)
-                bram_ctrler_status_wait_rw_req: // ç­‰å¾…è¯»å†™è¯·æ±‚
+                bram_ctrler_status_wait_rw_req: // µÈ´ı¶ÁĞ´ÇëÇó
                 begin
 					if((s_axi_arvalid & s_axi_arready) | (s_axi_awvalid & s_axi_awready))
 						bram_ctrler_status <= (s_axi_arvalid & s_axi_arready) ? 
@@ -253,7 +229,7 @@ module axi_bram_ctrler #(
                     s_axi_wready_reg <= s_axi_awvalid & s_axi_awready;
                     now_rw <= (s_axi_arvalid & s_axi_arready) | (s_axi_awvalid & s_axi_awready);
                 end
-                bram_ctrler_status_reading: // æ­£åœ¨è¯»æ•°æ®
+                bram_ctrler_status_reading: // ÕıÔÚ¶ÁÊı¾İ
                 begin
                     bram_ctrler_status <= (s_axi_rvalid & s_axi_rready & s_axi_rlast) ? bram_ctrler_status_wait_rw_req:bram_ctrler_status_reading;
                     s_axi_aw_ar_ready_reg <= 2'b00;
@@ -261,7 +237,7 @@ module axi_bram_ctrler #(
                     s_axi_wready_reg <= 1'b0;
                     now_rw <= ~(s_axi_rvalid & s_axi_rready & s_axi_rlast);
                 end
-                bram_ctrler_status_writing: // æ­£åœ¨å†™æ•°æ®
+                bram_ctrler_status_writing: // ÕıÔÚĞ´Êı¾İ
                 begin
                     bram_ctrler_status <= (s_axi_wvalid & s_axi_wlast) ? bram_ctrler_status_send_wresp:bram_ctrler_status_writing;
                     s_axi_aw_ar_ready_reg <= 2'b00;
@@ -269,7 +245,7 @@ module axi_bram_ctrler #(
                     s_axi_wready_reg <= ~(s_axi_wvalid & s_axi_wlast);
                     now_rw <= ~(s_axi_wvalid & s_axi_wlast);
                 end
-                bram_ctrler_status_send_wresp: // æ­£åœ¨å‘é€å†™å“åº”
+                bram_ctrler_status_send_wresp: // ÕıÔÚ·¢ËÍĞ´ÏìÓ¦
                 begin
                     bram_ctrler_status <= s_axi_bready ? bram_ctrler_status_wait_rw_req:bram_ctrler_status_send_wresp;
                     s_axi_aw_ar_ready_reg <= 2'b00;
@@ -289,20 +265,20 @@ module axi_bram_ctrler #(
         end
     end
     
-    // é”å­˜è¯»å†™è¯·æ±‚ä¿¡æ¯
-    reg[clogb2(bram_depth - 1):0] aw_ar_addr_latched; // ç›¸å¯¹äºBramçš„èµ·å§‹åœ°å€
+    // Ëø´æ¶ÁĞ´ÇëÇóĞÅÏ¢
+    reg[clogb2(bram_depth - 1):0] aw_ar_addr_latched; // Ïà¶ÔÓÚBramµÄÆğÊ¼µØÖ·
     reg[1:0] aw_ar_burst_latched; // 2'b00 -> FIXED; 2'b01 -> INCR; 2'b10 -> WRAP; 2'b11 -> RESERVED
-    reg[7:0] aw_ar_len_latched; // å›ºå®šä¼ è¾“ -> len <= 16; å›ç¯ä¼ è¾“ -> len = 2 | 4 | 8 | 16
-    reg is_read_latched; // æ˜¯å¦è¯»çªå‘
-    reg[1:0] wrap_addr_length; // å›ç¯çªå‘åœ°å€åŒºé—´ = 2'b00 -> 8 | 2'b01 -> 16 | 2'b10 -> 32 | 2'b11 -> 64
+    reg[7:0] aw_ar_len_latched; // ¹Ì¶¨´«Êä -> len <= 16; »Ø»·´«Êä -> len = 2 | 4 | 8 | 16
+    reg is_read_latched; // ÊÇ·ñ¶ÁÍ»·¢
+    reg[1:0] wrap_addr_length; // »Ø»·Í»·¢µØÖ·Çø¼ä = 2'b00 -> 8 | 2'b01 -> 16 | 2'b10 -> 32 | 2'b11 -> 64
     
     always @(posedge clk)
     begin
         # simulation_delay;
         
-        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & ((s_axi_arvalid & s_axi_arready) | (s_axi_awvalid & s_axi_awready))) // æ•è·åˆ°è¯»å†™è¯·æ±‚
+        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & ((s_axi_arvalid & s_axi_arready) | (s_axi_awvalid & s_axi_awready))) // ²¶»ñµ½¶ÁĞ´ÇëÇó
         begin
-            if(s_axi_arvalid & s_axi_arready) // å¯åŠ¨è¯»ä¼ è¾“
+            if(s_axi_arvalid & s_axi_arready) // Æô¶¯¶Á´«Êä
             begin
                 aw_ar_addr_latched <= s_axi_araddr[clogb2(bram_depth * 4 - 1):2];
                 aw_ar_burst_latched <= s_axi_arburst;
@@ -310,7 +286,7 @@ module axi_bram_ctrler #(
                 is_read_latched <= 1'b1;
                 wrap_addr_length <= {s_axi_arlen[2], s_axi_arlen[3] | ({s_axi_arlen[2], s_axi_arlen[1]} == 2'b01)};
             end
-            else // å¯åŠ¨å†™ä¼ è¾“
+            else // Æô¶¯Ğ´´«Êä
             begin
                 aw_ar_addr_latched <= s_axi_awaddr[clogb2(bram_depth * 4 - 1):2];
                 aw_ar_burst_latched <= s_axi_awburst;
@@ -321,7 +297,7 @@ module axi_bram_ctrler #(
         end
     end
     
-    // ä¼ è¾“å¼€å§‹è„‰å†²
+    // ´«Êä¿ªÊ¼Âö³å
     reg rw_start_pulse;
     reg rw_start_pulse_d;
     
@@ -333,16 +309,16 @@ module axi_bram_ctrler #(
         rw_start_pulse_d <= rw_start_pulse;
     end
     
-    // è¯»æ•°æ®lastä¿¡å·
-    // å¯¹é½åˆ°MEMè¯»æ•°æ®
+    // ¶ÁÊı¾İlastĞÅºÅ
+    // ¶ÔÆëµ½MEM¶ÁÊı¾İ
     reg s_axi_rlast_reg;
-    reg[7:0] read_transfers_cnt; // å½“å‰å·²å®Œæˆè¯»ä¼ è¾“(è®¡æ•°å™¨)
-    // å¯¹é½åˆ°MEMè¯»åœ°å€
+    reg[7:0] read_transfers_cnt; // µ±Ç°ÒÑÍê³É¶Á´«Êä(¼ÆÊıÆ÷)
+    // ¶ÔÆëµ½MEM¶ÁµØÖ·
     reg s_axi_rlast_reg_pre;
-    reg[7:0] read_transfers_cnt_pre; // å½“å‰å·²å®Œæˆè¯»ä¼ è¾“(é¢„è®¡æ•°å™¨)
+    reg[7:0] read_transfers_cnt_pre; // µ±Ç°ÒÑÍê³É¶Á´«Êä(Ô¤¼ÆÊıÆ÷)
     
-    wire bram_raddr_vld_w; // Bramè¯»åœ°å€æœ‰æ•ˆ
-    reg bram_raddr_vld_d; // å»¶è¿Ÿ1clkçš„Bramè¯»åœ°å€æœ‰æ•ˆ
+    wire bram_raddr_vld_w; // Bram¶ÁµØÖ·ÓĞĞ§
+    reg bram_raddr_vld_d; // ÑÓ³Ù1clkµÄBram¶ÁµØÖ·ÓĞĞ§
     
     assign s_axi_rlast = (en_read_buf_fifo == "true") ? read_buf_fifo_dout[32]:s_axi_rlast_reg;
     assign read_buf_fifo_din[32] = s_axi_rlast_reg;
@@ -359,30 +335,30 @@ module axi_bram_ctrler #(
     begin
         # simulation_delay;
         
-        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & (s_axi_arvalid & s_axi_arready)) // è½½å…¥å’Œæ¸…é›¶
+        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & (s_axi_arvalid & s_axi_arready)) // ÔØÈëºÍÇåÁã
         begin
             s_axi_rlast_reg <= s_axi_arlen == 8'd0;
             read_transfers_cnt <= 8'd1;
         end
-        else if((en_read_buf_fifo == "true") ? ((~s_axi_rlast_reg) & read_buf_fifo_wen):(s_axi_rvalid & s_axi_rready)) // æ›´æ–°
+        else if((en_read_buf_fifo == "true") ? ((~s_axi_rlast_reg) & read_buf_fifo_wen):(s_axi_rvalid & s_axi_rready)) // ¸üĞÂ
         begin
             s_axi_rlast_reg <= read_transfers_cnt == aw_ar_len_latched;
             read_transfers_cnt <= read_transfers_cnt + 8'd1;
         end
         
-        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & (s_axi_arvalid & s_axi_arready)) // è½½å…¥å’Œæ¸…é›¶
+        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & (s_axi_arvalid & s_axi_arready)) // ÔØÈëºÍÇåÁã
         begin
             s_axi_rlast_reg_pre <= s_axi_arlen == 8'd0;
             read_transfers_cnt_pre <= 8'd1;
         end
-        else if((~s_axi_rlast_reg_pre) & bram_raddr_vld_w) // æ›´æ–°
+        else if((~s_axi_rlast_reg_pre) & bram_raddr_vld_w) // ¸üĞÂ
         begin
             s_axi_rlast_reg_pre <= read_transfers_cnt_pre == aw_ar_len_latched;
             read_transfers_cnt_pre <= read_transfers_cnt_pre + 8'd1;
         end
     end
     
-    // è¯»æ•°æ®validä¿¡å·
+    // ¶ÁÊı¾İvalidĞÅºÅ
     reg s_axi_rvalid_reg;
     
     assign s_axi_rvalid = (en_read_buf_fifo == "true") ? read_buf_fifo_empty_n:s_axi_rvalid_reg;
@@ -413,15 +389,15 @@ module axi_bram_ctrler #(
         end
     end
     
-    /** å­˜å‚¨å™¨æ¥å£ **/
-    // Bramæ—¶é’Ÿå’Œå¤ä½
+    /** ´æ´¢Æ÷½Ó¿Ú **/
+    // BramÊ±ÖÓºÍ¸´Î»
     assign bram_clk = clk;
     assign bram_rst = ~rst_n;
     
-    // ç”ŸæˆBramè¯»å†™åœ°å€
-    reg[clogb2(bram_depth - 1):0] bram_incr_addr; // INCRçªå‘ä¸‹çš„Bramè¯»å†™åœ°å€
-    reg[clogb2(bram_depth - 1):0] bram_wrap_addr; // WRAPçªå‘ä¸‹çš„Bramè¯»å†™åœ°å€
-    reg bram_raddr_vld; // Bramè¯»åœ°å€æœ‰æ•ˆ
+    // Éú³ÉBram¶ÁĞ´µØÖ·
+    reg[clogb2(bram_depth - 1):0] bram_incr_addr; // INCRÍ»·¢ÏÂµÄBram¶ÁĞ´µØÖ·
+    reg[clogb2(bram_depth - 1):0] bram_wrap_addr; // WRAPÍ»·¢ÏÂµÄBram¶ÁĞ´µØÖ·
+    reg bram_raddr_vld; // Bram¶ÁµØÖ·ÓĞĞ§
     
     assign bram_addr = ((aw_ar_burst_latched == burst_fixed) | (aw_ar_burst_latched == burst_reserved)) ? 
         aw_ar_addr_latched:((aw_ar_burst_latched == burst_incr) ? bram_incr_addr:bram_wrap_addr);
@@ -431,40 +407,40 @@ module axi_bram_ctrler #(
     begin
         # simulation_delay;
         
-        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & ((s_axi_arvalid & s_axi_arready) | (s_axi_awvalid & s_axi_awready))) // è½½å…¥
+        if((bram_ctrler_status == bram_ctrler_status_wait_rw_req) & ((s_axi_arvalid & s_axi_arready) | (s_axi_awvalid & s_axi_awready))) // ÔØÈë
         begin
             bram_incr_addr <= (s_axi_arvalid & s_axi_arready) ? s_axi_araddr[clogb2(bram_depth * 4 - 1):2]:s_axi_awaddr[clogb2(bram_depth * 4 - 1):2];
             bram_wrap_addr <= (s_axi_arvalid & s_axi_arready) ? s_axi_araddr[clogb2(bram_depth * 4 - 1):2]:s_axi_awaddr[clogb2(bram_depth * 4 - 1):2];
         end
         else if(now_rw &
             (is_read_latched ? & ((en_read_buf_fifo == "true") ? ((~s_axi_rlast_reg_pre) & read_buf_fifo_almost_full_n):((~s_axi_rlast_reg) & s_axi_rvalid & s_axi_rready))
-                :s_axi_wvalid)) // æ›´æ–°
+                :s_axi_wvalid)) // ¸üĞÂ
         begin
             bram_incr_addr <= bram_incr_addr + 1;
             
             case(wrap_addr_length)
-                wrap_length_8byte: // å›ç¯çªå‘åœ°å€åŒºé—´8å­—èŠ‚
+                wrap_length_8byte: // »Ø»·Í»·¢µØÖ·Çø¼ä8×Ö½Ú
                 begin
                     if(bram_wrap_addr[0] == 1'b1)
                         bram_wrap_addr <= {bram_wrap_addr[clogb2(bram_depth - 1):1], 1'b0};
                     else
                         bram_wrap_addr <= bram_wrap_addr + 1;
                 end
-                wrap_length_16byte: // å›ç¯çªå‘åœ°å€åŒºé—´16å­—èŠ‚
+                wrap_length_16byte: // »Ø»·Í»·¢µØÖ·Çø¼ä16×Ö½Ú
                 begin
                     if(bram_wrap_addr[1:0] == 2'b11)
                         bram_wrap_addr <= {bram_wrap_addr[clogb2(bram_depth - 1):2], 2'b00};
                     else
                         bram_wrap_addr <= bram_wrap_addr + 1;
                 end
-                wrap_length_32byte: // å›ç¯çªå‘åœ°å€åŒºé—´32å­—èŠ‚
+                wrap_length_32byte: // »Ø»·Í»·¢µØÖ·Çø¼ä32×Ö½Ú
                 begin
                     if(bram_wrap_addr[2:0] == 3'b111)
                         bram_wrap_addr <= {bram_wrap_addr[clogb2(bram_depth - 1):3], 3'b000};
                     else
                         bram_wrap_addr <= bram_wrap_addr + 1;
                 end
-                wrap_length_64byte: // å›ç¯çªå‘åœ°å€åŒºé—´64å­—èŠ‚
+                wrap_length_64byte: // »Ø»·Í»·¢µØÖ·Çø¼ä64×Ö½Ú
                 begin
                     if(bram_wrap_addr[3:0] == 4'b1111)
                         bram_wrap_addr <= {bram_wrap_addr[clogb2(bram_depth - 1):4], 4'b0000};
@@ -493,17 +469,17 @@ module axi_bram_ctrler #(
         end
     end
     
-    // ç”ŸæˆBramè¯»å†™ä½¿èƒ½å’Œå†™æ•°æ®
+    // Éú³ÉBram¶ÁĞ´Ê¹ÄÜºÍĞ´Êı¾İ
     assign bram_en = bram_raddr_vld | (s_axi_wvalid & s_axi_wready);
     assign bram_wen = (s_axi_wvalid & s_axi_wready) ? s_axi_wstrb:4'b0000;
     assign bram_din = s_axi_wdata;
     
-    /** é”™è¯¯æ ‡å¿— **/
-    reg[1:0] axi_bram_ctrler_err_regs; // {ä¸æ”¯æŒçš„éå¯¹é½ä¼ è¾“, ä¸æ”¯æŒçš„çª„å¸¦ä¼ è¾“}
+    /** ´íÎó±êÖ¾ **/
+    reg[1:0] axi_bram_ctrler_err_regs; // {²»Ö§³ÖµÄ·Ç¶ÔÆë´«Êä, ²»Ö§³ÖµÄÕ­´ø´«Êä}
     
     assign axi_bram_ctrler_err = axi_bram_ctrler_err_regs;
     
-	// ä¸æ”¯æŒçš„éå¯¹é½ä¼ è¾“
+	// ²»Ö§³ÖµÄ·Ç¶ÔÆë´«Êä
 	always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)
@@ -514,7 +490,7 @@ module axi_bram_ctrler #(
 				(s_axi_araddr[1:0] != 2'b00):(s_axi_awaddr[1:0] != 2'b00);
         end
     end
-	// ä¸æ”¯æŒçš„çª„å¸¦ä¼ è¾“
+	// ²»Ö§³ÖµÄÕ­´ø´«Êä
 	always @(posedge clk or negedge rst_n)
     begin
         if(~rst_n)

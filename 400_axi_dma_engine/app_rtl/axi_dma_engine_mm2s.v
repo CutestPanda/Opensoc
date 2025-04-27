@@ -71,6 +71,9 @@ module axi_dma_engine_mm2s #(
 	input wire m_axi_aclk,
 	input wire m_axi_aresetn,
 	
+	// 命令完成指示
+	output wire cmd_done,
+	
 	// 命令AXIS从机
 	input wire[55:0] s_cmd_axis_data, // {待传输字节数(24bit), 传输首地址(32bit)}
 	input wire s_cmd_axis_user, // {固定(1'b1)/递增(1'b0)传输(1bit)}
@@ -463,6 +466,8 @@ module axi_dma_engine_mm2s #(
 	wire m_rdata_fifo_axis_last;
 	wire m_rdata_fifo_axis_valid;
 	wire m_rdata_fifo_axis_ready;
+	
+	assign cmd_done = s_rdata_fifo_axis_valid & s_rdata_fifo_axis_ready & last_trans_at_rdata;
 	
 	assign s_rdata_fifo_axis_data = m_axi_rdata;
 	/*
