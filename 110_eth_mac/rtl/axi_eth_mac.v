@@ -938,9 +938,11 @@ module axi_eth_mac #(
 	wire eth_rx_buf_enough; // 以太网接收缓存有足够的空间(标志)
 	reg to_discard_eth_rx_frame; // 以太网帧接收舍弃(标志)
 	reg[11:0] now_eth_rx_frame_len; // 读取接收以太网帧的长度(计数器)
+	reg[8:0] eth_frame_recv_ptr; // 以太网帧接收(指针)
+	wire[8:0] eth_frame_recv_ptr_nxt; // 下一以太网帧接收(指针)
 	
 	assign on_eth_frame_recv = s_rx_fifo_axis_valid & m_eth_rx_axis_last;
-	assign eth_frame_recv_byte_n = now_eth_rx_frame_len;
+	assign eth_frame_recv_byte_n = now_eth_rx_frame_len + (m_eth_rx_axis_keep[1] ? 12'd2:12'd1);
 	
 	assign s_eth_tx_axis_data = m_tx_fifo_axis_data;
 	assign s_eth_tx_axis_keep = m_tx_fifo_axis_keep;
@@ -957,10 +959,23 @@ module axi_eth_mac #(
 	assign eth_rx_frame_valid = m_eth_rx_axis_valid | eth_rx_frame_transmitting;
 	assign eth_rx_dsc_full_n_nxt = 
 		~(
-			(eth_rx_dsc_avilable_wptr_nxt[8] ^ eth_rx_dsc_processed_rptr_nxt[8]) & 
-			(eth_rx_dsc_avilable_wptr_nxt[7:0] == eth_rx_dsc_processed_rptr_nxt[7:0])
+			(eth_frame_recv_ptr_nxt[8] ^ eth_rx_dsc_processed_rptr_nxt[8]) & 
+			(eth_frame_recv_ptr_nxt[7:0] == eth_rx_dsc_processed_rptr_nxt[7:0])
 		);
 	assign eth_rx_buf_enough = (rx_fifo_rmn_data_n > ((14 + 1500) / 2)) & eth_rx_dsc_full_n_nxt;
+	
+	assign eth_frame_recv_ptr_nxt[7:0] = 
+		on_eth_frame_recv ? (
+			(eth_frame_recv_ptr[7:0] == eth_rx_dsc_buf_len) ? 
+				8'd0:
+				(eth_frame_recv_ptr[7:0] + 8'd1)
+		):eth_frame_recv_ptr[7:0];
+	assign eth_frame_recv_ptr_nxt[8] = 
+		on_eth_frame_recv ? (
+			(eth_frame_recv_ptr[7:0] == eth_rx_dsc_buf_len) ? 
+				(~eth_frame_recv_ptr[8]):
+				eth_frame_recv_ptr[8]
+		):eth_frame_recv_ptr[8];
 	
 	// 以太网帧接收传输中(标志)
 	always @(posedge m_axi_aclk or negedge m_axi_aresetn)
@@ -993,9 +1008,20 @@ module axi_eth_mac #(
 	always @(posedge m_axi_aclk or negedge m_axi_aresetn)
 	begin
 		if(~m_axi_aresetn)
-			now_eth_rx_frame_len <= 12'd1;
+			now_eth_rx_frame_len <= 12'd0;
 		else if(s_rx_fifo_axis_valid)
-			now_eth_rx_frame_len <= # SIM_DELAY m_eth_rx_axis_last ? 12'd1:(now_eth_rx_frame_len + 12'd1);
+			now_eth_rx_frame_len <= # SIM_DELAY m_eth_rx_axis_last ? 
+				12'd0:
+				(now_eth_rx_frame_len + (m_eth_rx_axis_keep[1] ? 12'd2:12'd1));
+	end
+	
+	// 以太网帧接收(指针)
+	always @(posedge m_axi_aclk or negedge m_axi_aresetn)
+	begin
+		if(~m_axi_aresetn)
+			eth_frame_recv_ptr <= {1'b0, 8'd0};
+		else if(on_eth_frame_recv)
+			eth_frame_recv_ptr <= # SIM_DELAY eth_frame_recv_ptr_nxt;
 	end
 	
 	axis_eth_mac #(
@@ -1130,17 +1156,17 @@ module axi_eth_mac #(
 	always @(posedge m_axi_aclk)
 	begin
 		if(mm2s_cmd_done_extended)
-			mm2s_cmd_done_extension_cnt <= # SIM_DELAY 5'd0;
+		    mm2s_cmd_done_extension_cnt <= # SIM_DELAY mm2s_cmd_done_extension_cnt + 5'd1;
 		else
-			mm2s_cmd_done_extension_cnt <= # SIM_DELAY mm2s_cmd_done_extension_cnt + 5'd1;
+			mm2s_cmd_done_extension_cnt <= # SIM_DELAY 5'd0;
 	end
 	// DMA S2MM通道命令完成请求延长(计数器)
 	always @(posedge m_axi_aclk)
 	begin
 		if(s2mm_cmd_done_extended)
-			s2mm_cmd_done_extension_cnt <= # SIM_DELAY 5'd0;
+		    s2mm_cmd_done_extension_cnt <= # SIM_DELAY s2mm_cmd_done_extension_cnt + 5'd1;
 		else
-			s2mm_cmd_done_extension_cnt <= # SIM_DELAY s2mm_cmd_done_extension_cnt + 5'd1;
+			s2mm_cmd_done_extension_cnt <= # SIM_DELAY 5'd0;
 	end
 	
 	/*

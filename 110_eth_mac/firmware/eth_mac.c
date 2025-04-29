@@ -13,7 +13,6 @@ void cfg_eth_mac(EthMac* eth_mac, const EthMacCfg* cfg){
 		(((uint32_t)cfg->eth_rx_dsc_buf_len) << 8);
 	eth_mac->hardware->eth_rx_buf_baseaddr = cfg->eth_rx_buf_baseaddr;
 	eth_mac->hardware->mdc_div_rate = cfg->mdc_div_rate;
-	eth_mac->hardware->broadcast_accept = (uint32_t)cfg->broadcast_accept;
 	eth_mac->hardware->unicast_filter_mac_low =
 		((uint32_t)cfg->unicast_filter_mac[0]) |
 		(((uint32_t)cfg->unicast_filter_mac[1]) << 8) |
@@ -54,6 +53,7 @@ void cfg_eth_mac(EthMac* eth_mac, const EthMacCfg* cfg){
 	eth_mac->hardware->multicast_filter_mac_3_high =
 		((uint32_t)cfg->multicast_filter_mac_3[4]) |
 		(((uint32_t)cfg->multicast_filter_mac_3[5]) << 8);
+	eth_mac->hardware->broadcast_accept = (uint32_t)cfg->broadcast_accept;
 }
 
 void eth_mac_notify_new_tx_dsc_created(EthMac* eth_mac){
