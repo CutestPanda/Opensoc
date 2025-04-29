@@ -10,7 +10,8 @@
 支持接收MAC地址过滤
 
 注意：
-组播过滤MAC的第40位复用为有效位
+单播过滤MAC的第40位复用为有效位(低有效)
+组播过滤MAC的第40位复用为有效位(高有效)
 
 协议:
 AXIS MASTER
@@ -451,7 +452,8 @@ module eth_mac_rx #(
 			if(eth_rx_dst_mac == 48'hff_ff_ff_ff_ff_ff) // 广播过滤
 				eth_rx_dst_mac_accept <= # SIM_DELAY broadcast_accept;
 			else if(~eth_rx_dst_mac[40]) // 单播过滤
-				eth_rx_dst_mac_accept <= # SIM_DELAY eth_rx_dst_mac == unicast_filter_mac;
+				eth_rx_dst_mac_accept <= # SIM_DELAY 
+					(~unicast_filter_mac[40]) & (eth_rx_dst_mac == unicast_filter_mac);
 			else // 组播过滤
 				eth_rx_dst_mac_accept <= # SIM_DELAY 
 					(multicast_filter_mac_0[40] & (eth_rx_dst_mac == multicast_filter_mac_0)) | 
