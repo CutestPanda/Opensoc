@@ -33,6 +33,7 @@ SOFTWARE.
 	         1:当前帧已处理                        W1TRL
 	 0x04    31~0:帧缓存区基地址                    RW
 	 0x08    2~0:帧缓存区最大存储帧数 - 1           RW
+	           8:是否允许帧的后处理                 RW
 	 0x0C      0:全局中断使能                       RW
 	           8:帧写入中断使能                     RW
 			   9:帧读取中断使能                     RW
@@ -73,6 +74,7 @@ module reg_if_for_frame_buffer #(
 	// 运行时参数
 	output wire[31:0] frame_buffer_baseaddr, // 帧缓存区基地址
 	output wire[2:0] frame_buffer_max_store_n_sub1, // 帧缓存区最大存储帧数 - 1
+	output wire en_frame_pos_proc, // 是否允许帧的后处理
 	
 	// 帧处理控制
 	output wire frame_processed, // 当前帧已处理标志(注意: 取上升沿!)
@@ -152,6 +154,7 @@ module reg_if_for_frame_buffer #(
 	reg frame_processed_r; // 当前帧已处理标志
 	reg[31:0] frame_buffer_baseaddr_r; // 帧缓存区基地址
 	reg[2:0] frame_buffer_max_store_n_sub1_r; // 帧缓存区最大存储帧数 - 1
+	reg en_frame_pos_proc_r; // 是否允许帧的后处理
 	
 	assign pready_out = 1'b1;
 	assign prdata_out = prdata_out_r;
@@ -160,6 +163,7 @@ module reg_if_for_frame_buffer #(
 	assign en_frame_buffer = en_frame_buffer_r;
 	assign frame_buffer_baseaddr = frame_buffer_baseaddr_r;
 	assign frame_buffer_max_store_n_sub1 = frame_buffer_max_store_n_sub1_r;
+	assign en_frame_pos_proc = en_frame_pos_proc_r;
 	
 	assign frame_processed = frame_processed_r;
 	
@@ -171,7 +175,7 @@ module reg_if_for_frame_buffer #(
 			case(paddr[4:2])
 				3'd0: prdata_out_r <= # SIM_DELAY {30'd0, frame_processed_r, 1'b0};
 				3'd1: prdata_out_r <= # SIM_DELAY frame_buffer_baseaddr_r;
-				3'd2: prdata_out_r <= # SIM_DELAY {29'd0, frame_buffer_max_store_n_sub1_r};
+				3'd2: prdata_out_r <= # SIM_DELAY {16'd0, 7'd0, en_frame_pos_proc_r, 5'd0, frame_buffer_max_store_n_sub1_r};
 				3'd3: prdata_out_r <= # SIM_DELAY {16'd0, 6'd0, frame_rd_itr_en_r, frame_wt_itr_en_r, 7'd0, global_itr_en_r};
 				3'd4: prdata_out_r <= # SIM_DELAY {30'd0, frame_rd_itr_pending, frame_wt_itr_pending};
 				default: prdata_out_r <= # SIM_DELAY 32'd0;
@@ -211,10 +215,21 @@ module reg_if_for_frame_buffer #(
 			frame_buffer_max_store_n_sub1_r <= # SIM_DELAY pwdata[2:0];
 	end
 	
-	// 全局中断使能, 帧写入中断使能, 帧读取中断使能
-	always @(posedge clk)
+	// 是否允许帧的后处理
+	always @(posedge clk or negedge resetn)
 	begin
-		if(psel & penable & pwrite & (paddr[4:2] == 3'd3))
+		if(~resetn)
+			en_frame_pos_proc_r <= 1'b0;
+		else if(psel & penable & pwrite & (paddr[4:2] == 3'd2))
+			en_frame_pos_proc_r <= # SIM_DELAY pwdata[8];
+	end
+	
+	// 全局中断使能, 帧写入中断使能, 帧读取中断使能
+	always @(posedge clk or negedge resetn)
+	begin
+		if(~resetn)
+			{frame_rd_itr_en_r, frame_wt_itr_en_r, global_itr_en_r} <= 3'b000;
+		else if(psel & penable & pwrite & (paddr[4:2] == 3'd3))
 			{frame_rd_itr_en_r, frame_wt_itr_en_r, global_itr_en_r} <= # SIM_DELAY {pwdata[9], pwdata[8], pwdata[0]};
 	end
 	

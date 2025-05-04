@@ -56,7 +56,6 @@ module frame_buffer_ctrl #(
 	parameter integer FRAME_W = 1920, // 帧宽度(以像素个数计)
 	parameter integer FRAME_H = 1080, // 帧高度(以像素个数计)
 	parameter integer FRAME_SIZE = FRAME_W * FRAME_H * 2, // 帧大小(以字节计, 必须<2^24)
-	parameter EN_FRAME_POS_PROC = "true", // 是否允许帧的后处理
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// 时钟和复位
@@ -69,6 +68,7 @@ module frame_buffer_ctrl #(
 	// 运行时参数
 	input wire[31:0] frame_buffer_baseaddr, // 帧缓存区基地址
 	input wire[2:0] frame_buffer_max_store_n_sub1, // 帧缓存区最大存储帧数 - 1
+	input wire en_frame_pos_proc, // 是否允许帧的后处理
 	
 	// 帧处理控制
 	input wire frame_processed, // 当前帧已处理标志(注意: 取上升沿!)
@@ -258,10 +258,10 @@ module frame_buffer_ctrl #(
 	wire[7:0] frame_buffer_rptr_add1; // 帧缓存读指针 + 1
 	
 	assign frame_processing_wen = 
-		((EN_FRAME_POS_PROC == "false") | on_frame_processed) & 
+		((~en_frame_pos_proc) | on_frame_processed) & // 帧已处理指示
 		((ONLY_FRAME_RD == "true") ? 
-			((~|(frame_processing_ptr & frame_processed_vec))):
-			(|(frame_processing_ptr & frame_filled_vec))
+			((~|(frame_processing_ptr & frame_processed_vec))): // 当前帧未处理
+			(|(frame_processing_ptr & frame_filled_vec)) // 当前帧已填充
 		);
 	
 	assign frame_buffer_wptr_add1 = 

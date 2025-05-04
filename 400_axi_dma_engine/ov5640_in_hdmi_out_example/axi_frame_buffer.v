@@ -51,7 +51,6 @@ module axi_frame_buffer #(
 	parameter integer FRAME_SIZE = FRAME_W * FRAME_H * 2, // 帧大小(以字节计, 必须<2^24)
 	parameter integer MAX_BURST_LEN = 32, // 最大的突发长度(2 | 4 | 8 | 16 | 32 | 64 | 128 | 256)
 	parameter EN_ITR = "true", // 是否启用中断
-	parameter EN_FRAME_POS_PROC = "true", // 是否允许帧的后处理
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// APB从机的时钟和复位
@@ -141,6 +140,7 @@ module axi_frame_buffer #(
 	// 运行时参数
 	wire[31:0] frame_buffer_baseaddr; // 帧缓存区基地址
 	wire[2:0] frame_buffer_max_store_n_sub1; // 帧缓存区最大存储帧数 - 1
+	wire en_frame_pos_proc; // 是否允许帧的后处理
 	// 帧处理控制
 	wire frame_processed; // 当前帧已处理标志(注意: 取上升沿!)
 	wire frame_filled_sync; // 当前帧已填充标志(注意: 取上升沿!)
@@ -151,6 +151,7 @@ module axi_frame_buffer #(
 		reg_if_for_frame_buffer_u/en_frame_buffer_r -> ...
 		reg_if_for_frame_buffer_u/frame_buffer_baseaddr_r[*] -> ...
 		reg_if_for_frame_buffer_u/frame_buffer_max_store_n_sub1_r[*] -> ...
+		reg_if_for_frame_buffer_u/en_frame_pos_proc_r -> ...
 		reg_if_for_frame_buffer_u/frame_processed_r -> ...
 	*/
 	reg_if_for_frame_buffer #(
@@ -172,6 +173,7 @@ module axi_frame_buffer #(
 		
 		.frame_buffer_baseaddr(frame_buffer_baseaddr),
 		.frame_buffer_max_store_n_sub1(frame_buffer_max_store_n_sub1),
+		.en_frame_pos_proc(en_frame_pos_proc),
 		
 		.frame_processed(frame_processed),
 		.frame_filled(frame_filled_sync),
@@ -278,7 +280,6 @@ module axi_frame_buffer #(
 		.FRAME_W(FRAME_W),
 		.FRAME_H(FRAME_H),
 		.FRAME_SIZE(FRAME_SIZE),
-		.EN_FRAME_POS_PROC(EN_FRAME_POS_PROC),
 		.SIM_DELAY(SIM_DELAY)
 	)frame_buffer_ctrl_u(
 		.clk(m_axi_aclk),
@@ -288,6 +289,7 @@ module axi_frame_buffer #(
 		
 		.frame_buffer_baseaddr(frame_buffer_baseaddr),
 		.frame_buffer_max_store_n_sub1(frame_buffer_max_store_n_sub1),
+		.en_frame_pos_proc(en_frame_pos_proc),
 		
 		.frame_processed(frame_processed_sync),
 		.frame_filled(frame_filled),
