@@ -258,7 +258,7 @@ module frame_buffer_ctrl #(
 	wire[7:0] frame_buffer_rptr_add1; // 帧缓存读指针 + 1
 	
 	assign frame_processing_wen = 
-		((~en_frame_pos_proc) | on_frame_processed) & // 帧已处理指示
+		((~(en_frame_pos_proc | (ONLY_FRAME_RD == "true"))) | on_frame_processed) & // 帧已处理指示
 		((ONLY_FRAME_RD == "true") ? 
 			((~|(frame_processing_ptr & frame_processed_vec))): // 当前帧未处理
 			(|(frame_processing_ptr & frame_filled_vec)) // 当前帧已填充
