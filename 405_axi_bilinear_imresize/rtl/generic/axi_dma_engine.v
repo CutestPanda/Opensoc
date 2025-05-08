@@ -86,6 +86,10 @@ module axi_dma_engine #(
 	input wire m_axi_aclk,
 	input wire m_axi_aresetn,
 	
+	// 命令完成指示
+	output wire mm2s_cmd_done,
+	output wire s2mm_cmd_done,
+	
 	// MM2S命令AXIS从机
 	input wire[55:0] s_mm2s_cmd_axis_data, // {待传输字节数(24bit), 传输首地址(32bit)}
 	input wire s_mm2s_cmd_axis_user, // {固定(1'b1)/递增(1'b0)传输(1bit)}
@@ -177,6 +181,8 @@ module axi_dma_engine #(
 				.m_axi_aclk(m_axi_aclk),
 				.m_axi_aresetn(m_axi_aresetn),
 				
+				.cmd_done(mm2s_cmd_done),
+				
 				.s_cmd_axis_data(s_mm2s_cmd_axis_data),
 				.s_cmd_axis_user(s_mm2s_cmd_axis_user),
 				.s_cmd_axis_last(s_mm2s_cmd_axis_last),
@@ -207,6 +213,8 @@ module axi_dma_engine #(
 		end
 		else
 		begin
+			assign mm2s_cmd_done = 1'b0;
+			
 			assign s_mm2s_cmd_axis_ready = 1'b1;
 			
 			assign m_mm2s_axis_data = {DATA_WIDTH{1'bx}};
@@ -247,6 +255,8 @@ module axi_dma_engine #(
 				.m_axi_aclk(m_axi_aclk),
 				.m_axi_aresetn(m_axi_aresetn),
 				
+				.cmd_done(s2mm_cmd_done),
+				
 				.s_cmd_axis_data(s_s2mm_cmd_axis_data),
 				.s_cmd_axis_user(s_s2mm_cmd_axis_user),
 				.s_cmd_axis_valid(s_s2mm_cmd_axis_valid),
@@ -280,6 +290,8 @@ module axi_dma_engine #(
 		end
 		else
 		begin
+			assign s2mm_cmd_done = 1'b0;
+			
 			assign s_s2mm_cmd_axis_ready = 1'b1;
 			
 			assign s_s2mm_axis_ready = 1'b1;

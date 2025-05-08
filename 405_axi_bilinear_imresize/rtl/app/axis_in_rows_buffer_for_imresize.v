@@ -103,14 +103,11 @@ module axis_in_rows_buffer_for_imresize #(
 	begin
 		if(~resetn)
 			src_img_vfifo_store_n <= 3'b000;
-		else if((src_img_vfifo_wen & src_img_vfifo_full_n) ^ (src_img_vfifo_ren & src_img_vfifo_empty_n))
+		else if((src_img_vfifo_wen & src_img_vfifo_full_n) | (src_img_vfifo_ren & src_img_vfifo_empty_n))
 			src_img_vfifo_store_n <= # SIM_DELAY 
-				/*
-				(src_img_vfifo_ren & src_img_vfifo_empty_n) ? 
-					(src_img_vfifo_store_n - 3'b010):
-					(src_img_vfifo_store_n + 3'b001)
-				*/
-				src_img_vfifo_store_n + {{2{src_img_vfifo_ren & src_img_vfifo_empty_n}}, ~(src_img_vfifo_ren & src_img_vfifo_empty_n)};
+				src_img_vfifo_store_n + 
+				{2'b00, src_img_vfifo_wen & src_img_vfifo_full_n} - 
+				{1'b0, src_img_vfifo_ren & src_img_vfifo_empty_n, 1'b0};
 	end
 	
 	// 写指针

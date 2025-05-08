@@ -67,6 +67,9 @@ module axi_dma_engine_s2mm #(
 	input wire m_axi_aclk,
 	input wire m_axi_aresetn,
 	
+	// 命令完成指示
+	output wire cmd_done,
+	
 	// 命令AXIS从机
 	input wire[55:0] s_cmd_axis_data, // {待传输字节数(24bit), 传输首地址(32bit)}
 	input wire s_cmd_axis_user, // {固定(1'b1)/递增(1'b0)传输(1bit)}
@@ -874,6 +877,16 @@ module axi_dma_engine_s2mm #(
 	/** AXI主机B通道 **/
 	// 写响应错误标志
 	reg wt_resp_err;
+	
+	assign cmd_done = 
+		m_axi_bvalid & (
+			|(wt_burst_cmplt_ptr & {
+				wt_burst_is_last_of_req[3], 
+				wt_burst_is_last_of_req[2], 
+				wt_burst_is_last_of_req[1], 
+				wt_burst_is_last_of_req[0]
+			})
+		);
 	
 	assign m_axi_bready = 1'b1;
 	

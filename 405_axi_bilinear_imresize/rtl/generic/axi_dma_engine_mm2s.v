@@ -71,6 +71,9 @@ module axi_dma_engine_mm2s #(
 	input wire m_axi_aclk,
 	input wire m_axi_aresetn,
 	
+	// 命令完成指示
+	output wire cmd_done,
+	
 	// 命令AXIS从机
 	input wire[55:0] s_cmd_axis_data, // {待传输字节数(24bit), 传输首地址(32bit)}
 	input wire s_cmd_axis_user, // {固定(1'b1)/递增(1'b0)传输(1bit)}
@@ -450,7 +453,7 @@ module axi_dma_engine_mm2s #(
 	// fifo写端口
 	wire[DATA_WIDTH-1:0] s_rdata_fifo_axis_data;
 	wire[DATA_WIDTH/8-1:0] s_rdata_fifo_axis_keep;
-	wire[2:0] s_rdata_fifo_axis_user; // {读请求最后1次传输标志(1bit), 
+	wire[3:0] s_rdata_fifo_axis_user; // {本次读突发最后1次传输(1bit), 读请求最后1次传输标志(1bit), 
 	                                  //     错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)}
 	wire s_rdata_fifo_axis_last;
 	wire s_rdata_fifo_axis_valid;
@@ -458,11 +461,13 @@ module axi_dma_engine_mm2s #(
 	// fifo读端口
 	wire[DATA_WIDTH-1:0] m_rdata_fifo_axis_data;
 	wire[DATA_WIDTH/8-1:0] m_rdata_fifo_axis_keep;
-	wire[2:0] m_rdata_fifo_axis_user; // {读请求最后1次传输标志(1bit), 
+	wire[3:0] m_rdata_fifo_axis_user; // {本次读突发最后1次传输(1bit), 读请求最后1次传输标志(1bit), 
 	                                  //     错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)}
 	wire m_rdata_fifo_axis_last;
 	wire m_rdata_fifo_axis_valid;
 	wire m_rdata_fifo_axis_ready;
+	
+	assign cmd_done = s_rdata_fifo_axis_valid & s_rdata_fifo_axis_ready & last_trans_at_rdata;
 	
 	assign s_rdata_fifo_axis_data = m_axi_rdata;
 	/*
@@ -474,7 +479,7 @@ module axi_dma_engine_mm2s #(
 	assign s_rdata_fifo_axis_keep = 
 		({(DATA_WIDTH/8){~first_trans_at_rdata}} | burst_msg_fifo_dout_first_keep) & 
 		({(DATA_WIDTH/8){~last_trans_at_rdata}} | burst_msg_fifo_dout_last_keep);
-	assign s_rdata_fifo_axis_user = {last_trans_at_rdata, m_axi_rresp};
+	assign s_rdata_fifo_axis_user = {m_axi_rlast, last_trans_at_rdata, m_axi_rresp};
 	assign s_rdata_fifo_axis_last = last_trans_at_rdata & burst_msg_fifo_dout_eof_flag;
 	assign s_rdata_fifo_axis_valid = m_axi_rvalid & burst_msg_fifo_empty_n;
 	assign m_axi_rready = s_rdata_fifo_axis_ready & burst_msg_fifo_empty_n;
@@ -499,8 +504,11 @@ module axi_dma_engine_mm2s #(
 	begin
 		if(~m_axi_aresetn)
 			pre_launched_rd_burst_n <= 0;
-		else if(burst_msg_fifo_wen ^ (burst_msg_fifo_ren & burst_msg_fifo_empty_n))
-			pre_launched_rd_burst_n <= # SIM_DELAY burst_msg_fifo_wen ? (pre_launched_rd_burst_n + 1):(pre_launched_rd_burst_n - 1);
+		else if(burst_msg_fifo_wen ^ (m_rdata_fifo_axis_valid & m_rdata_fifo_axis_ready & m_rdata_fifo_axis_user[3]))
+			pre_launched_rd_burst_n <= # SIM_DELAY 
+				burst_msg_fifo_wen ? 
+					(pre_launched_rd_burst_n + 1):
+					(pre_launched_rd_burst_n - 1);
 	end
 	
 	axis_data_fifo #(
@@ -509,7 +517,7 @@ module axi_dma_engine_mm2s #(
 		.ram_type("bram"),
 		.fifo_depth(512),
 		.data_width(DATA_WIDTH),
-		.user_width(3),
+		.user_width(4),
 		.simulation_delay(SIM_DELAY)
 	)rdata_fifo(
 		.s_axis_aclk(m_axi_aclk),
@@ -568,7 +576,7 @@ module axi_dma_engine_mm2s #(
 		begin
 			assign m_mm2s_axis_data = m_rdata_fifo_axis_data;
 			assign m_mm2s_axis_keep = m_rdata_fifo_axis_keep;
-			assign m_mm2s_axis_user = m_rdata_fifo_axis_user;
+			assign m_mm2s_axis_user = m_rdata_fifo_axis_user[2:0];
 			assign m_mm2s_axis_last = m_rdata_fifo_axis_last;
 			assign m_mm2s_axis_valid = m_rdata_fifo_axis_valid;
 			assign m_rdata_fifo_axis_ready = m_mm2s_axis_ready;
