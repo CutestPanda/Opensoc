@@ -283,6 +283,7 @@ module axis_bilinear_imresize #(
 			ii += ii_d;
 		}
 	**/
+	wire is_resize_rgb565; // 图片像素格式为rgb565(标志)
 	wire on_start_resize_cal; // 启动双线性插值计算(指示)
 	wire on_clr_resize_cal_fns; // 清零双线性插值计算完成标志(指示)
 	reg resize_cal_fns; // 双线性插值计算完成(标志)
@@ -309,13 +310,17 @@ module axis_bilinear_imresize #(
 	assign src_img_mem_ren = src_img_mem_ren_r;
 	assign src_img_mem_raddr = src_img_mem_raddr_r;
 	
+	assign is_resize_rgb565 = resize_cal_req_chn_sub1 == 2'b01;
 	assign resize_cal_done = 
 		resize_cal_started & src_img_vfifo_empty_n & res_fifo_almost_full_n & 
 		dst_last_row & dst_last_col & dst_last_chn & is_access_src_x1;
 	
 	assign dst_last_row = dst_y == resize_cal_req_dst_h_sub1;
 	assign dst_last_col = dst_x == resize_cal_req_dst_w_sub1;
-	assign dst_last_chn = src_k_ofs == resize_cal_req_chn_sub1;
+	assign dst_last_chn = 
+		src_k_ofs == (
+			is_resize_rgb565 ? 2'b10:resize_cal_req_chn_sub1
+		);
 	
 	assign src_x = src_itplt_jj[15+RESIZE_SCALE_QUAZ_N:RESIZE_SCALE_QUAZ_N];
 	
@@ -361,7 +366,9 @@ module axis_bilinear_imresize #(
 		if(on_start_resize_cal | 
 			(resize_cal_started & src_img_vfifo_empty_n & res_fifo_almost_full_n & 
 				is_access_src_x1))
-			src_k_ofs <= # SIM_DELAY {2{~(on_start_resize_cal | dst_last_chn)}} & (src_k_ofs + 1'b1);
+			src_k_ofs <= # SIM_DELAY 
+				{2{~(on_start_resize_cal | dst_last_chn)}} & 
+				(src_k_ofs + 1'b1);
 	end
 	// 当前访问源图片x1坐标(标志)
 	always @(posedge clk)
@@ -385,7 +392,7 @@ module axis_bilinear_imresize #(
 		if(resize_cal_started & src_img_vfifo_empty_n & res_fifo_almost_full_n)
 			src_img_mem_raddr_r <= # SIM_DELAY 
 				((is_access_src_x1 ? src_x1:src_x) * ({1'b0, resize_cal_req_chn_sub1} + 1'b1)) + 
-					src_k_ofs;
+					((is_resize_rgb565 & src_k_ofs[1]) ? 2'b01:src_k_ofs);
 	end
 	
 	// 源图片插值y坐标
@@ -442,23 +449,45 @@ module axis_bilinear_imresize #(
 	reg[RESIZE_SCALE_QUAZ_N*2+1:0] itplt_rate_mul_res[0:1]; // 插值系数乘法器计算结果(量化精度 = RESIZE_SCALE_QUAZ_N * 2)
 	reg itplt_rate_vld; // 插值系数有效(指示)
 	reg[RESIZE_SCALE_QUAZ_N+3:0] itplt_rate[0:1]; // 插值系数(量化精度 = RESIZE_SCALE_QUAZ_N + 3)
-	reg[7:0] src_pix[0:1]; // 源像素
+	reg[23:0] src_pix[0:1]; // 源像素
+	wire[7:0] src_rgb565_b[0:1]; // rgb565模式下的b通道
+	wire[7:0] src_rgb565_g[0:1]; // rgb565模式下的g通道
+	wire[7:0] src_rgb565_r[0:1]; // rgb565模式下的r通道
 	wire src_pix_vld; // 源像素有效(指示)
 	reg[RESIZE_SCALE_QUAZ_N+11:0] itplt_pix_mul_res[0:1]; // 插值像素乘法器计算结果(量化精度 = RESIZE_SCALE_QUAZ_N + 3)
 	reg itplt_pix_mul_res_vld; // 插值像素乘法器计算结果有效(指示)
 	reg[RESIZE_SCALE_QUAZ_N+12:0] itplt_pix_part_sum; // 插值像素部分和(量化精度 = RESIZE_SCALE_QUAZ_N + 3)
 	reg itplt_pix_part_sum_vld; // 插值像素部分和有效(指示)
 	reg[RESIZE_SCALE_QUAZ_N+13:0] itplt_pix; // 插值像素(量化精度 = RESIZE_SCALE_QUAZ_N + 3)
+	wire[7:0] itplt_pix_to_wt_cur; // 当前待写的插值像素
+	reg[7:0] itplt_pix_to_wt_pre; // 上一个待写的插值像素
 	reg itplt_pix_loaded; // 插值像素累加已载入(标志)
 	reg itplt_pix_vld; // 插值像素有效(指示)
 	reg[5:0] dst_rlast_delay_chain; // 行尾标志延迟链
+	reg[5:0] is_resize_rgb565_delay_chain; // 图片像素格式为rgb565标志延迟链
+	reg[1:0] src_k_ofs_delay_chain[0:5]; // 源图片通道号偏移量延迟链
 	
-	assign res_fifo_wen = itplt_pix_vld;
-	assign res_fifo_din_data = itplt_pix[RESIZE_SCALE_QUAZ_N + 10:RESIZE_SCALE_QUAZ_N + 3];
+	assign res_fifo_wen = (~(is_resize_rgb565_delay_chain[5] & (src_k_ofs_delay_chain[5] == 2'b00))) & itplt_pix_vld;
+	assign res_fifo_din_data = 
+		is_resize_rgb565_delay_chain[5] ? 
+			(
+				src_k_ofs_delay_chain[5][1] ? 
+					{itplt_pix_to_wt_pre[4:2], itplt_pix_to_wt_cur[7:3]}:
+					{itplt_pix_to_wt_pre[7:3], itplt_pix_to_wt_cur[7:5]}
+			):itplt_pix_to_wt_cur;
 	assign res_fifo_din_last = dst_rlast_delay_chain[5];
 	
 	assign itplt_rate_mul_en = src_img_mem_ren_r;
 	assign src_pix_vld = itplt_rate_vld;
+	
+	assign src_rgb565_b[0] = {src_pix[0][7:3], 3'b000};
+	assign src_rgb565_b[1] = {src_pix[1][7:3], 3'b000};
+	assign src_rgb565_g[0] = {src_pix[0][18:16], src_pix[0][7:5], 2'b00};
+	assign src_rgb565_g[1] = {src_pix[1][18:16], src_pix[1][7:5], 2'b00};
+	assign src_rgb565_r[0] = {src_pix[0][4:0], 3'b000};
+	assign src_rgb565_r[1] = {src_pix[1][4:0], 3'b000};
+	
+	assign itplt_pix_to_wt_cur = itplt_pix[RESIZE_SCALE_QUAZ_N+10:RESIZE_SCALE_QUAZ_N+3];
 	
 	// 插值系数乘法器操作数A
 	always @(posedge clk)
@@ -508,8 +537,8 @@ module axis_bilinear_imresize #(
 	begin
 		if(itplt_rate_mul_res_vld)
 		begin
-			src_pix[0] <= # SIM_DELAY src_img_mem_dout_0;
-			src_pix[1] <= # SIM_DELAY src_img_mem_dout_1;
+			src_pix[0] <= # SIM_DELAY {src_pix[0][15:0], src_img_mem_dout_0};
+			src_pix[1] <= # SIM_DELAY {src_pix[1][15:0], src_img_mem_dout_1};
 		end
 	end
 	
@@ -518,8 +547,23 @@ module axis_bilinear_imresize #(
 	begin
 		if(itplt_rate_vld) // 插值系数和源像素同时有效
 		begin
-			itplt_pix_mul_res[0] <= # SIM_DELAY itplt_rate[0] * src_pix[0];
-			itplt_pix_mul_res[1] <= # SIM_DELAY itplt_rate[1] * src_pix[1];
+			itplt_pix_mul_res[0] <= # SIM_DELAY 
+				itplt_rate[0] * (
+					src_k_ofs_delay_chain[2] ? (
+						(src_k_ofs_delay_chain[2] == 2'b00) ? src_rgb565_b[0]:
+						(src_k_ofs_delay_chain[2] == 2'b01) ? src_rgb565_g[0]:
+															  src_rgb565_r[0]
+					):src_pix[0][7:0]
+				);
+			
+			itplt_pix_mul_res[1] <= # SIM_DELAY 
+				itplt_rate[1] * (
+					src_k_ofs_delay_chain[2] ? (
+						(src_k_ofs_delay_chain[2] == 2'b00) ? src_rgb565_b[1]:
+						(src_k_ofs_delay_chain[2] == 2'b01) ? src_rgb565_g[1]:
+															  src_rgb565_r[1]
+					):src_pix[1][7:0]
+				);
 		end
 	end
 	
@@ -547,6 +591,13 @@ module axis_bilinear_imresize #(
 			itplt_pix_loaded <= 1'b0;
 		else if(itplt_pix_part_sum_vld)
 			itplt_pix_loaded <= # SIM_DELAY ~itplt_pix_loaded;
+	end
+	
+	// 上一个待写的插值像素
+	always @(posedge clk)
+	begin
+		if(itplt_pix_vld)
+			itplt_pix_to_wt_pre <= # SIM_DELAY itplt_pix_to_wt_cur;
 	end
 	
 	// 插值系数乘法器计算结果有效(指示)
@@ -595,35 +646,61 @@ module axis_bilinear_imresize #(
 	end
 	
 	// 行尾标志延迟链
+	// 源图片通道号偏移量延迟链
+	// 图片像素格式为rgb565标志延迟链
 	always @(posedge clk)
 	begin
 		if(resize_cal_started & src_img_vfifo_empty_n & res_fifo_almost_full_n)
+		begin
 			dst_rlast_delay_chain[0] <= # SIM_DELAY dst_last_col & dst_last_chn;
+			src_k_ofs_delay_chain[0] <= # SIM_DELAY src_k_ofs;
+			is_resize_rgb565_delay_chain[0] <= # SIM_DELAY is_resize_rgb565;
+		end
 	end
 	always @(posedge clk)
 	begin
 		if(itplt_rate_mul_en)
+		begin
 			dst_rlast_delay_chain[1] <= # SIM_DELAY dst_rlast_delay_chain[0];
+			src_k_ofs_delay_chain[1] <= # SIM_DELAY src_k_ofs_delay_chain[0];
+			is_resize_rgb565_delay_chain[1] <= # SIM_DELAY is_resize_rgb565_delay_chain[0];
+		end
 	end
 	always @(posedge clk)
 	begin
 		if(itplt_rate_mul_res_vld)
+		begin
 			dst_rlast_delay_chain[2] <= # SIM_DELAY dst_rlast_delay_chain[1];
+			src_k_ofs_delay_chain[2] <= # SIM_DELAY src_k_ofs_delay_chain[1];
+			is_resize_rgb565_delay_chain[2] <= # SIM_DELAY is_resize_rgb565_delay_chain[1];
+		end
 	end
 	always @(posedge clk)
 	begin
 		if(itplt_rate_vld)
+		begin
 			dst_rlast_delay_chain[3] <= # SIM_DELAY dst_rlast_delay_chain[2];
+			src_k_ofs_delay_chain[3] <= # SIM_DELAY src_k_ofs_delay_chain[2];
+			is_resize_rgb565_delay_chain[3] <= # SIM_DELAY is_resize_rgb565_delay_chain[2];
+		end
 	end
 	always @(posedge clk)
 	begin
 		if(itplt_pix_mul_res_vld)
+		begin
 			dst_rlast_delay_chain[4] <= # SIM_DELAY dst_rlast_delay_chain[3];
+			src_k_ofs_delay_chain[4] <= # SIM_DELAY src_k_ofs_delay_chain[3];
+			is_resize_rgb565_delay_chain[4] <= # SIM_DELAY is_resize_rgb565_delay_chain[3];
+		end
 	end
 	always @(posedge clk)
 	begin
 		if(itplt_pix_part_sum_vld & itplt_pix_loaded)
+		begin
 			dst_rlast_delay_chain[5] <= # SIM_DELAY dst_rlast_delay_chain[4];
+			src_k_ofs_delay_chain[5] <= # SIM_DELAY src_k_ofs_delay_chain[4];
+			is_resize_rgb565_delay_chain[5] <= # SIM_DELAY is_resize_rgb565_delay_chain[4];
+		end
 	end
 	
 	/** 双线性插值请求处理流程 **/
