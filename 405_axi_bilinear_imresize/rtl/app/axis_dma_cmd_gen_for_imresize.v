@@ -53,6 +53,7 @@ module axis_dma_cmd_gen_for_imresize #(
 	请求格式:{
 		保留(6bit), 
 		图片通道数 - 1(2bit), 
+		源缓存区行跨度(16bit), 
 		源图片宽度 - 1(16bit), 
 		源图片高度 - 1(16bit), 
 		目标图片宽度 - 1(16bit), 
@@ -66,7 +67,7 @@ module axis_dma_cmd_gen_for_imresize #(
 		结果缓存区基地址(32bit)
 	}
 	*/
-	input wire[215:0] s_req_axis_data,
+	input wire[231:0] s_req_axis_data,
 	input wire s_req_axis_valid,
 	output wire s_req_axis_ready,
 	
@@ -74,7 +75,7 @@ module axis_dma_cmd_gen_for_imresize #(
 	/*
 	请求格式: 同上
 	*/
-	output wire[215:0] m_req_axis_data,
+	output wire[231:0] m_req_axis_data,
 	output wire m_req_axis_valid,
 	input wire m_req_axis_ready,
 	
@@ -96,7 +97,7 @@ module axis_dma_cmd_gen_for_imresize #(
 	
 	/** 内部配置 **/
 	// 双线性插值请求的数据位宽
-	localparam integer REQ_WIDTH = 216;
+	localparam integer REQ_WIDTH = 232;
 	// 双线性插值请求处理状态常量
 	localparam integer RESIZE_REQ_STS_IDLE_ID = 0;
 	localparam integer RESIZE_REQ_STS_START_ID = 1;
@@ -142,6 +143,7 @@ module axis_dma_cmd_gen_for_imresize #(
 	wire[REQ_WIDTH-1:0] s_cmd_gen_req_axis_data;
 	reg[5:0] cmd_gen_req_reserved; // 保留位
 	reg[1:0] cmd_gen_req_chn_sub1; // 图片通道数 - 1
+	reg[15:0] cmd_gen_req_sbuf_stride; // 源缓存区行跨度
 	reg[15:0] cmd_gen_req_src_w_sub1; // 源图片宽度 - 1
 	reg[15:0] cmd_gen_req_src_h_sub1; // 源图片高度 - 1
 	reg[15:0] cmd_gen_req_dst_w_sub1; // 目标图片宽度 - 1
@@ -171,6 +173,7 @@ module axis_dma_cmd_gen_for_imresize #(
 			{
 				cmd_gen_req_reserved, 
 				cmd_gen_req_chn_sub1, 
+				cmd_gen_req_sbuf_stride, 
 				cmd_gen_req_src_w_sub1, 
 				cmd_gen_req_src_h_sub1, 
 				cmd_gen_req_dst_w_sub1, 
@@ -241,7 +244,7 @@ module axis_dma_cmd_gen_for_imresize #(
 	assign mm2s_cmd_s0_data_src_baseaddr = cmd_gen_req_src_baseaddr;
 	assign mm2s_cmd_s0_data_src_stride = cmd_gen_req_src_stride;
 	assign mm2s_cmd_s0_data_src_row_ofs = 
-		(mm2s_cmd_access_i1 ? mm2s_cmd_i1:mm2s_cmd_i) * cmd_gen_req_src_stride;
+		(mm2s_cmd_access_i1 ? mm2s_cmd_i1:mm2s_cmd_i) * cmd_gen_req_sbuf_stride;
 	
 	assign mm2s_cmd_s0_ready = (~mm2s_cmd_s1_valid) | mm2s_cmd_s1_ready;
 	assign mm2s_cmd_s1_ready = (~mm2s_cmd_s2_valid) | mm2s_cmd_s2_ready;

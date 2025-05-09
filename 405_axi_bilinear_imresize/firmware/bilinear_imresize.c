@@ -33,11 +33,13 @@ BlnImrszUnit* bilinear_imresize_init(uint32_t base_addr){
 		res_stride 结果缓存区行跨度
 		src_w 源图片宽度
 		src_h 源图片高度
+		sbuf_stride 源缓存区行跨度
 		chn_n 图片通道数
 @return none
 *************************/
 void bilinear_imresize_poll(BlnImrszUnit* unit, uint32_t res_baseaddr, uint32_t src_baseaddr, 
-	uint32_t dst_w, uint32_t dst_h, uint32_t res_stride, uint32_t src_w, uint32_t src_h, uint32_t chn_n){
+	uint32_t dst_w, uint32_t dst_h, uint32_t res_stride, uint32_t src_w, uint32_t src_h, 
+	uint32_t sbuf_stride, uint32_t chn_n){
 	float resize_scale_x = ((float)src_w) / dst_w * (1 << BILINEAR_IMRESIZE_SCALE_QUAZ_N);
 	float resize_scale_y = ((float)src_h) / dst_h * (1 << BILINEAR_IMRESIZE_SCALE_QUAZ_N);
 	uint32_t resize_scale_x_fixed = (uint32_t)resize_scale_x;
@@ -49,7 +51,8 @@ void bilinear_imresize_poll(BlnImrszUnit* unit, uint32_t res_baseaddr, uint32_t 
 	unit[6] = (src_w * chn_n) | (resize_scale_y_fixed << 16); // 源图片行跨度, 竖直缩放比例
 	unit[7] = (resize_scale_x_fixed) | ((dst_h - 1) << 16); // 水平缩放比例, 目标图片高度 - 1
 	unit[8] = (dst_w - 1) | ((src_h - 1) << 16); // 目标图片宽度 - 1, 源图片高度 - 1
-	unit[9] = (src_w - 1) | ((chn_n - 1) << 16); // 源图片宽度 - 1, 图片通道数 - 1
+	unit[9] = (src_w - 1) | (sbuf_stride << 16); // 源图片宽度 - 1, 源缓存区行跨度
+	unit[10] = chn_n - 1; // 图片通道数 - 1
 	
 	unit[0] = 0x04; // 发送缩放请求
 	

@@ -23,4 +23,5 @@ typedef uint32_t BlnImrszUnit;
 BlnImrszUnit* bilinear_imresize_init(uint32_t base_addr); // 初始化双线性插值处理单元
 
 void bilinear_imresize_poll(BlnImrszUnit* unit, uint32_t res_baseaddr, uint32_t src_baseaddr, 
-	uint32_t dst_w, uint32_t dst_h, uint32_t res_stride, uint32_t src_w, uint32_t src_h, uint32_t chn_n); // 以轮询方式进行双线性插值缩放
+	uint32_t dst_w, uint32_t dst_h, uint32_t res_stride, uint32_t src_w, uint32_t src_h, 
+	uint32_t sbuf_stride, uint32_t chn_n); // 以轮询方式进行双线性插值缩放

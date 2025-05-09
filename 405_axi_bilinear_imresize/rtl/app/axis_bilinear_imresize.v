@@ -76,6 +76,7 @@ module axis_bilinear_imresize #(
 	请求格式:{
 		保留(6bit), 
 		图片通道数 - 1(2bit), 
+		源缓存区行跨度(16bit), 
 		源图片宽度 - 1(16bit), 
 		源图片高度 - 1(16bit), 
 		目标图片宽度 - 1(16bit), 
@@ -89,7 +90,7 @@ module axis_bilinear_imresize #(
 		结果缓存区基地址(32bit)
 	}
 	*/
-	input wire[215:0] s_req_axis_data,
+	input wire[231:0] s_req_axis_data,
 	input wire s_req_axis_valid,
 	output wire s_req_axis_ready,
 	
@@ -126,6 +127,7 @@ module axis_bilinear_imresize #(
 	/** 锁存的双线性插值请求 **/
 	reg[5:0] resize_cal_req_reserved; // 保留位
 	reg[1:0] resize_cal_req_chn_sub1; // 图片通道数 - 1
+	reg[15:0] resize_cal_req_sbuf_stride; // 源缓存区行跨度
 	reg[15:0] resize_cal_req_src_w_sub1; // 源图片宽度 - 1
 	reg[15:0] resize_cal_req_src_h_sub1; // 源图片高度 - 1
 	reg[15:0] resize_cal_req_dst_w_sub1; // 目标图片宽度 - 1
@@ -145,6 +147,7 @@ module axis_bilinear_imresize #(
 			{
 				resize_cal_req_reserved, 
 				resize_cal_req_chn_sub1, 
+				resize_cal_req_sbuf_stride, 
 				resize_cal_req_src_w_sub1, 
 				resize_cal_req_src_h_sub1, 
 				resize_cal_req_dst_w_sub1, 

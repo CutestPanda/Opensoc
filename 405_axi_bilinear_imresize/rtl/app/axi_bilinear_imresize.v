@@ -112,7 +112,7 @@ module axi_bilinear_imresize #(
 	
 	/** 内部配置 **/
 	// 双线性插值请求的数据位宽
-	localparam integer REQ_WIDTH = 216;
+	localparam integer REQ_WIDTH = 232;
 	
 	/** 配置寄存器区 **/
 	// 双线性插值请求(AXIS主机, 上游)
@@ -120,6 +120,7 @@ module axi_bilinear_imresize #(
 	请求格式:{
 		保留(6bit), 
 		图片通道数 - 1(2bit), 
+		源缓存区行跨度(16bit), 
 		源图片宽度 - 1(16bit), 
 		源图片高度 - 1(16bit), 
 		目标图片宽度 - 1(16bit), 

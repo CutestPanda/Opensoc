@@ -38,15 +38,16 @@ SOFTWARE.
      0x0C      31~0:结果缓存区基地址                RW
 	 0x10      31~0:源图片基地址                    RW
 	 0x14      15~0:结果缓存区行跨度                RW
-	           31~16:目标图片行跨度                 RW
+	          31~16:目标图片行跨度                  RW
 	 0x18      15~0:源图片行跨度                    RW
-	           31~16:竖直缩放比例                   RW          无符号定点数: 源图片高度 / 目标图标高度
+	          31~16:竖直缩放比例                    RW          无符号定点数: 源图片高度 / 目标图标高度
 	 0x1C      15~0:水平缩放比例                    RW          无符号定点数: 源图片宽度 / 目标图标宽度
-	           31~16:目标图片高度 - 1               RW
+	          31~16:目标图片高度 - 1                RW
 	 0x20      15~0:目标图片宽度 - 1                RW
-	           31~16:源图片高度 - 1                 RW
+	          31~16:源图片高度 - 1                  RW
 	 0x24      15~0:源图片宽度 - 1                  RW
-	           17~16:图片通道数 - 1                 RW
+	          31~16:源缓存区行跨度                  RW
+	 0x28       1~0:图片通道数 - 1                  RW
 
 注意：
 无
@@ -84,7 +85,7 @@ module reg_if_for_imresize #(
 	input wire resize_fns, // 缩放完成标志(注意: 取上升沿!)
 	
 	// 双线性插值请求(AXIS主机)
-	output wire[215:0] m_req_axis_data,
+	output wire[231:0] m_req_axis_data,
 	output wire m_req_axis_valid,
 	input wire m_req_axis_ready,
 	
@@ -94,9 +95,9 @@ module reg_if_for_imresize #(
 	
 	/** 内部配置 **/
 	// 双线性插值请求的数据位宽
-	localparam integer REQ_WIDTH = 216;
+	localparam integer REQ_WIDTH = 232;
 	// 缩放请求寄存器占用的字数
-	localparam integer REQ_REGS_WORDS_N = 7;
+	localparam integer REQ_REGS_WORDS_N = 8;
 	// 缩放请求寄存器基地址
 	localparam integer REQ_REGS_BASEADDR = 12;
 	
@@ -262,7 +263,8 @@ module reg_if_for_imresize #(
 				4'd6: prdata_r <= # SIM_DELAY resize_req_r[127:96];
 				4'd7: prdata_r <= # SIM_DELAY resize_req_r[159:128];
 				4'd8: prdata_r <= # SIM_DELAY resize_req_r[191:160];
-				4'd9: prdata_r <= # SIM_DELAY {8'd0, resize_req_r[215:192]};
+				4'd9: prdata_r <= # SIM_DELAY resize_req_r[223:192];
+				4'd10: prdata_r <= # SIM_DELAY {30'd0, resize_req_r[225:224]};
 				default: prdata_r <= # SIM_DELAY 32'h0000_0000;
 			endcase
 		end
