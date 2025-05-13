@@ -226,7 +226,7 @@ module frame_buffer_ctrl #(
 	assign frame_processing_ptr_add1 = 
 		(|(frame_processing_ptr & (8'b0000_0001 << frame_buffer_max_store_n_sub1))) ? 
 			8'b0000_0001:
-			{frame_processing_ptr[6:0], frame_processing_ptr[7]};
+			{frame_processing_ptr[6:0], 1'b0};
 	
 	// 延迟1clk的当前帧已处理标志
 	always @(posedge clk or negedge resetn)
@@ -276,11 +276,11 @@ module frame_buffer_ctrl #(
 	assign frame_buffer_wptr_add1 = 
 		(|(frame_buffer_wptr & (8'b0000_0001 << frame_buffer_max_store_n_sub1))) ? 
 			8'b0000_0001:
-			{frame_buffer_wptr[6:0], frame_buffer_wptr[7]};
+			{frame_buffer_wptr[6:0], 1'b0};
 	assign frame_buffer_rptr_add1 = 
 		(|(frame_buffer_rptr & (8'b0000_0001 << frame_buffer_max_store_n_sub1))) ? 
 			8'b0000_0001:
-			{frame_buffer_rptr[6:0], frame_buffer_rptr[7]};
+			{frame_buffer_rptr[6:0], 1'b0};
 	
 	assign frame_buffer_now_w_filled = |(frame_filled_vec & frame_buffer_wptr);
 	assign frame_buffer_nxt_w_filled = |(frame_filled_vec & frame_buffer_wptr_add1);
@@ -560,7 +560,7 @@ module frame_buffer_ctrl #(
 			s2mm_baseaddr_ptr <= # SIM_DELAY 
 				(|(s2mm_baseaddr_ptr & (8'b0000_0001 << frame_buffer_max_store_n_sub1))) ? 
 					8'b0000_0001:
-					{s2mm_baseaddr_ptr[6:0], s2mm_baseaddr_ptr[7]};
+					{s2mm_baseaddr_ptr[6:0], 1'b0};
 			s2mm_baseaddr <= # SIM_DELAY s2mm_baseaddr_nxf;
 		end
 	end
