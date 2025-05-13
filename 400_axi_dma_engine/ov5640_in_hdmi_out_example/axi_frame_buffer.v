@@ -198,6 +198,9 @@ module axi_frame_buffer #(
 	                           // const -> 1'b1
 	wire m_mm2s_cmd_axis_valid;
 	wire m_mm2s_cmd_axis_ready;
+	// DMA命令完成指示
+	wire mm2s_cmd_done;
+	wire s2mm_cmd_done;
 	// MM2S数据流(AXIS从机)
 	wire[BUS_WIDTH-1:0] s_mm2s_axis_data;
 	wire[BUS_WIDTH/8-1:0] s_mm2s_axis_keep; // ignored
@@ -284,6 +287,9 @@ module axi_frame_buffer #(
 	)frame_buffer_ctrl_u(
 		.clk(m_axi_aclk),
 		.resetn(m_axi_aresetn),
+		
+		.mm2s_cmd_done(mm2s_cmd_done),
+		.s2mm_cmd_done(s2mm_cmd_done),
 		
 		.en_frame_buffer(en_frame_buffer_sync),
 		
@@ -404,6 +410,9 @@ module axi_frame_buffer #(
 		.m_mm2s_axis_aresetn(m_axi_aresetn),
 		.m_axi_aclk(m_axi_aclk),
 		.m_axi_aresetn(m_axi_aresetn),
+		
+		.mm2s_cmd_done(mm2s_cmd_done),
+		.s2mm_cmd_done(s2mm_cmd_done),
 		
 		.s_mm2s_cmd_axis_data(s_mm2s_cmd_axis_data),
 		.s_mm2s_cmd_axis_user(s_mm2s_cmd_axis_user),
