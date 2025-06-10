@@ -161,11 +161,7 @@ GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经
 1.下载Eclipse（[百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)里的eclipse-embedcpp-2025-03-R-win32-x86_64.zip）  
 2.将压缩包里的eclipse文件夹解压到任意目录，eclipse是免安装的，其中的eclipse.exe就是可执行程序，可以将它发送到桌面快捷方式。  
 3.安装Eclipse Embedded CDT  
-打开Eclipse，选择Help菜单栏下的Eclipse Marketplace。  
-![说明5](../img/panda_risc_v_5.png)  
-搜索eclipse embedded，安装Eclipse Embedded CDT。  
-![说明6](../img/panda_risc_v_6.png)  
-重新启动Eclipse。  
+压缩包里的Eclipse自带了这个插件，所以无需安装。  
 4.配置risc-v工具链  
 打开Eclipse，选择Window菜单栏下的Preferences。  
 ![说明7](../img/panda_risc_v_7.png)  
