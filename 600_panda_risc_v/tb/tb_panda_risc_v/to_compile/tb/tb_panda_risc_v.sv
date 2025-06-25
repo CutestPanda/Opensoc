@@ -28,17 +28,17 @@ module tb_panda_risc_v();
 	
 	/** 配置参数 **/
 	// 待测模块配置
-	localparam integer IMEM_DEPTH = 8 * 1024; // 指令存储器深度
-	localparam integer DMEM_DEPTH = 8 * 1024; // 数据存储器深度
-	localparam IMEM_INIT_FILE = "E:/modelsim/tb_panda_risc_v/inst_test/rv32ui-p-sw.txt"; // 指令存储器的初始化文件路径
-	localparam DMEM_INIT_FILE = "no_init"; // 数据存储器的初始化文件路径
-	localparam en_alu_csr_rw_bypass = "true"; // 是否使能ALU/CSR原子读写单元的数据旁路
-	localparam imem_baseaddr = 32'h0000_0000; // 指令存储器基址
-	localparam integer imem_addr_range = 16 * 1024; // 指令存储器地址区间长度
-	localparam sgn_period_mul = "true"; // 是否使用单周期乘法器
+	parameter integer IMEM_DEPTH = 8 * 1024; // 指令存储器深度
+	parameter integer DMEM_DEPTH = 8 * 1024; // 数据存储器深度
+	parameter IMEM_INIT_FILE = "E:/modelsim/tb_panda_risc_v/inst_test/rv32ui-p-sw.txt"; // 指令存储器的初始化文件路径
+	parameter DMEM_INIT_FILE = "no_init"; // 数据存储器的初始化文件路径
+	parameter en_alu_csr_rw_bypass = "true"; // 是否使能ALU/CSR原子读写单元的数据旁路
+	parameter imem_baseaddr = 32'h0000_0000; // 指令存储器基址
+	parameter integer imem_addr_range = 16 * 1024; // 指令存储器地址区间长度
+	parameter sgn_period_mul = "true"; // 是否使用单周期乘法器
 	// 时钟和复位配置
-	localparam real clk_p = 10.0; // 时钟周期
-	localparam real simulation_delay = 1.0; // 仿真延时
+	parameter real clk_p = 10.0; // 时钟周期
+	parameter real simulation_delay = 1.0; // 仿真延时
 	
 	/** 时钟和复位 **/
 	reg clk;
