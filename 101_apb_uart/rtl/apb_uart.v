@@ -398,7 +398,7 @@ module apb_uart #(
     /** UART控制器 **/
     uart_rx_tx #(
         .clk_frequency_MHz(clk_frequency_MHz),
-        .baud_rate(),
+        .baud_rate(baud_rate),
         .interface("fifo"),
         .simulation_delay(simulation_delay)
     )uart_ctrler(
