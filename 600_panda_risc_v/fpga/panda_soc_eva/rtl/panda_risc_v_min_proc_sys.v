@@ -496,7 +496,7 @@ module panda_risc_v_min_proc_sys #(
 		begin
 	        bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("no_change"),
+                .rw_mode("read_first"),
                 .mem_width(32),
                 .mem_depth(imem_addr_range / 4),
                 .INIT_FILE(imem_init_file),
@@ -848,7 +848,7 @@ module panda_risc_v_min_proc_sys #(
 		begin
 		    bram_single_port #(
                 .style("LOW_LATENCY"),
-                .rw_mode("no_change"),
+                .rw_mode("read_first"),
                 .mem_width(32),
                 .mem_depth(dmem_addr_range / 4),
                 .INIT_FILE("no_init"),
