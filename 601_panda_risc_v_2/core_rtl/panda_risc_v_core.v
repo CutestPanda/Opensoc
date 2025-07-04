@@ -27,10 +27,10 @@ SOFTWARE.
 本模块: 小胖达RISC-V处理器核
 
 描述:
-
+小胖达RISC-V处理器核顶层模块
 
 注意：
-
+考虑增加"Store Buffer"以在退休时处理store指令, 否则前序指令遇到异常/中断/调试时, store指令无法取消
 
 协议:
 MEM MASTER
