@@ -15,6 +15,7 @@ __欢迎贡献您的IP(参与开发请fork)__
 APB-GPIO  
 APB-UART  
 APB-I2C  
+APB-SPI  
 APB-TIMER  
 通用FSMC控制器  
 APB-音频播放器  
@@ -36,7 +37,6 @@ AMBA总线基本验证组件
 小胖达RV32 I[M]  
 
 ## 待整理的IP
-APB-SPI  
 AXI-通用卷积加速器  
 AXI-最大池化单元  
 AXI-上采样单元  
@@ -76,3 +76,4 @@ XXX_IP
 |alpha0.62  |2024.09.18 |陈家耀  |发布了AXIS数据fifo|
 |alpha0.65  |2024.09.21 |陈家耀  |发布了APB-TIMER|
 |alpha0.70  |2025.01.20 |陈家耀  |发布了小胖达RV32 I[M]|
+|alpha0.71  |2025.07.21 |陈家耀  |发布了APB-SPI|
