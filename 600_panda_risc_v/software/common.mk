@@ -22,6 +22,7 @@ C_SRCS += $(COMMON_DIR)/lib/utils.c
 C_SRCS += $(COMMON_DIR)/lib/plic.c
 C_SRCS += $(COMMON_DIR)/lib/clint.c
 C_SRCS += $(COMMON_DIR)/lib/apb_gpio.c
+C_SRCS += $(COMMON_DIR)/lib/apb_spi.c
 C_SRCS += $(COMMON_DIR)/lib/apb_i2c.c
 C_SRCS += $(COMMON_DIR)/lib/apb_timer.c
 C_SRCS += $(COMMON_DIR)/lib/apb_uart.c
