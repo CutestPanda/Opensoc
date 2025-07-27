@@ -42,6 +42,11 @@ void apb_timer_pwm_example(void){
 	timer_config.cmp[1] = 0;
 	timer_config.cmp[2] = 0;
 	timer_config.cmp[3] = 0;
+	// 比较输出模式
+	timer_config.oc_mode[0] = OC_MODE_GEQ_HIGH;
+	timer_config.oc_mode[1] = OC_MODE_GEQ_HIGH;
+	timer_config.oc_mode[2] = OC_MODE_GEQ_HIGH;
+	timer_config.oc_mode[3] = OC_MODE_GEQ_HIGH;
 	// 边沿检测类型
 	timer_config.edge_detect_type[0] = CAP_POS_EDGE;
 	timer_config.edge_detect_type[1] = CAP_POS_EDGE;
@@ -54,6 +59,9 @@ void apb_timer_pwm_example(void){
 	timer_config.edge_filter_th[3] = 0;
 	
 	init_apb_timer(&timer, BASEADDR_TIMER, &timer_config);
+	
+	// 使能PWM输出
+	apb_timer_start_oc(&timer, APB_TIMER_CH0);
 	
 	// 启动定时器
 	__apb_timer_set_cnt(&timer, TIMER_ATL - 1);

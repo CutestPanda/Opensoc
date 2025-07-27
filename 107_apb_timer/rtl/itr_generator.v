@@ -76,7 +76,7 @@ module itr_generator #(
                 if(~rst_n)
                     itr_reg <= 1'b0;
                 else
-                    # simulation_delay itr_reg <= itr_org;
+                    itr_reg <= # simulation_delay itr_org;
             end
         end
         else
@@ -87,18 +87,16 @@ module itr_generator #(
                     itr_reg <= 1'b0;
                 else
                 begin
-                    # simulation_delay;
-                    
                     if(~itr_reg) // 等待原始中断脉冲
-                        itr_reg <= itr_org;
+                        itr_reg <= # simulation_delay itr_org;
                     else // 等待计数完成
-                        itr_reg <= itr_cnt != pulse_w - 1;
+                        itr_reg <= # simulation_delay itr_cnt != pulse_w - 1;
                 end
             end
         end
     endgenerate
     
     always @(posedge clk)
-        # simulation_delay itr_cnt <= (~itr_reg) ? 0:(itr_cnt + 1);
+        itr_cnt <= # simulation_delay (~itr_reg) ? 0:(itr_cnt + 1);
 
 endmodule

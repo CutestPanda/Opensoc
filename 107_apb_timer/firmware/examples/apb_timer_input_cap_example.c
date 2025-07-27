@@ -79,6 +79,11 @@ void apb_timer_input_cap_example(void){
 	timer_config.cmp[1] = 0;
 	timer_config.cmp[2] = 0;
 	timer_config.cmp[3] = 0;
+	// 比较输出模式
+	timer_config.oc_mode[0] = OC_MODE_GEQ_HIGH;
+	timer_config.oc_mode[1] = OC_MODE_GEQ_HIGH;
+	timer_config.oc_mode[2] = OC_MODE_GEQ_HIGH;
+	timer_config.oc_mode[3] = OC_MODE_GEQ_HIGH;
 	// 边沿检测类型
 	timer_config.edge_detect_type[0] = CAP_POS_EDGE;
 	timer_config.edge_detect_type[1] = CAP_POS_EDGE;

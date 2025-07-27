@@ -51,11 +51,14 @@ module timer_ic_oc #(
     // 捕获/比较
     input wire cap_in, // 捕获输入
     output wire cmp_out, // 比较输出
+	output wire cap_cmp_t, // 捕获/比较三态门方向(1'b0 -> 输出, 1'b1 -> 输入)
     
     // 定时器计数值
     input wire[timer_width-1:0] timer_cnt_now_v,
     // 是否启动定时器
     input wire timer_started,
+	// 是否使能比较输出
+	input wire cmp_oen,
     
     // 定时器计数溢出(指示)
     input wire timer_expired,
@@ -67,6 +70,9 @@ module timer_ic_oc #(
     input wire[timer_width-1:0] timer_cmp,
     output wire[timer_width-1:0] timer_cap_cmp_o,
     
+	// 比较输出模式
+	input wire[1:0] oc_mode,
+	
     // 输入滤波阈值
     input wire[7:0] timer_cap_filter_th,
     // 边沿检测类型
@@ -87,6 +93,9 @@ module timer_ic_oc #(
     localparam IN_CAP_STS_DELAY = 2'b01; // 状态:延迟
     localparam IN_CAP_STS_COMFIRM = 2'b10; // 状态:确认
     localparam IN_CAP_STS_CAP = 2'b11; // 状态:捕获
+	// 比较输出模式常量
+	localparam OC_MODE_GEQ_HIGH = 2'b00; // 模式:计数值>=比较值时输出高电平, 计数值<比较值时输出低电平
+	localparam OC_MODE_LT_HIGH = 2'b01; // 模式:计数值<比较值时输出高电平, 计数值>=比较值时输出低电平
     
     /** 捕获/比较寄存器 **/
     wire to_in_cap; // 输入捕获(指示)
@@ -102,7 +111,7 @@ module timer_ic_oc #(
     always @(posedge clk)
     begin
         if(cap_cmp_sel ? ((~timer_started) | timer_expired):to_in_cap)
-            # simulation_delay timer_cap_cmp <= cap_cmp_sel ? timer_cmp:timer_cap_v_latched;
+            timer_cap_cmp <= # simulation_delay cap_cmp_sel ? timer_cmp:timer_cap_v_latched;
     end
     
     // 延迟1clk的输入捕获(指示)
@@ -111,7 +120,7 @@ module timer_ic_oc #(
         if(~resetn)
             to_in_cap_d <= 1'b0;
         else
-            # simulation_delay to_in_cap_d <= to_in_cap;
+            to_in_cap_d <= # simulation_delay to_in_cap;
     end
     
     /** 输入捕获 **/
@@ -141,35 +150,35 @@ module timer_ic_oc #(
         if(~resetn)
             cap_in_d1_to_d3 <= 3'b000;
         else
-            # simulation_delay cap_in_d1_to_d3 <= {cap_in_d1_to_d3[1:0], cap_in};
+            cap_in_d1_to_d3 <= # simulation_delay {cap_in_d1_to_d3[1:0], cap_in};
     end
     
     // 锁存的捕获值
     always @(posedge clk)
     begin
         if((in_cap_sts == IN_CAP_STS_IDLE) & cap_vld_edge)
-            # simulation_delay timer_cap_v_latched <= timer_cnt_now_v;
+            timer_cap_v_latched <= # simulation_delay timer_cnt_now_v;
     end
     // 锁存的捕获输入边沿类型
     always @(posedge clk)
     begin
         if((in_cap_sts == IN_CAP_STS_IDLE) & cap_vld_edge)
-            # simulation_delay cap_in_edge_type_latched <= cap_in_posedge_detected;
+            cap_in_edge_type_latched <= # simulation_delay cap_in_posedge_detected;
     end
     // 锁存的输入滤波阈值
     always @(posedge clk)
     begin
         if((in_cap_sts == IN_CAP_STS_IDLE) & cap_vld_edge)
-            # simulation_delay cap_in_filter_th_latched <= timer_cap_filter_th;
+            cap_in_filter_th_latched <= # simulation_delay timer_cap_filter_th;
     end
     
     // 输入滤波计数器
     always @(posedge clk)
     begin
         if(in_cap_sts == IN_CAP_STS_IDLE)
-            # simulation_delay cap_in_filter_cnt <= 8'd0;
+            cap_in_filter_cnt <= # simulation_delay 8'd0;
         else if(in_cap_sts == IN_CAP_STS_DELAY)
-            # simulation_delay cap_in_filter_cnt <= cap_in_filter_cnt + 8'd1;
+            cap_in_filter_cnt <= # simulation_delay cap_in_filter_cnt + 8'd1;
     end
     
     // 输入捕获状态
@@ -179,24 +188,22 @@ module timer_ic_oc #(
             in_cap_sts <= IN_CAP_STS_IDLE;
         else
         begin
-            # simulation_delay;
-            
             case(in_cap_sts)
                 IN_CAP_STS_IDLE: // 状态:空闲
                     if(cap_vld_edge)
-                        in_cap_sts <= IN_CAP_STS_DELAY; // -> 状态:延迟
+                        in_cap_sts <= # simulation_delay IN_CAP_STS_DELAY; // -> 状态:延迟
                 IN_CAP_STS_DELAY: // 状态:延迟
                     if(cap_in_filter_done)
-                        in_cap_sts <= IN_CAP_STS_COMFIRM; // -> 状态:确认
+                        in_cap_sts <= # simulation_delay IN_CAP_STS_COMFIRM; // -> 状态:确认
                 IN_CAP_STS_COMFIRM: // 状态:确认
                     if(cap_in_d1_to_d3[1] == cap_in_edge_type_latched)
-                        in_cap_sts <= IN_CAP_STS_CAP; // -> 状态:捕获
+                        in_cap_sts <= # simulation_delay IN_CAP_STS_CAP; // -> 状态:捕获
                     else
-                        in_cap_sts <= IN_CAP_STS_IDLE; // -> 状态:空闲
+                        in_cap_sts <= # simulation_delay IN_CAP_STS_IDLE; // -> 状态:空闲
                 IN_CAP_STS_CAP: // 状态:捕获
-                    in_cap_sts <= IN_CAP_STS_IDLE; // -> 状态:空闲
+                    in_cap_sts <= # simulation_delay IN_CAP_STS_IDLE; // -> 状态:空闲
                 default:
-                    in_cap_sts <= IN_CAP_STS_IDLE;
+                    in_cap_sts <= # simulation_delay IN_CAP_STS_IDLE;
             endcase
         end
     end
@@ -204,10 +211,17 @@ module timer_ic_oc #(
     /** 输出比较 **/
     wire cmp_o; // 输出比较值
     reg cmp_o_d; // 延迟1clk的输出比较值
+	reg cap_cmp_t_r; // 捕获/比较三态门方向
     
     assign cmp_out = cmp_o_d;
+	assign cap_cmp_t = cap_cmp_t_r;
     
-    assign cmp_o = timer_started & cap_cmp_sel & (timer_cnt_now_v >= timer_cap_cmp);
+    assign cmp_o = 
+		timer_started & cmp_oen & cap_cmp_sel & 
+		(
+			((oc_mode == OC_MODE_GEQ_HIGH) & (timer_cnt_now_v >= timer_cap_cmp)) | 
+			((oc_mode == OC_MODE_LT_HIGH) & (timer_cnt_now_v < timer_cap_cmp))
+		);
     
     // 延迟1clk的输出比较值
     always @(posedge clk or negedge resetn)
@@ -215,7 +229,16 @@ module timer_ic_oc #(
         if(~resetn)
             cmp_o_d <= 1'b0;
         else
-            # simulation_delay cmp_o_d <= cmp_o;
+            cmp_o_d <= # simulation_delay cmp_o;
     end
+	
+	// 捕获/比较三态门方向
+	always @(posedge clk or negedge resetn)
+    begin
+        if(~resetn)
+			cap_cmp_t_r <= 1'b1;
+		else
+			cap_cmp_t_r <= # simulation_delay ~(timer_started & cmp_oen & cap_cmp_sel);
+	end
     
 endmodule

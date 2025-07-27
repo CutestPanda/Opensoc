@@ -35,29 +35,35 @@ SOFTWARE.
 
 寄存器->
     偏移量  |    含义                     |   读写特性    |        备注
-    0x00    timer_width-1~0:预分频系数-1         W
-    0x04    timer_width-1~0:自动装载值-1         W
+    0x00    timer_width-1~0:预分频系数-1         RW
+    0x04    timer_width-1~0:自动装载值-1         RW
     0x08    timer_width-1~0:定时器计数值         RW
-    0x0C    0:是否启动定时器                     W
-            11~8:捕获/比较选择(4个通道)          W
-    0x10    0:全局中断使能                       W
-            8:计数溢出中断使能                   W
-            12~9:输入捕获中断使能                W
+    0x0C    0:是否启动定时器                      RW
+            11~8:捕获/比较选择(4个通道)            RW
+			15~12:比较输出使能(4个通道)            RW
+			23~16:版本号                        R
+    0x10    0:全局中断使能                       RW
+            8:计数溢出中断使能                    RW
+            12~9:输入捕获中断使能                 RW
     0x14    0:全局中断标志                       RWC
-            8:计数溢出中断标志                   R
-            12~9:输入捕获中断标志                R
-    0x18    timer_width-1~0:捕获/比较值(通道1)   RW       仅使能捕获/比较通道1时可用
-    0x1C    7~0:输入滤波阈值                     W        仅使能捕获/比较通道1时可用
+            8:计数溢出中断标志                    R
+            12~9:输入捕获中断标志                 R
+    0x18    timer_width-1~0:捕获/比较值(通道1)   RW       仅当捕获/比较通道数(channel_n)>=1时可用
+    0x1C    7~0:输入滤波阈值                     W        仅当捕获/比较通道数(channel_n)>=1时可用
             9~8:边沿检测类型                     W
-    0x20    timer_width-1~0:捕获/比较值(通道2)   RW       仅使能捕获/比较通道2时可用
-    0x24    7~0:输入滤波阈值                     W        仅使能捕获/比较通道2时可用
+			11~10:比较输出模式                   W
+    0x20    timer_width-1~0:捕获/比较值(通道2)   RW       仅当捕获/比较通道数(channel_n)>=2时可用
+    0x24    7~0:输入滤波阈值                     W        仅当捕获/比较通道数(channel_n)>=2时可用
             9~8:边沿检测类型                     W
-    0x28    timer_width-1~0:捕获/比较值(通道3)   RW       仅使能捕获/比较通道3时可用
-    0x2C    7~0:输入滤波阈值                     W        仅使能捕获/比较通道3时可用
+			11~10:比较输出模式                   W
+    0x28    timer_width-1~0:捕获/比较值(通道3)   RW       仅当捕获/比较通道数(channel_n)>=3时可用
+    0x2C    7~0:输入滤波阈值                     W        仅当捕获/比较通道数(channel_n)>=3时可用
             9~8:边沿检测类型                     W
-    0x30    timer_width-1~0:捕获/比较值(通道4)   RW       仅使能捕获/比较通道4时可用
-    0x34    7~0:输入滤波阈值                     W        仅使能捕获/比较通道4时可用
+			11~10:比较输出模式                   W
+    0x30    timer_width-1~0:捕获/比较值(通道4)   RW       仅当捕获/比较通道数(channel_n)>=4时可用
+    0x34    7~0:输入滤波阈值                     W        仅当捕获/比较通道数(channel_n)>=4时可用
             9~8:边沿检测类型                     W
+			11~10:比较输出模式                   W
 
 注意：
 无
@@ -89,9 +95,10 @@ module apb_timer #(
     output wire[31:0] prdata_out,
     output wire pslverr_out, // const -> 1'b0
     
-    // 捕获/比较
-    input wire[channel_n-1:0] cap_in, // 捕获输入
-    output wire[channel_n-1:0] cmp_out, // 比较输出
+    // 捕获/比较三态门
+    input wire[channel_n-1:0] cap_cmp_i,
+    output wire[channel_n-1:0] cap_cmp_o,
+	output wire[channel_n-1:0] cap_cmp_t, // 1'b0 -> 输出, 1'b1 -> 输入
     
     // 中断信号
     output wire itr
@@ -109,6 +116,10 @@ module apb_timer #(
     // 捕获/比较选择(4个通道)
     // 1'b0 -> 捕获, 1'b1 -> 比较
     wire[3:0] cap_cmp_sel;
+	// 比较输出使能
+	wire timer_cmp_oen[3:0];
+	// 比较输出模式
+	wire[1:0] timer_cmp_out_mode[3:0];
     // 捕获/比较值
     wire[timer_width-1:0] timer_cmp[3:0];
     wire[timer_width-1:0] timer_cap_cmp_i[3:0];
@@ -147,25 +158,33 @@ module apb_timer #(
         .timer_started(timer_started),
         .cap_cmp_sel(cap_cmp_sel),
         
+		.timer_chn1_cmp_oen(timer_cmp_oen[0]),
         .timer_chn1_cmp(timer_cmp[0]),
         .timer_chn1_cap_cmp_i(timer_cap_cmp_i[0]),
         .timer_chn1_cap_filter_th(timer_cap_filter_th[0]),
         .timer_chn1_cap_edge(timer_cap_edge[0]),
+		.timer_chn1_cmp_out_mode(timer_cmp_out_mode[0]),
         
+		.timer_chn2_cmp_oen(timer_cmp_oen[1]),
         .timer_chn2_cmp(timer_cmp[1]),
         .timer_chn2_cap_cmp_i(timer_cap_cmp_i[1]),
         .timer_chn2_cap_filter_th(timer_cap_filter_th[1]),
         .timer_chn2_cap_edge(timer_cap_edge[1]),
+		.timer_chn2_cmp_out_mode(timer_cmp_out_mode[1]),
         
+		.timer_chn3_cmp_oen(timer_cmp_oen[2]),
         .timer_chn3_cmp(timer_cmp[2]),
         .timer_chn3_cap_cmp_i(timer_cap_cmp_i[2]),
         .timer_chn3_cap_filter_th(timer_cap_filter_th[2]),
         .timer_chn3_cap_edge(timer_cap_edge[2]),
+		.timer_chn3_cmp_out_mode(timer_cmp_out_mode[2]),
         
+		.timer_chn4_cmp_oen(timer_cmp_oen[3]),
         .timer_chn4_cmp(timer_cmp[3]),
         .timer_chn4_cap_cmp_i(timer_cap_cmp_i[3]),
         .timer_chn4_cap_filter_th(timer_cap_filter_th[3]),
         .timer_chn4_cap_edge(timer_cap_edge[3]),
+		.timer_chn4_cmp_out_mode(timer_cmp_out_mode[3]),
         
         .timer_expired_itr_req(timer_expired_itr_req),
         .timer_cap_itr_req(timer_cap_itr_req),
@@ -202,7 +221,7 @@ module apb_timer #(
     genvar cap_cmp_chn_i;
     generate
         for(cap_cmp_chn_i = 0;cap_cmp_chn_i < 4;cap_cmp_chn_i = cap_cmp_chn_i + 1)
-        begin
+        begin:cap_cmp_chn_blk
             if(cap_cmp_chn_i < channel_n)
             begin
                 timer_ic_oc #(
@@ -212,17 +231,21 @@ module apb_timer #(
                     .clk(clk),
                     .resetn(resetn),
                     
-                    .cap_in(cap_in[cap_cmp_chn_i]),
-                    .cmp_out(cmp_out[cap_cmp_chn_i]),
+                    .cap_in(cap_cmp_i[cap_cmp_chn_i]),
+                    .cmp_out(cap_cmp_o[cap_cmp_chn_i]),
+					.cap_cmp_t(cap_cmp_t[cap_cmp_chn_i]),
                     
                     .timer_cnt_now_v(timer_cnt_now_v),
                     .timer_started(timer_started),
+					.cmp_oen(timer_cmp_oen[cap_cmp_chn_i]),
                     
                     .timer_expired(timer_expired),
                     
                     .cap_cmp_sel(cap_cmp_sel[cap_cmp_chn_i]),
                     .timer_cmp(timer_cmp[cap_cmp_chn_i]),
                     .timer_cap_cmp_o(timer_cap_cmp_i[cap_cmp_chn_i]),
+					
+					.oc_mode(timer_cmp_out_mode[cap_cmp_chn_i]),
                     
                     .timer_cap_filter_th(timer_cap_filter_th[cap_cmp_chn_i]),
                     .timer_cap_edge(timer_cap_edge[cap_cmp_chn_i]),
