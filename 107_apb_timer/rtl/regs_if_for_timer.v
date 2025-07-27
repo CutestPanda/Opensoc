@@ -281,7 +281,7 @@ module regs_if_for_timer #(
 	always @(posedge clk or negedge resetn)
     begin
         if(~resetn)
-			cmp_oen_regs <= 4'b0000;
+			cmp_oen_regs <= 4'b1111;
 		else if(psel & penable & pwrite & (paddr[5:2] == 4'd3))
 			cmp_oen_regs <= # simulation_delay pwdata[15:12];
 	end
