@@ -31,10 +31,9 @@ int init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* co
 	timer->hardware = (ApbTimerHd*)base_addr;
 	
 	timer->chn_n = config->chn_n;
+	timer->hw_version = (uint8_t)(timer->hardware->ctrl >> 16);
 	
-	uint8_t hw_version = (uint8_t)(timer->hardware->ctrl >> 16); // 硬件版本号
-	
-	if(hw_version != 0x01){
+	if(timer->hw_version > 0x01){
 		return -1;
 	}
 	
@@ -51,7 +50,10 @@ int init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* co
 		}else{
 			// 当前通道选择输出比较
 			timer->hardware->chn_hd[i].cap_cmp = config->cmp[i];
-			timer->hardware->chn_hd[i].cap_config = (((uint32_t)config->oc_mode[i]) << 10);
+			
+			if(timer->hw_version >= 1){
+				timer->hardware->chn_hd[i].cap_config = (((uint32_t)config->oc_mode[i]) << 10);
+			}
 		}
 	}
 	
@@ -190,7 +192,7 @@ void apb_timer_set_cnt(ApbTimer* timer, uint32_t cnt){
 @return 是否成功
 *************************/
 int apb_timer_start_oc(ApbTimer* timer, uint8_t chn_id){
-	if(timer->chn_n && (chn_id <= timer->chn_n - 1)){
+	if((timer->hw_version >= 1) && timer->chn_n && (chn_id <= timer->chn_n - 1)){
 		timer->hardware->ctrl = timer->hardware->ctrl | (0x00001000 << chn_id);
 		
 		return 0;
@@ -208,7 +210,7 @@ int apb_timer_start_oc(ApbTimer* timer, uint8_t chn_id){
 @return 是否成功
 *************************/
 int apb_timer_stop_oc(ApbTimer* timer, uint8_t chn_id){
-	if(timer->chn_n && (chn_id <= timer->chn_n - 1)){
+	if((timer->hw_version >= 1) && timer->chn_n && (chn_id <= timer->chn_n - 1)){
 		timer->hardware->ctrl = timer->hardware->ctrl & (~(0x00001000 << chn_id));
 		
 		return 0;
@@ -227,7 +229,7 @@ int apb_timer_stop_oc(ApbTimer* timer, uint8_t chn_id){
 @return 是否成功
 *************************/
 int apb_timer_set_oc_mode(ApbTimer* timer, uint8_t chn_id, uint8_t oc_mode){
-	if(timer->chn_n && (chn_id <= timer->chn_n - 1) && ((oc_mode == OC_MODE_GEQ_HIGH) || (oc_mode == OC_MODE_LT_HIGH))){
+	if((timer->hw_version >= 1) && timer->chn_n && (chn_id <= timer->chn_n - 1) && ((oc_mode == OC_MODE_GEQ_HIGH) || (oc_mode == OC_MODE_LT_HIGH))){
 		timer->hardware->chn_hd[chn_id].cap_config = (((uint32_t)oc_mode) << 10);
 		
 		return 0;

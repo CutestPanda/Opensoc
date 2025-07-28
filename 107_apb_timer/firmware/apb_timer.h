@@ -68,6 +68,7 @@ typedef struct{
 typedef struct{
 	ApbTimerHd* hardware; // APB-TIMER寄存器接口(结构体指针)
 	uint8_t chn_n; // 捕获/比较通道数
+	uint8_t hw_version; // 硬件版本号
 }ApbTimer;
 
 // APB-TIMER(初始化配置结构体)
