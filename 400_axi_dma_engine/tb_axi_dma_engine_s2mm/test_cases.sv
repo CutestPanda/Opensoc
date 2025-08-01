@@ -22,11 +22,11 @@ class AxiDmaEngineS2MMCase0S0AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 		if(this.starting_phase != null) 
 			this.starting_phase.raise_objection(this);
 		
-		// 传输字节数 = 104, 基地址 = 4000, 递增突发, 等待周期数 = 0
+		// 传输字节数 = 2400, 基地址 = 4000, 递增突发, 等待周期数 = 0
 		`uvm_create(this.m_axis_trans)
 		this.m_axis_trans.data_n = 1;
 		
-		this.m_axis_trans.data.push_back({24'd104, 32'd4000});
+		this.m_axis_trans.data.push_back({24'd2400, 32'd4000});
 		this.m_axis_trans.user.push_back(1'b0);
 		this.m_axis_trans.wait_period_n = new[1];
 		this.m_axis_trans.wait_period_n[0] = 0;
@@ -136,9 +136,9 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 		if(this.starting_phase != null) 
 			this.starting_phase.raise_objection(this);
 		
-		// 传输字节数 = 104, 基地址 = 4000, 递增突发
+		// 传输字节数 = 2400, 基地址 = 4000, 递增突发
 		`uvm_do_with(this.m_axis_trans, {
-			data_n == 26;
+			data_n == 600;
 			
 			data.size() == data_n;
 			keep.size() == data_n;
@@ -146,10 +146,7 @@ class AxiDmaEngineS2MMCase0S1AXISSeq extends uvm_sequence #(AXISTrans #(.data_wi
 			wait_period_n.size() == data_n;
 			
 			foreach(data[i])
-				(data[i][7:0] == (i * 4)) && 
-				(data[i][15:8] == (i * 4 + 1)) && 
-				(data[i][23:16] == (i * 4 + 2)) && 
-				(data[i][31:24] == (i * 4 + 3));
+				data[i] == i;
 			
 			foreach(keep[i])
 				keep[i] == 4'b1111;

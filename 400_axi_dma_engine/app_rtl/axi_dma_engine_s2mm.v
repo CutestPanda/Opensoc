@@ -68,6 +68,7 @@ module axi_dma_engine_s2mm #(
 	input wire m_axi_aresetn,
 	
 	// 命令完成指示
+	// 注意: S2MM通道命令完成指示是脉冲信号!
 	output wire cmd_done,
 	
 	// 命令AXIS从机
@@ -148,6 +149,7 @@ module axi_dma_engine_s2mm #(
 	// 命令AXIS主机
 	wire[55:0] m_cmd_stat_axis_data; // {待传输字节数(24bit), 传输首地址(32bit)}
 	wire m_cmd_stat_axis_user; // {固定(1'b1)/递增(1'b0)传输(1bit)}
+	wire m_cmd_stat_axis_last; // 标志自动分割后命令包的最后1条
 	wire m_cmd_stat_axis_valid;
 	wire m_cmd_stat_axis_ready;
 	// 输入数据流AXIS从机
@@ -193,6 +195,7 @@ module axi_dma_engine_s2mm #(
 				
 				.m_cmd_axis_data(m_cmd_stat_axis_data),
 				.m_cmd_axis_user(m_cmd_stat_axis_user),
+				.m_cmd_axis_last(m_cmd_stat_axis_last),
 				.m_cmd_axis_valid(m_cmd_stat_axis_valid),
 				.m_cmd_axis_ready(m_cmd_stat_axis_ready),
 				
@@ -217,6 +220,7 @@ module axi_dma_engine_s2mm #(
 			
 			assign m_cmd_stat_axis_data = s_cmd_axis_data;
 			assign m_cmd_stat_axis_user = s_cmd_axis_user;
+			assign m_cmd_stat_axis_last = 1'b1;
 			assign m_cmd_stat_axis_valid = s_cmd_axis_valid;
 			assign s_cmd_axis_ready = m_cmd_stat_axis_ready;
 			
@@ -232,16 +236,19 @@ module axi_dma_engine_s2mm #(
 	// fifo写端口
 	wire[55:0] s_cmd_fifo_axis_data; // {待传输字节数(24bit), 传输首地址(32bit)}
 	wire s_cmd_fifo_axis_user; // {固定(1'b1)/递增(1'b0)传输(1bit)}
+	wire s_cmd_fifo_axis_last; // 标志自动分割后命令包的最后1条
 	wire s_cmd_fifo_axis_valid;
 	wire s_cmd_fifo_axis_ready;
 	// fifo读端口
 	wire[55:0] m_cmd_fifo_axis_data; // {待传输字节数(24bit), 传输首地址(32bit)}
 	wire m_cmd_fifo_axis_user; // {固定(1'b1)/递增(1'b0)传输(1bit)}
+	wire m_cmd_fifo_axis_last; // 标志自动分割后命令包的最后1条
 	wire m_cmd_fifo_axis_valid;
 	wire m_cmd_fifo_axis_ready;
 	
 	assign s_cmd_fifo_axis_data = m_cmd_stat_axis_data;
 	assign s_cmd_fifo_axis_user = m_cmd_stat_axis_user;
+	assign s_cmd_fifo_axis_last = m_cmd_stat_axis_last;
 	assign s_cmd_fifo_axis_valid = m_cmd_stat_axis_valid;
 	assign m_cmd_stat_axis_ready = s_cmd_fifo_axis_ready;
 	
@@ -263,7 +270,7 @@ module axi_dma_engine_s2mm #(
 		.s_axis_keep(7'bxxx_xxxx),
 		.s_axis_strb(7'bxxx_xxxx),
 		.s_axis_user(s_cmd_fifo_axis_user),
-		.s_axis_last(1'bx),
+		.s_axis_last(s_cmd_fifo_axis_last),
 		.s_axis_valid(s_cmd_fifo_axis_valid),
 		.s_axis_ready(s_cmd_fifo_axis_ready),
 		
@@ -271,7 +278,7 @@ module axi_dma_engine_s2mm #(
 		.m_axis_keep(),
 		.m_axis_strb(),
 		.m_axis_user(m_cmd_fifo_axis_user),
-		.m_axis_last(),
+		.m_axis_last(m_cmd_fifo_axis_last),
 		.m_axis_valid(m_cmd_fifo_axis_valid),
 		.m_axis_ready(m_cmd_fifo_axis_ready)
 	);
@@ -283,6 +290,7 @@ module axi_dma_engine_s2mm #(
 	wire[24:0] in_cmd_trm_addr; // 传输末地址
 	wire[23:0] in_cmd_trans_n; // 传输次数
 	wire in_cmd_fixed; // 是否固定传输
+	wire in_cmd_last; // 标志自动分割后命令包的最后1条
 	wire in_cmd_valid;
 	wire in_cmd_ready;
 	
@@ -290,6 +298,7 @@ module axi_dma_engine_s2mm #(
 	assign in_cmd_trm_addr = in_cmd_btt + in_cmd_baseaddr[clogb2(DATA_WIDTH/8-1):0];
 	assign in_cmd_trans_n = in_cmd_trm_addr[24:clogb2(DATA_WIDTH/8-1)+1] + (|in_cmd_trm_addr[clogb2(DATA_WIDTH/8-1):0]);
 	assign in_cmd_fixed = m_cmd_fifo_axis_user;
+	assign in_cmd_last = m_cmd_fifo_axis_last;
 	assign in_cmd_valid = m_cmd_fifo_axis_valid;
 	assign m_cmd_fifo_axis_ready = in_cmd_ready;
 	
@@ -305,6 +314,7 @@ module axi_dma_engine_s2mm #(
 	reg[7:0] wt_burst_len_sub1[0:3]; // 写突发长度 - 1
 	reg wt_burst_is_fixed[0:3]; // 是否固定传输
 	reg wt_burst_is_last_of_req[0:3]; // 是否写请求最后1次突发
+	reg wt_burst_is_last_split_cmd[0:3]; // 是否自动分割后命令包的最后1条命令
 	// 预启动写突发
 	wire to_pre_launch_wt_burst; // 执行预启动写突发(标志)
 	wire wt_burst_item_pre_launch_permitted; // 当前写突发信息表项允许预启动(标志)
@@ -313,6 +323,7 @@ module axi_dma_engine_s2mm #(
 	wire[7:0] wt_burst_pre_launch_len_sub1; // 预启动写突发时给出的(写突发长度 - 1)
 	wire wt_burst_pre_launch_is_fixed; // 预启动写突发时给出的"是否固定传输"标志
 	wire wt_burst_pre_launch_is_last_of_req; // 预启动写突发时给出的"是否写请求最后1次突发"标志
+	wire wt_burst_pre_launch_is_last_split_cmd; // 预启动写突发时给出的"自动分割后命令包的最后1条"标志
 	// 准备好写突发的数据
 	wire wt_data_prepared; // 准备好当前写突发信息表项的数据(标志)
 	wire wt_burst_item_at_data_preparation_stage; // 当前写突发信息表项处于准备数据阶段(标志)
@@ -416,6 +427,15 @@ module axi_dma_engine_s2mm #(
 					wt_burst_pre_launch_ptr[wt_burst_msg_i] & 
 					wt_burst_life_cycle_flag[wt_burst_msg_i][WT_BURST_LIFE_CYCLE_INVALID])
 					wt_burst_is_last_of_req[wt_burst_msg_i] <= # SIM_DELAY wt_burst_pre_launch_is_last_of_req;
+			end
+			
+			// 是否自动分割后命令包的最后1条命令
+			always @(posedge m_axi_aclk)
+			begin
+				if(to_pre_launch_wt_burst & 
+					wt_burst_pre_launch_ptr[wt_burst_msg_i] & 
+					wt_burst_life_cycle_flag[wt_burst_msg_i][WT_BURST_LIFE_CYCLE_INVALID])
+					wt_burst_is_last_split_cmd[wt_burst_msg_i] <= # SIM_DELAY wt_burst_pre_launch_is_last_split_cmd;
 			end
 		end
 	endgenerate
@@ -550,6 +570,7 @@ module axi_dma_engine_s2mm #(
 	reg[clogb2(4096/(DATA_WIDTH/8)-1):0] rmn_tn_sub1_at_4KB; // 当前4KB区间剩余的传输次数 - 1
 	reg[31:0] pre_lc_addr; // 预启动写突发的突发基址
 	reg[1:0] pre_lc_burst; // 预启动写突发的突发类型
+	reg pre_lc_is_last_split_cmd; // 预启动写突发的"自动分割后命令包的最后1条"标志
 	wire[7:0] pre_lc_len; // 预启动写突发的突发长度
 	wire pre_lc_valid; // 预启动写突发的valid
 	/*
@@ -572,6 +593,7 @@ module axi_dma_engine_s2mm #(
 	assign wt_burst_pre_launch_len_sub1 = pre_lc_len;
 	assign wt_burst_pre_launch_is_fixed = pre_lc_burst != AXI_BURST_INCR;
 	assign wt_burst_pre_launch_is_last_of_req = last_burst_of_req;
+	assign wt_burst_pre_launch_is_last_split_cmd = pre_lc_is_last_split_cmd;
 	
 	assign dre_msg_fifo_wen = (wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid;
 	assign dre_msg_fifo_din = in_cmd_baseaddr[clogb2(DATA_WIDTH/8-1):0];
@@ -669,6 +691,12 @@ module axi_dma_engine_s2mm #(
 	begin
 		if((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid & dre_msg_fifo_full_n)
 			pre_lc_burst <= # SIM_DELAY in_cmd_fixed ? AXI_BURST_FIXED:AXI_BURST_INCR;
+	end
+	// 预启动写突发的"自动分割后命令包的最后1条"标志
+	always @(posedge m_axi_aclk)
+	begin
+		if((wburst_pre_lc_ctrl_sts == WBURST_PRE_LC_CTRL_STS_IDLE) & in_cmd_valid & dre_msg_fifo_full_n)
+			pre_lc_is_last_split_cmd <= # SIM_DELAY in_cmd_last;
 	end
 	
 	// 最小值比较计算结果
@@ -881,10 +909,10 @@ module axi_dma_engine_s2mm #(
 	assign cmd_done = 
 		m_axi_bvalid & (
 			|(wt_burst_cmplt_ptr & {
-				wt_burst_is_last_of_req[3], 
-				wt_burst_is_last_of_req[2], 
-				wt_burst_is_last_of_req[1], 
-				wt_burst_is_last_of_req[0]
+				wt_burst_is_last_split_cmd[3] & wt_burst_is_last_of_req[3], 
+				wt_burst_is_last_split_cmd[2] & wt_burst_is_last_of_req[2], 
+				wt_burst_is_last_split_cmd[1] & wt_burst_is_last_of_req[1], 
+				wt_burst_is_last_split_cmd[0] & wt_burst_is_last_of_req[0]
 			})
 		);
 	

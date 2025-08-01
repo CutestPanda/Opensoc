@@ -60,6 +60,7 @@ module axi_dma_engine_wdata_stat #(
 	// 命令AXIS主机
 	output wire[55:0] m_cmd_axis_data, // {待传输字节数(24bit), 传输首地址(32bit)}
 	output wire m_cmd_axis_user, // {固定(1'b1)/递增(1'b0)传输(1bit)}
+	output wire m_cmd_axis_last, // 标志自动分割后命令包的最后1条
 	output wire m_cmd_axis_valid,
 	input wire m_cmd_axis_ready,
 	
@@ -397,6 +398,7 @@ module axi_dma_engine_wdata_stat #(
 	
 	assign m_cmd_axis_data = {cmd_btt, cmd_addr};
 	assign m_cmd_axis_user = cmd_is_fixed;
+	assign m_cmd_axis_last = cmd_is_last_pkt;
 	assign m_cmd_axis_valid = cmd_gen_sts == CMD_GEN_STS_PST_ACPT;
 	
 	// 输入数据缓存字节数已读标志(命令端)

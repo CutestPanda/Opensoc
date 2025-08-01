@@ -72,6 +72,7 @@ module axi_dma_engine_mm2s #(
 	input wire m_axi_aresetn,
 	
 	// 命令完成指示
+	// 注意: 命令完成指示是脉冲信号, 当完成1个"标记为帧尾的命令"时产生!
 	output wire cmd_done,
 	
 	// 命令AXIS从机
@@ -467,7 +468,7 @@ module axi_dma_engine_mm2s #(
 	wire m_rdata_fifo_axis_valid;
 	wire m_rdata_fifo_axis_ready;
 	
-	assign cmd_done = s_rdata_fifo_axis_valid & s_rdata_fifo_axis_ready & last_trans_at_rdata;
+	assign cmd_done = s_rdata_fifo_axis_valid & s_rdata_fifo_axis_ready & s_rdata_fifo_axis_last;
 	
 	assign s_rdata_fifo_axis_data = m_axi_rdata;
 	/*

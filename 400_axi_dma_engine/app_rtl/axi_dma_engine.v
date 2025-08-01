@@ -87,7 +87,9 @@ module axi_dma_engine #(
 	input wire m_axi_aresetn,
 	
 	// 命令完成指示
+	// 注意: MM2S通道命令完成指示是脉冲信号, 当完成1个"标记为帧尾的命令"时产生!
 	output wire mm2s_cmd_done,
+	// 注意: S2MM通道命令完成指示是脉冲信号!
 	output wire s2mm_cmd_done,
 	
 	// MM2S命令AXIS从机

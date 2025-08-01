@@ -7,6 +7,14 @@ add wave -noupdate /tb_axi_dma_engine_s2mm/dut/s_cmd_axis_data
 add wave -noupdate /tb_axi_dma_engine_s2mm/dut/s_cmd_axis_user
 add wave -noupdate /tb_axi_dma_engine_s2mm/dut/s_cmd_axis_valid
 add wave -noupdate /tb_axi_dma_engine_s2mm/dut/s_cmd_axis_ready
+add wave -noupdate -radix unsigned /tb_axi_dma_engine_s2mm/dut/in_cmd_btt
+add wave -noupdate -radix unsigned /tb_axi_dma_engine_s2mm/dut/in_cmd_baseaddr
+add wave -noupdate -radix unsigned /tb_axi_dma_engine_s2mm/dut/in_cmd_trm_addr
+add wave -noupdate -radix unsigned /tb_axi_dma_engine_s2mm/dut/in_cmd_trans_n
+add wave -noupdate /tb_axi_dma_engine_s2mm/dut/in_cmd_fixed
+add wave -noupdate /tb_axi_dma_engine_s2mm/dut/in_cmd_last
+add wave -noupdate /tb_axi_dma_engine_s2mm/dut/in_cmd_valid
+add wave -noupdate /tb_axi_dma_engine_s2mm/dut/in_cmd_ready
 add wave -noupdate -radix unsigned /tb_axi_dma_engine_s2mm/dut/s_s2mm_axis_data
 add wave -noupdate -radix binary /tb_axi_dma_engine_s2mm/dut/s_s2mm_axis_keep
 add wave -noupdate /tb_axi_dma_engine_s2mm/dut/s_s2mm_axis_last
@@ -51,9 +59,9 @@ add wave -noupdate /tb_axi_dma_engine_s2mm/dut/genblk4/dre_u/is_last_trans
 add wave -noupdate /tb_axi_dma_engine_s2mm/dut/genblk4/dre_u/need_buf_hdat
 add wave -noupdate /tb_axi_dma_engine_s2mm/dut/genblk4/dre_u/to_flush_buf
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {219596 ps} 0}
+WaveRestoreCursors {{Cursor 1} {351000 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 180
+configure wave -namecolwidth 421
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
@@ -67,4 +75,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {93062 ps} {179772 ps}
+WaveRestoreZoom {0 ps} {966297 ps}
