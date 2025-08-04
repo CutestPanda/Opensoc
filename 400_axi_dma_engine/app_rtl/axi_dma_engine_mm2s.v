@@ -138,7 +138,11 @@ module axi_dma_engine_mm2s #(
 	// 可缓存的读突发次数
 	localparam integer BUFFERABLE_RD_BURST_N = 512 / ((MAX_BURST_LEN >= 16) ? MAX_BURST_LEN:16);
 	
-	/** 命令fifo **/
+	/**
+	命令fifo
+	
+	时钟域: s_axis_aclk -> m_axi_aclk
+	**/
 	// fifo写端口
 	wire[55:0] s_cmd_fifo_axis_data; // {待传输字节数(24bit), 传输首地址(32bit)}
 	wire s_cmd_fifo_axis_user; // {固定(1'b1)/递增(1'b0)传输(1bit)}
@@ -468,8 +472,6 @@ module axi_dma_engine_mm2s #(
 	wire m_rdata_fifo_axis_valid;
 	wire m_rdata_fifo_axis_ready;
 	
-	assign cmd_done = s_rdata_fifo_axis_valid & s_rdata_fifo_axis_ready & s_rdata_fifo_axis_last;
-	
 	assign s_rdata_fifo_axis_data = m_axi_rdata;
 	/*
 	({first_trans_at_rdata, last_trans_at_rdata} == 2'b00) ? {(DATA_WIDTH/8){1'b1}}:
@@ -513,7 +515,7 @@ module axi_dma_engine_mm2s #(
 	end
 	
 	axis_data_fifo #(
-		.is_async((M_AXIS_COMMON_CLOCK == "true") ? "false":"true"),
+		.is_async("false"),
 		.en_packet_mode("false"),
 		.ram_type("bram"),
 		.fifo_depth(512),
@@ -523,8 +525,8 @@ module axi_dma_engine_mm2s #(
 	)rdata_fifo(
 		.s_axis_aclk(m_axi_aclk),
 		.s_axis_aresetn(m_axi_aresetn),
-		.m_axis_aclk(m_axis_aclk),
-		.m_axis_aresetn(m_axis_aresetn),
+		.m_axis_aclk(m_axi_aclk),
+		.m_axis_aresetn(m_axi_aresetn),
 		
 		.s_axis_data(s_rdata_fifo_axis_data),
 		.s_axis_keep(s_rdata_fifo_axis_keep),
@@ -542,6 +544,108 @@ module axi_dma_engine_mm2s #(
 		.m_axis_valid(m_rdata_fifo_axis_valid),
 		.m_axis_ready(m_rdata_fifo_axis_ready)
 	);
+	
+	/** 命令完成指示 **/
+	wire org_cmd_done;
+	
+	assign org_cmd_done = s_rdata_fifo_axis_valid & s_rdata_fifo_axis_ready & s_rdata_fifo_axis_last;
+	
+	generate
+		if(S_AXIS_COMMON_CLOCK == "false")
+		begin
+			async_handshake #(
+				.simulation_delay(SIM_DELAY)
+			)async_handshake_u(
+				.clk1(m_axi_aclk),
+				.rst_n1(m_axi_aresetn),
+				.clk2(s_axis_aclk),
+				.rst_n2(s_axis_aresetn),
+				
+				.req1(org_cmd_done),
+				.busy(),
+				
+				.req2(cmd_done)
+			);
+		end
+		else
+		begin
+			assign cmd_done = org_cmd_done;
+		end
+	endgenerate
+	
+	/**
+	读数据异步fifo
+	
+	时钟域: m_axi_aclk -> m_axis_aclk
+	**/
+	// fifo写端口
+	wire[DATA_WIDTH-1:0] s_rdata_async_fifo_axis_data;
+	wire[DATA_WIDTH/8-1:0] s_rdata_async_fifo_axis_keep;
+	wire[3:0] s_rdata_async_fifo_axis_user; // {本次读突发最后1次传输(1bit), 读请求最后1次传输标志(1bit), 
+	                                        //     错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)}
+	wire s_rdata_async_fifo_axis_last;
+	wire s_rdata_async_fifo_axis_valid;
+	wire s_rdata_async_fifo_axis_ready;
+	// fifo读端口
+	wire[DATA_WIDTH-1:0] m_rdata_async_fifo_axis_data;
+	wire[DATA_WIDTH/8-1:0] m_rdata_async_fifo_axis_keep;
+	wire[3:0] m_rdata_async_fifo_axis_user; // {本次读突发最后1次传输(1bit), 读请求最后1次传输标志(1bit), 
+	                                        //     错误类型(2'b00 -> OKAY; 2'b01 -> EXOKAY; 2'b10 -> SLVERR; 2'b11 -> DECERR)}
+	wire m_rdata_async_fifo_axis_last;
+	wire m_rdata_async_fifo_axis_valid;
+	wire m_rdata_async_fifo_axis_ready;
+	
+	assign s_rdata_async_fifo_axis_data = m_rdata_fifo_axis_data;
+	assign s_rdata_async_fifo_axis_keep = m_rdata_fifo_axis_keep;
+	assign s_rdata_async_fifo_axis_user = m_rdata_fifo_axis_user;
+	assign s_rdata_async_fifo_axis_last = m_rdata_fifo_axis_last;
+	assign s_rdata_async_fifo_axis_valid = m_rdata_fifo_axis_valid;
+	assign m_rdata_fifo_axis_ready = s_rdata_async_fifo_axis_ready;
+	
+	generate
+		if(M_AXIS_COMMON_CLOCK == "false")
+		begin
+			axis_data_fifo #(
+				.is_async("true"),
+				.en_packet_mode("false"),
+				.ram_type("bram"),
+				.fifo_depth(512),
+				.data_width(DATA_WIDTH),
+				.user_width(4),
+				.simulation_delay(SIM_DELAY)
+			)rdata_async_fifo(
+				.s_axis_aclk(m_axi_aclk),
+				.s_axis_aresetn(m_axi_aresetn),
+				.m_axis_aclk(m_axis_aclk),
+				.m_axis_aresetn(m_axis_aresetn),
+				
+				.s_axis_data(s_rdata_async_fifo_axis_data),
+				.s_axis_keep(s_rdata_async_fifo_axis_keep),
+				.s_axis_strb({(DATA_WIDTH/8){1'bx}}),
+				.s_axis_user(s_rdata_async_fifo_axis_user),
+				.s_axis_last(s_rdata_async_fifo_axis_last),
+				.s_axis_valid(s_rdata_async_fifo_axis_valid),
+				.s_axis_ready(s_rdata_async_fifo_axis_ready),
+				
+				.m_axis_data(m_rdata_async_fifo_axis_data),
+				.m_axis_keep(m_rdata_async_fifo_axis_keep),
+				.m_axis_strb(),
+				.m_axis_user(m_rdata_async_fifo_axis_user),
+				.m_axis_last(m_rdata_async_fifo_axis_last),
+				.m_axis_valid(m_rdata_async_fifo_axis_valid),
+				.m_axis_ready(m_rdata_async_fifo_axis_ready)
+			);
+		end
+		else
+		begin
+			assign m_rdata_async_fifo_axis_data = s_rdata_async_fifo_axis_data;
+			assign m_rdata_async_fifo_axis_keep = s_rdata_async_fifo_axis_keep;
+			assign m_rdata_async_fifo_axis_user = s_rdata_async_fifo_axis_user;
+			assign m_rdata_async_fifo_axis_last = s_rdata_async_fifo_axis_last;
+			assign m_rdata_async_fifo_axis_valid = s_rdata_async_fifo_axis_valid;
+			assign s_rdata_async_fifo_axis_ready = m_rdata_async_fifo_axis_ready;
+		end
+	endgenerate
 	
 	/** 读数据重对齐 **/
 	// 输出数据流AXIS从机
@@ -567,20 +671,20 @@ module axi_dma_engine_mm2s #(
 			assign m_mm2s_axis_valid = m_dre_axis_valid;
 			assign m_dre_axis_ready = m_mm2s_axis_ready;
 			
-			assign s_dre_axis_data = m_rdata_fifo_axis_data;
-			assign s_dre_axis_keep = m_rdata_fifo_axis_keep;
-			assign s_dre_axis_last = m_rdata_fifo_axis_last;
-			assign s_dre_axis_valid = m_rdata_fifo_axis_valid;
-			assign m_rdata_fifo_axis_ready = s_dre_axis_ready;
+			assign s_dre_axis_data = m_rdata_async_fifo_axis_data;
+			assign s_dre_axis_keep = m_rdata_async_fifo_axis_keep;
+			assign s_dre_axis_last = m_rdata_async_fifo_axis_last;
+			assign s_dre_axis_valid = m_rdata_async_fifo_axis_valid;
+			assign m_rdata_async_fifo_axis_ready = s_dre_axis_ready;
 		end
 		else
 		begin
-			assign m_mm2s_axis_data = m_rdata_fifo_axis_data;
-			assign m_mm2s_axis_keep = m_rdata_fifo_axis_keep;
-			assign m_mm2s_axis_user = m_rdata_fifo_axis_user[2:0];
-			assign m_mm2s_axis_last = m_rdata_fifo_axis_last;
-			assign m_mm2s_axis_valid = m_rdata_fifo_axis_valid;
-			assign m_rdata_fifo_axis_ready = m_mm2s_axis_ready;
+			assign m_mm2s_axis_data = m_rdata_async_fifo_axis_data;
+			assign m_mm2s_axis_keep = m_rdata_async_fifo_axis_keep;
+			assign m_mm2s_axis_user = m_rdata_async_fifo_axis_user[2:0];
+			assign m_mm2s_axis_last = m_rdata_async_fifo_axis_last;
+			assign m_mm2s_axis_valid = m_rdata_async_fifo_axis_valid;
+			assign m_rdata_async_fifo_axis_ready = m_mm2s_axis_ready;
 			
 			assign s_dre_axis_data = {DATA_WIDTH{1'bx}};
 			assign s_dre_axis_keep = {(DATA_WIDTH/8){1'bx}};

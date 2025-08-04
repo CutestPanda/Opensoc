@@ -140,6 +140,70 @@ module axi_dma_engine_s2mm #(
 	localparam integer WT_BURST_LIFE_CYCLE_DATA_READY = 2;
 	localparam integer WT_BURST_LIFE_CYCLE_TRANS = 3;
 	
+	/** 写数据异步fifo **/
+	// fifo写端口
+	wire[DATA_WIDTH-1:0] s_wr_async_axis_data;
+	wire[DATA_WIDTH/8-1:0] s_wr_async_axis_keep;
+	wire s_wr_async_axis_last;
+	wire s_wr_async_axis_valid;
+	wire s_wr_async_axis_ready;
+	// fifo读端口
+	wire[DATA_WIDTH-1:0] m_wr_async_axis_data;
+	wire[DATA_WIDTH/8-1:0] m_wr_async_axis_keep;
+	wire m_wr_async_axis_last;
+	wire m_wr_async_axis_valid;
+	wire m_wr_async_axis_ready;
+	
+	assign s_wr_async_axis_data = s_s2mm_axis_data;
+	assign s_wr_async_axis_keep = s_s2mm_axis_keep;
+	assign s_wr_async_axis_last = s_s2mm_axis_last;
+	assign s_wr_async_axis_valid = s_s2mm_axis_valid;
+	assign s_s2mm_axis_ready = s_wr_async_axis_ready;
+	
+	generate
+		if(S_S2MM_AXIS_COMMON_CLOCK == "false")
+		begin
+			axis_data_fifo #(
+				.is_async("true"),
+				.en_packet_mode("false"),
+				.ram_type("bram"),
+				.fifo_depth(512),
+				.data_width(DATA_WIDTH),
+				.user_width(1),
+				.simulation_delay(SIM_DELAY)
+			)wr_async_fifo(
+				.s_axis_aclk(s_s2mm_axis_aclk),
+				.s_axis_aresetn(s_s2mm_axis_aresetn),
+				.m_axis_aclk(m_axi_aclk),
+				.m_axis_aresetn(m_axi_aresetn),
+				
+				.s_axis_data(s_wr_async_axis_data),
+				.s_axis_keep(s_wr_async_axis_keep),
+				.s_axis_strb({(DATA_WIDTH/8){1'bx}}),
+				.s_axis_user(1'bx),
+				.s_axis_last(s_wr_async_axis_last),
+				.s_axis_valid(s_wr_async_axis_valid),
+				.s_axis_ready(s_wr_async_axis_ready),
+				
+				.m_axis_data(m_wr_async_axis_data),
+				.m_axis_keep(m_wr_async_axis_keep),
+				.m_axis_strb(),
+				.m_axis_user(),
+				.m_axis_last(m_wr_async_axis_last),
+				.m_axis_valid(m_wr_async_axis_valid),
+				.m_axis_ready(m_wr_async_axis_ready)
+			);
+		end
+		else
+		begin
+			assign m_wr_async_axis_data = s_wr_async_axis_data;
+			assign m_wr_async_axis_keep = s_wr_async_axis_keep;
+			assign m_wr_async_axis_last = s_wr_async_axis_last;
+			assign m_wr_async_axis_valid = s_wr_async_axis_valid;
+			assign s_wr_async_axis_ready = m_wr_async_axis_ready;
+		end
+	endgenerate
+	
 	/** 写数据实时统计 **/
 	// 命令AXIS从机
 	wire[31:0] s_cmd_stat_axis_data; // {传输首地址(32bit)}
@@ -173,11 +237,11 @@ module axi_dma_engine_s2mm #(
 			assign s_cmd_stat_axis_valid = s_cmd_axis_valid;
 			assign s_cmd_axis_ready = s_cmd_stat_axis_ready;
 			
-			assign s_s2mm_stat_axis_data = s_s2mm_axis_data;
-			assign s_s2mm_stat_axis_keep = s_s2mm_axis_keep;
-			assign s_s2mm_stat_axis_last = s_s2mm_axis_last;
-			assign s_s2mm_stat_axis_valid = s_s2mm_axis_valid;
-			assign s_s2mm_axis_ready = s_s2mm_stat_axis_ready;
+			assign s_s2mm_stat_axis_data = m_wr_async_axis_data;
+			assign s_s2mm_stat_axis_keep = m_wr_async_axis_keep;
+			assign s_s2mm_stat_axis_last = m_wr_async_axis_last;
+			assign s_s2mm_stat_axis_valid = m_wr_async_axis_valid;
+			assign m_wr_async_axis_ready = s_s2mm_stat_axis_ready;
 			
 			axi_dma_engine_wdata_stat #(
 				.DATA_WIDTH(DATA_WIDTH),
@@ -185,8 +249,8 @@ module axi_dma_engine_s2mm #(
 			)axi_dma_engine_wdata_stat_u(
 				.cmd_axis_aclk(s_cmd_axis_aclk),
 				.cmd_axis_aresetn(s_cmd_axis_aresetn),
-				.s2mm_axis_aclk(s_s2mm_axis_aclk),
-				.s2mm_axis_aresetn(s_s2mm_axis_aresetn),
+				.s2mm_axis_aclk(m_axi_aclk),
+				.s2mm_axis_aresetn(m_axi_aresetn),
 				
 				.s_cmd_axis_data(s_cmd_stat_axis_data),
 				.s_cmd_axis_user(s_cmd_stat_axis_user),
@@ -224,11 +288,11 @@ module axi_dma_engine_s2mm #(
 			assign m_cmd_stat_axis_valid = s_cmd_axis_valid;
 			assign s_cmd_axis_ready = m_cmd_stat_axis_ready;
 			
-			assign m_s2mm_stat_axis_data = s_s2mm_axis_data;
-			assign m_s2mm_stat_axis_keep = s_s2mm_axis_keep;
-			assign m_s2mm_stat_axis_last = s_s2mm_axis_last;
-			assign m_s2mm_stat_axis_valid = s_s2mm_axis_valid;
-			assign s_s2mm_axis_ready = m_s2mm_stat_axis_ready;
+			assign m_s2mm_stat_axis_data = m_wr_async_axis_data;
+			assign m_s2mm_stat_axis_keep = m_wr_async_axis_keep;
+			assign m_s2mm_stat_axis_last = m_wr_async_axis_last;
+			assign m_s2mm_stat_axis_valid = m_wr_async_axis_valid;
+			assign m_wr_async_axis_ready = m_s2mm_stat_axis_ready;
 		end
 	endgenerate
 	
@@ -486,72 +550,34 @@ module axi_dma_engine_s2mm #(
 	generate
 		if(EN_UNALIGNED_TRANS == "true")
 		begin
-			if(S_S2MM_AXIS_COMMON_CLOCK == "false")
-			begin
-				// 注意: 异步时钟下使用深度较小的寄存器fifo也可!
-				axis_data_fifo #(
-					.is_async("true"),
-					.en_packet_mode("false"),
-					// 注意: lutram可能不具备通用性!
-					.ram_type("lutram"),
-					.fifo_depth(32),
-					.data_width(8),
-					.user_width(1),
-					.simulation_delay(SIM_DELAY)
-				)dre_msg_fifo(
-					.s_axis_aclk(m_axi_aclk),
-					.s_axis_aresetn(m_axi_aresetn),
-					.m_axis_aclk(s_s2mm_axis_aclk),
-					.m_axis_aresetn(s_s2mm_axis_aresetn),
-					
-					.s_axis_data(8'h00 | dre_msg_fifo_din),
-					.s_axis_keep(1'bx),
-					.s_axis_strb(1'bx),
-					.s_axis_user(1'bx),
-					.s_axis_last(1'bx),
-					.s_axis_valid(dre_msg_fifo_wen),
-					.s_axis_ready(dre_msg_fifo_full_n),
-					
-					.m_axis_data(dre_msg_fifo_dout), // 位宽8bit与(clogb2(DATA_WIDTH/8-1)+1)bit不符, 截取低位
-					.m_axis_keep(),
-					.m_axis_strb(),
-					.m_axis_user(),
-					.m_axis_last(),
-					.m_axis_valid(dre_msg_fifo_empty_n),
-					.m_axis_ready(dre_msg_fifo_ren)
-				);
-			end
-			else
-			begin
-				fifo_based_on_regs #(
-					.fwft_mode("true"),
-					.low_latency_mode("false"),
-					.fifo_depth(4),
-					.fifo_data_width(clogb2(DATA_WIDTH/8-1)+1),
-					.almost_full_th(2),
-					.almost_empty_th(2),
-					.simulation_delay(SIM_DELAY)
-				)dre_msg_fifo(
-					.clk(m_axi_aclk),
-					.rst_n(m_axi_aresetn),
-					
-					.fifo_wen(dre_msg_fifo_wen),
-					.fifo_din(dre_msg_fifo_din),
-					.fifo_full(),
-					.fifo_full_n(dre_msg_fifo_full_n),
-					.fifo_almost_full(),
-					.fifo_almost_full_n(),
-					
-					.fifo_ren(dre_msg_fifo_ren),
-					.fifo_dout(dre_msg_fifo_dout),
-					.fifo_empty(),
-					.fifo_empty_n(dre_msg_fifo_empty_n),
-					.fifo_almost_empty(),
-					.fifo_almost_empty_n(),
-					
-					.data_cnt()
-				);
-			end
+			fifo_based_on_regs #(
+				.fwft_mode("true"),
+				.low_latency_mode("false"),
+				.fifo_depth(4),
+				.fifo_data_width(clogb2(DATA_WIDTH/8-1)+1),
+				.almost_full_th(2),
+				.almost_empty_th(2),
+				.simulation_delay(SIM_DELAY)
+			)dre_msg_fifo(
+				.clk(m_axi_aclk),
+				.rst_n(m_axi_aresetn),
+				
+				.fifo_wen(dre_msg_fifo_wen),
+				.fifo_din(dre_msg_fifo_din),
+				.fifo_full(),
+				.fifo_full_n(dre_msg_fifo_full_n),
+				.fifo_almost_full(),
+				.fifo_almost_full_n(),
+				
+				.fifo_ren(dre_msg_fifo_ren),
+				.fifo_dout(dre_msg_fifo_dout),
+				.fifo_empty(),
+				.fifo_empty_n(dre_msg_fifo_empty_n),
+				.fifo_almost_empty(),
+				.fifo_almost_empty_n(),
+				
+				.data_cnt()
+			);
 		end
 		else
 		begin
@@ -561,7 +587,6 @@ module axi_dma_engine_s2mm #(
 			assign dre_msg_fifo_empty_n = 1'b0;
 		end
 	endgenerate
-	
 	
 	/** 预启动写突发 **/
 	reg last_burst_of_req; // 写请求最后1次突发(标志)
@@ -842,8 +867,8 @@ module axi_dma_engine_s2mm #(
 				.DATA_WIDTH(DATA_WIDTH),
 				.SIM_DELAY(SIM_DELAY)
 			)dre_u(
-				.axis_aclk(s_s2mm_axis_aclk),
-				.axis_aresetn(s_s2mm_axis_aresetn),
+				.axis_aclk(m_axi_aclk),
+				.axis_aresetn(m_axi_aresetn),
 				
 				.s_s2mm_axis_data(s_dre_axis_data),
 				.s_s2mm_axis_keep(s_dre_axis_keep),
@@ -872,7 +897,7 @@ module axi_dma_engine_s2mm #(
 	endgenerate
 	
 	axis_data_fifo #(
-		.is_async((S_S2MM_AXIS_COMMON_CLOCK == "true") ? "false":"true"),
+		.is_async("false"),
 		.en_packet_mode("false"),
 		.ram_type("bram"),
 		.fifo_depth((MAX_BURST_LEN == 256) ? 1024:512),
@@ -880,8 +905,8 @@ module axi_dma_engine_s2mm #(
 		.user_width(1),
 		.simulation_delay(SIM_DELAY)
 	)wdata_fifo(
-		.s_axis_aclk(s_s2mm_axis_aclk),
-		.s_axis_aresetn(s_s2mm_axis_aresetn),
+		.s_axis_aclk(m_axi_aclk),
+		.s_axis_aresetn(m_axi_aresetn),
 		.m_axis_aclk(m_axi_aclk),
 		.m_axis_aresetn(m_axi_aresetn),
 		
@@ -906,16 +931,6 @@ module axi_dma_engine_s2mm #(
 	// 写响应错误标志
 	reg wt_resp_err;
 	
-	assign cmd_done = 
-		m_axi_bvalid & (
-			|(wt_burst_cmplt_ptr & {
-				wt_burst_is_last_split_cmd[3] & wt_burst_is_last_of_req[3], 
-				wt_burst_is_last_split_cmd[2] & wt_burst_is_last_of_req[2], 
-				wt_burst_is_last_split_cmd[1] & wt_burst_is_last_of_req[1], 
-				wt_burst_is_last_split_cmd[0] & wt_burst_is_last_of_req[0]
-			})
-		);
-	
 	assign m_axi_bready = 1'b1;
 	
 	assign err_flag[1] = wt_resp_err;
@@ -930,5 +945,41 @@ module axi_dma_engine_s2mm #(
 		else if((~wt_resp_err) & m_axi_bvalid)
 			wt_resp_err <= # SIM_DELAY m_axi_bresp[1];
 	end
+	
+	/** 命令完成指示 **/
+	wire org_cmd_done;
+	
+	assign org_cmd_done = 
+		m_axi_bvalid & (
+			|(wt_burst_cmplt_ptr & {
+				wt_burst_is_last_split_cmd[3] & wt_burst_is_last_of_req[3], 
+				wt_burst_is_last_split_cmd[2] & wt_burst_is_last_of_req[2], 
+				wt_burst_is_last_split_cmd[1] & wt_burst_is_last_of_req[1], 
+				wt_burst_is_last_split_cmd[0] & wt_burst_is_last_of_req[0]
+			})
+		);
+	
+	generate
+		if(S_CMD_AXIS_COMMON_CLOCK == "false")
+		begin
+			async_handshake #(
+				.simulation_delay(SIM_DELAY)
+			)async_handshake_u(
+				.clk1(m_axi_aclk),
+				.rst_n1(m_axi_aresetn),
+				.clk2(s_cmd_axis_aclk),
+				.rst_n2(s_cmd_axis_aresetn),
+				
+				.req1(org_cmd_done),
+				.busy(),
+				
+				.req2(cmd_done)
+			);
+		end
+		else
+		begin
+			assign cmd_done = org_cmd_done;
+		end
+	endgenerate
 	
 endmodule
