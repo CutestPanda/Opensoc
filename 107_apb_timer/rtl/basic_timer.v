@@ -29,6 +29,7 @@ SOFTWARE.
 描述: 
 带预分频和自动装载功能
 8~32位基本定时器
+支持向下/向上计数, 支持计数使能
 
 注意：
 无
@@ -45,41 +46,44 @@ module basic_timer #(
     parameter integer timer_width = 16, // 定时器位宽(8~32)
     parameter real simulation_delay = 1 // 仿真延时
 )(
-    // 时钟和复位
+    // [时钟和复位]
     input wire clk,
     input wire resetn,
+	
+	// [外部脉冲计数]
+	input wire timer_ce, // 计数使能
+	
+	// [定时器控制]
+	input wire timer_started,
+	
+    // [定时器配置]
+	input wire timer_down, // 计数方向(1'b1 -> 向下计数, 1'b0 -> 向上计数)
+    input wire[timer_width-1:0] prescale, // 预分频系数 - 1
+    input wire[timer_width-1:0] autoload, // 自动装载值 - 1
+	
+	// [定时器状态]
+	output wire timer_expired, // 定时器计数溢出(指示)
     
-    // 预分频系数 - 1
-    input wire[timer_width-1:0] prescale,
-    // 自动装载值 - 1
-    input wire[timer_width-1:0] autoload,
-    
-    // 定时器计数值
+    // [定时器计数值]
     input wire timer_cnt_to_set,
     input wire[timer_width-1:0] timer_cnt_set_v,
     output wire[timer_width-1:0] timer_cnt_now_v,
     
-    // 是否启动定时器
-    input wire timer_started,
-    
-    // 定时器计数溢出(指示)
-    output wire timer_expired,
-    
-    // 计数溢出中断请求
-    output wire timer_expired_itr_req
+	// [中断请求]
+    output wire timer_expired_itr_req // 计数溢出中断请求
 );
     
     /** 预分频计数器 **/
     reg[timer_width-1:0] prescale_shadow; // 预分频系数 - 1(影子寄存器)
-    wire prescale_cnt_rst; // 预分频计数器(回零指示)
+    wire prescale_cnt_arv_bd; // 预分频计数器抵达边界(标志)
     reg[timer_width-1:0] prescale_cnt; // 预分频计数器
     
-    assign prescale_cnt_rst = prescale_cnt == prescale_shadow;
+    assign prescale_cnt_arv_bd = prescale_cnt == prescale_shadow;
     
     // 预分频系数 - 1(影子寄存器)
     always @(posedge clk)
     begin
-        if((~timer_started) | prescale_cnt_rst)
+        if((~timer_started) | (timer_ce & prescale_cnt_arv_bd))
             prescale_shadow <= # simulation_delay prescale;
     end
     
@@ -88,26 +92,48 @@ module basic_timer #(
     begin
         if(~timer_started)
             prescale_cnt <= # simulation_delay 0;
-        else
-            prescale_cnt <= # simulation_delay prescale_cnt_rst ? 0:(prescale_cnt + 1);
+        else if(timer_ce)
+            prescale_cnt <= # simulation_delay 
+				prescale_cnt_arv_bd ? 
+					0:
+					(prescale_cnt + 1);
     end
     
     /** 定时计数器 **/
     reg[timer_width-1:0] timer_cnt; // 定时计数器
+	wire timer_cnt_arv_bd; // 定时计数器抵达边界(标志)
     reg timer_expired_d; // 延迟1clk的定时器计数溢出(指示)
     
     assign timer_cnt_now_v = timer_cnt;
-    assign timer_expired = timer_started & prescale_cnt_rst & (timer_cnt == 0);
+    assign timer_expired = timer_started & timer_ce & prescale_cnt_arv_bd & timer_cnt_arv_bd;
     
     assign timer_expired_itr_req = timer_expired_d;
+	
+	assign timer_cnt_arv_bd = 
+		timer_down ? 
+			(timer_cnt == 0):
+			(timer_cnt == autoload);
     
     // 定时计数器
     always @(posedge clk)
     begin
         if(timer_cnt_to_set)
             timer_cnt <= # simulation_delay timer_cnt_set_v;
-        else if(timer_started & prescale_cnt_rst)
-            timer_cnt <= # simulation_delay (timer_cnt == 0) ? autoload:(timer_cnt - 1);
+        else if(timer_started & timer_ce & prescale_cnt_arv_bd)
+            timer_cnt <= # simulation_delay 
+				timer_cnt_arv_bd ? 
+					/*
+					timer_down ? 
+						autoload:
+						0
+					*/
+					({timer_width{timer_down}} & autoload):
+					/*
+					timer_down ? 
+						(timer_cnt - 1):
+						(timer_cnt + 1)
+					*/
+					(timer_cnt + {{(timer_width-1){timer_down}}, 1'b1});
     end
     
     // 延迟1clk的定时器计数溢出(指示)

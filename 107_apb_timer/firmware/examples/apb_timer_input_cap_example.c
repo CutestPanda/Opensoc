@@ -70,9 +70,10 @@ void apb_timer_input_cap_example(void){
 	// 初始化APB-TIMER
 	ApbTimerConfig timer_config; // APB-TIMER(初始化配置结构体)
 	
+	timer_config.is_encoder_mode = 0; // 是否使用编码器模式
 	timer_config.prescale = TIMER_PSC - 1; // 预分频系数 - 1
 	timer_config.auto_load = TIMER_ATL - 1; // 自动装载值 - 1
-	timer_config.chn_n = 1; // 通道数
+	timer_config.chn_n = 1; // 通道数(硬件版本号>=2时无需指定)
 	timer_config.cap_cmp_sel = CAP_SEL_CHN0 | CAP_SEL_CHN1 | CAP_SEL_CHN2 | CAP_SEL_CHN3; // 捕获/比较选择
 	// 比较值
 	timer_config.cmp[0] = 0;

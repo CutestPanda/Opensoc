@@ -36,6 +36,8 @@ SOFTWARE.
             11~8:捕获/比较选择(4个通道)            RW
 			15~12:比较输出使能(4个通道)            RW
 			23~16:版本号                        R
+			26~24:捕获/比较通道数                 R
+			27:是否处于编码器模式                  RW
     0x10    0:全局中断使能                       RW
             8:计数溢出中断使能                    RW
             12~9:输入捕获中断使能                 RW
@@ -71,7 +73,8 @@ APB SLAVE
 
 
 module regs_if_for_timer #(
-    parameter integer timer_width = 16, // 定时器位宽(16 | 32)
+    parameter integer timer_width = 16, // 定时器位宽(8~32)
+	parameter integer channel_n = 1, // 捕获/比较通道数(0~4)
     parameter real simulation_delay = 1 // 仿真延时
 )(
     // 时钟和复位
@@ -100,6 +103,8 @@ module regs_if_for_timer #(
     
     // 是否启动定时器
     output wire timer_started,
+	// 是否处于编码器模式
+	output wire in_encoder_mode,
     // 捕获/比较选择(4个通道)
     // 1'b0 -> 捕获, 1'b1 -> 比较
     output wire[3:0] cap_cmp_sel,
@@ -163,7 +168,10 @@ module regs_if_for_timer #(
     // 中断信号
     output wire itr
 );
-
+	
+	/** 常量 **/
+	localparam HW_VERSION = 8'd2; // 硬件版本号
+	
     /** APB写寄存器 **/
     // 0x00
     reg[31:0] prescale_regs; // 预分频系数-1
@@ -174,6 +182,7 @@ module regs_if_for_timer #(
     reg[31:0] timer_cnt_set_v_regs; // 定时器计数值设置量
     // 0x0C
     reg timer_started_reg; // 是否启动定时器
+	reg in_encoder_mode_reg; // 是否处于编码器模式
     reg[3:0] cap_cmp_sel_regs; // 捕获/比较选择
 	reg[3:0] cmp_oen_regs; // 比较输出使能
     // 0x10
@@ -216,6 +225,7 @@ module regs_if_for_timer #(
     assign timer_cnt_to_set = timer_cnt_to_set_reg;
     assign timer_cnt_set_v = timer_cnt_set_v_regs[timer_width-1:0];
     assign timer_started = timer_started_reg;
+	assign in_encoder_mode = (channel_n >= 2) & in_encoder_mode_reg;
     assign cap_cmp_sel = cap_cmp_sel_regs;
 	assign timer_chn1_cmp_oen = cmp_oen_regs[0];
     assign timer_chn1_cmp = timer_chn1_cmp_regs[timer_width-1:0];
@@ -271,6 +281,14 @@ module regs_if_for_timer #(
         else if(psel & penable & pwrite & (paddr[5:2] == 4'd3))
             timer_started_reg <= # simulation_delay pwdata[0];
     end
+	// 是否处于编码器模式
+	always @(posedge clk or negedge resetn)
+    begin
+        if(~resetn)
+			in_encoder_mode_reg <= 1'b0;
+		else if(psel & penable & pwrite & (paddr[5:2] == 4'd3))
+			in_encoder_mode_reg <= # simulation_delay pwdata[27];
+	end
     // 捕获/比较选择
     always @(posedge clk)
     begin
@@ -391,7 +409,7 @@ module regs_if_for_timer #(
                 4'd2: prdata_out_regs <= # simulation_delay 
 					timer_cnt_now_v | 32'h0000_0000;
 				4'd3: prdata_out_regs <= # simulation_delay 
-					{8'd0, 8'd1, cmp_oen_regs, cap_cmp_sel_regs, 7'd0, timer_started_reg};
+					{4'd0, in_encoder_mode, channel_n[2:0], HW_VERSION, cmp_oen_regs, cap_cmp_sel_regs, 7'd0, timer_started_reg};
 				4'd4: prdata_out_regs <= # simulation_delay 
 					{16'd0, 3'd0, timer_cap_itr_en, timer_expired_itr_en, 7'd0, global_itr_en};
                 4'd5: prdata_out_regs <= # simulation_delay 

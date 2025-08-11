@@ -58,7 +58,7 @@ typedef struct{
 	uint32_t prescale; // 预分频系数 - 1
 	uint32_t auto_load; // 自动装载值 - 1
 	uint32_t count; // 定时器计数值
-	uint32_t ctrl; // 定时器开关, 捕获/比较选择, 比较输出使能, 版本号
+	uint32_t ctrl; // 定时器开关, 捕获/比较选择, 比较输出使能, 版本号, 通道数, 是否处于编码器模式
 	uint32_t itr_en; // 中断使能
 	uint32_t itr_flag; // 中断标志
 	ApbTimerChnHd chn_hd[4]; // 捕获/比较通道(寄存器区)
@@ -73,6 +73,7 @@ typedef struct{
 
 // APB-TIMER(初始化配置结构体)
 typedef struct{
+	uint8_t is_encoder_mode; // 是否使用编码器模式
 	uint8_t cap_cmp_sel; // 捕获/比较选择
 	uint8_t chn_n; // 通道数
 	uint32_t prescale; // 预分频系数 - 1

@@ -32,6 +32,7 @@ SOFTWARE.
 支持多达四通道输入捕获/输出比较
 输入捕获支持输入滤波，可捕获上升沿/下降沿/双沿
 可启用计数溢出中断和输入捕获中断
+支持编码器模式
 
 寄存器->
     偏移量  |    含义                     |   读写特性    |        备注
@@ -42,6 +43,8 @@ SOFTWARE.
             11~8:捕获/比较选择(4个通道)            RW
 			15~12:比较输出使能(4个通道)            RW
 			23~16:版本号                        R
+			26~24:捕获/比较通道数                 R
+			27:是否处于编码器模式                  RW
     0x10    0:全局中断使能                       RW
             8:计数溢出中断使能                    RW
             12~9:输入捕获中断使能                 RW
@@ -113,6 +116,8 @@ module apb_timer #(
     wire[timer_width-1:0] timer_cnt_now_v;
     // 是否启动定时器
     wire timer_started;
+	// 是否处于编码器模式
+	wire in_encoder_mode;
     // 捕获/比较选择(4个通道)
     // 1'b0 -> 捕获, 1'b1 -> 比较
     wire[3:0] cap_cmp_sel;
@@ -134,6 +139,7 @@ module apb_timer #(
     
     regs_if_for_timer #(
         .timer_width(timer_width),
+		.channel_n(channel_n),
         .simulation_delay(simulation_delay)
     )regs_if_for_timer_u(
         .clk(clk),
@@ -156,6 +162,7 @@ module apb_timer #(
         .timer_cnt_now_v(timer_cnt_now_v),
         
         .timer_started(timer_started),
+		.in_encoder_mode(in_encoder_mode),
         .cap_cmp_sel(cap_cmp_sel),
         
 		.timer_chn1_cmp_oen(timer_cmp_oen[0]),
@@ -193,8 +200,9 @@ module apb_timer #(
     );
     
     /** 基本定时器 **/
-	// 定时器计数溢出(指示)
-    wire timer_expired;
+	wire timer_ce; // 计数使能
+	wire timer_down; // 计数方向(1'b1 -> 向下计数, 1'b0 -> 向上计数)
+    wire timer_expired; // 定时器计数溢出(指示)
 	
     basic_timer #(
         .timer_width(timer_width),
@@ -202,18 +210,21 @@ module apb_timer #(
     )basic_timer_u(
         .clk(clk),
         .resetn(resetn),
-        
+		
+		.timer_ce(timer_ce),
+		
+		.timer_started(timer_started),
+		
+		.timer_down(timer_down),
         .prescale(prescale),
         .autoload(autoload),
+		
+		.timer_expired(timer_expired),
         
         .timer_cnt_to_set(timer_cnt_to_set),
         .timer_cnt_set_v(timer_cnt_set_v),
         .timer_cnt_now_v(timer_cnt_now_v),
-        
-        .timer_started(timer_started),
-        
-        .timer_expired(timer_expired),
-        
+		
         .timer_expired_itr_req(timer_expired_itr_req)
     );
     
@@ -230,25 +241,24 @@ module apb_timer #(
                 )timer_ic_oc_u(
                     .clk(clk),
                     .resetn(resetn),
-                    
+					
                     .cap_in(cap_cmp_i[cap_cmp_chn_i]),
                     .cmp_out(cap_cmp_o[cap_cmp_chn_i]),
 					.cap_cmp_t(cap_cmp_t[cap_cmp_chn_i]),
                     
                     .timer_cnt_now_v(timer_cnt_now_v),
                     .timer_started(timer_started),
-					.cmp_oen(timer_cmp_oen[cap_cmp_chn_i]),
-                    
-                    .timer_expired(timer_expired),
-                    
+					.in_encoder_mode(in_encoder_mode),
+					.timer_expired(timer_expired),
+					
                     .cap_cmp_sel(cap_cmp_sel[cap_cmp_chn_i]),
+					.cmp_oen(timer_cmp_oen[cap_cmp_chn_i]),
+					.oc_mode(timer_cmp_out_mode[cap_cmp_chn_i]),
+					.timer_cap_filter_th(timer_cap_filter_th[cap_cmp_chn_i]),
+                    .timer_cap_edge(timer_cap_edge[cap_cmp_chn_i]),
+					
                     .timer_cmp(timer_cmp[cap_cmp_chn_i]),
                     .timer_cap_cmp_o(timer_cap_cmp_i[cap_cmp_chn_i]),
-					
-					.oc_mode(timer_cmp_out_mode[cap_cmp_chn_i]),
-                    
-                    .timer_cap_filter_th(timer_cap_filter_th[cap_cmp_chn_i]),
-                    .timer_cap_edge(timer_cap_edge[cap_cmp_chn_i]),
                     
                     .timer_cap_itr_req(timer_cap_itr_req[cap_cmp_chn_i])
                 );
@@ -261,5 +271,21 @@ module apb_timer #(
             end
         end
     endgenerate
+	
+	/** 编码器脉冲计数 **/
+	timer_encoder_cnt #(
+		.simulation_delay(simulation_delay)
+	)timer_encoder_cnt_u(
+		.clk(clk),
+		
+		.encoder_i_a(cap_cmp_i[0]),
+		.encoder_i_b(cap_cmp_i[1]),
+		
+		.timer_started(timer_started),
+		.in_encoder_mode(in_encoder_mode),
+		
+		.timer_ce(timer_ce),
+		.timer_down(timer_down)
+	);
     
 endmodule

@@ -6,6 +6,7 @@ APB-TIMER驱动(主源文件)
 @eidt   2024/09/21 1.00 创建了第一个正式版本
 		2025/07/27 1.10 删除了ApbTimer结构体里的备份值
 						增加了比较输出使能、比较输出模式
+		2025/08/11 1.20 增加了编码器模式
 ************************************************************************************************************************/
 
 #include "apb_timer.h"
@@ -30,17 +31,26 @@ APB-TIMER驱动(主源文件)
 int init_apb_timer(ApbTimer* timer, uint32_t base_addr, const ApbTimerConfig* config){
 	timer->hardware = (ApbTimerHd*)base_addr;
 	
-	timer->chn_n = config->chn_n;
 	timer->hw_version = (uint8_t)(timer->hardware->ctrl >> 16);
 	
-	if(timer->hw_version > 0x01){
+	if(timer->hw_version >= 2){
+		timer->chn_n = (uint8_t)((timer->hardware->ctrl >> 24) & 0x07);
+	}else{
+		timer->chn_n = config->chn_n;
+	}
+	
+	if(timer->hw_version > 2){
+		return -1;
+	}
+	
+	if(config->is_encoder_mode && ((timer->hw_version < 2) || (timer->chn_n < 2))){
 		return -1;
 	}
 	
 	timer->hardware->prescale = config->prescale;
 	timer->hardware->auto_load = config->auto_load;
 	timer->hardware->count = config->prescale;
-	timer->hardware->ctrl = (((uint32_t)config->cap_cmp_sel) << 8);
+	timer->hardware->ctrl = (((uint32_t)config->cap_cmp_sel) << 8) | (((uint32_t)config->is_encoder_mode) << 27);
 	
 	for(uint8_t i = 0;i < 4;i++){
 		if(((config->cap_cmp_sel >> i) & 0x01) == CAP_SEL){
