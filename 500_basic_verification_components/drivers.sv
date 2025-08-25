@@ -1,27 +1,3 @@
-/*
-MIT License
-
-Copyright (c) 2024 Panda, 2257691535@qq.com
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 `timescale 1ns / 1ps
 
 `ifndef __DRIVER_H
@@ -621,7 +597,7 @@ class APBMasterDriver #(
 	`uvm_component_param_utils(APBMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)))
 	
 	function new(string name = "APBMasterDriver", uvm_component parent = null);
-		super.new(name, parent); 
+		super.new(name, parent);
 	endfunction
 	
 	virtual function void build_phase(uvm_phase phase); 
@@ -637,19 +613,22 @@ class APBMasterDriver #(
 		`uvm_info("APBMasterDriver", "APBMasterDriver built!", UVM_LOW)
 	endfunction
 	
-	virtual task main_phase(uvm_phase phase);
-		super.main_phase(phase);
-	
-		// 初始化APB总线
-		this.apb_if.cb_master.paddr <= {addr_width{1'bx}};
-		this.apb_if.cb_master.pselx <= 1'b0;
-		this.apb_if.cb_master.penable <= 1'b0;
-		this.apb_if.cb_master.pwrite <= 1'bx;
-		this.apb_if.cb_master.pwdata <= {data_width{1'bx}};
-		this.apb_if.cb_master.pstrb <= {(data_width/8){1'bx}};
+	virtual task reset_phase(uvm_phase phase);
+		super.reset_phase(phase);
+		
+		phase.raise_objection(this);
+		
+		// 复位APB主接口
+		this.rst_bus();
 		
 		// 等待复位释放
 		@(posedge this.apb_if.clk iff this.apb_if.rst_n);
+		
+		phase.drop_objection(this);
+	endtask
+	
+	virtual task main_phase(uvm_phase phase);
+		super.main_phase(phase);
 		
 		forever
 		begin
@@ -682,7 +661,15 @@ class APBMasterDriver #(
 		while(!this.apb_if.pready)
 			@(posedge this.apb_if.clk iff this.apb_if.rst_n);
 		
+		// 收集读数据和读响应
+		tr.rdata = this.apb_if.prdata;
+		tr.slverr = this.apb_if.pslverr;
+		
 		// APB传输完成
+		this.rst_bus();
+	endtask
+	
+	local task rst_bus();
 		this.apb_if.cb_master.paddr <= {addr_width{1'bx}};
 		this.apb_if.cb_master.pselx <= 1'b0;
 		this.apb_if.cb_master.penable <= 1'b0;
@@ -1193,7 +1180,7 @@ class ReqAckMasterDriver #(
 	
 	local task rst_bus();
 		this.req_ack_if.cb_master.req <= 1'b0;
-		this.req_ack_if.cb_master.req_payload <= {req_payload_width{1'bx}};
+		// this.req_ack_if.cb_master.req_payload <= {req_payload_width{1'bx}};
 	endtask
 	
 endclass
@@ -1353,6 +1340,10 @@ class ICBMasterDriver #(
 	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_cmd_fifo[$];
 	local ICBTrans #(.addr_width(addr_width), .data_width(data_width)) icb_rsp_fifo[$];
 	
+	// 事件
+	local event icb_cmd_hs_evt; // 命令通道握手事件
+	local event trans_done_evt; // 事务完成事件
+	
 	// 注册component
 	`uvm_component_param_utils(ICBMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)))
 	
@@ -1414,6 +1405,8 @@ class ICBMasterDriver #(
 			this.icb_new_trans.rsp_wait_period_n = this.req.rsp_wait_period_n;
 			this.icb_rsp_fifo.push_back(this.icb_new_trans);
 			
+			@trans_done_evt; // 等待事务完成
+			
 			this.seq_item_port.item_done(); // 发送信号:本事务已完成
 		end
 	endtask
@@ -1447,6 +1440,9 @@ class ICBMasterDriver #(
 			end
 			while(!(this.icb_if.cmd_valid & this.icb_if.cmd_ready));
 			
+			// 触发事件: 命令通道握手
+			-> icb_cmd_hs_evt;
+			
 			// 复位命令通道
 			this.icb_if.cb_master.cmd_addr <= {addr_width{1'bx}};
 			this.icb_if.cb_master.cmd_read <= 1'bx;
@@ -1465,6 +1461,9 @@ class ICBMasterDriver #(
 			
 			icb_trans = this.icb_rsp_fifo.pop_front();
 			
+			// 等待命令通道握手
+			@icb_cmd_hs_evt;
+			
 			// ready前等待
 			repeat(icb_trans.rsp_wait_period_n)
 			begin
@@ -1480,6 +1479,9 @@ class ICBMasterDriver #(
 				@(posedge this.icb_if.clk iff this.icb_if.rst_n);
 			end
 			while(!(this.icb_if.rsp_valid & this.icb_if.rsp_ready));
+			
+			// 触发事件: 事务完成
+			-> trans_done_evt;
 			
 			// 复位响应通道
 			this.icb_if.cb_master.rsp_ready <= 1'b0;

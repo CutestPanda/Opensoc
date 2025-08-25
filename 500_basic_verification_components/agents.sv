@@ -1,27 +1,3 @@
-/*
-MIT License
-
-Copyright (c) 2024 Panda, 2257691535@qq.com
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 `timescale 1ns / 1ps
 
 `ifndef __AGENT_H
@@ -53,8 +29,8 @@ class BlkCtrlMasterAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local BlkCtrlSeqr sequencer; // 序列发生器
-	local BlkCtrlMasterDriver #(.out_drive_t(out_drive_t)) driver; // 驱动器
+	BlkCtrlSeqr sequencer; // 序列发生器
+	BlkCtrlMasterDriver #(.out_drive_t(out_drive_t)) driver; // 驱动器
 	
 	// 注册component
 	`uvm_component_param_utils(BlkCtrlMasterAgent #(.out_drive_t(out_drive_t)))
@@ -92,11 +68,11 @@ class AXIMasterAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local AXISequencer #(.addr_width(addr_width), .data_width(data_width), 
+	AXISequencer #(.addr_width(addr_width), .data_width(data_width), 
 		.bresp_width(bresp_width), .rresp_width(rresp_width)) sequencer; // 序列发生器
-	local AXIMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
+	AXIMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
 		.bresp_width(bresp_width), .rresp_width(rresp_width)) driver; // 驱动器
-	local AXIMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
+	AXIMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
 		.bresp_width(bresp_width), .rresp_width(rresp_width)) monitor; // 监测器
 	
 	// 通信端口
@@ -153,11 +129,11 @@ class AXISlaveAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local AXISequencer #(.addr_width(addr_width), .data_width(data_width), 
+	AXISequencer #(.addr_width(addr_width), .data_width(data_width), 
 		.bresp_width(bresp_width), .rresp_width(rresp_width)) sequencer; // 序列发生器
-	local AXISlaveDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
+	AXISlaveDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
 		.bresp_width(bresp_width), .rresp_width(rresp_width)) driver; // 驱动器
-	local AXIMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
+	AXIMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width), 
 		.bresp_width(bresp_width), .rresp_width(rresp_width)) monitor; // 监测器
 	
 	// 通信端口
@@ -326,9 +302,9 @@ class APBSlaveAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local APBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
-	local APBSlaveDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
-	local APBMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
+	APBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
+	APBSlaveDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
+	APBMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
 	
 	// 通信端口
 	uvm_analysis_port #(APBTrans #(.addr_width(addr_width), .data_width(data_width))) apb_analysis_port;
@@ -378,9 +354,9 @@ class APBMasterAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local APBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
-	local APBMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
-	local APBMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
+	APBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
+	APBMasterDriver #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
+	APBMonitor #(.out_drive_t(out_drive_t), .addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
 	
 	// 通信端口
 	uvm_analysis_port #(APBTrans #(.addr_width(addr_width), .data_width(data_width))) apb_analysis_port;
@@ -434,11 +410,11 @@ class AHBMasterAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local AHBSequencer #(.addr_width(addr_width), .data_width(data_width), .burst_width(burst_width), 
+	AHBSequencer #(.addr_width(addr_width), .data_width(data_width), .burst_width(burst_width), 
 		.prot_width(prot_width), .master_width(master_width)) sequencer; // 序列发生器
-	local AHBMasterDriver #(.out_drive_t(out_drive_t), .slave_n(slave_n), .addr_width(addr_width), .data_width(data_width), 
+	AHBMasterDriver #(.out_drive_t(out_drive_t), .slave_n(slave_n), .addr_width(addr_width), .data_width(data_width), 
 		.burst_width(burst_width), .prot_width(prot_width), .master_width(master_width)) driver; // 驱动器
-	local AHBMonitor #(.out_drive_t(out_drive_t), .slave_n(slave_n), .addr_width(addr_width), .data_width(data_width), 
+	AHBMonitor #(.out_drive_t(out_drive_t), .slave_n(slave_n), .addr_width(addr_width), .data_width(data_width), 
 		.burst_width(burst_width), .prot_width(prot_width), .master_width(master_width)) monitor; // 监测器
 	
 	// 通信端口
@@ -492,10 +468,10 @@ class ReqAckMasterAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local ReqAckSequencer #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)) sequencer; // 序列发生器
-	local ReqAckMasterDriver #(.out_drive_t(out_drive_t), 
+	ReqAckSequencer #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)) sequencer; // 序列发生器
+	ReqAckMasterDriver #(.out_drive_t(out_drive_t), 
 		.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)) driver; // 驱动器
-	local ReqAckMonitor #(.out_drive_t(out_drive_t), 
+	ReqAckMonitor #(.out_drive_t(out_drive_t), 
 		.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)) monitor; // 监测器
 	
 	// 通信端口
@@ -549,10 +525,10 @@ class ICBMasterAgent #(
 )extends uvm_agent;
 	
 	// 组件
-	local ICBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
-	local ICBMasterDriver #(.out_drive_t(out_drive_t), 
+	ICBSequencer #(.addr_width(addr_width), .data_width(data_width)) sequencer; // 序列发生器
+	ICBMasterDriver #(.out_drive_t(out_drive_t), 
 		.addr_width(addr_width), .data_width(data_width)) driver; // 驱动器
-	local ICBMonitor #(.out_drive_t(out_drive_t), 
+	ICBMonitor #(.out_drive_t(out_drive_t), 
 		.addr_width(addr_width), .data_width(data_width)) monitor; // 监测器
 	
 	// 通信端口

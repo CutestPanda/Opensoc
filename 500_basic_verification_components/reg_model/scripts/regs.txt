@@ -1,0 +1,113 @@
+RegName=TimerRegPsc,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile|rst_v|has_rst|is_rand|indvd_acsb|
+----------------------------------------------------------------------------------
+|field_psc_sub1     | 32|   0   |  RW  |    1   |  0  |   0   |   1   |    0     |
+
+
+RegName=TimerRegAtl,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile|rst_v|has_rst|is_rand|indvd_acsb|
+----------------------------------------------------------------------------------
+|field_atl_sub1     | 32|   0   |  RW  |    1   |  0  |   0   |   1   |    0     |
+
+
+RegName=TimerRegCnt,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile|rst_v|has_rst|is_rand|indvd_acsb|
+----------------------------------------------------------------------------------
+|field_cnt          | 32|   0   |  RW  |    1   |  0  |   0   |   1   |    0     |
+
+
+RegName = TimerRegCtrl,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile| rst_v |has_rst|is_rand|indvd_acsb|
+-------------------------------------------------------------------------------------
+|field_timer_started| 1 |   0   |  RW  |    1   |  0    |   1   |   1   |    0     |
+|field_cap_cmp_sel  | 4 |   8   |  RW  |    1   |  0    |   0   |   1   |    0     |
+|field_cmp_oen      | 4 |  12   |  RW  |    1   | 'b1111|   1   |   1   |    0     |
+|field_version      | 8 |  16   |  RO  |    1   |  'd2  |   1   |   0   |    0     |
+|field_chn_n        | 3 |  24   |  RO  |    1   |  'd4  |   1   |   0   |    0     |
+|field_in_ecd_mode  | 1 |  27   |  RW  |    1   |  0    |   1   |   1   |    0     |
+
+
+RegName = TimerRegItrEn,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field                   |len|lsb_pos|access|volatile| rst_v |has_rst|is_rand|indvd_acsb|
+-----------------------------------------------------------------------------------------
+|field_global_itr_en     | 1 |   0   |  RW  |    1   |  0    |   1   |   1   |    0     |
+|field_tmr_elapsed_itr_en| 1 |   8   |  RW  |    1   |  0    |   1   |   1   |    0     |
+|field_input_cap_itr_en  | 4 |   9   |  RW  |    1   |  0    |   1   |   1   |    0     |
+
+
+RegName = TimerRegItrFlag,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field                     |len|lsb_pos|access|volatile| rst_v |has_rst|is_rand|indvd_acsb|
+-----------------------------------------------------------------------------------------
+|field_global_itr_flag     | 1 |   0   |  WC  |    1   |  0    |   1   |   1   |    0     |
+|field_tmr_elapsed_itr_flag| 1 |   8   |  RO  |    1   |  0    |   1   |   1   |    0     |
+|field_input_cap_itr_flag  | 4 |   9   |  RO  |    1   |  0    |   1   |   1   |    0     |
+
+
+RegName=TimerRegChn0CapCmpV,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile|rst_v|has_rst|is_rand|indvd_acsb|
+----------------------------------------------------------------------------------
+|field_cap_cmp_v    | 32|   0   |  RW  |    1   |  0  |   0   |   1   |    0     |
+
+
+RegName = TimerRegChn0CapCmpCfg,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field                     |len|lsb_pos|access|volatile| rst_v |has_rst|is_rand|indvd_acsb|
+-----------------------------------------------------------------------------------------
+|field_input_cap_filter_th | 8 |   0   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_input_cap_edge_type | 2 |   8   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_output_cmp_mode     | 2 |   10  |  WO  |    1   |  0    |   0   |   1   |    0     |
+
+
+RegName=TimerRegChn1CapCmpV,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile|rst_v|has_rst|is_rand|indvd_acsb|
+----------------------------------------------------------------------------------
+|field_cap_cmp_v    | 32|   0   |  RW  |    1   |  0  |   0   |   1   |    0     |
+
+
+RegName = TimerRegChn1CapCmpCfg,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field                     |len|lsb_pos|access|volatile| rst_v |has_rst|is_rand|indvd_acsb|
+-----------------------------------------------------------------------------------------
+|field_input_cap_filter_th | 8 |   0   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_input_cap_edge_type | 2 |   8   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_output_cmp_mode     | 2 |   10  |  WO  |    1   |  0    |   0   |   1   |    0     |
+
+
+RegName=TimerRegChn2CapCmpV,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile|rst_v|has_rst|is_rand|indvd_acsb|
+----------------------------------------------------------------------------------
+|field_cap_cmp_v    | 32|   0   |  RW  |    1   |  0  |   0   |   1   |    0     |
+
+
+RegName = TimerRegChn2CapCmpCfg,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field                     |len|lsb_pos|access|volatile| rst_v |has_rst|is_rand|indvd_acsb|
+-----------------------------------------------------------------------------------------
+|field_input_cap_filter_th | 8 |   0   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_input_cap_edge_type | 2 |   8   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_output_cmp_mode     | 2 |   10  |  WO  |    1   |  0    |   0   |   1   |    0     |
+
+
+RegName=TimerRegChn3CapCmpV,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field              |len|lsb_pos|access|volatile|rst_v|has_rst|is_rand|indvd_acsb|
+----------------------------------------------------------------------------------
+|field_cap_cmp_v    | 32|   0   |  RW  |    1   |  0  |   0   |   1   |    0     |
+
+
+RegName = TimerRegChn3CapCmpCfg,Len=32,CvgMode=UVM_NO_COVERAGE
+
+|field                     |len|lsb_pos|access|volatile| rst_v |has_rst|is_rand|indvd_acsb|
+-----------------------------------------------------------------------------------------
+|field_input_cap_filter_th | 8 |   0   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_input_cap_edge_type | 2 |   8   |  WO  |    1   |  0    |   0   |   1   |    0     |
+|field_output_cmp_mode     | 2 |   10  |  WO  |    1   |  0    |   0   |   1   |    0     |

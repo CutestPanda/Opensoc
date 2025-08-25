@@ -1,0 +1,18 @@
+RblkName=TimerRegBlk,Baseaddr=32'h4000_0000,BusWidth=32,Endian=UVM_LITTLE_ENDIAN,EnByteAddr=0,CvgMode=UVM_NO_COVERAGE
+
+|reg_type             |reg_name    | ofs_addr | access |    hdl_path       | rand |
+---------------------------------------------------------------------------------
+|TimerRegPsc          |reg_psc     | 32'h00   |   RW   |  prescale_regs    |  1   |
+|TimerRegAtl          |reg_atl     | 32'h04   |   RW   |  autoload_regs    |  1   |
+|TimerRegCnt          |reg_cnt     | 32'h08   |   RW   |       x           |  1   |
+|TimerRegCtrl         |reg_ctrl    | 32'h0C   |   RW   |       x           |  1   |
+|TimerRegItrEn        |reg_itr_en  | 32'h10   |   RW   |       x           |  1   |
+|TimerRegItrFlag      |reg_itr_flag| 32'h14   |   RW   |       x           |  1   |
+|TimerRegChn0CapCmpV  |reg_chn0_v  | 32'h18   |   RW   |timer_chn1_cmp_regs|  1   |
+|TimerRegChn0CapCmpCfg|reg_chn0_cfg| 32'h1C   |   RW   |       x           |  1   |
+|TimerRegChn1CapCmpV  |reg_chn1_v  | 32'h20   |   RW   |timer_chn2_cmp_regs|  1   |
+|TimerRegChn1CapCmpCfg|reg_chn1_cfg| 32'h24   |   RW   |       x           |  1   |
+|TimerRegChn2CapCmpV  |reg_chn2_v  | 32'h28   |   RW   |timer_chn3_cmp_regs|  1   |
+|TimerRegChn2CapCmpCfg|reg_chn2_cfg| 32'h2C   |   RW   |       x           |  1   |
+|TimerRegChn3CapCmpV  |reg_chn3_v  | 32'h30   |   RW   |timer_chn4_cmp_regs|  1   |
+|TimerRegChn3CapCmpCfg|reg_chn3_cfg| 32'h34   |   RW   |       x           |  1   |

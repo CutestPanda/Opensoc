@@ -1,27 +1,3 @@
-/*
-MIT License
-
-Copyright (c) 2024 Panda, 2257691535@qq.com
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
 `timescale 1ns / 1ps
 
 `ifndef __TRANSACTION_H
@@ -39,11 +15,15 @@ class BlkCtrlTrans extends uvm_sequence_item;
 	
 	// 域自动化
 	`uvm_object_utils_begin(BlkCtrlTrans)
-		`uvm_field_int(start_wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(start_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 	`uvm_object_utils_end
 	
 	function new(string name = "BlkCtrlTrans");
-		super.new();
+		super.new(name);
+	endfunction
+	
+	virtual function void do_print(uvm_printer printer);
+		super.do_print(printer);
 	endfunction
 	
 endclass
@@ -89,30 +69,34 @@ class AXITrans #(
 	
 	// 域自动化
 	`uvm_object_param_utils_begin(AXITrans #(.addr_width(addr_width), .data_width(data_width), .bresp_width(bresp_width), .rresp_width(rresp_width)))
-		`uvm_field_int(data_n, UVM_ALL_ON)
+		`uvm_field_int(data_n, UVM_ALL_ON | UVM_NOPRINT)
 		
-		`uvm_field_int(addr, UVM_ALL_ON)
-		`uvm_field_int(burst, UVM_ALL_ON)
-		`uvm_field_int(cache, UVM_ALL_ON)
-		`uvm_field_int(len, UVM_ALL_ON)
-		`uvm_field_int(lock, UVM_ALL_ON)
-		`uvm_field_int(prot, UVM_ALL_ON)
-		`uvm_field_int(size, UVM_ALL_ON)
-		`uvm_field_int(addr_wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(addr, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(burst, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(cache, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(len, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(lock, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(prot, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(size, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(addr_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 		
-		`uvm_field_queue_int(wdata, UVM_ALL_ON)
-		`uvm_field_queue_int(wstrb, UVM_ALL_ON)
-		`uvm_field_array_int(wdata_wait_period_n, UVM_ALL_ON)
+		`uvm_field_queue_int(wdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(wstrb, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_array_int(wdata_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 		
-		`uvm_field_int(bresp, UVM_ALL_ON)
+		`uvm_field_int(bresp, UVM_ALL_ON | UVM_NOPRINT)
 		
-		`uvm_field_queue_int(rdata, UVM_ALL_ON)
-		`uvm_field_queue_int(rresp, UVM_ALL_ON)
-		`uvm_field_array_int(rdata_wait_period_n, UVM_ALL_ON)
+		`uvm_field_queue_int(rdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(rresp, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_array_int(rdata_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 	`uvm_object_utils_end
 	
 	function new(string name = "AXITrans");
-		super.new();
+		super.new(name);
+	endfunction
+	
+	virtual function void do_print(uvm_printer printer);
+		super.do_print(printer);
 	endfunction
 	
 endclass
@@ -138,17 +122,21 @@ class APBTrans #(
 	
 	// 域自动化
 	`uvm_object_utils_begin(APBTrans)
-		`uvm_field_int(addr, UVM_ALL_ON)
-		`uvm_field_int(wdata, UVM_ALL_ON)
-		`uvm_field_int(wstrb, UVM_ALL_ON)
-		`uvm_field_int(write, UVM_ALL_ON)
-		`uvm_field_int(rdata, UVM_ALL_ON)
-		`uvm_field_int(slverr, UVM_ALL_ON)
-		`uvm_field_int(wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(addr, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(wdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(wstrb, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(write, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(rdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(slverr, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 	`uvm_object_utils_end
 	
 	function new(string name = "APBTrans");
-		super.new();
+		super.new(name);
+	endfunction
+	
+	virtual function void do_print(uvm_printer printer);
+		super.do_print(printer);
 	endfunction
     
 endclass
@@ -174,16 +162,20 @@ class AXISTrans #(
 	
 	// 域自动化
 	`uvm_object_param_utils_begin(AXISTrans #(.data_width(data_width), .user_width(user_width)))
-		`uvm_field_int(data_n, UVM_ALL_ON)
-		`uvm_field_queue_int(data, UVM_ALL_ON)
-		`uvm_field_queue_int(keep, UVM_ALL_ON)
-		`uvm_field_queue_int(strb, UVM_ALL_ON)
-		`uvm_field_queue_int(user, UVM_ALL_ON)
-		`uvm_field_array_int(wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(data_n, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(data, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(keep, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(strb, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(user, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_array_int(wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 	`uvm_object_utils_end
 	
 	function new(string name = "AXISTrans");
-		super.new();
+		super.new(name);
+	endfunction
+	
+	virtual function void do_print(uvm_printer printer);
+		super.do_print(printer);
 	endfunction
 	
 endclass
@@ -226,22 +218,30 @@ class AHBTrans #(
 	
 	// 域自动化
 	`uvm_object_param_utils_begin(AHBTrans #(.addr_width(addr_width), .data_width(data_width), .burst_width(burst_width), .prot_width(prot_width), .master_width(master_width)))
-		`uvm_field_int(haddr, UVM_ALL_ON)
-		`uvm_field_int(hburst, UVM_ALL_ON)
-		`uvm_field_int(hmastllock, UVM_ALL_ON)
-		`uvm_field_int(hprot, UVM_ALL_ON)
-		`uvm_field_int(hsize, UVM_ALL_ON)
-		`uvm_field_int(hnonsec, UVM_ALL_ON)
-		`uvm_field_int(hexcl, UVM_ALL_ON)
-		`uvm_field_int(hmaster, UVM_ALL_ON)
-		`uvm_field_int(hwrite, UVM_ALL_ON)
-		`uvm_field_queue_int(hwdata, UVM_ALL_ON)
-		`uvm_field_queue_int(hwstrb, UVM_ALL_ON)
-		`uvm_field_queue_int(hrdata, UVM_ALL_ON)
-		`uvm_field_queue_int(hresp, UVM_ALL_ON)
-		`uvm_field_queue_int(hexokay, UVM_ALL_ON)
-		`uvm_field_array_int(wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(haddr, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hburst, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hmastllock, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hprot, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hsize, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hnonsec, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hexcl, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hmaster, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(hwrite, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(hwdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(hwstrb, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(hrdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(hresp, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_queue_int(hexokay, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_array_int(wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 	`uvm_object_utils_end
+	
+	function new(string name = "AHBTrans");
+		super.new(name);
+	endfunction
+	
+	virtual function void do_print(uvm_printer printer);
+		super.do_print(printer);
+	endfunction
 	
 endclass
 
@@ -260,11 +260,19 @@ class ReqAckTrans #(
 	rand byte unsigned resp_wait_period_n; // 等待周期数
 	
 	`uvm_object_param_utils_begin(ReqAckTrans #(.req_payload_width(req_payload_width), .resp_payload_width(resp_payload_width)))
-		`uvm_field_int(req_payload, UVM_ALL_ON)
-		`uvm_field_int(req_wait_period_n, UVM_ALL_ON)
-		`uvm_field_int(resp_payload, UVM_ALL_ON)
-		`uvm_field_int(resp_wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(req_payload, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(req_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(resp_payload, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(resp_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 	`uvm_object_utils_end
+	
+	function new(string name = "ReqAckTrans");
+		super.new(name);
+	endfunction
+	
+	virtual function void do_print(uvm_printer printer);
+		super.do_print(printer);
+	endfunction
 	
 endclass
 
@@ -285,15 +293,23 @@ class ICBTrans #(
 	rand byte unsigned rsp_wait_period_n; // 等待周期数
 	
 	`uvm_object_param_utils_begin(ICBTrans #(.addr_width(addr_width), .data_width(data_width)))
-		`uvm_field_int(cmd_addr, UVM_ALL_ON)
-		`uvm_field_int(cmd_read, UVM_ALL_ON)
-		`uvm_field_int(cmd_wdata, UVM_ALL_ON)
-		`uvm_field_int(cmd_wmask, UVM_ALL_ON)
-		`uvm_field_int(cmd_wait_period_n, UVM_ALL_ON)
-		`uvm_field_int(rsp_rdata, UVM_ALL_ON)
-		`uvm_field_int(rsp_err, UVM_ALL_ON)
-		`uvm_field_int(rsp_wait_period_n, UVM_ALL_ON)
+		`uvm_field_int(cmd_addr, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(cmd_read, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(cmd_wdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(cmd_wmask, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(cmd_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(rsp_rdata, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(rsp_err, UVM_ALL_ON | UVM_NOPRINT)
+		`uvm_field_int(rsp_wait_period_n, UVM_ALL_ON | UVM_NOPRINT)
 	`uvm_object_utils_end
+	
+	function new(string name = "ICBTrans");
+		super.new(name);
+	endfunction
+	
+	virtual function void do_print(uvm_printer printer);
+		super.do_print(printer);
+	endfunction
 	
 endclass
 
