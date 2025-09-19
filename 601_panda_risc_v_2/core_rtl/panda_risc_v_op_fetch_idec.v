@@ -86,7 +86,6 @@ module panda_risc_v_op_fetch_idec #(
 	output wire m_op_ftc_id_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire[31:0] m_op_ftc_id_res_op1, // 操作数1
 	output wire[31:0] m_op_ftc_id_res_op2, // 操作数2
-	output wire m_op_ftc_id_res_with_ls_sdefc, // 是否存在访存副效应
 	output wire m_op_ftc_id_res_valid,
 	input wire m_op_ftc_id_res_ready,
 	
@@ -104,7 +103,6 @@ module panda_risc_v_op_fetch_idec #(
 	output wire[FU_ID_WIDTH-1:0] rob_luc_bdcst_fuid, // 被发射到的执行单元ID
 	output wire[4:0] rob_luc_bdcst_rd_id, // 目的寄存器编号
 	output wire rob_luc_bdcst_is_ls_inst, // 是否加载/存储指令
-	output wire rob_luc_bdcst_with_ls_sdefc, // 是否存在访存副效应
 	output wire rob_luc_bdcst_is_csr_rw_inst, // 是否CSR读写指令
 	output wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	output wire[2:0] rob_luc_bdcst_err, // 错误类型
@@ -537,9 +535,6 @@ module panda_risc_v_op_fetch_idec #(
 		to_sel_op2_latched ? 
 			op2_latched:
 			op2_fetch_cur;
-	// 说明: 假设所有store指令都是带访存副效应的, 而所有load指令都不带访存副效应
-	// assign m_op_ftc_id_res_with_ls_sdefc = m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID];
-	assign m_op_ftc_id_res_with_ls_sdefc = 1'b0;
 	// 握手条件: (~on_rst_flush) & s_if_res_valid & m_op_ftc_id_res_ready & op1_ready & op2_ready
 	assign m_op_ftc_id_res_valid = 
 		(~on_rst_flush) & s_if_res_valid & op1_ready & op2_ready;
@@ -586,8 +581,6 @@ module panda_risc_v_op_fetch_idec #(
 			m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_LOAD_INST_SID]
 		) & 
 		(~m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]);
-	// 说明: 假设所有store指令都是带访存副效应的, 而所有load指令都不带访存副效应
-	assign rob_luc_bdcst_with_ls_sdefc = m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID];
 	assign rob_luc_bdcst_is_csr_rw_inst = 
 		m_op_ftc_id_res_dcd_res[PRE_DCD_MSG_IS_CSR_RW_INST_SID] & 
 		(~m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]);

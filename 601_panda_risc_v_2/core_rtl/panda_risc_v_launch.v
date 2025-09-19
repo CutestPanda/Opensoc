@@ -55,7 +55,6 @@ module panda_risc_v_launch #(
 	input wire rob_empty_n, // ROB空(标志)
 	input wire rob_csr_rw_inst_allowed, // 允许发射CSR读写指令(标志)
 	input wire rob_has_ls_inst, // ROB中存在访存指令(标志)
-	input wire rob_has_ls_sdefc_inst, // ROB中存在带有副效应的访存指令(标志)
 	
 	// 复位/冲刷
 	input wire sys_reset_req, // 系统复位请求
@@ -141,19 +140,7 @@ module panda_risc_v_launch #(
 			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_INST_SID]) | (~rob_has_ls_inst)) & // FENCE指令等到所有访存指令退休后再发射
 			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_CSR_RW_INST_SID]) | rob_csr_rw_inst_allowed) // 检查ROB是否允许发射CSR读写指令
 		);
-	assign load_store_allowed = 
-		s_op_ftc_id_res_data[32+PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | 
-		(
-			// ROB中不存在带有副效应的访存指令
-			(~rob_has_ls_sdefc_inst) | 
-			// 待发射的指令不是带有副效应的访存指令
-			(~(
-				(
-					s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_STORE_INST_SID] | 
-					s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_LOAD_INST_SID]
-				) & s_op_ftc_id_res_with_ls_sdefc
-			))
-		);
+	assign load_store_allowed = 1'b1;
 	
 	always @(posedge aclk)
 	begin

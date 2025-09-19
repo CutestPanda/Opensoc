@@ -488,7 +488,6 @@ module panda_risc_v_core #(
 	wire m_op_ftc_id_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] m_op_ftc_id_res_op1; // 操作数1
 	wire[31:0] m_op_ftc_id_res_op2; // 操作数2
-	wire m_op_ftc_id_res_with_ls_sdefc; // 是否存在访存副效应
 	wire m_op_ftc_id_res_valid;
 	wire m_op_ftc_id_res_ready;
 	// 发射阶段ROB记录广播
@@ -497,7 +496,6 @@ module panda_risc_v_core #(
 	wire[FU_ID_WIDTH-1:0] rob_luc_bdcst_fuid; // 被发射到的执行单元ID
 	wire[4:0] rob_luc_bdcst_rd_id; // 目的寄存器编号
 	wire rob_luc_bdcst_is_ls_inst; // 是否加载/存储指令
-	wire rob_luc_bdcst_with_ls_sdefc; // 是否存在访存副效应
 	wire rob_luc_bdcst_is_csr_rw_inst; // 是否CSR读写指令
 	wire[45:0] rob_luc_bdcst_csr_rw_inst_msg; // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	wire[2:0] rob_luc_bdcst_err; // 错误类型
@@ -543,7 +541,6 @@ module panda_risc_v_core #(
 		.m_op_ftc_id_res_is_first_inst_after_rst(m_op_ftc_id_res_is_first_inst_after_rst),
 		.m_op_ftc_id_res_op1(m_op_ftc_id_res_op1),
 		.m_op_ftc_id_res_op2(m_op_ftc_id_res_op2),
-		.m_op_ftc_id_res_with_ls_sdefc(m_op_ftc_id_res_with_ls_sdefc),
 		.m_op_ftc_id_res_valid(m_op_ftc_id_res_valid),
 		.m_op_ftc_id_res_ready(m_op_ftc_id_res_ready),
 		
@@ -559,7 +556,6 @@ module panda_risc_v_core #(
 		.rob_luc_bdcst_fuid(rob_luc_bdcst_fuid),
 		.rob_luc_bdcst_rd_id(rob_luc_bdcst_rd_id),
 		.rob_luc_bdcst_is_ls_inst(rob_luc_bdcst_is_ls_inst),
-		.rob_luc_bdcst_with_ls_sdefc(rob_luc_bdcst_with_ls_sdefc),
 		.rob_luc_bdcst_is_csr_rw_inst(rob_luc_bdcst_is_csr_rw_inst),
 		.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
 		.rob_luc_bdcst_err(rob_luc_bdcst_err),
@@ -598,7 +594,6 @@ module panda_risc_v_core #(
 	wire rob_empty_n; // ROB空(标志)
 	wire rob_csr_rw_inst_allowed; // 允许发射CSR读写指令(标志)
 	wire rob_has_ls_inst; // ROB中存在访存指令(标志)
-	wire rob_has_ls_sdefc_inst; // ROB中存在带有副效应的访存指令(标志)
 	// 取操作数和译码结果
 	wire[127:0] s_op_ftc_id_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[146:0] s_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
@@ -607,7 +602,6 @@ module panda_risc_v_core #(
 	wire s_op_ftc_id_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] s_op_ftc_id_res_op1; // 操作数1
 	wire[31:0] s_op_ftc_id_res_op2; // 操作数2
-	wire s_op_ftc_id_res_with_ls_sdefc; // 是否存在访存副效应
 	wire s_op_ftc_id_res_valid;
 	wire s_op_ftc_id_res_ready;
 	// 发射单元输出
@@ -628,7 +622,6 @@ module panda_risc_v_core #(
 	assign s_op_ftc_id_res_is_first_inst_after_rst = m_op_ftc_id_res_is_first_inst_after_rst;
 	assign s_op_ftc_id_res_op1 = m_op_ftc_id_res_op1;
 	assign s_op_ftc_id_res_op2 = m_op_ftc_id_res_op2;
-	assign s_op_ftc_id_res_with_ls_sdefc = m_op_ftc_id_res_with_ls_sdefc;
 	assign s_op_ftc_id_res_valid = m_op_ftc_id_res_valid;
 	assign m_op_ftc_id_res_ready = s_op_ftc_id_res_ready;
 	
@@ -643,7 +636,6 @@ module panda_risc_v_core #(
 		.rob_empty_n(rob_empty_n),
 		.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
 		.rob_has_ls_inst(rob_has_ls_inst),
-		.rob_has_ls_sdefc_inst(rob_has_ls_sdefc_inst),
 		
 		.sys_reset_req(sys_reset_req),
 		.flush_req(global_flush_req),
@@ -655,7 +647,6 @@ module panda_risc_v_core #(
 		.s_op_ftc_id_res_is_first_inst_after_rst(s_op_ftc_id_res_is_first_inst_after_rst),
 		.s_op_ftc_id_res_op1(s_op_ftc_id_res_op1),
 		.s_op_ftc_id_res_op2(s_op_ftc_id_res_op2),
-		.s_op_ftc_id_res_with_ls_sdefc(s_op_ftc_id_res_with_ls_sdefc),
 		.s_op_ftc_id_res_valid(s_op_ftc_id_res_valid),
 		.s_op_ftc_id_res_ready(s_op_ftc_id_res_ready),
 		
@@ -1184,7 +1175,6 @@ module panda_risc_v_core #(
 	wire[4:0] rob_prep_rtr_entry_rd_id; // 目的寄存器编号
 	wire rob_prep_rtr_entry_is_csr_rw_inst; // 是否CSR读写指令
 	wire[2:0] rob_prep_rtr_entry_spec_inst_type; // 特殊指令类型
-	wire rob_prep_rtr_entry_is_ls_inst_with_sdefc; // 是否带副效应的访存指令
 	wire rob_prep_rtr_entry_cancel; // 取消标志
 	wire[FU_RES_WIDTH-1:0] rob_prep_rtr_entry_fu_res; // 保存的执行结果
 	wire[31:0] rob_prep_rtr_entry_pc; // 指令对应的PC
@@ -1226,18 +1216,15 @@ module panda_risc_v_core #(
 		.aresetn(aresetn),
 		
 		.rob_clr(rob_clr),
-		.rstr_arct_reg_pos_tb(1'b0),
 		.rob_full_n(rob_full_n),
 		.rob_empty_n(rob_empty_n),
 		.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
 		.rob_has_ls_inst(rob_has_ls_inst),
-		.rob_has_ls_sdefc_inst(rob_has_ls_sdefc_inst),
 		
 		.rob_sng_cancel_vld(1'b0),
 		.rob_sng_cancel_tid({IBUS_TID_WIDTH{1'b0}}),
 		.rob_yngr_cancel_vld(1'b0),
 		.rob_yngr_cancel_bchmk_wptr(6'b000000),
-		.rob_yngr_th_ls_sdefc_cancel_vld(1'b0),
 		
 		.op1_ftc_rs1_id(op1_ftc_rs1_id),
 		.op1_ftc_from_reg_file(op1_ftc_from_reg_file),
@@ -1259,7 +1246,6 @@ module panda_risc_v_core #(
 		.rob_prep_rtr_entry_err(rob_prep_rtr_entry_err),
 		.rob_prep_rtr_entry_rd_id(rob_prep_rtr_entry_rd_id),
 		.rob_prep_rtr_entry_is_csr_rw_inst(rob_prep_rtr_entry_is_csr_rw_inst),
-		.rob_prep_rtr_entry_is_ls_inst_with_sdefc(rob_prep_rtr_entry_is_ls_inst_with_sdefc),
 		.rob_prep_rtr_entry_spec_inst_type(rob_prep_rtr_entry_spec_inst_type),
 		.rob_prep_rtr_entry_cancel(rob_prep_rtr_entry_cancel),
 		.rob_prep_rtr_entry_fu_res(rob_prep_rtr_entry_fu_res),
@@ -1286,7 +1272,6 @@ module panda_risc_v_core #(
 		.rob_luc_bdcst_fuid(rob_luc_bdcst_fuid),
 		.rob_luc_bdcst_rd_id(rob_luc_bdcst_rd_id),
 		.rob_luc_bdcst_is_ls_inst(rob_luc_bdcst_is_ls_inst),
-		.rob_luc_bdcst_with_ls_sdefc(rob_luc_bdcst_with_ls_sdefc),
 		.rob_luc_bdcst_is_csr_rw_inst(rob_luc_bdcst_is_csr_rw_inst),
 		.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
 		.rob_luc_bdcst_err(rob_luc_bdcst_err),

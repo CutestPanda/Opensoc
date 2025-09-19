@@ -175,23 +175,23 @@ module panda_risc_v_regs_rd #(
 	wire op2_stage_regs_raw_dpc; // 操作数2与段寄存器上的指令存在RAW相关性(标志)
 	
 	assign op1_prefetched = 
-		({32{op1_ftc_from_reg_file}} & reg_file_dout_p0) | 
-		({32{op1_ftc_from_rob}} & op1_ftc_rob_saved_data[31:0]) | 
-		({32{op1_ftc_from_byp}} & fu_res_data_arr[op1_ftc_fuid][31:0]);
+		({32{op1_ftc_from_reg_file}} & reg_file_dout_p0) | // 从寄存器堆取操作数
+		({32{op1_ftc_from_rob}} & op1_ftc_rob_saved_data[31:0]) | // 从ROB取操作数
+		({32{op1_ftc_from_byp}} & fu_res_data_arr[op1_ftc_fuid][31:0]); // 从FU取操作数
 	assign op2_prefetched = 
-		({32{op2_ftc_from_reg_file}} & reg_file_dout_p1) | 
-		({32{op2_ftc_from_rob}} & op2_ftc_rob_saved_data[31:0]) | 
-		({32{op2_ftc_from_byp}} & fu_res_data_arr[op2_ftc_fuid][31:0]);
+		({32{op2_ftc_from_reg_file}} & reg_file_dout_p1) | // 从寄存器堆取操作数
+		({32{op2_ftc_from_rob}} & op2_ftc_rob_saved_data[31:0]) | // 从ROB取操作数
+		({32{op2_ftc_from_byp}} & fu_res_data_arr[op2_ftc_fuid][31:0]); // 从FU取操作数
 	
 	assign op1_pftc_success = 
-		(~op1_stage_regs_raw_dpc) & 
+		(~op1_stage_regs_raw_dpc) & // 与段寄存器上的指令不存在RAW相关性
 		(
 			op1_ftc_from_reg_file | 
 			op1_ftc_from_rob | 
 			(op1_ftc_from_byp & fu_res_vld_arr[op1_ftc_fuid] & (fu_res_tid_arr[op1_ftc_fuid] == op1_ftc_tid))
 		);
 	assign op2_pftc_success = 
-		(~op2_stage_regs_raw_dpc) & 
+		(~op2_stage_regs_raw_dpc) & // 与段寄存器上的指令不存在RAW相关性
 		(
 			op2_ftc_from_reg_file | 
 			op2_ftc_from_rob | 

@@ -28,27 +28,26 @@ SOFTWARE.
 
 描述:
 基于FIFO的ROB
-ROB项记录了指令的事务ID、被发射到的执行单元ID、目的寄存器编号、是否加载/存储指令、错误类型
+ROB项记录了指令的指令ID、被发射到的执行单元ID、目的寄存器编号、指令类型、错误类型
 为每个ROB项保存了写指针以确定条目的新旧情况
-每个ROB项都会自动监听其被发射到的执行单元的结果, 并在该条目内暂存数据, 从而实现寄存器重命名
+每个ROB项都会自动监听其被发射到的执行单元的结果, 并在该条目内暂存数据
+每个ROB项都会自动监听其BRU结果(指令对应的PC、指令对应的下一有效PC、B指令执行结果)
 可选的逻辑寄存器位置表
 支持清空ROB
 独立的CSR读写指令信息记录表(其深度决定了能存在于ROB中的CSR读写指令的个数)
-支持取消单个ROB项、多个年轻ROB项、比带副效应的访存指令更年轻的ROB项, 支持发射时自动取消带有同步异常的ROB项
-可将逻辑寄存器位置表恢复到带副效应的访存指令之前的状态
+支持取消单个ROB项、多个年轻ROB项, 支持发射时自动取消带有同步异常的ROB项
 
 注意：
 不允许同时发射和退休相同指令
 只能退休ROB中最旧的那条指令, 即按照FIFO方式让指令退出ROB
 如果某条指令无需写RD, 那么在发射时将RD指定为x0即可
-CSR读写指令信息记录槽位数(CSR_RW_RCD_SLOTS_N)不能大于重排序队列项数(ROB_ENTRY_N)
-应保证ROB中至多存在1条带副效应的访存指令
+CSR读写指令信息记录槽位数(CSR_RW_RCD_SLOTS_N)不能大于ROB项数(ROB_ENTRY_N)
 
 协议:
 无
 
 作者: 陈家耀
-日期: 2025/06/17
+日期: 2025/09/17
 ********************************************************************/
 
 
@@ -71,12 +70,10 @@ module panda_risc_v_rob #(
 	
 	// ROB控制/状态
 	input wire rob_clr, // 清空ROB(指示)
-	input wire rstr_arct_reg_pos_tb, // 将逻辑寄存器位置表恢复到带副效应的访存指令之前的状态(标志)
 	output wire rob_full_n, // ROB满(标志)
 	output wire rob_empty_n, // ROB空(标志)
 	output wire rob_csr_rw_inst_allowed, // 允许发射CSR读写指令(标志)
 	output wire rob_has_ls_inst, // ROB中存在访存指令(标志)
-	output wire rob_has_ls_sdefc_inst, // ROB中存在带有副效应的访存指令(标志)
 	
 	// 取消指定的1项
 	input wire rob_sng_cancel_vld, // 有效标志
@@ -84,8 +81,6 @@ module panda_risc_v_rob #(
 	// 取消所有更年轻项
 	input wire rob_yngr_cancel_vld, // 有效标志
 	input wire[5:0] rob_yngr_cancel_bchmk_wptr, // 基准写指针
-	// 取消比带副效应的访存指令更年轻的ROB项
-	input wire rob_yngr_th_ls_sdefc_cancel_vld, // 有效标志
 	
 	// 读操作数(数据相关性检查)
 	// [操作数1]
@@ -111,7 +106,6 @@ module panda_risc_v_rob #(
 	output wire[2:0] rob_prep_rtr_entry_err, // 错误码
 	output wire[4:0] rob_prep_rtr_entry_rd_id, // 目的寄存器编号
 	output wire rob_prep_rtr_entry_is_csr_rw_inst, // 是否CSR读写指令
-	output wire rob_prep_rtr_entry_is_ls_inst_with_sdefc, // 是否带副效应的访存指令
 	output wire[2:0] rob_prep_rtr_entry_spec_inst_type, // 特殊指令类型
 	output wire rob_prep_rtr_entry_cancel, // 取消标志
 	output wire[FU_RES_WIDTH-1:0] rob_prep_rtr_entry_fu_res, // 保存的执行结果
@@ -142,7 +136,6 @@ module panda_risc_v_rob #(
 	input wire[FU_ID_WIDTH-1:0] rob_luc_bdcst_fuid, // 被发射到的执行单元ID
 	input wire[4:0] rob_luc_bdcst_rd_id, // 目的寄存器编号
 	input wire rob_luc_bdcst_is_ls_inst, // 是否加载/存储指令
-	input wire rob_luc_bdcst_with_ls_sdefc, // 是否存在访存副效应
 	input wire rob_luc_bdcst_is_csr_rw_inst, // 是否CSR读写指令
 	input wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	input wire[2:0] rob_luc_bdcst_err, // 错误类型
@@ -187,7 +180,6 @@ module panda_risc_v_rob #(
 	reg rob_rcd_tb_empty_n; // ROB记录表空(标志)
 	reg[clogb2(ROB_ENTRY_N):0] rob_rcd_tb_wptr; // ROB记录表写指针
 	reg[clogb2(ROB_ENTRY_N):0] rob_rcd_tb_rptr; // ROB记录表读指针
-	reg[clogb2(ROB_ENTRY_N):0] ls_with_sdefc_wptr; // 带副效应的访存指令处的ROB记录表写指针
 	
 	assign rob_full_n = rob_rcd_tb_full_n;
 	assign rob_empty_n = rob_rcd_tb_empty_n;
@@ -239,24 +231,11 @@ module panda_risc_v_rob #(
 	begin
 		if(~aresetn)
 			rob_rcd_tb_rptr <= 0;
-		else if(rob_clr | rob_rtr_bdcst_vld)
-			// 说明: 1条指令要交付, 那么在ROB中肯定是记录了这条指令的信息, 此时ROB不可能是空的
+		else if(rob_clr | rob_rtr_bdcst_vld) // 说明: 1条指令要交付, 那么在ROB中肯定是记录了这条指令的信息, 此时ROB不可能是空的
 			rob_rcd_tb_rptr <= # SIM_DELAY 
 				rob_clr ? 
 					0:
 					(rob_rcd_tb_rptr + 1);
-	end
-	
-	// 带副效应的访存指令处的ROB记录表写指针
-	always @(posedge aclk)
-	begin
-		if(
-			rob_luc_bdcst_vld & rob_rcd_tb_full_n & 
-			rob_luc_bdcst_is_ls_inst & 
-			rob_luc_bdcst_with_ls_sdefc & 
-			(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
-		)
-			ls_with_sdefc_wptr <= # SIM_DELAY rob_rcd_tb_wptr;
 	end
 	
 	/** CSR读写指令信息记录表读写控制 **/
@@ -345,6 +324,7 @@ module panda_risc_v_rob #(
 		for(csr_rw_rcd_i = 0;csr_rw_rcd_i < CSR_RW_RCD_SLOTS_N;csr_rw_rcd_i = csr_rw_rcd_i + 1)
 		begin:csr_rw_rcd_blk
 			assign csr_rw_inst_collision[csr_rw_rcd_i] = 
+				// 待发射(CSR读写)指令的CSR地址与尚未退休的CSR读写指令产生冲突
 				csr_rw_rcd_valid[csr_rw_rcd_i] & (csr_rw_rcd_waddr[csr_rw_rcd_i] == rob_luc_bdcst_csr_rw_inst_msg[45:34]);
 			
 			always @(posedge aclk)
@@ -383,7 +363,6 @@ module panda_risc_v_rob #(
 	reg[FU_ID_WIDTH-1:0] rob_rcd_tb_fuid[0:ROB_ENTRY_N-1]; // 被发射到的执行单元ID
 	reg[4:0] rob_rcd_tb_rd_id[0:ROB_ENTRY_N-1]; // 目的寄存器编号
 	reg rob_rcd_tb_is_ls_inst[0:ROB_ENTRY_N-1]; // 是否加载/存储指令
-	reg rob_rcd_tb_with_ls_sdefc[0:ROB_ENTRY_N-1]; // 是否带有访存副效应
 	reg rob_rcd_tb_is_csr_rw_inst[0:ROB_ENTRY_N-1]; // 是否CSR读写指令
 	reg[2:0] rob_rcd_tb_spec_inst_type[0:ROB_ENTRY_N-1]; // 特殊指令类型
 	reg rob_rcd_tb_cancel[0:ROB_ENTRY_N-1]; // 取消标志
@@ -399,20 +378,14 @@ module panda_risc_v_rob #(
 	wire[ROB_ENTRY_N-1:0] on_rob_sng_cancel_vld; // 取消单个ROB项(标志向量)
 	wire[ROB_ENTRY_N-1:0] on_rob_yngr_cancel_vld; // 取消多个年轻ROB项(标志向量)
 	wire[ROB_ENTRY_N-1:0] on_rob_sync_err_cancel_vld; // 取消带有同步异常的ROB项(标志向量)
-	wire[ROB_ENTRY_N-1:0] on_rob_yngr_th_ls_sdefc_cancel_vld; // 取消比带副效应的访存指令更年轻的ROB项(标志向量)
-	reg has_ls_sdefc_inst; // 存在带有副效应的访存指令(标志)
 	
 	assign rob_has_ls_inst = rob_rcd_tb_entry_is_vld_ls_inst != {ROB_ENTRY_N{1'b0}};
-	assign rob_has_ls_sdefc_inst = has_ls_sdefc_inst;
 	
 	assign rob_prep_rtr_entry_vld = rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_saved = rob_rcd_tb_saved[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_err = rob_rcd_tb_err[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_rd_id = rob_rcd_tb_rd_id[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_is_csr_rw_inst = rob_rcd_tb_is_csr_rw_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
-	assign rob_prep_rtr_entry_is_ls_inst_with_sdefc = 
-		rob_rcd_tb_is_ls_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
-		rob_rcd_tb_with_ls_sdefc[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_spec_inst_type = rob_rcd_tb_spec_inst_type[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_cancel = rob_rcd_tb_cancel[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_fu_res = rob_rcd_tb_fu_res[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
@@ -441,13 +414,6 @@ module panda_risc_v_rob #(
 				(AUTO_CANCEL_SYNC_ERR_ENTRY == "true") & 
 				(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i)) & 
 				(rob_luc_bdcst_err != LUC_INST_ERR_CODE_NORMAL);
-			assign on_rob_yngr_th_ls_sdefc_cancel_vld[rob_rcd_tb_entry_i] = 
-				rob_yngr_th_ls_sdefc_cancel_vld & 
-				rob_rcd_tb_vld[rob_rcd_tb_entry_i] & (
-					(ls_with_sdefc_wptr[clogb2(ROB_ENTRY_N)] ^ rob_rcd_tb_wptr_saved[rob_rcd_tb_entry_i][clogb2(ROB_ENTRY_N)]) ^ 
-					(rob_rcd_tb_wptr_saved[rob_rcd_tb_entry_i][clogb2(ROB_ENTRY_N-1):0] >= 
-						ls_with_sdefc_wptr[clogb2(ROB_ENTRY_N-1):0])
-				);
 			
 			always @(posedge aclk)
 			begin
@@ -460,7 +426,6 @@ module panda_risc_v_rob #(
 							rob_luc_bdcst_fuid;
 					rob_rcd_tb_rd_id[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_rd_id;
 					rob_rcd_tb_is_ls_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_ls_inst;
-					rob_rcd_tb_with_ls_sdefc[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_with_ls_sdefc;
 					rob_rcd_tb_is_csr_rw_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_csr_rw_inst;
 					rob_rcd_tb_spec_inst_type[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_spec_inst_type;
 					
@@ -492,14 +457,12 @@ module panda_risc_v_rob #(
 					(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i)) | 
 					on_rob_sng_cancel_vld[rob_rcd_tb_entry_i] | 
 					on_rob_yngr_cancel_vld[rob_rcd_tb_entry_i] | 
-					on_rob_sync_err_cancel_vld[rob_rcd_tb_entry_i] | 
-					on_rob_yngr_th_ls_sdefc_cancel_vld[rob_rcd_tb_entry_i]
+					on_rob_sync_err_cancel_vld[rob_rcd_tb_entry_i]
 				)
 					rob_rcd_tb_cancel[rob_rcd_tb_entry_i] <= # SIM_DELAY 
 						on_rob_sng_cancel_vld[rob_rcd_tb_entry_i] | 
 						on_rob_yngr_cancel_vld[rob_rcd_tb_entry_i] | 
 						on_rob_sync_err_cancel_vld[rob_rcd_tb_entry_i] | 
-						on_rob_yngr_th_ls_sdefc_cancel_vld[rob_rcd_tb_entry_i] | 
 						(~(
 							rob_luc_bdcst_vld & 
 							rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i)
@@ -507,37 +470,6 @@ module panda_risc_v_rob #(
 			end
 		end
 	endgenerate
-	
-	// 存在带有副效应的访存指令(标志)
-	always @(posedge aclk or negedge aresetn)
-	begin
-		if(~aresetn)
-			has_ls_sdefc_inst <= 1'b0;
-		else if(
-			rob_clr | (
-				(
-					rob_luc_bdcst_vld & rob_rcd_tb_full_n & 
-					rob_luc_bdcst_is_ls_inst & 
-					rob_luc_bdcst_with_ls_sdefc & 
-					(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
-				) ^ 
-				(
-					rob_rtr_bdcst_vld & 
-					rob_rcd_tb_is_ls_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
-					rob_rcd_tb_with_ls_sdefc[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
-					(rob_rcd_tb_err[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] == LUC_INST_ERR_CODE_NORMAL)
-				)
-			)
-		)
-			has_ls_sdefc_inst <= # SIM_DELAY 
-				(~rob_clr) & 
-				(
-					rob_luc_bdcst_vld & rob_rcd_tb_full_n & 
-					rob_luc_bdcst_is_ls_inst & 
-					rob_luc_bdcst_with_ls_sdefc & 
-					(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
-				);
-	end
 	
 	/** 执行单元结果监听 **/
 	// 执行单元结果返回(数组)
@@ -568,9 +500,9 @@ module panda_risc_v_rob #(
 		for(rob_res_i = 0;rob_res_i < ROB_ENTRY_N;rob_res_i = rob_res_i + 1)
 		begin:rob_entry_res_blk
 			assign rob_entry_res_on_lsn[rob_res_i] = 
-				rob_entry_res_vld_arr[rob_res_i] & 
-				(rob_entry_res_tid_arr[rob_res_i] == rob_rcd_tb_tid[rob_res_i]) & 
-				rob_rcd_tb_vld[rob_res_i] & (~rob_rcd_tb_saved[rob_res_i]);
+				rob_entry_res_vld_arr[rob_res_i] & // 所监听的FU结果有效
+				(rob_entry_res_tid_arr[rob_res_i] == rob_rcd_tb_tid[rob_res_i]) & // 所监听的FU指令ID匹配
+				rob_rcd_tb_vld[rob_res_i] & (~rob_rcd_tb_saved[rob_res_i]); // 当前ROB项有效且未保存结果
 			
 			assign rob_entry_res_vld_arr[rob_res_i] = 
 				fu_res_vld_arr[rob_rcd_tb_fuid[rob_res_i]];
@@ -636,7 +568,7 @@ module panda_risc_v_rob #(
 			
 			always @(posedge aclk)
 			begin
-				if(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i]))
+				if(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i])) // 所有指令都会经过BRU, 且BRU结果必定在(FU)执行结果之前得到
 				begin
 					rob_rcd_tb_pc[rob_res_i] <= # SIM_DELAY s_bru_o_pc;
 					rob_rcd_tb_nxt_pc[rob_res_i] <= # SIM_DELAY s_bru_o_nxt_pc;
@@ -649,8 +581,6 @@ module panda_risc_v_rob #(
 	/** 逻辑寄存器位置表 **/
 	reg[31:0] is_arct_reg_at_rob; // 逻辑寄存器位于ROB或旁路网络(标志组)
 	reg[clogb2(ROB_ENTRY_N-1):0] arct_reg_rob_entry_i[0:31]; // 逻辑寄存器在ROB中的项编号
-	reg[31:1] is_arct_reg_at_rob_bck; // 备份的逻辑寄存器位于ROB或旁路网络(标志组)
-	reg[clogb2(ROB_ENTRY_N-1):0] arct_reg_rob_entry_i_bck[1:31]; // 备份的逻辑寄存器在ROB中的项编号
 	
 	genvar arct_reg_i;
 	generate
@@ -662,51 +592,32 @@ module panda_risc_v_rob #(
 					is_arct_reg_at_rob[arct_reg_i] <= 1'b0;
 				else if(
 					rob_clr | 
-					rstr_arct_reg_pos_tb | 
+					// 一旦向ROB记录1条指令, 那么这条指令所对应的Rd就位于ROB或旁路网络上
 					(
 						rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
 						(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
 					) | 
+					// 当这个逻辑寄存器所绑定的ROB项退休时, 那么这个逻辑寄存器就位于Reg-File上
 					(
 						is_arct_reg_at_rob[arct_reg_i] & 
 						rob_rtr_bdcst_vld & (rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0] == arct_reg_rob_entry_i[arct_reg_i])
 					)
 				)
 					is_arct_reg_at_rob[arct_reg_i] <= # SIM_DELAY 
-						rstr_arct_reg_pos_tb ? 
-							is_arct_reg_at_rob_bck[arct_reg_i]:(
-								(~rob_clr) & (
-									rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
-									(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
-								)
-							);
+						(~rob_clr) & (
+							rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
+							(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
+						);
 			end
 			
 			always @(posedge aclk)
 			begin
 				if(
-					rstr_arct_reg_pos_tb | (
-						rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
-						(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
-					)
-				)
-					arct_reg_rob_entry_i[arct_reg_i] <= # SIM_DELAY 
-						rstr_arct_reg_pos_tb ? 
-							arct_reg_rob_entry_i_bck[arct_reg_i]:
-							rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0];
-			end
-			
-			always @(posedge aclk)
-			begin
-				if(
-					rob_luc_bdcst_vld & rob_rcd_tb_full_n & 
-					rob_luc_bdcst_is_ls_inst & rob_luc_bdcst_with_ls_sdefc & 
+					// 一旦向ROB记录1条指令, 那么就更新这条指令对应Rd所绑定的ROB项
+					rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
 					(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
 				)
-				begin
-					is_arct_reg_at_rob_bck[arct_reg_i] <= # SIM_DELAY is_arct_reg_at_rob[arct_reg_i];
-					arct_reg_rob_entry_i_bck[arct_reg_i] <= # SIM_DELAY arct_reg_rob_entry_i[arct_reg_i];
-				end
+					arct_reg_rob_entry_i[arct_reg_i] <= # SIM_DELAY rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0];
 			end
 		end
 	endgenerate
@@ -722,15 +633,13 @@ module panda_risc_v_rob #(
 	wire[ROB_ENTRY_N-1:0] rob_entry_op2_dpc; // ROB条目与OP2存在RAW相关性(标志向量)
 	wire[ROB_ENTRY_N*6-1:0] rob_wptr_recorded_for_cmp; // 待比较的ROB记录写指针(向量)
 	wire[ROB_ENTRY_N*(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)-1:0] rob_payload_for_cmp; // 待比较的ROB负载数据(向量)
-	wire[4:0] newest_entry_i_with_op1_dpc; // 与OP1存在RAW相关性的最新项的编号
-	wire[4:0] newest_entry_i_with_op2_dpc; // 与OP2存在RAW相关性的最新项的编号
 	wire[(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)-1:0] newest_entry_payload_with_op1_dpc; // 与OP1存在RAW相关性的最新项的数据
 	wire[(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)-1:0] newest_entry_payload_with_op2_dpc; // 与OP2存在RAW相关性的最新项的数据
 	wire[clogb2(ROB_ENTRY_N-1):0] op1_rs1_rob_entry_i; // OP1(RS1)在ROB中的项编号
 	wire[clogb2(ROB_ENTRY_N-1):0] op2_rs2_rob_entry_i; // OP2(RS2)在ROB中的项编号
 	
 	/*
-	如果使用逻辑寄存器位置表, 那么表中记录了每个逻辑寄存器是否在ROB或旁路网络中, 并给出了最新的ROB项编号, 利用这个表可以很容易完成操作数读取
+	如果使用逻辑寄存器位置表, 那么表中记录了每个逻辑寄存器是否在ROB或旁路网络中, 并给出了最新的ROB项编号, 利用这个表可以很容易地完成操作数读取
 	
 	如果不使用逻辑寄存器位置表, 那么取操作数的流程如下: 
 		将待取操作数的rs索引与ROB中每1项的rd索引比较, 如果都不相同: 
@@ -845,7 +754,7 @@ module panda_risc_v_rob #(
 		.rob_payload(rob_payload_for_cmp),
 		.cmp_mask(rob_entry_op1_dpc),
 		
-		.newest_entry_i(newest_entry_i_with_op1_dpc),
+		.newest_entry_i(),
 		.newest_entry_payload(newest_entry_payload_with_op1_dpc)
 	);
 	find_newest_rob_entry #(
@@ -856,13 +765,8 @@ module panda_risc_v_rob #(
 		.rob_payload(rob_payload_for_cmp),
 		.cmp_mask(rob_entry_op2_dpc),
 		
-		.newest_entry_i(newest_entry_i_with_op2_dpc),
+		.newest_entry_i(),
 		.newest_entry_payload(newest_entry_payload_with_op2_dpc)
 	);
-	
-	/** 未使用的信号 **/
-	wire unused;
-	
-	assign unused = (|newest_entry_i_with_op1_dpc) | (|newest_entry_i_with_op2_dpc);
 	
 endmodule
