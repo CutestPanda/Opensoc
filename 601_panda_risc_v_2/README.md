@@ -5,3 +5,5 @@
 (4)跑分2.8Coremark/MHz  
 
 ![第2版小胖达risc-v微架构](../img/panda_risc_v_24.png)
+
+> 使用说明请见**600_panda_risc_v**里的README。
