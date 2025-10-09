@@ -1035,6 +1035,9 @@ module panda_risc_v_core #(
 	wire m_icb_lsu_rsp_data_err;
 	wire m_icb_lsu_rsp_data_valid;
 	wire m_icb_lsu_rsp_data_ready;
+	// 访存许可
+	wire ls_allow_vld;
+	wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id; // 指令编号
 	
 	assign s_alu_op_mode = m_alu_op_mode;
 	assign s_alu_op1 = m_alu_op1;
@@ -1110,8 +1113,7 @@ module panda_risc_v_core #(
 		
 		.m_lsu_ls_sel(),
 		.m_lsu_rd_id_for_ld(),
-		.m_lsu_dout(),
-		.m_lsu_ls_addr(),
+		.m_lsu_dout_ls_addr(),
 		.m_lsu_err(),
 		.m_lsu_inst_id(),
 		.m_lsu_valid(),
@@ -1161,8 +1163,10 @@ module panda_risc_v_core #(
 		.m_icb_rsp_data_valid(m_icb_lsu_rsp_data_valid),
 		.m_icb_rsp_data_ready(m_icb_lsu_rsp_data_ready),
 		
-		.dbus_timeout(dbus_timeout),
-		.lsu_idle()
+		.ls_allow_vld(ls_allow_vld),
+		.ls_allow_inst_id(ls_allow_inst_id),
+		
+		.dbus_timeout(dbus_timeout)
 	);
 	
 	/** 重排序队列(ROB) **/
@@ -1225,6 +1229,9 @@ module panda_risc_v_core #(
 		.rob_sng_cancel_tid({IBUS_TID_WIDTH{1'b0}}),
 		.rob_yngr_cancel_vld(1'b0),
 		.rob_yngr_cancel_bchmk_wptr(6'b000000),
+		
+		.ls_allow_vld(ls_allow_vld),
+		.ls_allow_inst_id(ls_allow_inst_id),
 		
 		.op1_ftc_rs1_id(op1_ftc_rs1_id),
 		.op1_ftc_from_reg_file(op1_ftc_from_reg_file),

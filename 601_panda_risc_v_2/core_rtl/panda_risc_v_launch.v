@@ -136,7 +136,7 @@ module panda_risc_v_launch #(
 	assign fence_csr_rw_allowed = 
 		s_op_ftc_id_res_data[32+PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | 
 		(
-			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_I_INST_SID]) | rob_empty_n) & // FENCE.I指令等到ROB空再发射
+			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_I_INST_SID]) | (~rob_empty_n)) & // FENCE.I指令等到ROB空再发射
 			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_INST_SID]) | (~rob_has_ls_inst)) & // FENCE指令等到所有访存指令退休后再发射
 			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_CSR_RW_INST_SID]) | rob_csr_rw_inst_allowed) // 检查ROB是否允许发射CSR读写指令
 		);

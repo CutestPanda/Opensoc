@@ -44,6 +44,8 @@ module panda_risc_v_func_units #(
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
 	parameter integer DBUS_ACCESS_TIMEOUT_TH = 16, // 数据总线访问超时周期数(必须>=1)
 	parameter EN_SGN_PERIOD_MUL = "true", // 是否使用单周期乘法器
+	parameter integer LS_BUF_ENTRY_N = 8, // 访存缓存区条目数(4 | 8 | 16)
+	parameter integer DBUS_OUTSTANDING_N = 4, // 数据总线可滞外传输个数(必须<=LS_BUF_ENTRY_N)
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
@@ -86,8 +88,8 @@ module panda_risc_v_func_units #(
 	// [访问输出]
 	output wire m_lsu_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
 	output wire[4:0] m_lsu_rd_id_for_ld, // 用于加载的目标寄存器的索引
-	output wire[31:0] m_lsu_dout, // 读数据
-	output wire[31:0] m_lsu_ls_addr, // 访存地址
+	// 说明: 访存正常完成时给出"读数据", 错误时给出"访存地址"
+	output wire[31:0] m_lsu_dout_ls_addr, // 读数据或访存地址
 	output wire[1:0] m_lsu_err, // 错误类型
 	output wire[IBUS_TID_WIDTH-1:0] m_lsu_inst_id, // 指令ID
 	output wire m_lsu_valid,
@@ -146,9 +148,12 @@ module panda_risc_v_func_units #(
 	input wire m_icb_rsp_data_valid,
 	output wire m_icb_rsp_data_ready,
 	
+	// 访存许可
+	input wire ls_allow_vld,
+	input wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id, // 指令编号
+	
 	// LSU状态
-	output wire dbus_timeout, // 数据总线访问超时标志
-	output wire lsu_idle // 访存单元空闲(标志)
+	output wire dbus_timeout // 数据总线访问超时标志
 );
 	
 	/** 常量 **/
@@ -203,15 +208,17 @@ module panda_risc_v_func_units #(
 	
 	/** LSU **/
 	panda_risc_v_lsu #(
-		.inst_id_width(IBUS_TID_WIDTH),
-		.dbus_access_timeout_th(DBUS_ACCESS_TIMEOUT_TH),
-		.icb_zero_latency_supported("false"),
-		.simulation_delay(SIM_DELAY)
+		.INST_ID_WIDTH(IBUS_TID_WIDTH),
+		.DBUS_ACCESS_TIMEOUT_TH(DBUS_ACCESS_TIMEOUT_TH),
+		.LS_BUF_ENTRY_N(LS_BUF_ENTRY_N),
+		.DBUS_OUTSTANDING_N(DBUS_OUTSTANDING_N),
+		.SIM_DELAY(SIM_DELAY)
 	)lsu_u(
 		.clk(aclk),
 		.resetn(aresetn),
 		
-		.lsu_idle(lsu_idle),
+		.ls_allow_vld(ls_allow_vld),
+		.ls_allow_inst_id(ls_allow_inst_id),
 		
 		.s_req_ls_sel(s_lsu_ls_sel),
 		.s_req_ls_type(s_lsu_ls_type),
@@ -219,13 +226,13 @@ module panda_risc_v_func_units #(
 		.s_req_ls_addr(alu_ls_addr), // 访存地址由ALU计算得到
 		.s_req_ls_din(s_lsu_ls_din),
 		.s_req_lsu_inst_id(s_lsu_inst_id),
+		.s_req_pre_exec_prmt(~s_lsu_ls_sel), // 加载指令允许提前执行, 存储指令不允许提前执行
 		.s_req_valid(s_lsu_valid),
 		.s_req_ready(s_lsu_ready),
 		
 		.m_resp_ls_sel(m_lsu_ls_sel),
 		.m_resp_rd_id_for_ld(m_lsu_rd_id_for_ld),
-		.m_resp_dout(m_lsu_dout),
-		.m_resp_ls_addr(m_lsu_ls_addr),
+		.m_resp_dout_ls_addr(m_lsu_dout_ls_addr),
 		.m_resp_err(m_lsu_err),
 		.m_resp_lsu_inst_id(m_lsu_inst_id),
 		.m_resp_valid(m_lsu_valid),
@@ -296,13 +303,10 @@ module panda_risc_v_func_units #(
 	assign fu_res_vld = {m_div_valid, m_mul_valid, m_lsu_valid, m_csr_valid, m_alu_valid};
 	assign fu_res_tid = {m_div_inst_id, m_mul_inst_id, m_lsu_inst_id, m_csr_tid, m_alu_tid};
 	assign fu_res_data = {
-		m_div_data, 
-		m_mul_data, 
-		// 发送LSU错误时给出访存地址而非读数据
-		(m_lsu_err == DBUS_ACCESS_NORMAL) ? 
-			m_lsu_dout:
-			m_lsu_ls_addr, 
-		m_csr_dout, 
+		m_div_data,
+		m_mul_data,
+		m_lsu_dout_ls_addr, // 发送LSU错误时给出访存地址而非读数据
+		m_csr_dout,
 		m_alu_res
 	};
 	assign fu_res_err = {

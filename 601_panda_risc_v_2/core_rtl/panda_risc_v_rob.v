@@ -82,6 +82,10 @@ module panda_risc_v_rob #(
 	input wire rob_yngr_cancel_vld, // 有效标志
 	input wire[5:0] rob_yngr_cancel_bchmk_wptr, // 基准写指针
 	
+	// 访存许可
+	output wire ls_allow_vld,
+	output wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id, // 指令编号
+	
 	// 读操作数(数据相关性检查)
 	// [操作数1]
 	input wire[4:0] op1_ftc_rs1_id, // 1号源寄存器编号
@@ -768,5 +772,26 @@ module panda_risc_v_rob #(
 		.newest_entry_i(),
 		.newest_entry_payload(newest_entry_payload_with_op2_dpc)
 	);
+	
+	/** 访存许可 **/
+	reg ls_allow_vld_suppress; // 访存执行许可(镇压标志)
+	
+	assign ls_allow_vld = (~rob_clr) & (~ls_allow_vld_suppress) & rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	assign ls_allow_inst_id = rob_rcd_tb_tid[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	
+	// 访存执行许可(镇压标志)
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			ls_allow_vld_suppress <= 1'b0;
+		else if(
+			rob_clr | (
+				ls_allow_vld_suppress ? 
+					rob_rtr_bdcst_vld:
+					(rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & (~rob_rtr_bdcst_vld))
+			)
+		)
+			ls_allow_vld_suppress <= # SIM_DELAY (~rob_clr) & (~ls_allow_vld_suppress);
+	end
 	
 endmodule
