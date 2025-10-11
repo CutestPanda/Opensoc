@@ -1035,6 +1035,9 @@ module panda_risc_v_core #(
 	wire m_icb_lsu_rsp_data_err;
 	wire m_icb_lsu_rsp_data_valid;
 	wire m_icb_lsu_rsp_data_ready;
+	// 接受访存请求阶段ROB记录广播
+	wire rob_ls_start_bdcst_vld; // 广播有效
+	wire[IBUS_TID_WIDTH-1:0] rob_ls_start_bdcst_tid; // 指令ID
 	// 访存许可
 	wire ls_allow_vld;
 	wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id; // 指令编号
@@ -1163,6 +1166,9 @@ module panda_risc_v_core #(
 		.m_icb_rsp_data_valid(m_icb_lsu_rsp_data_valid),
 		.m_icb_rsp_data_ready(m_icb_lsu_rsp_data_ready),
 		
+		.rob_ls_start_bdcst_vld(rob_ls_start_bdcst_vld),
+		.rob_ls_start_bdcst_tid(rob_ls_start_bdcst_tid),
+		
 		.ls_allow_vld(ls_allow_vld),
 		.ls_allow_inst_id(ls_allow_inst_id),
 		
@@ -1283,6 +1289,9 @@ module panda_risc_v_core #(
 		.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
 		.rob_luc_bdcst_err(rob_luc_bdcst_err),
 		.rob_luc_bdcst_spec_inst_type(rob_luc_bdcst_spec_inst_type),
+		
+		.rob_ls_start_bdcst_vld(rob_ls_start_bdcst_vld),
+		.rob_ls_start_bdcst_tid(rob_ls_start_bdcst_tid),
 		
 		.rob_rtr_bdcst_vld(rob_rtr_bdcst_vld)
 	);

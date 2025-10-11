@@ -55,6 +55,10 @@ module panda_risc_v_lsu #(
 	input wire ls_allow_vld,
 	input wire[INST_ID_WIDTH-1:0] ls_allow_inst_id, // 指令编号
 	
+	// 接受访存请求阶段ROB记录广播
+	output wire rob_ls_start_bdcst_vld, // 广播有效
+	output wire[INST_ID_WIDTH-1:0] rob_ls_start_bdcst_tid, // 指令ID
+	
 	// 访存请求
 	input wire s_req_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
 	input wire[2:0] s_req_ls_type, // 访存类型
@@ -119,6 +123,11 @@ module panda_risc_v_lsu #(
 	localparam DBUS_ACCESS_LS_UNALIGNED = 2'b01; // 访存地址非对齐
 	localparam DBUS_ACCESS_BUS_ERR = 2'b10; // 数据总线访问错误
 	localparam DBUS_ACCESS_TIMEOUT = 2'b11; // 响应超时
+	
+	/** 接受访存请求阶段ROB记录广播 **/
+	assign rob_ls_start_bdcst_vld = s_req_valid & s_req_ready;
+	assign rob_ls_start_bdcst_tid = s_req_lsu_inst_id;
+	
 	
 	/** 访存请求前处理 **/
 	wire[2:0] ls_type_for_pre_prcs; // 访存类型

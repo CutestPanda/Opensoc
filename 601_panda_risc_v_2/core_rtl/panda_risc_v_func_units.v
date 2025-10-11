@@ -148,6 +148,10 @@ module panda_risc_v_func_units #(
 	input wire m_icb_rsp_data_valid,
 	output wire m_icb_rsp_data_ready,
 	
+	// 接受访存请求阶段ROB记录广播
+	output wire rob_ls_start_bdcst_vld, // 广播有效
+	output wire[IBUS_TID_WIDTH-1:0] rob_ls_start_bdcst_tid, // 指令ID
+	
 	// 访存许可
 	input wire ls_allow_vld,
 	input wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id, // 指令编号
@@ -219,6 +223,9 @@ module panda_risc_v_func_units #(
 		
 		.ls_allow_vld(ls_allow_vld),
 		.ls_allow_inst_id(ls_allow_inst_id),
+		
+		.rob_ls_start_bdcst_vld(rob_ls_start_bdcst_vld),
+		.rob_ls_start_bdcst_tid(rob_ls_start_bdcst_tid),
 		
 		.s_req_ls_sel(s_lsu_ls_sel),
 		.s_req_ls_type(s_lsu_ls_type),

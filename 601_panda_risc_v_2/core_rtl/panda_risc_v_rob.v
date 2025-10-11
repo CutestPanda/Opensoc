@@ -144,6 +144,9 @@ module panda_risc_v_rob #(
 	input wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	input wire[2:0] rob_luc_bdcst_err, // 错误类型
 	input wire[2:0] rob_luc_bdcst_spec_inst_type, // 特殊指令类型
+	// [接受访存请求阶段]
+	input wire rob_ls_start_bdcst_vld, // 广播有效
+	input wire[IBUS_TID_WIDTH-1:0] rob_ls_start_bdcst_tid, // 指令ID
 	// [退休阶段]
 	input wire rob_rtr_bdcst_vld // 广播有效
 );
@@ -377,6 +380,7 @@ module panda_risc_v_rob #(
 	reg[31:0] rob_rcd_tb_nxt_pc[0:ROB_ENTRY_N-1]; // 指令对应的下一有效PC
 	reg[1:0] rob_rcd_tb_b_inst_res[0:ROB_ENTRY_N-1]; // B指令执行结果
 	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_saved; // 结果已保存(标志)
+	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_ls_req_accepted; // 访存请求已接受(标志)
 	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_vld; // 有效标志
 	wire[ROB_ENTRY_N-1:0] rob_rcd_tb_entry_is_vld_ls_inst; // 本条目是有效的访存指令(标志)
 	wire[ROB_ENTRY_N-1:0] on_rob_sng_cancel_vld; // 取消单个ROB项(标志向量)
@@ -453,6 +457,21 @@ module panda_risc_v_rob #(
 						// 断言: 不会出现写和退出同一ROB项的情况
 						(~rob_clr) & 
 						rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i);
+			end
+			
+			always @(posedge aclk or negedge aresetn)
+			begin
+				if(~aresetn)
+					rob_rcd_tb_ls_req_accepted[rob_rcd_tb_entry_i] <= 1'b0;
+				else if(
+					rob_clr | 
+					(rob_ls_start_bdcst_vld & (rob_ls_start_bdcst_tid == rob_rcd_tb_tid[rob_rcd_tb_entry_i])) | 
+					(rob_rtr_bdcst_vld & (rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i))
+				)
+					// 断言: 对于某个ROB项, 不会出现同时"接受访存请求"和"退出ROB"的情况
+					rob_rcd_tb_ls_req_accepted[rob_rcd_tb_entry_i] <= # SIM_DELAY 
+						(~rob_clr) & 
+						rob_ls_start_bdcst_vld & (rob_ls_start_bdcst_tid == rob_rcd_tb_tid[rob_rcd_tb_entry_i]);
 			end
 			
 			always @(posedge aclk)
@@ -776,7 +795,11 @@ module panda_risc_v_rob #(
 	/** 访存许可 **/
 	reg ls_allow_vld_suppress; // 访存执行许可(镇压标志)
 	
-	assign ls_allow_vld = (~rob_clr) & (~ls_allow_vld_suppress) & rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	assign ls_allow_vld = 
+		(~rob_clr) & 
+		(~ls_allow_vld_suppress) & 
+		rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
+		rob_rcd_tb_ls_req_accepted[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign ls_allow_inst_id = rob_rcd_tb_tid[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
 	// 访存执行许可(镇压标志)
@@ -788,7 +811,11 @@ module panda_risc_v_rob #(
 			rob_clr | (
 				ls_allow_vld_suppress ? 
 					rob_rtr_bdcst_vld:
-					(rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & (~rob_rtr_bdcst_vld))
+					(
+						rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
+						rob_rcd_tb_ls_req_accepted[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
+						(~rob_rtr_bdcst_vld)
+					)
 			)
 		)
 			ls_allow_vld_suppress <= # SIM_DELAY (~rob_clr) & (~ls_allow_vld_suppress);
