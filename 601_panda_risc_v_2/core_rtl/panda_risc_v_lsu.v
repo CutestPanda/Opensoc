@@ -27,10 +27,14 @@ SOFTWARE.
 本模块: 加载/存储单元
 
 描述:
+接受访存请求, 驱动数据ICB主机, 得到访存结果
+若访存请求允许提前执行, 则在它与前序访存请求不产生地址冲突时自动许可;若访存请求不允许提前执行, 则需要等待外部给出(匹配当前请求的指令编号的)访存许可
+当接受访存请求时, 向ROB发出广播
 
+最低的访存时延为5clk: 接受访存请求 -> 许可 -> 数据ICB主机命令通道握手 -> 数据ICB主机响应通道握手 -> 得到访存结果
 
 注意：
-
+至少要在接受访存请求项后的1clk, 外部才能给出对应请求项的访存许可, 否则该许可没有作用
 
 协议:
 ICB MASTER
@@ -128,7 +132,6 @@ module panda_risc_v_lsu #(
 	assign rob_ls_start_bdcst_vld = s_req_valid & s_req_ready;
 	assign rob_ls_start_bdcst_tid = s_req_lsu_inst_id;
 	
-	
 	/** 访存请求前处理 **/
 	wire[2:0] ls_type_for_pre_prcs; // 访存类型
 	wire[31:0] ls_addr_for_pre_prcs; // 访存地址
@@ -165,7 +168,7 @@ module panda_risc_v_lsu #(
 	/**
 	数据总线事务随路信息缓存区
 	
-	数据总线命令通道握手时写入, 数据总线响应通道握手时读出
+	数据总线命令通道握手时写入, 取走访存结果时读出
 	**/
 	// [存储实体]
 	reg[clogb2(LS_BUF_ENTRY_N-1):0] dbus_info_buf_trans_eid[0:DBUS_OUTSTANDING_N-1]; // 事务对应的访存缓存区条目编号
