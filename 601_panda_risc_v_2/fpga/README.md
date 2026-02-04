@@ -5,6 +5,7 @@
 可用版本：  
 
 - vivado工程/panda_soc_test_v7.zip  
+- vivado工程/panda_soc_test_v8.zip  
 
 ### panda_soc_test_v7
 #### <center>存储映射表</center>
@@ -27,4 +28,6 @@
 |TIMER0中断|2|
 |UART0中断|3|
 
-
+### panda_soc_test_v8
+存储映射和外部中断同panda_soc_test_v7。  
+修改了分支预测部分的逻辑。  

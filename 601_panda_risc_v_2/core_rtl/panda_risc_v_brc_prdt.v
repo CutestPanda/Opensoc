@@ -97,6 +97,7 @@ module panda_risc_v_brc_prdt #(
 	input wire btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	input wire btb_rplc_push_ras, // RAS压栈标志
 	input wire btb_rplc_pop_ras, // RAS出栈标志
+	input wire btb_rplc_vld_flag, // 有效标志
 	// [BTB存储器]
 	// (端口A)
 	output wire[BTB_WAY_N-1:0] btb_mem_clka,
@@ -318,6 +319,7 @@ module panda_risc_v_brc_prdt #(
 		.btb_rplc_jpdir(btb_rplc_jpdir),
 		.btb_rplc_push_ras(btb_rplc_push_ras),
 		.btb_rplc_pop_ras(btb_rplc_pop_ras),
+		.btb_rplc_vld_flag(btb_rplc_vld_flag),
 		
 		.btb_mem_clka(btb_mem_clka),
 		.btb_mem_ena(btb_mem_ena),
@@ -343,19 +345,17 @@ module panda_risc_v_brc_prdt #(
 	assign prdt_o_vld = btb_query_o_vld & glb_brc_prdt_query_o_vld;
 	assign prdt_o_pc = 
 		(btb_query_o_hit & (btb_query_o_btype == BRANCH_TYPE_JALR)) ? 
-			ras_query_addr:
+			ras_query_addr: // BTB命中, 并指示这是1条JALR指令, 那么预测地址从RAS取得
 			btb_query_o_bta;
 	assign prdt_o_brc_type = btb_query_o_btype;
 	assign prdt_o_push_ras = btb_query_o_push_ras;
 	assign prdt_o_pop_ras = btb_query_o_pop_ras;
 	assign prdt_o_taken = 
+		btb_query_o_hit & 
 		(
-			btb_query_o_hit & (
-				(btb_query_o_btype == BRANCH_TYPE_JAL) | 
-				(btb_query_o_btype == BRANCH_TYPE_JALR)
-			)
-		) | 
-		glb_brc_prdt_query_o_2bit_sat_cnt[1];
+			((btb_query_o_btype == BRANCH_TYPE_JAL) | (btb_query_o_btype == BRANCH_TYPE_JALR)) | 
+			((btb_query_o_btype == BRANCH_TYPE_B) & glb_brc_prdt_query_o_2bit_sat_cnt[1])
+		);
 	assign prdt_o_btb_hit = btb_query_o_hit;
 	assign prdt_o_btb_wid = btb_query_o_wid;
 	assign prdt_o_btb_wvld = btb_query_o_wvld;
@@ -366,16 +366,9 @@ module panda_risc_v_brc_prdt #(
 	
 	assign glb_brc_prdt_on_upd_speculative_ghr = 
 		btb_query_o_vld & 
-		(
-			btb_query_o_hit ? 
-				(btb_query_o_btype == BRANCH_TYPE_B):
-				// 说明: 如果全局历史分支预测的PHT给出的2bit饱和计数器是饱和的, 即使BTB未命中, 也可以猜测这是1条B指令
-				(
-					glb_brc_prdt_query_o_vld & 
-					(~(glb_brc_prdt_query_o_2bit_sat_cnt[1] ^ glb_brc_prdt_query_o_2bit_sat_cnt[0]))
-				)
-		);
-	assign glb_brc_prdt_speculative_ghr_shift_in = glb_brc_prdt_query_o_2bit_sat_cnt[1];
+		(btb_query_o_hit & (btb_query_o_btype == BRANCH_TYPE_B)); // BTB命中, 并指示这是1条B指令
+	assign glb_brc_prdt_speculative_ghr_shift_in = 
+		glb_brc_prdt_query_o_2bit_sat_cnt[1];
 	assign glb_brc_prdt_query_i_req = prdt_i_req;
 	assign glb_brc_prdt_query_i_pc = prdt_i_pc;
 	

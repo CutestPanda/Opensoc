@@ -551,13 +551,19 @@ module panda_risc_v_commit #(
 		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL) & 
 		// 这条指令是B指令
 		(rob_prep_rtr_entry_b_inst_res != B_INST_RES_NONE);
-	assign glb_brc_prdt_retired_ghr_shift_in = rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN;
+	assign glb_brc_prdt_retired_ghr_shift_in = 
+		rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN;
 	
 	assign glb_brc_prdt_upd_i_req = 
 		// 退休1条未被取消、没有异常的指令
-		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL);
-	assign glb_brc_prdt_upd_i_pc = rob_prep_rtr_entry_pc;
-	assign glb_brc_prdt_upd_i_ghr = glb_brc_prdt_retired_ghr_o;
-	assign glb_brc_prdt_upd_i_brc_taken = rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN;
+		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL) & 
+		// 这条指令是B指令
+		(rob_prep_rtr_entry_b_inst_res != B_INST_RES_NONE);
+	assign glb_brc_prdt_upd_i_pc = 
+		rob_prep_rtr_entry_pc;
+	assign glb_brc_prdt_upd_i_ghr = 
+		glb_brc_prdt_retired_ghr_o;
+	assign glb_brc_prdt_upd_i_brc_taken = 
+		rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN;
 	
 endmodule

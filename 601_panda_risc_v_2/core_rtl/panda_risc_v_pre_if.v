@@ -35,9 +35,8 @@ SOFTWARE.
 
 在指令总线控制单元接受访问请求的同时进行分支预测, 这样下一clk就可得到新的PC
 
-对于以下2种情况, 属于分支预测特例, 此时会从取指阶段或发射阶段的分支信息广播获取真实的BTA -> 
-	(1)BTB命中, 分支指令类型为JALR, RAS出栈标志无效
-	(2)BTB缺失, 方向预测为跳
+对于以下这种情况, 属于分支预测特例, 此时会从取指阶段或发射阶段的分支信息广播获取真实的BTA -> 
+	BTB命中, 分支指令类型为JALR, RAS出栈标志无效
 
 向指令总线控制单元广播预测信息, 可为替换BTB条目、更新全局历史分支预测器、检查分支预测是否正确提供参考
 
@@ -140,6 +139,7 @@ module panda_risc_v_pre_if #(
 	input wire btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	input wire btb_rplc_push_ras, // RAS压栈标志
 	input wire btb_rplc_pop_ras, // RAS出栈标志
+	input wire btb_rplc_vld_flag, // 有效标志
 	
 	// BTB存储器
 	// [端口A]
@@ -236,6 +236,7 @@ module panda_risc_v_pre_if #(
 		.btb_rplc_jpdir(btb_rplc_jpdir),
 		.btb_rplc_push_ras(btb_rplc_push_ras),
 		.btb_rplc_pop_ras(btb_rplc_pop_ras),
+		.btb_rplc_vld_flag(btb_rplc_vld_flag),
 		
 		.btb_mem_clka(btb_mem_clka),
 		.btb_mem_ena(btb_mem_ena),
@@ -278,9 +279,7 @@ module panda_risc_v_pre_if #(
 	reg flush_pre_if_pending; // 冲刷预取指令(等待标志)
 	reg common_pre_if_pending; // 普通预取指令(等待标志)
 	reg btb_hit_jalr_pending; // BTB命中的无法从RAS得到BTA的JALR指令(等待标志)
-	reg btb_miss_pending; // BTB缺失且方向预测为跳(等待标志)
 	reg btb_hit_jalr_bdcst_gotten; // BTB命中的无法从RAS得到BTA的JALR指令得到分支信息广播(标志)
-	reg btb_miss_bdcst_gotten; // "BTB缺失且方向预测为跳"得到分支信息广播(标志)
 	wire to_rst; // 正在处理复位(标志)
 	wire to_flush; // 正在处理冲刷(标志)
 	reg[31:0] flush_addr_saved; // 保存的冲刷地址
@@ -304,20 +303,17 @@ module panda_risc_v_pre_if #(
 				prdt_o_vld & 
 				// 排除分支预测特例
 				(~(
-					prdt_o_btb_hit ? 
-						((prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)):
-						prdt_o_taken
+					prdt_o_btb_hit & (prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)
 				))
 			) | 
 			common_pre_if_pending | 
-			(btb_hit_jalr_pending & btb_hit_jalr_bdcst_gotten) | 
-			(btb_miss_pending & btb_miss_bdcst_gotten)
+			(btb_hit_jalr_pending & btb_hit_jalr_bdcst_gotten)
 		);
 	
 	assign prdt_bdcst_vld = prdt_o_vld;
 	assign prdt_bdcst_tid = prdt_o_tid[IBUS_TID_WIDTH-1:0];
 	/*
-	说明: 对于分支预测特例(BTB缺失, 方向预测为跳; BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效), 
+	说明: 对于分支预测特例(BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效), 
 		预测地址会在发射阶段作修正, 这里还是先把分支预测器给出的预测结果广播给总线控制单元
 	*/
 	assign prdt_bdcst_msg[PRDT_MSG_TARGET_ADDR_SID+31:PRDT_MSG_TARGET_ADDR_SID] = prdt_addr_cur;
@@ -355,7 +351,7 @@ module panda_risc_v_pre_if #(
 					rst_pc:
 					flush_addr_cur
 			):(
-				(btb_hit_jalr_pending | btb_miss_pending) ? 
+				btb_hit_jalr_pending ? 
 					bdcst_bta_saved:
 					prdt_addr_cur
 			);
@@ -424,9 +420,7 @@ module panda_risc_v_pre_if #(
 						(~(flush_req | sys_reset_req)) & 
 						(prdt_unit_initializing | (~ibus_access_req_ready)) & 
 						prdt_o_vld & (~(
-							prdt_o_btb_hit ? 
-								((prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)):
-								prdt_o_taken
+							prdt_o_btb_hit & (prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)
 						))
 					)
 				*/
@@ -434,9 +428,7 @@ module panda_risc_v_pre_if #(
 				(prdt_unit_initializing | (~ibus_access_req_ready)) & 
 				(common_pre_if_pending | (
 					prdt_o_vld & (~(
-						prdt_o_btb_hit ? 
-							((prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)):
-							prdt_o_taken
+						prdt_o_btb_hit & (prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)
 					))
 				));
 	end
@@ -459,27 +451,6 @@ module panda_risc_v_pre_if #(
 					(
 						(~(flush_req | sys_reset_req)) & 
 						prdt_o_vld & prdt_o_btb_hit & (prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)
-					);
-	end
-	// BTB缺失且方向预测为跳(等待标志)
-	always @(posedge aclk or negedge aresetn)
-	begin
-		if(~aresetn)
-			btb_miss_pending <= 1'b0;
-		else
-			btb_miss_pending <= # SIM_DELAY 
-				btb_miss_pending ? 
-					(~(
-						(flush_req | sys_reset_req) | 
-						(btb_miss_bdcst_gotten & ibus_access_req_ready)
-					)):
-					/*
-					说明: 从取指请求被接受到该标志有效, 需要经过2clk, 但是
-					      这条指令至多完成了取指阶段, 最快的情况是该标志有效的那个clk得到取指阶段的分支信息广播, 因此这是安全的
-					*/
-					(
-						(~(flush_req | sys_reset_req)) & 
-						prdt_o_vld & (~prdt_o_btb_hit) & prdt_o_taken
 					);
 	end
 	
@@ -505,27 +476,6 @@ module panda_risc_v_pre_if #(
 		)
 			btb_hit_jalr_bdcst_gotten <= # SIM_DELAY btb_hit_jalr_pending;
 	end
-	// "BTB缺失且方向预测为跳"得到分支信息广播(标志)
-	always @(posedge aclk)
-	begin
-		if(
-			btb_miss_pending ? 
-				(
-					// 在取指阶段得到"预测基准指令"的类型不是JALR, 可以立刻重新生成预测地址
-					(
-						brc_bdcst_iftc_vld & (brc_bdcst_iftc_tid == prdt_o_tid[IBUS_TID_WIDTH-1:0]) & 
-						(~brc_bdcst_iftc_is_jalr_inst)
-					) | 
-					// 否则就继续等待发射阶段的分支信息广播
-					(brc_bdcst_luc_vld & (brc_bdcst_luc_tid == prdt_o_tid[IBUS_TID_WIDTH-1:0]))
-				):
-				(
-					(~(flush_req | sys_reset_req)) & 
-					prdt_o_vld & prdt_o_taken & (~prdt_o_btb_hit)
-				)
-		)
-			btb_miss_bdcst_gotten <= # SIM_DELAY btb_miss_pending;
-	end
 	
 	// 保存的冲刷地址
 	always @(posedge aclk)
@@ -545,12 +495,14 @@ module panda_risc_v_pre_if #(
 	always @(posedge aclk)
 	begin
 		if(
-			(btb_hit_jalr_pending | btb_miss_pending) & 
+			btb_hit_jalr_pending & 
 			(
+				// 在取指阶段得到"预测基准指令"的类型不是JALR, 可以立刻重新生成预测地址
 				(
 					brc_bdcst_iftc_vld & (brc_bdcst_iftc_tid == prdt_o_tid[IBUS_TID_WIDTH-1:0]) & 
 					(~brc_bdcst_iftc_is_jalr_inst)
 				) | 
+				// 否则就继续等待发射阶段的分支信息广播
 				(
 					brc_bdcst_luc_vld & (brc_bdcst_luc_tid == prdt_o_tid[IBUS_TID_WIDTH-1:0]) & 
 					brc_bdcst_luc_is_jalr_inst

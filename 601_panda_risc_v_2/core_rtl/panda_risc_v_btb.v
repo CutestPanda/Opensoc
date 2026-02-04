@@ -86,6 +86,7 @@ module panda_risc_v_btb #(
 	input wire btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	input wire btb_rplc_push_ras, // RAS压栈标志
 	input wire btb_rplc_pop_ras, // RAS出栈标志
+	input wire btb_rplc_vld_flag, // 有效标志
 	
 	// BTB存储器
 	// [端口A]
@@ -279,7 +280,7 @@ module panda_risc_v_btb #(
 		btb_rplc_push_ras, // RAS压栈标志
 		btb_rplc_btype, // 分支指令类型
 		btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
-		1'b1 // 有效标志
+		btb_rplc_vld_flag // 有效标志
 	};
 	
 	// 当前置换的BTB路编号(LFSR)

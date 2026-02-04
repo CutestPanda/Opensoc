@@ -28,7 +28,7 @@ SOFTWARE.
 
 描述:
 分支预测/预取指令 -> 指令总线控制单元 -> 取指应答/取指结果
-监听发射阶段的分支信息广播, 用于处理BTB命中的RAS出栈标志无效的JALR指令或BTB缺失的JALR指令, 得到其真实BTA
+监听发射阶段的分支信息广播, 用于处理BTB命中的RAS出栈标志无效的JALR指令, 得到其真实BTA
 在得到取指应答的第1clk更新/置换BTB
 
 注意：
@@ -396,6 +396,7 @@ module panda_risc_v_ifu #(
 	wire btb_rplc_jpdir; // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	wire btb_rplc_push_ras; // RAS压栈标志
 	wire btb_rplc_pop_ras; // RAS出栈标志
+	wire btb_rplc_vld_flag; // 有效标志
 	wire is_rd_eq_link; // RD为link寄存器(标志)
 	wire is_rs1_eq_link; // RS1为link寄存器(标志)
 	wire is_rd_eq_rs1; // RD与RS1相同(标志)
@@ -406,7 +407,7 @@ module panda_risc_v_ifu #(
 	// 说明: 由于希望尽早更新BTB, 这里是在得到取指应答的首个clk就发起置换请求, 而无论后级是否拿走取指结果
 	assign btb_rplc_req = 
 		ibus_access_resp_valid & (~btb_rplc_suppress) & 
-		is_brc_inst;
+		(is_brc_inst | ibus_access_resp_prdt[PRDT_MSG_BTB_HIT_SID]);
 	/*
 	说明: 对于取到的指令, 只要它是分支指令就考虑置换BTB项
 	      如果在BTB中可以找到这条分支指令的信息(预测时BTB命中), 则覆盖找到的这1项, 这在分支信息本身就正确时可能会浪费功耗, 
@@ -449,6 +450,9 @@ module panda_risc_v_ifu #(
 		(~ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID]) & 
 		ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_IS_JALR_INST_SID] & 
 		(is_rs1_eq_link & (~(is_rd_eq_link & is_rd_eq_rs1)));
+	assign btb_rplc_vld_flag = 
+		// 说明: 对于取到的指令, 如果它不是分支指令但在预测时BTB命中, 此时BTB条目是过时的, 需要无效化该项
+		~((~is_brc_inst) & ibus_access_resp_prdt[PRDT_MSG_BTB_HIT_SID]);
 	
 	assign is_rd_eq_link = (ibus_access_resp_rdata[11:7] == 5'd1) | (ibus_access_resp_rdata[11:7] == 5'd5);
 	assign is_rs1_eq_link = (ibus_access_resp_rdata[19:15] == 5'd1) | (ibus_access_resp_rdata[19:15] == 5'd5);
@@ -483,9 +487,10 @@ module panda_risc_v_ifu #(
 				/*
 				btb_rplc_suppress ? 
 					ibus_access_resp_ready:
-					(ibus_access_resp_valid & is_brc_inst & (~ibus_access_resp_ready))
+					(ibus_access_resp_valid & (is_brc_inst | ibus_access_resp_prdt[PRDT_MSG_BTB_HIT_SID]) & (~ibus_access_resp_ready))
 				*/
-				(btb_rplc_suppress | (ibus_access_resp_valid & is_brc_inst)) & ((~btb_rplc_suppress) ^ ibus_access_resp_ready)
+				(btb_rplc_suppress | (ibus_access_resp_valid & (is_brc_inst | ibus_access_resp_prdt[PRDT_MSG_BTB_HIT_SID]))) & 
+				((~btb_rplc_suppress) ^ ibus_access_resp_ready)
 			)
 		)
 			btb_rplc_suppress <= # SIM_DELAY 
@@ -565,6 +570,7 @@ module panda_risc_v_ifu #(
 		.btb_rplc_jpdir(btb_rplc_jpdir),
 		.btb_rplc_push_ras(btb_rplc_push_ras),
 		.btb_rplc_pop_ras(btb_rplc_pop_ras),
+		.btb_rplc_vld_flag(btb_rplc_vld_flag),
 		
 		.btb_mem_clka(btb_mem_clka),
 		.btb_mem_ena(btb_mem_ena),

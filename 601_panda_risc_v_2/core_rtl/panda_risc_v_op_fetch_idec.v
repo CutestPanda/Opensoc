@@ -587,17 +587,10 @@ module panda_risc_v_op_fetch_idec #(
 	assign nxt_seq_pc = s_if_res_data[127:96] + 3'd4; // PC + 指令长度
 	assign prdt_addr_corrected = 
 		(
-			// 分支预测特例一: BTB缺失, 方向预测为跳
-			(
-				(~s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3]) & 
-				s_if_res_msg[PRDT_MSG_IS_TAKEN_SID+3:PRDT_MSG_IS_TAKEN_SID+3]
-			) | 
-			// 分支预测特例二: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
-			(
-				s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3] & 
-				(s_if_res_msg[2+PRDT_MSG_BTYPE_SID+3:PRDT_MSG_BTYPE_SID+3] == BRANCH_TYPE_JALR) & 
-				(~s_if_res_msg[PRDT_MSG_POP_RAS_SID+3:PRDT_MSG_POP_RAS_SID+3])
-			)
+			// 分支预测特例: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
+			s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3] & 
+			(s_if_res_msg[2+PRDT_MSG_BTYPE_SID+3:PRDT_MSG_BTYPE_SID+3] == BRANCH_TYPE_JALR) & 
+			(~s_if_res_msg[PRDT_MSG_POP_RAS_SID+3:PRDT_MSG_POP_RAS_SID+3])
 		) ? 
 			brc_bdcst_luc_bta:
 			s_if_res_msg[31+PRDT_MSG_TARGET_ADDR_SID+3:PRDT_MSG_TARGET_ADDR_SID+3];
