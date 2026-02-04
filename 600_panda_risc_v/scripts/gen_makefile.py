@@ -4,6 +4,7 @@ import argparse
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", type=str, default="unknown", help="target to make")
+    parser.add_argument("--cpu_f", type=int, default=50, help="Running frequency(MHz) of CPU")
     parser.add_argument("--debug", action="store_true", help="attatch symbol message")
     opt = parser.parse_args()
     
@@ -13,6 +14,7 @@ if __name__ == "__main__":
     opt = parse_opt()
     
     target = opt.target
+    cpu_f = str(opt.cpu_f)
     
     file = open("Makefile", 'w')
     
@@ -24,6 +26,7 @@ if __name__ == "__main__":
     file.writelines("\n")
     if opt.debug == True:
         file.writelines("CFLAGS += -g\n")
+    file.writelines("CFLAGS += -D CPU_FREQ_MHZ=" + cpu_f + "\n")
     file.writelines("#CFLAGS += -DSIMULATION\n")
     file.writelines("#CFLAGS += -O2\n")
     file.writelines("#ASM_SRCS +=\n")

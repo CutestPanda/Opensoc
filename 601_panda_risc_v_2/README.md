@@ -8,10 +8,10 @@
 
 > 使用说明请见[**600_panda_risc_v**里的README](https://github.com/CutestPanda/Opensoc/tree/main/600_panda_risc_v)。  
 
-## 硬件示例工程
+## 示例硬件工程
 
 v2版本的示例硬件工程在fpga文件夹里。需要注意的是，v2版本的示例硬件工程的存储映射、I/O与v1版本的不同，请查看**soc_rtl/panda_soc_top.v**。  
 
 ![示例硬件工程的顶层模块](../img/panda_risc_v_26.png)  
 
-使用硬件示例工程时，请修改参数**ITCM_MEM_INIT_FILE**和**CPU_CLK_FREQUENCY_MHZ**，boot_rom.txt位于**../600_panda_risc_v/fpga**文件夹里。PLL请重新例化，根据需要来修改输出的时钟频率。  
+使用示例硬件工程时，请修改参数**ITCM_MEM_INIT_FILE**和**CPU_CLK_FREQUENCY_MHZ**，boot_rom.txt位于**上级目录/600_panda_risc_v/fpga**文件夹里。PLL请重新例化，根据需要来修改输出的时钟频率。  

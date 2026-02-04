@@ -62,8 +62,8 @@
 <u>若使用Eclipse IDE进行开发，可跳过本节。</u>  
 
 1.先在**600_panda_risc_v/scripts**下，打开命令行终端，输入：  
-`` python .\gen_makefile.py --target your_prj_name --debug ``  
-其中，--debug表示在需要在.elf文件中添加调试信息，这是可选的。  
+`` python .\gen_makefile.py --target your_prj_name --cpu_f 50 --debug ``  
+其中，--cpu_f后面指定的整数是CPU的运行频率（以MHz计）；--debug表示在需要在.elf文件中添加调试信息，这是可选的。  
 2.然后在**600_panda_risc_v/software/test**下新建文件夹**your_prj_name**，把刚才创建的Makefile复制进去。  
 3.在**600_panda_risc_v/software/test/your_prj_name**下编写若干.c和.h。  
 > 软件项目引用了**600_panda_risc_v/software/lib**下的驱动或工具程序，其使用的外设都能在Opensoc仓库里找到。  
