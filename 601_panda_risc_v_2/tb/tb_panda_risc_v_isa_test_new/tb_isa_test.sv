@@ -31,8 +31,11 @@ module tb_isa_test();
 	parameter integer TO_HOST_ADDR1 = 32'h3000;
 	parameter integer IMEM_DEPTH = 8 * 1024; // 指令存储器深度
 	parameter integer DMEM_DEPTH = 8 * 1024; // 数据存储器深度
+<<<<<<< HEAD
 	// parameter IMEM_INIT_FILE = "../coremark_sim.txt"; // 指令存储器的初始化文件路径
 	// parameter DMEM_INIT_FILE = "no_init"; // 数据存储器的初始化文件路径
+=======
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 	parameter IMEM_INIT_FILE = "test_compiled/rv32ui-p-ld_st.mem"; // 指令存储器的初始化文件路径
 	parameter DMEM_INIT_FILE = "test_compiled/rv32ui-p-ld_st.mem"; // 数据存储器的初始化文件路径
 	// 待测模块配置
@@ -74,19 +77,32 @@ module tb_isa_test();
 	end
 	
 	/** ISA测试 **/
+<<<<<<< HEAD
 	// 指令总线(AW通道)
 	wire[31:0] m_axi_imem_awaddr;
 	wire m_axi_imem_awvalid;
 	wire m_axi_imem_awready;
+=======
+	// 指令总线
+	wire[31:0] m_icb_cmd_inst_addr;
+	wire m_icb_cmd_inst_valid;
+	wire m_icb_cmd_inst_ready;
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 	// 寄存器堆
 	wire[31:0] x3;
 	// CSR
 	wire[31:0] minstret;
 	wire[31:0] mcycle;
 	
+<<<<<<< HEAD
 	assign m_axi_imem_awaddr = panda_risc_v_sim_u.m_axi_imem_awaddr;
 	assign m_axi_imem_awvalid = panda_risc_v_sim_u.m_axi_imem_awvalid;
 	assign m_axi_imem_awready = panda_risc_v_sim_u.m_axi_imem_awready;
+=======
+	assign m_icb_cmd_inst_addr = panda_risc_v_sim_u.m_icb_cmd_inst_addr;
+	assign m_icb_cmd_inst_valid = panda_risc_v_sim_u.m_icb_cmd_inst_valid;
+	assign m_icb_cmd_inst_ready = panda_risc_v_sim_u.m_icb_cmd_inst_ready;
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 	
 	assign x3 = panda_risc_v_sim_u.panda_risc_v_u.generic_reg_file_u.generic_reg_file[3];
 	
@@ -97,13 +113,20 @@ module tb_isa_test();
 	begin
 		$display("test running...");
 		
+<<<<<<< HEAD
 		wait(((m_axi_imem_awvalid & m_axi_imem_awready) === 1'b1) && (m_axi_imem_awaddr === TO_HOST_ADDR1));
+=======
+		wait(((m_icb_cmd_inst_valid & m_icb_cmd_inst_ready) === 1'b1) && (m_icb_cmd_inst_addr === TO_HOST_ADDR1));
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 		
         # (clk_p * 10);
 		
 		$display("minstret=%0d", minstret);
 		$display("mcycle=%0d", mcycle);
+<<<<<<< HEAD
 		$display("ipc=%0f", real'(minstret)/real'(mcycle));
+=======
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 		
         if(x3 == 1)
 		begin

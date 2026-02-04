@@ -1,0 +1,3 @@
+[submodule "402_cnn_accelerator"]
+	path = 402_cnn_accelerator
+	url = https://github.com/CutestPanda/CnnAccelerator.git

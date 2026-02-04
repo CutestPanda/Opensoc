@@ -27,6 +27,7 @@ SOFTWARE.
 本模块: 加载/存储单元
 
 描述:
+<<<<<<< HEAD
 接受访存请求, 根据请求类型进行不同的处理 -> 
 	(1)对于写存储器请求, 先放入写存储器(请求)缓存区(Write Memory Buffer), 等待写存储器许可后, 将请求合并到总线事务缓存区,
 		在存储器AXI主机发起总线事务
@@ -40,6 +41,16 @@ SOFTWARE.
 
 注意：
 无
+=======
+接受访存请求, 驱动数据ICB主机, 得到访存结果
+若访存请求允许提前执行, 则在它与前序访存请求不产生地址冲突时自动许可;若访存请求不允许提前执行, 则需要等待外部给出(匹配当前请求的指令编号的)访存许可
+当接受访存请求时, 向ROB发出广播
+
+最低的访存时延为5clk: 接受访存请求 -> 许可 -> 数据ICB主机命令通道握手 -> 数据ICB主机响应通道握手 -> 得到访存结果
+
+注意：
+至少要在接受访存请求项后的1clk, 外部才能给出对应请求项的访存许可, 否则该许可没有作用
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 
 协议:
 AXI-Lite MASTER
@@ -268,6 +279,7 @@ module panda_risc_v_lsu #(
 	reg[WR_MEM_BUF_ENTRY_N-1:0] wr_mem_trans_table_addr_setup_flag; // 地址通道已传输标志
 	reg[WR_MEM_BUF_ENTRY_N-1:0] wr_mem_trans_table_data_sent_flag; // 数据通道已传输标志
 	
+<<<<<<< HEAD
 	// [AW通道]
 	assign m_axi_mem_awaddr = 
 		wr_mem_trans_table_aligned_addr[wr_mem_trans_addr_setup_ptr] & (~(AXI_MEM_DATA_WIDTH/8 - 1));
@@ -286,6 +298,15 @@ module panda_risc_v_lsu #(
 		|((wr_mem_trans_table_trans_flag & (~wr_mem_trans_table_data_sent_flag)) & (1 << wr_mem_trans_data_transfer_ptr));
 	
 	assign has_buffered_wr_mem_req = is_vld_entry_in_wr_mem_req_table;
+=======
+	/** 访存请求前处理 **/
+	wire[2:0] ls_type_for_pre_prcs; // 访存类型
+	wire[31:0] ls_addr_for_pre_prcs; // 访存地址
+	wire[31:0] ls_din_for_pre_prcs; // 写数据
+	wire ls_addr_aligned_in_pre_prcs; // 访存地址对齐(标志)
+	wire[31:0] store_din_in_pre_prcs; // 用于写存储映射的数据
+	wire[3:0] store_wmask_in_pre_prcs; // 用于写存储映射的字节有效掩码
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 	
 	assign wr_mem_timeout = wr_mem_timeout_flag;
 	
@@ -297,7 +318,30 @@ module panda_risc_v_lsu #(
 		on_submit_new_wr_mem_req & is_allowed_to_submit_new_wr_mem_req & 
 		wr_mem_permitted_flag & (init_mem_bus_tr_store_inst_tid == inst_id_of_new_wr_mem_req);
 	
+<<<<<<< HEAD
 	assign on_create_new_wr_mem_trans_record = |on_wr_mem_req_permitted_to_bus;
+=======
+	数据总线命令通道握手时写入, 取走访存结果时读出
+	**/
+	// [存储实体]
+	reg[clogb2(LS_BUF_ENTRY_N-1):0] dbus_info_buf_trans_eid[0:DBUS_OUTSTANDING_N-1]; // 事务对应的访存缓存区条目编号
+	// [事务启动侧写端口]
+	wire dbus_info_buf_luc_wen;
+	wire[clogb2(LS_BUF_ENTRY_N-1):0] dbus_info_buf_luc_din_trans_eid; // 事务对应的访存缓存区条目编号
+	wire dbus_info_buf_luc_full_n;
+	// [事务响应侧读端口]
+	wire dbus_info_buf_rsp_ren;
+	wire[clogb2(LS_BUF_ENTRY_N-1):0] dbus_info_buf_rsp_dout_trans_eid; // 事务对应的访存缓存区条目编号
+	wire dbus_info_buf_rsp_empty_n;
+	// [访存结果侧读端口]
+	wire dbus_info_buf_res_ren;
+	wire[clogb2(LS_BUF_ENTRY_N-1):0] dbus_info_buf_res_dout_trans_eid; // 事务对应的访存缓存区条目编号
+	wire dbus_info_buf_res_empty_n;
+	// [指针]
+	reg[clogb2(DBUS_OUTSTANDING_N):0] dbus_info_buf_luc_wptr; // 事务启动侧写指针
+	reg[clogb2(DBUS_OUTSTANDING_N):0] dbus_info_buf_rsp_rptr; // 事务响应侧读指针
+	reg[clogb2(DBUS_OUTSTANDING_N):0] dbus_info_buf_res_rptr; // 访存结果侧读指针
+>>>>>>> f159a4e146763038aa92fc830492fdebb5e4464f
 	
 	// 将独热码转为二进制码
 	assign wr_mem_req_table_sel_entry_bin_id_of_creating_new_wr_mem_trans_record[0] = 
