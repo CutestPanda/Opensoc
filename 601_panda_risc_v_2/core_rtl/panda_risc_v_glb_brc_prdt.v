@@ -40,7 +40,7 @@ PHT存储器的读延迟为1clk
 MEM MASTER
 
 作者: 陈家耀
-日期: 2025/06/10
+日期: 2026/01/22
 ********************************************************************/
 
 
@@ -228,12 +228,6 @@ module panda_risc_v_glb_brc_prdt #(
 	assign pht_mem_query_din = 2'b00;
 	assign pht_mem_query_dout = pht_mem_doutb;
 	
-	assign pht_mem_ren = (PHT_MEM_IMPL == "reg") & query_i_req;
-	assign pht_mem_raddr = 
-		(PHT_MEM_IMPL == "reg") ? 
-			(pht_query_addr | 16'h0000):
-			16'h0000;
-	
 	// 查询结果有效(指示)
 	always @(posedge aclk or negedge aresetn)
 	begin
@@ -259,6 +253,14 @@ module panda_risc_v_glb_brc_prdt #(
 	assign pht_mem_update_din = update_i_2bit_sat_cnt;
 	assign pht_mem_update_dout = pht_mem_douta;
 	
+	/** PHT存储器 **/
+	// REG实现方式
+	assign pht_mem_ren = (PHT_MEM_IMPL == "reg") & query_i_req;
+	assign pht_mem_raddr = 
+		(PHT_MEM_IMPL == "reg") ? 
+			(pht_query_addr | 16'h0000):
+			16'h0000;
+	
 	assign pht_mem_upd_en = 
 		(PHT_MEM_IMPL == "reg") & update_i_req;
 	assign pht_mem_upd_addr = 
@@ -268,7 +270,7 @@ module panda_risc_v_glb_brc_prdt #(
 	assign pht_mem_upd_brc_taken = 
 		(PHT_MEM_IMPL == "reg") & update_i_brc_taken;
 	
-	/** PHT存储器(SRAM实现方式) **/
+	// SRAM实现方式
 	assign pht_mem_clka = 
 		(PHT_MEM_IMPL == "sram") & aclk;
 	assign pht_mem_ena = 

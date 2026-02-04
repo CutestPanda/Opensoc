@@ -30,6 +30,10 @@ SOFTWARE.
 BTB置换采取定向(外部给出)或随机原则(使用LFSR实现)
 若查询请求指示信号无效, 那么查询结果保持不变
 
+BTB条目 -> 
+	[PC标签(PC_TAG_WIDTH bit)], 分支目标地址(32bit), RAS出栈标志(1bit), RAS压栈标志(1bit),
+	分支指令类型(3bit), BTFN跳转方向(1bit), [有效标志(1bit)]
+
 注意：
 BTB存储器的读延迟为1clk
 BTB需要进行初始化/清零, BTB查询/置换只能在初始化完成后进行
@@ -38,15 +42,16 @@ BTB需要进行初始化/清零, BTB查询/置换只能在初始化完成后进�
 MEM MASTER
 
 作者: 陈家耀
-日期: 2025/05/28
+日期: 2026/01/22
 ********************************************************************/
 
 
 module panda_risc_v_btb #(
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
 	parameter integer BTB_ENTRY_N = 512, // BTB项数(<=65536)
-	parameter integer PC_TAG_WIDTH = 21, // PC标签的位宽(不要修改)
+	parameter integer PC_TAG_WIDTH = 21, // PC标签的位宽(不要修改, 应为30 - clogb2(BTB_ENTRY_N))
 	parameter integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2, // BTB存储器的数据位宽(不要修改)
+	parameter NO_INIT_BTB = "false", // 是否无需初始化BTB存储器
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
@@ -67,7 +72,7 @@ module panda_risc_v_btb #(
 	output wire btb_query_o_push_ras, // 查询得到的RAS压栈标志
 	output wire btb_query_o_pop_ras, // 查询得到的RAS出栈标志
 	output wire[31:0] btb_query_o_bta, // 查询得到的分支目标地址
-	output wire btb_query_o_jpdir, // 查询得到的分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+	output wire btb_query_o_jpdir, // 查询得到的BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	output wire[31:0] btb_query_o_nxt_pc, // 查询得到的下一PC
 	output wire btb_query_o_vld, // 查询结果有效
 	
@@ -78,7 +83,7 @@ module panda_risc_v_btb #(
 	input wire[31:0] btb_rplc_pc, // 分支指令对应的PC
 	input wire[2:0] btb_rplc_btype, // 分支指令类型
 	input wire[31:0] btb_rplc_bta, // 分支指令对应的目标地址
-	input wire btb_rplc_jpdir, // 分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+	input wire btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	input wire btb_rplc_push_ras, // RAS压栈标志
 	input wire btb_rplc_pop_ras, // RAS出栈标志
 	
@@ -140,7 +145,7 @@ module panda_risc_v_btb #(
 		1'bx, // RAS出栈标志
 		1'bx, // RAS压栈标志
 		3'bxxx, // 分支指令类型
-		1'bx, // 分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+		1'bx, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 		1'b0 // 有效标志
 	};
 	
@@ -148,7 +153,10 @@ module panda_risc_v_btb #(
 	always @(posedge aclk or negedge aresetn)
 	begin
 		if(~aresetn)
-			btb_init_sts <= 3'b001;
+			btb_init_sts <= 
+				(NO_INIT_BTB == "false") ? 
+					3'b001:
+					3'b100;
 		else if(
 			btb_init_sts[0] | 
 			(btb_init_sts[1] & (btb_mem_init_addr == (BTB_ENTRY_N-1)))
@@ -270,7 +278,7 @@ module panda_risc_v_btb #(
 		btb_rplc_pop_ras, // RAS出栈标志
 		btb_rplc_push_ras, // RAS压栈标志
 		btb_rplc_btype, // 分支指令类型
-		btb_rplc_jpdir, // 分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+		btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 		1'b1 // 有效标志
 	};
 	
@@ -284,7 +292,12 @@ module panda_risc_v_btb #(
 				{btb_rplc_lfsr[6:0], btb_rplc_lfsr[7] ^ btb_rplc_lfsr[5] ^ btb_rplc_lfsr[4] ^ btb_rplc_lfsr[3]};
 	end
 	
-	/** BTB存储器接口 **/
+	/**
+	BTB存储器接口
+	
+	端口A: 用于初始化或置换
+	端口B: 用于查询
+	**/
 	assign btb_mem_clka = {BTB_WAY_N{aclk}};
 	assign btb_mem_ena = btb_init_sts[2] ? btb_mem_rplc_en:btb_mem_init_en;
 	assign btb_mem_wea = btb_init_sts[2] ? btb_mem_rplc_wen:btb_mem_init_wen;

@@ -28,7 +28,9 @@ SOFTWARE.
 
 描述:
 RAS采用寄存器组作为存储实体
+
 若RAS满, 仍然可以压栈, 这时会覆盖最旧条目; 若RAS空, 仍然可以出栈, 这时会输出栈顶条目
+
 RAS出栈的读延迟为0clk, 出栈数据始终为栈顶条目
 RAS查询的读延迟为1clk, 查询结果为栈顶条目, 当查询指示信号无效时查询结果保持不变
 
@@ -39,7 +41,7 @@ RAS查询的读延迟为1clk, 查询结果为栈顶条目, 当查询指示信号
 无
 
 作者: 陈家耀
-日期: 2025/05/31
+日期: 2026/01/21
 ********************************************************************/
 
 
@@ -78,20 +80,33 @@ module panda_risc_v_ras #(
     end
     endfunction
 	
-	/** RAS **/
+	/**
+	RAS
+	
+	当RAS非空时:
+		"RAS栈顶指针"指向的是待存入新项的空条目
+		"RAS栈顶指针 - 1"指向的是栈顶条目
+	当RAS空时:
+		"RAS栈顶指针"指向的是待(覆盖)存入新项的栈顶条目
+	**/
 	reg[RAS_ENTRY_WIDTH-1:0] ras_reg_file[0:RAS_ENTRY_N-1]; // RAS存储寄存器组
 	reg[clogb2(RAS_ENTRY_N-1)+1:0] ras_top_ptr; // RAS栈顶指针
+	reg[clogb2(RAS_ENTRY_N-1)+1:0] ras_top_ptr_sub1; // RAS栈顶指针 - 1
 	reg[clogb2(RAS_ENTRY_N-1)+1:0] ras_bot_ptr; // RAS栈底指针
 	wire ras_empty; // RAS空标志
 	wire ras_full; // RAS满标志
 	reg[RAS_ENTRY_WIDTH-1:0] ras_query_addr_r; // RAS查询结果(输出寄存器)
 	
 	assign ras_pop_addr = 
-		// ras_empty ? ras_reg_file[ras_top_ptr[clogb2(RAS_ENTRY_N-1):0]]:ras_reg_file[ras_top_ptr[clogb2(RAS_ENTRY_N-1):0] - 1]
-		ras_reg_file[ras_top_ptr[clogb2(RAS_ENTRY_N-1):0] + {(clogb2(RAS_ENTRY_N-1)+1){~ras_empty}}];
+		ras_reg_file[
+			ras_empty ? 
+				ras_top_ptr[clogb2(RAS_ENTRY_N-1):0]:
+				ras_top_ptr_sub1[clogb2(RAS_ENTRY_N-1):0]
+		];
 	assign ras_query_addr = ras_query_addr_r;
 	
-	assign ras_empty = ras_top_ptr == ras_bot_ptr;
+	assign ras_empty = 
+		ras_top_ptr == ras_bot_ptr;
 	assign ras_full = 
 		(ras_top_ptr[clogb2(RAS_ENTRY_N-1)+1] ^ ras_bot_ptr[clogb2(RAS_ENTRY_N-1)+1]) & 
 		(ras_top_ptr[clogb2(RAS_ENTRY_N-1):0] == ras_bot_ptr[clogb2(RAS_ENTRY_N-1):0]);
@@ -115,13 +130,19 @@ module panda_risc_v_ras #(
 		end
 	endgenerate
 	
-	// RAS栈顶指针
+	// RAS栈顶指针, RAS栈顶指针 - 1
 	always @(posedge aclk or negedge aresetn)
 	begin
 		if(~aresetn)
+		begin
 			ras_top_ptr <= 0;
+			ras_top_ptr_sub1 <= {(clogb2(RAS_ENTRY_N-1)+2){1'b1}};
+		end
 		else if(ras_push_req ^ (ras_pop_req & (~ras_empty)))
+		begin
 			ras_top_ptr <= # SIM_DELAY ras_push_req ? (ras_top_ptr + 1):(ras_top_ptr - 1);
+			ras_top_ptr_sub1 <= # SIM_DELAY ras_push_req ? (ras_top_ptr_sub1 + 1):(ras_top_ptr_sub1 - 1);
+		end
 	end
 	
 	// RAS栈底指针
@@ -143,8 +164,8 @@ module panda_risc_v_ras #(
 						(ras_pop_req & (~ras_empty)) ? (
 							ras_reg_file[(
 								ras_top_ptr - 
-								// ((ras_top_ptr - 1) == ras_bot_ptr) ? 1:2
-								{(ras_top_ptr - 1) != ras_bot_ptr, (ras_top_ptr - 1) == ras_bot_ptr}
+								// (ras_top_ptr_sub1 == ras_bot_ptr) ? 1:2
+								{ras_top_ptr_sub1 != ras_bot_ptr, ras_top_ptr_sub1 == ras_bot_ptr}
 							) & {1'b0, {(clogb2(RAS_ENTRY_N-1)+1){1'b1}}}]
 						):
 						ras_pop_addr

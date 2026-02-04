@@ -29,7 +29,7 @@ SOFTWARE.
 描述:
 发射阶段的段寄存器
 只能存储1条已发射的指令
-检查是否允许发射屏障指令、CSR读写指令、访存指令
+检查是否允许发射屏障指令、CSR读写指令
 
 注意：
 复位/冲刷时不接收前级的"取指结果", 也不取操作数, 并复位"选择锁存的操作数标志"
@@ -38,7 +38,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/06/21
+日期: 2026/01/24
 ********************************************************************/
 
 
@@ -52,9 +52,11 @@ module panda_risc_v_launch #(
 	
 	// ROB状态
 	input wire rob_full_n, // ROB满(标志)
-	input wire rob_empty_n, // ROB空(标志)
 	input wire rob_csr_rw_inst_allowed, // 允许发射CSR读写指令(标志)
-	input wire rob_has_ls_inst, // ROB中存在访存指令(标志)
+	
+	// LSU状态
+	input wire has_buffered_wr_mem_req, // 存在已缓存的写存储器请求(标志)
+	input wire has_processing_perph_access_req, // 存在处理中的外设访问请求(标志)
 	
 	// 复位/冲刷
 	input wire sys_reset_req, // 系统复位请求
@@ -68,7 +70,6 @@ module panda_risc_v_launch #(
 	input wire s_op_ftc_id_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	input wire[31:0] s_op_ftc_id_res_op1, // 操作数1
 	input wire[31:0] s_op_ftc_id_res_op2, // 操作数2
-	input wire s_op_ftc_id_res_with_ls_sdefc, // 是否存在访存副效应
 	input wire s_op_ftc_id_res_valid,
 	output wire s_op_ftc_id_res_ready,
 	
@@ -114,13 +115,11 @@ module panda_risc_v_launch #(
 	reg[STAGE_REGS_PAYLOAD_WIDTH-1:0] luc_stage_data;
 	reg luc_stage_valid;
 	wire fence_csr_rw_allowed; // 允许通过屏障与CSR读写指令(标志)
-	wire load_store_allowed; // 允许通过访存指令(标志)
 	
 	assign s_op_ftc_id_res_ready = 
 		(~(sys_reset_req | flush_req)) & 
 		((~luc_stage_valid) | m_luc_ready) & 
-		rob_full_n & // ROB非满
-		fence_csr_rw_allowed & load_store_allowed; // 允许通过屏障指令、CSR读写指令、访存指令
+		rob_full_n & fence_csr_rw_allowed; // ROB非满, 且允许通过屏障指令、CSR读写指令
 	
 	assign {
 		m_luc_data, 
@@ -136,11 +135,15 @@ module panda_risc_v_launch #(
 	assign fence_csr_rw_allowed = 
 		s_op_ftc_id_res_data[32+PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | 
 		(
-			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_I_INST_SID]) | (~rob_empty_n)) & // FENCE.I指令等到ROB空再发射
-			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_INST_SID]) | (~rob_has_ls_inst)) & // FENCE指令等到所有访存指令退休后再发射
+			(
+				(~(
+					s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_I_INST_SID] | 
+					s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_FENCE_INST_SID]
+				)) | 
+				((~has_buffered_wr_mem_req) & (~has_processing_perph_access_req))
+			) & // FENCE.I或FENCE指令等到前序访存都已完成才能发射
 			((~s_op_ftc_id_res_data[32+PRE_DCD_MSG_IS_CSR_RW_INST_SID]) | rob_csr_rw_inst_allowed) // 检查ROB是否允许发射CSR读写指令
 		);
-	assign load_store_allowed = 1'b1;
 	
 	always @(posedge aclk)
 	begin
@@ -167,8 +170,7 @@ module panda_risc_v_launch #(
 			luc_stage_valid <= # SIM_DELAY 
 				(~(sys_reset_req | flush_req)) & 
 				s_op_ftc_id_res_valid & 
-				rob_full_n & 
-				fence_csr_rw_allowed & load_store_allowed;
+				rob_full_n & fence_csr_rw_allowed;
 	end
 	
 endmodule

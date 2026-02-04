@@ -32,10 +32,10 @@ ROB项记录了指令的指令ID、被发射到的执行单元ID、目的寄存�
 为每个ROB项保存了写指针以确定条目的新旧情况
 每个ROB项都会自动监听其被发射到的执行单元的结果, 并在该条目内暂存数据
 每个ROB项都会自动监听其BRU结果(指令对应的PC、指令对应的下一有效PC、B指令执行结果)
-可选的逻辑寄存器位置表
+使用逻辑寄存器位置表来确定每个逻辑寄存器是否在ROB或旁路网络中, 或者已经被写回通用寄存器堆
 支持清空ROB
 独立的CSR读写指令信息记录表(其深度决定了能存在于ROB中的CSR读写指令的个数)
-支持取消单个ROB项、多个年轻ROB项, 支持发射时自动取消带有同步异常的ROB项
+支持取消单个ROB项、(比基准写指针)更年轻的ROB项, 支持发射时自动取消带有同步异常的ROB项
 
 注意：
 不允许同时发射和退休相同指令
@@ -47,7 +47,7 @@ CSR读写指令信息记录槽位数(CSR_RW_RCD_SLOTS_N)不能大于ROB项数(RO
 无
 
 作者: 陈家耀
-日期: 2025/09/17
+日期: 2026/01/23
 ********************************************************************/
 
 
@@ -59,7 +59,6 @@ module panda_risc_v_rob #(
 	parameter integer LSN_FU_N = 5, // 要监听结果的执行单元的个数(正整数)
 	parameter integer FU_RES_WIDTH = 32, // 执行单元结果位宽(正整数)
 	parameter integer FU_ERR_WIDTH = 3, // 执行单元错误码位宽(正整数)
-	parameter EN_ARCT_REG_POS_TB = "true", // 是否使用逻辑寄存器位置表
 	parameter integer LSU_FU_ID = 2, // LSU的执行单元ID
 	parameter AUTO_CANCEL_SYNC_ERR_ENTRY = "true", // 是否在发射时自动取消带有同步异常的项
 	parameter real SIM_DELAY = 1 // 仿真延时
@@ -81,10 +80,6 @@ module panda_risc_v_rob #(
 	// 取消所有更年轻项
 	input wire rob_yngr_cancel_vld, // 有效标志
 	input wire[5:0] rob_yngr_cancel_bchmk_wptr, // 基准写指针
-	
-	// 访存许可
-	output wire ls_allow_vld,
-	output wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id, // 指令编号
 	
 	// 读操作数(数据相关性检查)
 	// [操作数1]
@@ -133,6 +128,13 @@ module panda_risc_v_rob #(
 	input wire[1:0] s_bru_o_b_inst_res, // B指令执行结果
 	input wire s_bru_o_valid,
 	
+	// 写存储器许可
+	output wire wr_mem_permitted_flag, // 许可标志
+	output wire[IBUS_TID_WIDTH-1:0] init_mem_bus_tr_store_inst_tid, // 待发起总线事务的store指令ID
+	// 外设访问许可
+	output wire perph_access_permitted_flag, // 许可标志
+	output wire[IBUS_TID_WIDTH-1:0] init_perph_bus_tr_ls_inst_tid, // 待发起外设总线事务的访存指令ID
+	
 	// ROB记录广播
 	// [发射阶段]
 	input wire rob_luc_bdcst_vld, // 广播有效
@@ -144,9 +146,6 @@ module panda_risc_v_rob #(
 	input wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	input wire[2:0] rob_luc_bdcst_err, // 错误类型
 	input wire[2:0] rob_luc_bdcst_spec_inst_type, // 特殊指令类型
-	// [接受访存请求阶段]
-	input wire rob_ls_start_bdcst_vld, // 广播有效
-	input wire[IBUS_TID_WIDTH-1:0] rob_ls_start_bdcst_tid, // 指令ID
 	// [退休阶段]
 	input wire rob_rtr_bdcst_vld // 广播有效
 );
@@ -238,7 +237,7 @@ module panda_risc_v_rob #(
 	begin
 		if(~aresetn)
 			rob_rcd_tb_rptr <= 0;
-		else if(rob_clr | rob_rtr_bdcst_vld) // 说明: 1条指令要交付, 那么在ROB中肯定是记录了这条指令的信息, 此时ROB不可能是空的
+		else if(rob_clr | rob_rtr_bdcst_vld) // 说明: 1条指令要退休, 那么在ROB中肯定是记录了这条指令的信息, 此时ROB不可能是空的
 			rob_rcd_tb_rptr <= # SIM_DELAY 
 				rob_clr ? 
 					0:
@@ -324,7 +323,7 @@ module panda_risc_v_rob #(
 	assign rob_prep_rtr_entry_csr_rw_upd_mask_v = csr_rw_rcd_upd_mask_v[csr_rw_rcd_rptr];
 	
 	assign rob_csr_rw_inst_allowed = 
-		csr_rw_rcd_full_n & (csr_rw_inst_collision == {CSR_RW_RCD_SLOTS_N{1'b0}});
+		csr_rw_rcd_full_n & (~(|csr_rw_inst_collision));
 	
 	genvar csr_rw_rcd_i;
 	generate
@@ -365,6 +364,54 @@ module panda_risc_v_rob #(
 		end
 	endgenerate
 	
+	/** ROB内有效访存指令数 **/
+	wire is_retiring_ls_inst; // 是否正在退休访存指令
+	reg[clogb2(ROB_ENTRY_N):0] rob_vld_ls_inst_n; // ROB内有效的访存指令数
+	reg rob_has_ls_inst_r; // ROB中存在访存指令(标志)
+	
+	assign rob_has_ls_inst = rob_has_ls_inst_r;
+	
+	// ROB内有效的访存指令数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			rob_vld_ls_inst_n <= 0;
+		else if(
+			rob_clr | 
+			(
+				(rob_luc_bdcst_vld & rob_rcd_tb_full_n & rob_luc_bdcst_is_ls_inst) ^ 
+				(rob_rtr_bdcst_vld & is_retiring_ls_inst)
+			)
+		)
+			rob_vld_ls_inst_n <= # SIM_DELAY 
+				rob_clr ? 
+					0:
+					(
+						(rob_rtr_bdcst_vld & is_retiring_ls_inst) ? 
+							(rob_vld_ls_inst_n - 1):
+							(rob_vld_ls_inst_n + 1)
+					);
+	end
+	// ROB中存在访存指令(标志)
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			rob_has_ls_inst_r <= 1'b0;
+		else if(
+			rob_clr | 
+			(
+				(rob_luc_bdcst_vld & rob_rcd_tb_full_n & rob_luc_bdcst_is_ls_inst) ^ 
+				(rob_rtr_bdcst_vld & is_retiring_ls_inst)
+			)
+		)
+			rob_has_ls_inst_r <= # SIM_DELAY 
+				(~rob_clr) & 
+				(
+					(~(rob_rtr_bdcst_vld & is_retiring_ls_inst)) | 
+					(rob_vld_ls_inst_n != 1)
+				);
+	end
+	
 	/** ROB记录表存储实体 **/
 	reg[IBUS_TID_WIDTH-1:0] rob_rcd_tb_tid[0:ROB_ENTRY_N-1]; // 指令ID
 	reg[FU_ID_WIDTH-1:0] rob_rcd_tb_fuid[0:ROB_ENTRY_N-1]; // 被发射到的执行单元ID
@@ -380,14 +427,10 @@ module panda_risc_v_rob #(
 	reg[31:0] rob_rcd_tb_nxt_pc[0:ROB_ENTRY_N-1]; // 指令对应的下一有效PC
 	reg[1:0] rob_rcd_tb_b_inst_res[0:ROB_ENTRY_N-1]; // B指令执行结果
 	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_saved; // 结果已保存(标志)
-	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_ls_req_accepted; // 访存请求已接受(标志)
 	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_vld; // 有效标志
-	wire[ROB_ENTRY_N-1:0] rob_rcd_tb_entry_is_vld_ls_inst; // 本条目是有效的访存指令(标志)
 	wire[ROB_ENTRY_N-1:0] on_rob_sng_cancel_vld; // 取消单个ROB项(标志向量)
 	wire[ROB_ENTRY_N-1:0] on_rob_yngr_cancel_vld; // 取消多个年轻ROB项(标志向量)
 	wire[ROB_ENTRY_N-1:0] on_rob_sync_err_cancel_vld; // 取消带有同步异常的ROB项(标志向量)
-	
-	assign rob_has_ls_inst = rob_rcd_tb_entry_is_vld_ls_inst != {ROB_ENTRY_N{1'b0}};
 	
 	assign rob_prep_rtr_entry_vld = rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_saved = rob_rcd_tb_saved[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
@@ -401,13 +444,12 @@ module panda_risc_v_rob #(
 	assign rob_prep_rtr_entry_nxt_pc = rob_rcd_tb_nxt_pc[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_b_inst_res = rob_rcd_tb_b_inst_res[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
+	assign is_retiring_ls_inst = rob_rcd_tb_is_ls_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	
 	genvar rob_rcd_tb_entry_i;
 	generate
 		for(rob_rcd_tb_entry_i = 0;rob_rcd_tb_entry_i < ROB_ENTRY_N;rob_rcd_tb_entry_i = rob_rcd_tb_entry_i + 1)
 		begin:rob_rcd_tb_entry_blk
-			assign rob_rcd_tb_entry_is_vld_ls_inst[rob_rcd_tb_entry_i] = 
-				rob_rcd_tb_vld[rob_rcd_tb_entry_i] & rob_rcd_tb_is_ls_inst[rob_rcd_tb_entry_i];
-			
 			assign on_rob_sng_cancel_vld[rob_rcd_tb_entry_i] = 
 				rob_sng_cancel_vld & 
 				rob_rcd_tb_vld[rob_rcd_tb_entry_i] & (rob_rcd_tb_tid[rob_rcd_tb_entry_i] == rob_sng_cancel_tid);
@@ -459,21 +501,6 @@ module panda_risc_v_rob #(
 						rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i);
 			end
 			
-			always @(posedge aclk or negedge aresetn)
-			begin
-				if(~aresetn)
-					rob_rcd_tb_ls_req_accepted[rob_rcd_tb_entry_i] <= 1'b0;
-				else if(
-					rob_clr | 
-					(rob_ls_start_bdcst_vld & (rob_ls_start_bdcst_tid == rob_rcd_tb_tid[rob_rcd_tb_entry_i])) | 
-					(rob_rtr_bdcst_vld & (rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i))
-				)
-					// 断言: 对于某个ROB项, 不会出现同时"接受访存请求"和"退出ROB"的情况
-					rob_rcd_tb_ls_req_accepted[rob_rcd_tb_entry_i] <= # SIM_DELAY 
-						(~rob_clr) & 
-						rob_ls_start_bdcst_vld & (rob_ls_start_bdcst_tid == rob_rcd_tb_tid[rob_rcd_tb_entry_i]);
-			end
-			
 			always @(posedge aclk)
 			begin
 				if(
@@ -485,11 +512,7 @@ module panda_risc_v_rob #(
 					rob_rcd_tb_cancel[rob_rcd_tb_entry_i] <= # SIM_DELAY 
 						on_rob_sng_cancel_vld[rob_rcd_tb_entry_i] | 
 						on_rob_yngr_cancel_vld[rob_rcd_tb_entry_i] | 
-						on_rob_sync_err_cancel_vld[rob_rcd_tb_entry_i] | 
-						(~(
-							rob_luc_bdcst_vld & 
-							rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i)
-						));
+						on_rob_sync_err_cancel_vld[rob_rcd_tb_entry_i];
 			end
 		end
 	endgenerate
@@ -549,7 +572,7 @@ module panda_risc_v_rob #(
 					(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)) | 
 					// 发生LSU错误
 					(
-						rob_entry_res_on_lsn[rob_res_i] & (rob_rcd_tb_fuid[rob_res_i] == LSU_FU_ID) & 
+						rob_entry_res_on_lsn[rob_res_i] & rob_rcd_tb_is_ls_inst[rob_res_i] & 
 						(fu_res_err_arr[LSU_FU_ID] != LSU_ERR_CODE_NORMAL)
 					)
 				)
@@ -576,17 +599,15 @@ module panda_risc_v_rob #(
 			begin
 				if(
 					rob_clr | 
-					(
-						rob_luc_bdcst_vld & rob_rcd_tb_full_n & 
-						(rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)
-					) | 
+					(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)) | 
 					rob_entry_res_on_lsn[rob_res_i]
 				)
 					rob_rcd_tb_saved[rob_res_i] <= # SIM_DELAY 
 						// 断言: 不会出现同时写ROB项和得到这一项的执行结果的情况
-						(~rob_clr) & 
-						(~(rob_luc_bdcst_vld & rob_rcd_tb_full_n & 
-							(rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)));
+						(~(
+							rob_clr | 
+							(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i))
+						));
 			end
 			
 			always @(posedge aclk)
@@ -607,23 +628,26 @@ module panda_risc_v_rob #(
 	
 	genvar arct_reg_i;
 	generate
-		for(arct_reg_i = 1;arct_reg_i < 32;arct_reg_i = arct_reg_i + 1)
+		for(arct_reg_i = 0;arct_reg_i < 32;arct_reg_i = arct_reg_i + 1)
 		begin:arct_reg_pos_rcd_blk
 			always @(posedge aclk or negedge aresetn)
 			begin
 				if(~aresetn)
 					is_arct_reg_at_rob[arct_reg_i] <= 1'b0;
 				else if(
-					rob_clr | 
-					// 一旦向ROB记录1条指令, 那么这条指令所对应的Rd就位于ROB或旁路网络上
+					(arct_reg_i != 0) & 
 					(
-						rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
-						(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
-					) | 
-					// 当这个逻辑寄存器所绑定的ROB项退休时, 那么这个逻辑寄存器就位于Reg-File上
-					(
-						is_arct_reg_at_rob[arct_reg_i] & 
-						rob_rtr_bdcst_vld & (rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0] == arct_reg_rob_entry_i[arct_reg_i])
+						rob_clr | 
+						// 一旦向ROB记录了1条(不带同步异常的)指令, 那么这条指令所对应的Rd就位于ROB或旁路网络上
+						(
+							rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
+							(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
+						) | 
+						// 当这个逻辑寄存器所绑定的ROB项退休时, 那么这个逻辑寄存器就位于Reg-File上
+						(
+							is_arct_reg_at_rob[arct_reg_i] & 
+							rob_rtr_bdcst_vld & (rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0] == arct_reg_rob_entry_i[arct_reg_i])
+						)
 					)
 				)
 					is_arct_reg_at_rob[arct_reg_i] <= # SIM_DELAY 
@@ -636,189 +660,53 @@ module panda_risc_v_rob #(
 			always @(posedge aclk)
 			begin
 				if(
-					// 一旦向ROB记录1条指令, 那么就更新这条指令对应Rd所绑定的ROB项
+					(arct_reg_i != 0) & 
+					// 一旦向ROB记录了1条(不带同步异常的)指令, 那么就更新这条指令对应Rd所绑定的ROB项编号
 					rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_luc_bdcst_rd_id == arct_reg_i) & 
 					(rob_luc_bdcst_err == LUC_INST_ERR_CODE_NORMAL)
 				)
-					arct_reg_rob_entry_i[arct_reg_i] <= # SIM_DELAY rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0];
+					arct_reg_rob_entry_i[arct_reg_i] <= # SIM_DELAY 
+						rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0];
 			end
 		end
 	endgenerate
 	
-	always @(*)
-	begin
-		is_arct_reg_at_rob[0] = 1'b0;
-		arct_reg_rob_entry_i[0] = {(clogb2(ROB_ENTRY_N-1)+1){1'b0}};
-	end
-	
 	/** 取操作数与RAW数据相关性检查 **/
-	wire[ROB_ENTRY_N-1:0] rob_entry_op1_dpc; // ROB条目与OP1存在RAW相关性(标志向量)
-	wire[ROB_ENTRY_N-1:0] rob_entry_op2_dpc; // ROB条目与OP2存在RAW相关性(标志向量)
-	wire[ROB_ENTRY_N*6-1:0] rob_wptr_recorded_for_cmp; // 待比较的ROB记录写指针(向量)
-	wire[ROB_ENTRY_N*(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)-1:0] rob_payload_for_cmp; // 待比较的ROB负载数据(向量)
-	wire[(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)-1:0] newest_entry_payload_with_op1_dpc; // 与OP1存在RAW相关性的最新项的数据
-	wire[(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)-1:0] newest_entry_payload_with_op2_dpc; // 与OP2存在RAW相关性的最新项的数据
 	wire[clogb2(ROB_ENTRY_N-1):0] op1_rs1_rob_entry_i; // OP1(RS1)在ROB中的项编号
 	wire[clogb2(ROB_ENTRY_N-1):0] op2_rs2_rob_entry_i; // OP2(RS2)在ROB中的项编号
 	
-	/*
-	如果使用逻辑寄存器位置表, 那么表中记录了每个逻辑寄存器是否在ROB或旁路网络中, 并给出了最新的ROB项编号, 利用这个表可以很容易地完成操作数读取
+	// "逻辑寄存器位置表"记录了每个逻辑寄存器是否在ROB或旁路网络中, 并给出了最新的ROB项编号, 利用这个表可以很容易地完成操作数读取
+	assign op1_ftc_from_reg_file = ~is_arct_reg_at_rob[op1_ftc_rs1_id];
+	assign op1_ftc_from_rob = is_arct_reg_at_rob[op1_ftc_rs1_id] & rob_rcd_tb_saved[op1_rs1_rob_entry_i];
+	assign op1_ftc_from_byp = is_arct_reg_at_rob[op1_ftc_rs1_id] & (~rob_rcd_tb_saved[op1_rs1_rob_entry_i]);
+	assign op1_ftc_fuid = rob_rcd_tb_fuid[op1_rs1_rob_entry_i];
+	assign op1_ftc_tid = rob_rcd_tb_tid[op1_rs1_rob_entry_i];
+	assign op1_ftc_rob_saved_data = rob_rcd_tb_fu_res[op1_rs1_rob_entry_i];
 	
-	如果不使用逻辑寄存器位置表, 那么取操作数的流程如下: 
-		将待取操作数的rs索引与ROB中每1项的rd索引比较, 如果都不相同: 
-			说明没有RAW相关性, 从寄存器堆取操作数即可
-		否则: 
-			在那些有RAW相关性的ROB条目里选出最新的1条, 如果这1项已经存储了执行结果: 
-				将ROB暂存的执行结果作为取到的操作数
-			否则: 
-				在该条目被发射到的执行单元处等待结果(等待旁路网络)
-	*/
-	assign op1_ftc_from_reg_file = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			((op1_ftc_rs1_id == 5'd0) | (~is_arct_reg_at_rob[op1_ftc_rs1_id])):
-			(rob_entry_op1_dpc == {ROB_ENTRY_N{1'b0}});
-	assign op1_ftc_from_rob = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			(
-				(op1_ftc_rs1_id != 5'd0) & is_arct_reg_at_rob[op1_ftc_rs1_id] & 
-				rob_rcd_tb_saved[op1_rs1_rob_entry_i]
-			):
-			((rob_entry_op1_dpc != {ROB_ENTRY_N{1'b0}}) & newest_entry_payload_with_op1_dpc[0]);
-	assign op1_ftc_from_byp = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			(
-				(op1_ftc_rs1_id != 5'd0) & is_arct_reg_at_rob[op1_ftc_rs1_id] & 
-				(~rob_rcd_tb_saved[op1_rs1_rob_entry_i])
-			):
-			((rob_entry_op1_dpc != {ROB_ENTRY_N{1'b0}}) & (~newest_entry_payload_with_op1_dpc[0]));
-	assign op1_ftc_fuid = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			rob_rcd_tb_fuid[op1_rs1_rob_entry_i]:
-			newest_entry_payload_with_op1_dpc[FU_ID_WIDTH:1];
-	assign op1_ftc_tid = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			rob_rcd_tb_tid[op1_rs1_rob_entry_i]:
-			newest_entry_payload_with_op1_dpc[IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH:FU_ID_WIDTH+FU_RES_WIDTH+1];
-	assign op1_ftc_rob_saved_data = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			rob_rcd_tb_fu_res[op1_rs1_rob_entry_i]:
-			newest_entry_payload_with_op1_dpc[FU_ID_WIDTH+FU_RES_WIDTH:FU_ID_WIDTH+1];
-	
-	assign op2_ftc_from_reg_file = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			((op2_ftc_rs2_id == 5'd0) | (~is_arct_reg_at_rob[op2_ftc_rs2_id])):
-			(rob_entry_op2_dpc == {ROB_ENTRY_N{1'b0}});
-	assign op2_ftc_from_rob = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			(
-				(op2_ftc_rs2_id != 5'd0) & is_arct_reg_at_rob[op2_ftc_rs2_id] & 
-				rob_rcd_tb_saved[op2_rs2_rob_entry_i]
-			):
-			((rob_entry_op2_dpc != {ROB_ENTRY_N{1'b0}}) & newest_entry_payload_with_op2_dpc[0]);
-	assign op2_ftc_from_byp = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			(
-				(op2_ftc_rs2_id != 5'd0) & is_arct_reg_at_rob[op2_ftc_rs2_id] & 
-				(~rob_rcd_tb_saved[op2_rs2_rob_entry_i])
-			):
-			((rob_entry_op2_dpc != {ROB_ENTRY_N{1'b0}}) & (~newest_entry_payload_with_op2_dpc[0]));
-	assign op2_ftc_fuid = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			rob_rcd_tb_fuid[op2_rs2_rob_entry_i]:
-			newest_entry_payload_with_op2_dpc[FU_ID_WIDTH:1];
-	assign op2_ftc_tid = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			rob_rcd_tb_tid[op2_rs2_rob_entry_i]:
-			newest_entry_payload_with_op2_dpc[IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH:FU_ID_WIDTH+FU_RES_WIDTH+1];
-	assign op2_ftc_rob_saved_data = 
-		(EN_ARCT_REG_POS_TB == "true") ? 
-			rob_rcd_tb_fu_res[op2_rs2_rob_entry_i]:
-			newest_entry_payload_with_op2_dpc[FU_ID_WIDTH+FU_RES_WIDTH:FU_ID_WIDTH+1];
-	
-	genvar rob_dpc_i;
-	generate
-		for(rob_dpc_i = 0;rob_dpc_i < ROB_ENTRY_N;rob_dpc_i = rob_dpc_i + 1)
-		begin:rob_entry_dpc_blk
-			assign rob_entry_op1_dpc[rob_dpc_i] = 
-				rob_rcd_tb_vld[rob_dpc_i] & 
-				(rob_rcd_tb_rd_id[rob_dpc_i] != 5'd0) & 
-				(rob_rcd_tb_rd_id[rob_dpc_i] == op1_ftc_rs1_id) & 
-				(rob_rcd_tb_err[rob_dpc_i] == LUC_INST_ERR_CODE_NORMAL) & 
-				(~rob_rcd_tb_cancel[rob_dpc_i]);
-			assign rob_entry_op2_dpc[rob_dpc_i] = 
-				rob_rcd_tb_vld[rob_dpc_i] & 
-				(rob_rcd_tb_rd_id[rob_dpc_i] != 5'd0) & 
-				(rob_rcd_tb_rd_id[rob_dpc_i] == op2_ftc_rs2_id) & 
-				(rob_rcd_tb_err[rob_dpc_i] == LUC_INST_ERR_CODE_NORMAL) & 
-				(~rob_rcd_tb_cancel[rob_dpc_i]);
-			
-			assign rob_wptr_recorded_for_cmp[(rob_dpc_i+1)*6-1:rob_dpc_i*6] = 
-				rob_rcd_tb_wptr_saved[rob_dpc_i] | 6'b000000;
-			assign rob_payload_for_cmp[
-				(rob_dpc_i+1)*(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)-1:
-				rob_dpc_i*(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1)] = 
-				{
-					rob_rcd_tb_tid[rob_dpc_i], 
-					rob_rcd_tb_fu_res[rob_dpc_i], 
-					rob_rcd_tb_fuid[rob_dpc_i], 
-					rob_rcd_tb_saved[rob_dpc_i]
-				};
-		end
-	endgenerate
+	assign op2_ftc_from_reg_file = ~is_arct_reg_at_rob[op2_ftc_rs2_id];
+	assign op2_ftc_from_rob = is_arct_reg_at_rob[op2_ftc_rs2_id] & rob_rcd_tb_saved[op2_rs2_rob_entry_i];
+	assign op2_ftc_from_byp = is_arct_reg_at_rob[op2_ftc_rs2_id] & (~rob_rcd_tb_saved[op2_rs2_rob_entry_i]);
+	assign op2_ftc_fuid = rob_rcd_tb_fuid[op2_rs2_rob_entry_i];
+	assign op2_ftc_tid = rob_rcd_tb_tid[op2_rs2_rob_entry_i];
+	assign op2_ftc_rob_saved_data = rob_rcd_tb_fu_res[op2_rs2_rob_entry_i];
 	
 	assign op1_rs1_rob_entry_i = arct_reg_rob_entry_i[op1_ftc_rs1_id];
 	assign op2_rs2_rob_entry_i = arct_reg_rob_entry_i[op2_ftc_rs2_id];
 	
-	find_newest_rob_entry #(
-		.ROB_PAYLOAD_WIDTH(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1),
-		.ROB_ENTRY_N(ROB_ENTRY_N)
-	)find_newest_rob_entry_op1_u(
-		.wptr_recorded(rob_wptr_recorded_for_cmp),
-		.rob_payload(rob_payload_for_cmp),
-		.cmp_mask(rob_entry_op1_dpc),
-		
-		.newest_entry_i(),
-		.newest_entry_payload(newest_entry_payload_with_op1_dpc)
-	);
-	find_newest_rob_entry #(
-		.ROB_PAYLOAD_WIDTH(IBUS_TID_WIDTH+FU_ID_WIDTH+FU_RES_WIDTH+1),
-		.ROB_ENTRY_N(ROB_ENTRY_N)
-	)find_newest_rob_entry_op2_u(
-		.wptr_recorded(rob_wptr_recorded_for_cmp),
-		.rob_payload(rob_payload_for_cmp),
-		.cmp_mask(rob_entry_op2_dpc),
-		
-		.newest_entry_i(),
-		.newest_entry_payload(newest_entry_payload_with_op2_dpc)
-	);
+	/** LSU许可 **/
+	/*
+	说明: 
+		当1条Load/Store指令成为ROB里最旧的指令时, 给出写存储器许可
+		实际上, 只有访问存储器区域的Store指令才需要等待这个许可
+	*/
+	assign wr_mem_permitted_flag = 
+		rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & rob_rcd_tb_is_ls_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	assign init_mem_bus_tr_store_inst_tid = 
+		rob_rcd_tb_tid[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
-	/** 访存许可 **/
-	reg ls_allow_vld_suppress; // 访存执行许可(镇压标志)
-	
-	assign ls_allow_vld = 
-		(~rob_clr) & 
-		(~ls_allow_vld_suppress) & 
-		rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
-		rob_rcd_tb_ls_req_accepted[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
-	assign ls_allow_inst_id = rob_rcd_tb_tid[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
-	
-	// 访存执行许可(镇压标志)
-	always @(posedge aclk or negedge aresetn)
-	begin
-		if(~aresetn)
-			ls_allow_vld_suppress <= 1'b0;
-		else if(
-			rob_clr | (
-				ls_allow_vld_suppress ? 
-					rob_rtr_bdcst_vld:
-					(
-						rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
-						rob_rcd_tb_ls_req_accepted[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & 
-						(~rob_rtr_bdcst_vld)
-					)
-			)
-		)
-			ls_allow_vld_suppress <= # SIM_DELAY (~rob_clr) & (~ls_allow_vld_suppress);
-	end
+	assign perph_access_permitted_flag = 
+		rob_rcd_tb_vld[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]] & rob_rcd_tb_is_ls_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	assign init_perph_bus_tr_ls_inst_tid = 
+		rob_rcd_tb_tid[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
 endmodule

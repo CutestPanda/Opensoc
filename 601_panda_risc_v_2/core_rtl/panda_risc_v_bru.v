@@ -42,7 +42,7 @@ SOFTWARE.
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/06/29
+日期: 2026/01/22
 ********************************************************************/
 
 
@@ -69,6 +69,8 @@ module panda_risc_v_bru #(
 	output wire[31:0] b_prdt_success_inst_n, // 预测正确的B指令数
 	output wire[31:0] common_inst_n_acpt, // 接受的非分支指令总数
 	output wire[31:0] common_prdt_success_inst_n, // 预测正确的非分支指令数
+	output wire[31:0] brc_inst_n_acpt, // 接受的分支指令总数
+	output wire[31:0] brc_inst_with_btb_hit_n, // BTB命中的分支指令总数
 	
 	// BRU给出的冲刷请求
 	output wire bru_flush_req, // 冲刷请求
@@ -218,9 +220,9 @@ module panda_risc_v_bru #(
 			)
 		);
 	assign bru_flush_addr = 
-		((EN_IMDT_FLUSH == "true") & (~bru_flush_pending)) ? 
-			flush_addr_cur:
-			bru_flush_addr_gen;
+		((EN_IMDT_FLUSH == "false") | bru_flush_pending) ? 
+			bru_flush_addr_gen:
+			flush_addr_cur;
 	
 	/*
 	说明: 
@@ -271,7 +273,7 @@ module panda_risc_v_bru #(
 	// 生成的冲刷地址
 	always @(posedge aclk)
 	begin
-		if((~bru_flush_pending) & s_bru_i_valid & need_flush)
+		if((~bru_flush_pending) & s_bru_i_valid & need_flush & ((EN_IMDT_FLUSH == "false") | (~bru_flush_grant)))
 			bru_flush_addr_gen <= # SIM_DELAY flush_addr_cur;
 	end
 	
@@ -284,6 +286,8 @@ module panda_risc_v_bru #(
 	reg[31:0] b_prdt_success_inst_n_r; // 预测正确的B指令数
 	reg[31:0] common_inst_n_acpt_r; // 接受的非分支指令总数
 	reg[31:0] common_prdt_success_inst_n_r; // 预测正确的非分支指令数
+	reg[31:0] brc_inst_n_acpt_r; // 接受的分支指令总数
+	reg[31:0] brc_inst_with_btb_hit_n_r; // BTB命中的分支指令总数
 	
 	assign jal_inst_n_acpt = jal_inst_n_acpt_r;
 	assign jal_prdt_success_inst_n = jal_prdt_success_inst_n_r;
@@ -293,6 +297,8 @@ module panda_risc_v_bru #(
 	assign b_prdt_success_inst_n = b_prdt_success_inst_n_r;
 	assign common_inst_n_acpt = common_inst_n_acpt_r;
 	assign common_prdt_success_inst_n = common_prdt_success_inst_n_r;
+	assign brc_inst_n_acpt = brc_inst_n_acpt_r;
+	assign brc_inst_with_btb_hit_n = brc_inst_with_btb_hit_n_r;
 	
 	// 接受的JAL指令总数
 	always @(posedge aclk or negedge aresetn)
@@ -388,6 +394,30 @@ module panda_risc_v_bru #(
 			prdt_success
 		)
 			common_prdt_success_inst_n_r <= # SIM_DELAY common_prdt_success_inst_n_r + 1'b1;
+	end
+	
+	// 接受的分支指令总数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			brc_inst_n_acpt_r <= 32'd0;
+		else if(
+			s_bru_i_valid & s_bru_i_ready & 
+			is_brc_inst
+		)
+			brc_inst_n_acpt_r <= # SIM_DELAY brc_inst_n_acpt_r + 1'b1;
+	end
+	// BTB命中的分支指令总数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			brc_inst_with_btb_hit_n_r <= 32'd0;
+		else if(
+			s_bru_i_valid & s_bru_i_ready & 
+			is_brc_inst & 
+			s_bru_i_msg[PRDT_MSG_BTB_HIT_SID+3]
+		)
+			brc_inst_with_btb_hit_n_r <= # SIM_DELAY brc_inst_with_btb_hit_n_r + 1'b1;
 	end
 	
 endmodule

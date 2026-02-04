@@ -43,7 +43,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/06/19
+日期: 2026/01/25
 ********************************************************************/
 
 
@@ -67,7 +67,7 @@ module panda_risc_v_op_fetch_idec #(
 	// 取指结果
 	input wire[127:0] s_if_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	input wire[98:0] s_if_res_msg, // 取指附加信息({分支预测信息(96bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
-	input wire[IBUS_TID_WIDTH-1:0] s_if_res_id, // 指令编号
+	input wire[IBUS_TID_WIDTH-1:0] s_if_res_id, // 指令ID
 	input wire s_if_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	// 说明: 仅当(OP_PRE_FTC == "true")时使用
 	input wire[129:0] s_if_res_op, // 预取的操作数({操作数1已取得(1bit), 操作数2已取得(1bit), 
@@ -82,7 +82,7 @@ module panda_risc_v_op_fetch_idec #(
 	output wire[127:0] m_op_ftc_id_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	output wire[146:0] m_op_ftc_id_res_msg, // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
 	output wire[143:0] m_op_ftc_id_res_dcd_res, // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
-	output wire[IBUS_TID_WIDTH-1:0] m_op_ftc_id_res_id, // 指令编号
+	output wire[IBUS_TID_WIDTH-1:0] m_op_ftc_id_res_id, // 指令ID
 	output wire m_op_ftc_id_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
 	output wire[31:0] m_op_ftc_id_res_op1, // 操作数1
 	output wire[31:0] m_op_ftc_id_res_op2, // 操作数2
@@ -272,10 +272,8 @@ module panda_risc_v_op_fetch_idec #(
 				((OP_PRE_FTC == "true") | fu_res_bypass_en[fu_i]) & 
 				fu_res_vld[fu_i];
 			assign fu_res_tid_arr[fu_i] = 
-				{IBUS_TID_WIDTH{(OP_PRE_FTC == "true") | fu_res_bypass_en[fu_i]}} & 
 				fu_res_tid[(fu_i+1)*IBUS_TID_WIDTH-1:fu_i*IBUS_TID_WIDTH];
 			assign fu_res_data_arr[fu_i] = 
-				{FU_RES_WIDTH{(OP_PRE_FTC == "true") | fu_res_bypass_en[fu_i]}} & 
 				fu_res_data[(fu_i+1)*FU_RES_WIDTH-1:fu_i*FU_RES_WIDTH];
 		end
 	endgenerate
@@ -346,10 +344,7 @@ module panda_risc_v_op_fetch_idec #(
 	
 	assign on_op1_fetch = 
 		(OP_PRE_FTC == "true") ? 
-			(
-				s_if_res_op[PFTC_OP_OP1_VLD] | 
-				on_op1_fetch_from_bypass_network
-			):
+			(s_if_res_op[PFTC_OP_OP1_VLD] | on_op1_fetch_from_bypass_network):
 			(
 				op1_ftc_from_reg_file | 
 				op1_ftc_from_rob | 
@@ -357,10 +352,7 @@ module panda_risc_v_op_fetch_idec #(
 			);
 	assign on_op2_fetch = 
 		(OP_PRE_FTC == "true") ? 
-			(
-				s_if_res_op[PFTC_OP_OP2_VLD] | 
-				on_op2_fetch_from_bypass_network
-			):
+			(s_if_res_op[PFTC_OP_OP2_VLD] | on_op2_fetch_from_bypass_network):
 			(
 				op2_ftc_from_reg_file | 
 				op2_ftc_from_rob | 
@@ -368,11 +360,9 @@ module panda_risc_v_op_fetch_idec #(
 			);
 	
 	assign op1_no_need = 
-		s_if_res_data[32+PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | 
-		(~s_if_res_data[32+PRE_DCD_MSG_RS1_VLD_SID]);
+		s_if_res_data[32+PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | (~s_if_res_data[32+PRE_DCD_MSG_RS1_VLD_SID]);
 	assign op2_no_need = 
-		s_if_res_data[32+PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | 
-		(~s_if_res_data[32+PRE_DCD_MSG_RS2_VLD_SID]);
+		s_if_res_data[32+PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | (~s_if_res_data[32+PRE_DCD_MSG_RS2_VLD_SID]);
 	
 	assign op1_fetch_cur = 
 		(OP_PRE_FTC == "true") ? 
@@ -569,21 +559,18 @@ module panda_risc_v_op_fetch_idec #(
 				({FU_ID_WIDTH{(~is_illegal_inst) & (is_div_inst | is_rem_inst)}} & FU_DIV_ID) // 从除法器取到结果
 			);
 	assign rob_luc_bdcst_rd_id = 
-		(
-			m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] | 
-			m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID]
-		) ? 
-			5'b00000:
-			s_if_res_data[11:7];
+		s_if_res_data[32+PRE_DCD_MSG_RD_VLD_SID] ? 
+			s_if_res_data[11:7]:
+			5'b00000;
 	assign rob_luc_bdcst_is_ls_inst = 
+		(~m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
 		(
 			m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID] | 
 			m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_LOAD_INST_SID]
-		) & 
-		(~m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]);
+		);
 	assign rob_luc_bdcst_is_csr_rw_inst = 
-		m_op_ftc_id_res_dcd_res[PRE_DCD_MSG_IS_CSR_RW_INST_SID] & 
-		(~m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]);
+		(~m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
+		m_op_ftc_id_res_dcd_res[PRE_DCD_MSG_IS_CSR_RW_INST_SID];
 	assign rob_luc_bdcst_csr_rw_inst_msg = {
 		m_op_ftc_id_res_dcd_res[11+CSR_RW_OP_MSG_ADDR_SID+16:CSR_RW_OP_MSG_ADDR_SID+16], // CSR写地址
 		m_op_ftc_id_res_dcd_res[1+CSR_RW_OP_MSG_UPD_TYPE_SID+16:CSR_RW_OP_MSG_UPD_TYPE_SID+16], // CSR更新类型
@@ -597,13 +584,13 @@ module panda_risc_v_op_fetch_idec #(
 		({3{is_ebreak_inst}} & SPEC_INST_TYPE_EBREAK) | 
 		({3{is_dret_inst}} & SPEC_INST_TYPE_DRET);
 	
-	assign nxt_seq_pc = s_if_res_data[127:96] + 3'd4; // PC + 4
+	assign nxt_seq_pc = s_if_res_data[127:96] + 3'd4; // PC + 指令长度
 	assign prdt_addr_corrected = 
 		(
 			// 分支预测特例一: BTB缺失, 方向预测为跳
 			(
-				s_if_res_msg[PRDT_MSG_IS_TAKEN_SID+3:PRDT_MSG_IS_TAKEN_SID+3] & 
-				(~s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3])
+				(~s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3]) & 
+				s_if_res_msg[PRDT_MSG_IS_TAKEN_SID+3:PRDT_MSG_IS_TAKEN_SID+3]
 			) | 
 			// 分支预测特例二: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
 			(

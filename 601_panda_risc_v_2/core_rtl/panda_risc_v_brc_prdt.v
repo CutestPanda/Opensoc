@@ -29,7 +29,7 @@ SOFTWARE.
 描述:
 B指令跳转方向预测 -> 基于全局历史的分支预测
 
-RET指令跳转目标地址预测 -> 返回地址堆栈(RAS)
+JALR指令跳转目标地址预测 -> 返回地址堆栈(RAS)
 JAL/B指令跳转目标地址预测 -> 分支目标缓存(BTB)
 
 分支预测单元时延 = 1clk
@@ -44,7 +44,7 @@ JAL/B指令跳转目标地址预测 -> 分支目标缓存(BTB)
 MEM MASTER
 
 作者: 陈家耀
-日期: 2025/06/11
+日期: 2026/01/22
 ********************************************************************/
 
 
@@ -56,8 +56,9 @@ module panda_risc_v_brc_prdt #(
 	// BTB配置
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
 	parameter integer BTB_ENTRY_N = 512, // BTB项数(<=65536)
-	parameter integer PC_TAG_WIDTH = 21, // PC标签的位宽(不要修改)
+	parameter integer PC_TAG_WIDTH = 21, // PC标签的位宽(不要修改, 应为30 - clogb2(BTB_ENTRY_N))
 	parameter integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2, // BTB存储器的数据位宽(不要修改)
+	parameter NO_INIT_BTB = "false", // 是否无需初始化BTB存储器
 	// RAS配置
 	parameter integer RAS_ENTRY_N = 4, // 返回地址堆栈的条目数(2 | 4 | 8 | 16)
 	// 仿真配置
@@ -93,7 +94,7 @@ module panda_risc_v_brc_prdt #(
 	input wire[31:0] btb_rplc_pc, // 分支指令对应的PC
 	input wire[2:0] btb_rplc_btype, // 分支指令类型
 	input wire[31:0] btb_rplc_bta, // 分支指令对应的目标地址
-	input wire btb_rplc_jpdir, // 分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+	input wire btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	input wire btb_rplc_push_ras, // RAS压栈标志
 	input wire btb_rplc_pop_ras, // RAS出栈标志
 	// [BTB存储器]
@@ -241,7 +242,6 @@ module panda_risc_v_brc_prdt #(
 	wire[31:0] ras_push_addr;
 	// RAS出栈
 	wire ras_pop_req;
-	wire[31:0] ras_pop_addr;
 	// RAS查询
 	wire ras_query_req;
 	wire[31:0] ras_query_addr;
@@ -258,7 +258,7 @@ module panda_risc_v_brc_prdt #(
 		.ras_push_addr(ras_push_addr),
 		
 		.ras_pop_req(ras_pop_req),
-		.ras_pop_addr(ras_pop_addr),
+		.ras_pop_addr(),
 		
 		.ras_query_req(ras_query_req),
 		.ras_query_addr(ras_query_addr)
@@ -278,7 +278,7 @@ module panda_risc_v_brc_prdt #(
 	wire btb_query_o_push_ras; // 查询得到的RAS压栈标志
 	wire btb_query_o_pop_ras; // 查询得到的RAS出栈标志
 	wire[31:0] btb_query_o_bta; // 查询得到的分支目标地址
-	wire btb_query_o_jpdir; // 查询得到的分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+	wire btb_query_o_jpdir; // 查询得到的BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	wire[31:0] btb_query_o_nxt_pc; // 查询得到的下一PC
 	wire btb_query_o_vld; // 查询结果有效
 	
@@ -287,6 +287,7 @@ module panda_risc_v_brc_prdt #(
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.PC_TAG_WIDTH(PC_TAG_WIDTH),
 		.BTB_MEM_WIDTH(BTB_MEM_WIDTH),
+		.NO_INIT_BTB(NO_INIT_BTB),
 		.SIM_DELAY(SIM_DELAY)
 	)btb_u(
 		.aclk(aclk),
@@ -353,7 +354,8 @@ module panda_risc_v_brc_prdt #(
 				(btb_query_o_btype == BRANCH_TYPE_JAL) | 
 				(btb_query_o_btype == BRANCH_TYPE_JALR)
 			)
-		) | glb_brc_prdt_query_o_2bit_sat_cnt[1];
+		) | 
+		glb_brc_prdt_query_o_2bit_sat_cnt[1];
 	assign prdt_o_btb_hit = btb_query_o_hit;
 	assign prdt_o_btb_wid = btb_query_o_wid;
 	assign prdt_o_btb_wvld = btb_query_o_wvld;
@@ -363,13 +365,15 @@ module panda_risc_v_brc_prdt #(
 	assign prdt_o_tid = prdt_o_tid_r;
 	
 	assign glb_brc_prdt_on_upd_speculative_ghr = 
-		(btb_query_o_vld & btb_query_o_hit & (btb_query_o_btype == BRANCH_TYPE_B)) | 
-		// 说明: 如果全局历史分支预测的PHT给出的2bit饱和计数器是饱和的, 即使BTB未命中, 也可以猜测这是1条B指令
+		btb_query_o_vld & 
 		(
-			btb_query_o_vld & (~btb_query_o_hit) & 
-			glb_brc_prdt_query_o_vld & (
-				(glb_brc_prdt_query_o_2bit_sat_cnt == 2'b00) | (glb_brc_prdt_query_o_2bit_sat_cnt == 2'b11)
-			)
+			btb_query_o_hit ? 
+				(btb_query_o_btype == BRANCH_TYPE_B):
+				// 说明: 如果全局历史分支预测的PHT给出的2bit饱和计数器是饱和的, 即使BTB未命中, 也可以猜测这是1条B指令
+				(
+					glb_brc_prdt_query_o_vld & 
+					(~(glb_brc_prdt_query_o_2bit_sat_cnt[1] ^ glb_brc_prdt_query_o_2bit_sat_cnt[0]))
+				)
 		);
 	assign glb_brc_prdt_speculative_ghr_shift_in = glb_brc_prdt_query_o_2bit_sat_cnt[1];
 	assign glb_brc_prdt_query_i_req = prdt_i_req;
@@ -401,10 +405,5 @@ module panda_risc_v_brc_prdt #(
 			prdt_o_tid_r <= # SIM_DELAY prdt_i_tid;
 		end
 	end
-	
-	/** 未使用的信号 **/
-	wire unused;
-	
-	assign unused = btb_query_o_jpdir | (|ras_pop_addr);
 	
 endmodule

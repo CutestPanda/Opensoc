@@ -48,7 +48,7 @@ SOFTWARE.
 MEM MASTER
 
 作者: 陈家耀
-日期: 2025/06/12
+日期: 2026/01/22
 ********************************************************************/
 
 
@@ -66,6 +66,7 @@ module panda_risc_v_pre_if #(
 	parameter integer BTB_ENTRY_N = 512, // BTB项数(<=65536)
 	parameter integer PC_TAG_WIDTH = 21, // PC标签的位宽(不要修改)
 	parameter integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2, // BTB存储器的数据位宽(不要修改)
+	parameter NO_INIT_BTB = "false", // 是否无需初始化BTB存储器
 	// RAS配置
 	parameter integer RAS_ENTRY_N = 4, // 返回地址堆栈的条目数(2 | 4 | 8 | 16)
 	// 仿真配置
@@ -98,7 +99,7 @@ module panda_risc_v_pre_if #(
 	output wire[IBUS_TID_WIDTH-1:0] prdt_bdcst_tid, // 事务ID
 	output wire[PRDT_MSG_WIDTH-1:0] prdt_bdcst_msg, // 分支预测信息
 	
-	// 分支信息广播
+	// (实际)分支信息广播
 	// [取指阶段]
 	input wire brc_bdcst_iftc_vld, // 广播有效
 	input wire[IBUS_TID_WIDTH-1:0] brc_bdcst_iftc_tid, // 事务ID
@@ -136,7 +137,7 @@ module panda_risc_v_pre_if #(
 	input wire[31:0] btb_rplc_pc, // 分支指令对应的PC
 	input wire[2:0] btb_rplc_btype, // 分支指令类型
 	input wire[31:0] btb_rplc_bta, // 分支指令对应的目标地址
-	input wire btb_rplc_jpdir, // 分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+	input wire btb_rplc_jpdir, // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	input wire btb_rplc_push_ras, // RAS压栈标志
 	input wire btb_rplc_pop_ras, // RAS出栈标志
 	
@@ -207,6 +208,7 @@ module panda_risc_v_pre_if #(
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.PC_TAG_WIDTH(PC_TAG_WIDTH),
 		.BTB_MEM_WIDTH(BTB_MEM_WIDTH),
+		.NO_INIT_BTB(NO_INIT_BTB),
 		.RAS_ENTRY_N(RAS_ENTRY_N),
 		.SIM_DELAY(SIM_DELAY)
 	)brc_prdt_u(
@@ -264,7 +266,7 @@ module panda_risc_v_pre_if #(
 		.prdt_o_btb_wid(prdt_o_btb_wid),
 		.prdt_o_btb_wvld(prdt_o_btb_wvld),
 		.prdt_o_btb_bta(prdt_o_btb_bta),
-		.prdt_o_glb_speculative_ghr(prdt_o_glb_speculative_ghr),
+		.prdt_o_glb_speculative_ghr(),
 		.prdt_o_glb_2bit_sat_cnt(prdt_o_glb_2bit_sat_cnt),
 		.prdt_o_tid(prdt_o_tid)
 	);
@@ -276,9 +278,9 @@ module panda_risc_v_pre_if #(
 	reg flush_pre_if_pending; // 冲刷预取指令(等待标志)
 	reg common_pre_if_pending; // 普通预取指令(等待标志)
 	reg btb_hit_jalr_pending; // BTB命中的无法从RAS得到BTA的JALR指令(等待标志)
-	reg btb_miss_pending; // BTB缺失(等待标志)
+	reg btb_miss_pending; // BTB缺失且方向预测为跳(等待标志)
 	reg btb_hit_jalr_bdcst_gotten; // BTB命中的无法从RAS得到BTA的JALR指令得到分支信息广播(标志)
-	reg btb_miss_bdcst_gotten; // BTB缺失得到分支信息广播(标志)
+	reg btb_miss_bdcst_gotten; // "BTB缺失且方向预测为跳"得到分支信息广播(标志)
 	wire to_rst; // 正在处理复位(标志)
 	wire to_flush; // 正在处理冲刷(标志)
 	reg[31:0] flush_addr_saved; // 保存的冲刷地址
@@ -421,11 +423,11 @@ module panda_risc_v_pre_if #(
 					)):(
 						(~(flush_req | sys_reset_req)) & 
 						(prdt_unit_initializing | (~ibus_access_req_ready)) & 
-						prdt_o_vld & (
+						prdt_o_vld & (~(
 							prdt_o_btb_hit ? 
-								(~((prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras))):
-								(~prdt_o_taken)
-						)
+								((prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)):
+								prdt_o_taken
+						))
 					)
 				*/
 				(~(flush_req | sys_reset_req)) & 
@@ -459,7 +461,7 @@ module panda_risc_v_pre_if #(
 						prdt_o_vld & prdt_o_btb_hit & (prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)
 					);
 	end
-	// BTB缺失(等待标志)
+	// BTB缺失且方向预测为跳(等待标志)
 	always @(posedge aclk or negedge aresetn)
 	begin
 		if(~aresetn)
@@ -477,7 +479,7 @@ module panda_risc_v_pre_if #(
 					*/
 					(
 						(~(flush_req | sys_reset_req)) & 
-						prdt_o_vld & prdt_o_taken & (~prdt_o_btb_hit)
+						prdt_o_vld & (~prdt_o_btb_hit) & prdt_o_taken
 					);
 	end
 	
@@ -495,6 +497,7 @@ module panda_risc_v_pre_if #(
 					// 否则就继续等待发射阶段的分支信息广播
 					(brc_bdcst_luc_vld & (brc_bdcst_luc_tid == prdt_o_tid[IBUS_TID_WIDTH-1:0]))
 				):
+				// 清零标志
 				(
 					(~(flush_req | sys_reset_req)) & 
 					prdt_o_vld & prdt_o_btb_hit & (prdt_o_brc_type == BRANCH_TYPE_JALR) & (~prdt_o_pop_ras)
@@ -502,7 +505,7 @@ module panda_risc_v_pre_if #(
 		)
 			btb_hit_jalr_bdcst_gotten <= # SIM_DELAY btb_hit_jalr_pending;
 	end
-	// BTB缺失得到分支信息广播(标志)
+	// "BTB缺失且方向预测为跳"得到分支信息广播(标志)
 	always @(posedge aclk)
 	begin
 		if(
@@ -532,12 +535,9 @@ module panda_risc_v_pre_if #(
 	end
 	
 	// PC寄存器
-	always @(posedge aclk or negedge aresetn)
+	always @(posedge aclk)
 	begin
-		if(~aresetn)
-			// 说明: PC寄存器的异步复位值无意义
-			pc_r <= 32'h0000_0000;
-		else if(ibus_access_req_valid & ibus_access_req_ready)
+		if(ibus_access_req_valid & ibus_access_req_ready)
 			pc_r <= # SIM_DELAY pc_nxt;
 	end
 	
@@ -565,10 +565,5 @@ module panda_risc_v_pre_if #(
 					brc_bdcst_iftc_bta:
 					brc_bdcst_luc_bta;
 	end
-	
-	/** 未使用的信号 **/
-	wire unused;
-	
-	assign unused = |prdt_o_glb_speculative_ghr;
 	
 endmodule

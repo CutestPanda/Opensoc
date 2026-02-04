@@ -41,7 +41,7 @@ MEM MASTER
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/06/15
+日期: 2026/01/22
 ********************************************************************/
 
 
@@ -64,6 +64,7 @@ module panda_risc_v_ifu #(
 	parameter integer BTB_ENTRY_N = 512, // BTB项数(<=65536)
 	parameter integer PC_TAG_WIDTH = 21, // PC标签的位宽(不要修改)
 	parameter integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2, // BTB存储器的数据位宽(不要修改)
+	parameter NO_INIT_BTB = "false", // 是否无需初始化BTB存储器
 	// RAS配置
 	parameter integer RAS_ENTRY_N = 4, // 返回地址堆栈的条目数(2 | 4 | 8 | 16)
 	// 仿真配置
@@ -256,14 +257,6 @@ module panda_risc_v_ifu #(
 		end
 	endgenerate
 	
-	/** 取指阶段分支信息广播 **/
-	wire brc_bdcst_iftc_vld; // 广播有效
-	wire[IBUS_TID_WIDTH-1:0] brc_bdcst_iftc_tid; // 事务ID
-	wire brc_bdcst_iftc_is_b_inst; // 是否B指令
-	wire brc_bdcst_iftc_is_jal_inst; // 是否JAL指令
-	wire brc_bdcst_iftc_is_jalr_inst; // 是否JALR指令
-	wire[31:0] brc_bdcst_iftc_bta; // 分支目标地址
-	
 	/** 指令总线控制单元 **/
 	// 清空指令缓存(指示)
 	wire clr_inst_buf;
@@ -287,6 +280,13 @@ module panda_risc_v_ifu #(
 	wire[PRDT_MSG_WIDTH-1:0] ibus_access_resp_prdt; // 分支预测信息
 	wire ibus_access_resp_valid;
 	wire ibus_access_resp_ready;
+	// 取指阶段分支信息广播
+	wire brc_bdcst_iftc_vld; // 广播有效
+	wire[IBUS_TID_WIDTH-1:0] brc_bdcst_iftc_tid; // 事务ID
+	wire brc_bdcst_iftc_is_b_inst; // 是否B指令
+	wire brc_bdcst_iftc_is_jal_inst; // 是否JAL指令
+	wire brc_bdcst_iftc_is_jalr_inst; // 是否JALR指令
+	wire[31:0] brc_bdcst_iftc_bta; // 分支目标地址
 	
 	assign s_if_regs_data = {
 		ibus_access_resp_addr, // 指令对应的PC(32bit)
@@ -393,7 +393,7 @@ module panda_risc_v_ifu #(
 	wire[31:0] btb_rplc_pc; // 分支指令对应的PC
 	wire[2:0] btb_rplc_btype; // 分支指令类型
 	wire[31:0] btb_rplc_bta; // 分支指令对应的目标地址
-	wire btb_rplc_jpdir; // 分支跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
+	wire btb_rplc_jpdir; // BTFN跳转方向(1'b1 -> 向后, 1'b0 -> 向前)
 	wire btb_rplc_push_ras; // RAS压栈标志
 	wire btb_rplc_pop_ras; // RAS出栈标志
 	wire is_rd_eq_link; // RD为link寄存器(标志)
@@ -409,13 +409,13 @@ module panda_risc_v_ifu #(
 		is_brc_inst;
 	/*
 	说明: 对于取到的指令, 只要它是分支指令就考虑置换BTB项
-	      如果在BTB中可以找到这条分支指令的信息(预测时BTB命中), 则覆盖找到的这1项, 这在分支信息正确时可能会浪费功耗, 
-		      但由于指令自修改的存在, 还是有必要更新分支信息
+	      如果在BTB中可以找到这条分支指令的信息(预测时BTB命中), 则覆盖找到的这1项, 这在分支信息本身就正确时可能会浪费功耗, 
+			  但这在指令自修改时是有必要的
 	      如果预测时BTB缺失, 那么就先考虑替换1个无效项, 否则就随机找1项来替换
 	*/
 	assign btb_rplc_strgy = 
 		ibus_access_resp_prdt[PRDT_MSG_BTB_HIT_SID] | 
-		(ibus_access_resp_prdt[PRDT_MSG_BTB_WVLD_SID+BTB_WAY_N-1:PRDT_MSG_BTB_WVLD_SID] != {BTB_WAY_N{1'b1}});
+		(~(&ibus_access_resp_prdt[PRDT_MSG_BTB_WVLD_SID+BTB_WAY_N-1:PRDT_MSG_BTB_WVLD_SID]));
 	assign btb_rplc_sel_wid = 
 		ibus_access_resp_prdt[PRDT_MSG_BTB_HIT_SID] ? 
 			ibus_access_resp_prdt[PRDT_MSG_BTB_WID_SID+1:PRDT_MSG_BTB_WID_SID]:
@@ -504,6 +504,7 @@ module panda_risc_v_ifu #(
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.PC_TAG_WIDTH(PC_TAG_WIDTH),
 		.BTB_MEM_WIDTH(BTB_MEM_WIDTH),
+		.NO_INIT_BTB(NO_INIT_BTB),
 		.RAS_ENTRY_N(RAS_ENTRY_N),
 		.SIM_DELAY(SIM_DELAY)
 	)pre_inst_fetch_u(

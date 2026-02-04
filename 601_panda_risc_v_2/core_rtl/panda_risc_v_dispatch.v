@@ -38,7 +38,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/06/27
+日期: 2026/01/24
 ********************************************************************/
 
 
@@ -248,18 +248,17 @@ module panda_risc_v_dispatch #(
 	assign m_alu_valid = 
 		s_dsptc_valid & 
 		// CSR读写指令不用经过ALU
-		(
-			(s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) | 
-			(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_CSR_RW_INST_SID])
-		);
+		(~(
+			(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_dsptc_dcd_res[INST_TYPE_FLAG_IS_CSR_RW_INST_SID]
+		));
 	
 	/** 分发给CSR原子读写 **/
 	assign m_csr_addr = s_dsptc_dcd_res[11+CSR_RW_OP_MSG_ADDR_SID+16:CSR_RW_OP_MSG_ADDR_SID+16];
 	assign m_csr_tid = s_dsptc_id;
 	assign m_csr_valid = 
 		s_dsptc_valid & 
-		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
-		s_dsptc_dcd_res[INST_TYPE_FLAG_IS_CSR_RW_INST_SID];
+		// 属于CSR读写指令
+		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_dsptc_dcd_res[INST_TYPE_FLAG_IS_CSR_RW_INST_SID];
 	
 	/** 分发给LSU **/
 	assign m_lsu_ls_sel = s_dsptc_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID];
@@ -270,6 +269,7 @@ module panda_risc_v_dispatch #(
 	assign m_lsu_valid = 
 		s_dsptc_valid & 
 		m_bru_i_ready & 
+		// 属于访存指令
 		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
 		(s_dsptc_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_LOAD_INST_SID]);
 	
@@ -282,8 +282,8 @@ module panda_risc_v_dispatch #(
 	assign m_mul_valid = 
 		s_dsptc_valid & 
 		m_bru_i_ready & 
-		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
-		s_dsptc_dcd_res[INST_TYPE_FLAG_IS_MUL_INST_SID];
+		// 属于乘法指令
+		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_dsptc_dcd_res[INST_TYPE_FLAG_IS_MUL_INST_SID];
 	
 	/** 分发给除法器 **/
 	assign m_div_op_a = s_dsptc_dcd_res[32+MUL_DIV_OP_MSG_OP_A_SID+16:MUL_DIV_OP_MSG_OP_A_SID+16];
@@ -294,6 +294,7 @@ module panda_risc_v_dispatch #(
 	assign m_div_valid = 
 		s_dsptc_valid & 
 		m_bru_i_ready & 
+		// 属于除法/求余指令
 		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
 		(s_dsptc_dcd_res[INST_TYPE_FLAG_IS_REM_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_DIV_INST_SID]);
 	

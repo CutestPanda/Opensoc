@@ -190,17 +190,19 @@ GNU工具链（需要自行下载，参见步骤"配置编译环境"）中已经
 6.配置工程  
 选中工程，打开工程属性配置界面。  
 ![说明11](../img/panda_risc_v_11.png)  
-配置如下。  
+ISA属性配置如下。  
 ![说明12](../img/panda_risc_v_12.png)  
+创建全局宏（**CPU_FREQ_MHZ**），指定CPU的工作频率（以MHz计）。  
+![说明13](../img/panda_risc_v_25.png)  
 指定Link脚本为当前工程下的bsp/link.lds。  
-![说明13](../img/panda_risc_v_13.png)  
+![说明14](../img/panda_risc_v_13.png)  
 Link额外命令为：  
 `` -nostartfiles -Wl,--gc-sections -Wl,--check-sections ``  
-![说明14](../img/panda_risc_v_14.png)  
-![说明15](../img/panda_risc_v_15.png)  
+![说明15](../img/panda_risc_v_14.png)  
+![说明16](../img/panda_risc_v_15.png)  
 Build后命令为：  
 `` riscv-none-embed-objcopy -O binary "${ProjName}.elf" "${ProjName}.bin";riscv-none-embed-objdump --disassemble-all "${ProjName}.elf" > "${ProjName}.dump" ``  
-![说明16](../img/panda_risc_v_16.png)  
+![说明17](../img/panda_risc_v_16.png)  
 7.编译工程  
 选中工程，点左上角的小锤子。  
 8.创建Debug配置  
@@ -214,14 +216,15 @@ GDB启动时命令如下：
 set remotetimeout 250
 set arch riscv:rv32
 ````
-![说明17](../img/panda_risc_v_17.png)  
+![说明18](../img/panda_risc_v_17.png)  
 配置CPU运行/重新运行时的命令：  
 `` set $dpc=0x800 ``  
-![说明18](../img/panda_risc_v_18.png)  
-在连接好Daplink，boot引脚为低电平，CPU复位释放后，点击RUN即开始运行程序。  
+![说明19](../img/panda_risc_v_18.png)  
+在连接好Daplink，**令boot引脚为低电平**，CPU复位释放后，点击RUN即开始运行程序。  
 此外，可以选择Debug As来进行在线调试。  
+
 > **请在CPU处于暂停状态（而非运行状态）时设置断点。**  
 **不要将中文注释和代码写在同一行。**  
-![说明19](../img/panda_risc_v_19.png)  
+![说明20](../img/panda_risc_v_19.png)  
 **应当将中文注释和代码写在不同行。**  
-![说明20](../img/panda_risc_v_20.png)  
+![说明21](../img/panda_risc_v_20.png)  

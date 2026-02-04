@@ -111,11 +111,19 @@ module panda_risc_v_multiplier #(
 		
 		.fifo_wen(mul_in_buf_wen),
 		.fifo_din(mul_in_buf_din),
+		.fifo_full(),
 		.fifo_full_n(mul_in_buf_full_n),
+		.fifo_almost_full(),
+		.fifo_almost_full_n(),
 		
 		.fifo_ren(mul_in_buf_ren),
 		.fifo_dout(mul_in_buf_dout),
-		.fifo_empty_n(mul_in_buf_empty_n)
+		.fifo_empty(),
+		.fifo_empty_n(mul_in_buf_empty_n),
+		.fifo_almost_empty(),
+		.fifo_almost_empty_n(),
+		
+		.data_cnt()
 	);
 	
 	/** 乘法结果 **/

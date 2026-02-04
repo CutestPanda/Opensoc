@@ -2,6 +2,10 @@
 测试FPGA板的型号为EG4S20BG256。  
 [百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)  
 
+可用版本：  
+
+- TD工程/panda_soc_test_v1.zip  
+
 ### panda_soc_test_v1
 #### <center>存储映射表</center>
 |内容|地址范围|区间长度|

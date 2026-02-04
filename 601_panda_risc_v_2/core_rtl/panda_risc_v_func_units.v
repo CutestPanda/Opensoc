@@ -33,19 +33,28 @@ SOFTWARE.
 LSU的访存地址由ALU计算得到
 
 协议:
-无
+AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2025/06/19
+日期: 2026/01/29
 ********************************************************************/
 
 
 module panda_risc_v_func_units #(
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
-	parameter integer DBUS_ACCESS_TIMEOUT_TH = 16, // 数据总线访问超时周期数(必须>=1)
+	parameter integer AXI_MEM_DATA_WIDTH = 64, // 存储器AXI主机的数据位宽(32 | 64 | 128 | 256)
+	parameter integer MEM_ACCESS_TIMEOUT_TH = 0, // 存储器访问超时周期数(0 -> 不设超时 | 正整数)
+	parameter integer PERPH_ACCESS_TIMEOUT_TH = 32, // 外设访问超时周期数(0 -> 不设超时 | 正整数)
+	parameter integer LSU_REQ_BUF_ENTRY_N = 8, // LSU请求缓存区条目数(2~16)
+	parameter integer RD_MEM_BUF_ENTRY_N = 4, // 读存储器缓存区条目数(2~16)
+	parameter integer WR_MEM_BUF_ENTRY_N = 4, // 写存储器缓存区条目数(2~16)
+	parameter PERPH_ADDR_REGION_0_BASE = 32'h4000_0000, // 外设地址区域#0基地址
+	parameter PERPH_ADDR_REGION_0_LEN = 32'h1000_0000, // 外设地址区域#0长度(以字节计)
+	parameter PERPH_ADDR_REGION_1_BASE = 32'hF000_0000, // 外设地址区域#1基地址
+	parameter PERPH_ADDR_REGION_1_LEN = 32'h0800_0000, // 外设地址区域#1长度(以字节计)
 	parameter EN_SGN_PERIOD_MUL = "true", // 是否使用单周期乘法器
-	parameter integer LS_BUF_ENTRY_N = 8, // 访存缓存区条目数(4 | 8 | 16)
-	parameter integer DBUS_OUTSTANDING_N = 4, // 数据总线可滞外传输个数(必须<=LS_BUF_ENTRY_N)
+	parameter EN_LOW_LATENCY_PERPH_ACCESS = "false", // 是否启用低时延的外设访问模式
+	parameter integer EN_LOW_LATENCY_RD_MEM_ACCESS_IN_LSU = 1, // LSU读存储器访问时延优化等级(0 | 1 | 2)
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
@@ -134,30 +143,90 @@ module panda_risc_v_func_units #(
 	output wire[5*32-1:0] fu_res_data, // 执行结果
 	output wire[5*3-1:0] fu_res_err, // 错误码
 	
-	// 数据ICB主机
-	// 命令通道
-	output wire[31:0] m_icb_cmd_data_addr,
-	output wire m_icb_cmd_data_read,
-	output wire[31:0] m_icb_cmd_data_wdata,
-	output wire[3:0] m_icb_cmd_data_wmask,
-	output wire m_icb_cmd_data_valid,
-	input wire m_icb_cmd_data_ready,
-	// 响应通道
-	input wire[31:0] m_icb_rsp_data_rdata,
-	input wire m_icb_rsp_data_err,
-	input wire m_icb_rsp_data_valid,
-	output wire m_icb_rsp_data_ready,
+	// 存储器AXI主机
+	// [AR通道]
+	output wire[31:0] m_axi_mem_araddr,
+	output wire[1:0] m_axi_mem_arburst, // const -> 2'b01(INCR)
+	output wire[7:0] m_axi_mem_arlen, // const -> 8'd0
+	output wire[2:0] m_axi_mem_arsize, // const -> clogb2(AXI_MEM_DATA_WIDTH/8)
+	output wire m_axi_mem_arvalid,
+	input wire m_axi_mem_arready,
+	// [R通道]
+	input wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_mem_rdata,
+	input wire[1:0] m_axi_mem_rresp,
+	input wire m_axi_mem_rlast, // ignored
+	input wire m_axi_mem_rvalid,
+	output wire m_axi_mem_rready, // const -> 1'b1
+	// [AW通道]
+	output wire[31:0] m_axi_mem_awaddr,
+	output wire[1:0] m_axi_mem_awburst, // const -> 2'b01(INCR)
+	output wire[7:0] m_axi_mem_awlen, // const -> 8'd0
+	output wire[2:0] m_axi_mem_awsize, // const -> clogb2(AXI_MEM_DATA_WIDTH/8)
+	output wire m_axi_mem_awvalid,
+	input wire m_axi_mem_awready,
+	// [B通道]
+	input wire[1:0] m_axi_mem_bresp, // ignored
+	input wire m_axi_mem_bvalid,
+	output wire m_axi_mem_bready, // const -> 1'b1
+	// [W通道]
+	output wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_mem_wdata,
+	output wire[AXI_MEM_DATA_WIDTH/8-1:0] m_axi_mem_wstrb,
+	output wire m_axi_mem_wlast, // const -> 1'b1
+	output wire m_axi_mem_wvalid,
+	input wire m_axi_mem_wready,
 	
-	// 接受访存请求阶段ROB记录广播
-	output wire rob_ls_start_bdcst_vld, // 广播有效
-	output wire[IBUS_TID_WIDTH-1:0] rob_ls_start_bdcst_tid, // 指令ID
+	// 外设AXI主机
+	// [AR通道]
+	output wire[31:0] m_axi_perph_araddr,
+	output wire[1:0] m_axi_perph_arburst, // const -> 2'b01(INCR)
+	output wire[7:0] m_axi_perph_arlen, // const -> 8'd0
+	output wire[2:0] m_axi_perph_arsize, // const -> 3'b010
+	output wire m_axi_perph_arvalid,
+	input wire m_axi_perph_arready,
+	// [R通道]
+	input wire[31:0] m_axi_perph_rdata,
+	input wire[1:0] m_axi_perph_rresp,
+	input wire m_axi_perph_rlast, // ignored
+	input wire m_axi_perph_rvalid,
+	output wire m_axi_perph_rready, // const -> 1'b1
+	// [AW通道]
+	output wire[31:0] m_axi_perph_awaddr,
+	output wire[1:0] m_axi_perph_awburst, // const -> 2'b01(INCR)
+	output wire[7:0] m_axi_perph_awlen, // const -> 8'd0
+	output wire[2:0] m_axi_perph_awsize, // const -> 3'b010
+	output wire m_axi_perph_awvalid,
+	input wire m_axi_perph_awready,
+	// [B通道]
+	input wire[1:0] m_axi_perph_bresp,
+	input wire m_axi_perph_bvalid,
+	output wire m_axi_perph_bready, // const -> 1'b1
+	// [W通道]
+	output wire[31:0] m_axi_perph_wdata,
+	output wire[3:0] m_axi_perph_wstrb,
+	output wire m_axi_perph_wlast, // const -> 1'b1
+	output wire m_axi_perph_wvalid,
+	input wire m_axi_perph_wready,
 	
-	// 访存许可
-	input wire ls_allow_vld,
-	input wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id, // 指令编号
+	// 写存储器缓存区控制
+	// [写存储器许可]
+	input wire wr_mem_permitted_flag, // 许可标志
+	input wire[IBUS_TID_WIDTH-1:0] init_mem_bus_tr_store_inst_tid, // 待发起存储器总线事务的存储指令ID
+	// [清空缓存区]
+	input wire clr_wr_mem_buf, // 清空指示
+	
+	// 外设访问控制
+	// [外设访问许可]
+	input wire perph_access_permitted_flag, // 许可标志
+	input wire[IBUS_TID_WIDTH-1:0] init_perph_bus_tr_ls_inst_tid, // 待发起外设总线事务的访存指令ID
+	// [取消后续外设访问]
+	input wire cancel_subseq_perph_access, // 取消指示
 	
 	// LSU状态
-	output wire dbus_timeout // 数据总线访问超时标志
+	output wire has_buffered_wr_mem_req, // 存在已缓存的写存储器请求(标志)
+	output wire has_processing_perph_access_req, // 存在处理中的外设访问请求(标志)
+	output wire rd_mem_timeout, // 读存储器超时(标志)
+	output wire wr_mem_timeout, // 写存储器超时(标志)
+	output wire perph_access_timeout // 外设访问超时(标志)
 );
 	
 	/** 常量 **/
@@ -211,29 +280,43 @@ module panda_risc_v_func_units #(
 	assign m_csr_valid = s_csr_valid;
 	
 	/** LSU **/
+	wire is_ls_addr_in_perph_region; // 访存地址处于外设区域(标志)
+	
+	assign is_ls_addr_in_perph_region = 
+		((alu_ls_addr >= PERPH_ADDR_REGION_0_BASE) & (alu_ls_addr < (PERPH_ADDR_REGION_0_BASE + PERPH_ADDR_REGION_0_LEN))) | 
+		((alu_ls_addr >= PERPH_ADDR_REGION_1_BASE) & (alu_ls_addr < (PERPH_ADDR_REGION_1_BASE + PERPH_ADDR_REGION_1_LEN)));
+	
 	panda_risc_v_lsu #(
 		.INST_ID_WIDTH(IBUS_TID_WIDTH),
-		.DBUS_ACCESS_TIMEOUT_TH(DBUS_ACCESS_TIMEOUT_TH),
-		.LS_BUF_ENTRY_N(LS_BUF_ENTRY_N),
-		.DBUS_OUTSTANDING_N(DBUS_OUTSTANDING_N),
+		.AXI_MEM_DATA_WIDTH(AXI_MEM_DATA_WIDTH),
+		.MEM_ACCESS_TIMEOUT_TH(MEM_ACCESS_TIMEOUT_TH),
+		.PERPH_ACCESS_TIMEOUT_TH(PERPH_ACCESS_TIMEOUT_TH),
+		.LSU_REQ_BUF_ENTRY_N(LSU_REQ_BUF_ENTRY_N),
+		.RD_MEM_BUF_ENTRY_N(RD_MEM_BUF_ENTRY_N),
+		.WR_MEM_BUF_ENTRY_N(WR_MEM_BUF_ENTRY_N),
+		.EN_LOW_LATENCY_PERPH_ACCESS(EN_LOW_LATENCY_PERPH_ACCESS),
+		.EN_LOW_LATENCY_RD_MEM_ACCESS(EN_LOW_LATENCY_RD_MEM_ACCESS_IN_LSU),
+		.EN_PERMISSION_CHECK_ON_SUBMIT_NEW_WR_MEM_REQ("false"),
 		.SIM_DELAY(SIM_DELAY)
 	)lsu_u(
-		.clk(aclk),
-		.resetn(aresetn),
+		.aclk(aclk),
+		.aresetn(aresetn),
 		
-		.ls_allow_vld(ls_allow_vld),
-		.ls_allow_inst_id(ls_allow_inst_id),
+		.wr_mem_permitted_flag(wr_mem_permitted_flag),
+		.init_mem_bus_tr_store_inst_tid(init_mem_bus_tr_store_inst_tid),
+		.clr_wr_mem_buf(clr_wr_mem_buf),
 		
-		.rob_ls_start_bdcst_vld(rob_ls_start_bdcst_vld),
-		.rob_ls_start_bdcst_tid(rob_ls_start_bdcst_tid),
+		.perph_access_permitted_flag(perph_access_permitted_flag),
+		.init_perph_bus_tr_ls_inst_tid(init_perph_bus_tr_ls_inst_tid),
+		.cancel_subseq_perph_access(cancel_subseq_perph_access),
 		
 		.s_req_ls_sel(s_lsu_ls_sel),
 		.s_req_ls_type(s_lsu_ls_type),
 		.s_req_rd_id_for_ld(s_lsu_rd_id_for_ld),
-		.s_req_ls_addr(alu_ls_addr), // 访存地址由ALU计算得到
+		.s_req_ls_addr(alu_ls_addr),
 		.s_req_ls_din(s_lsu_ls_din),
 		.s_req_lsu_inst_id(s_lsu_inst_id),
-		.s_req_pre_exec_prmt(~s_lsu_ls_sel), // 加载指令允许提前执行, 存储指令不允许提前执行
+		.s_req_ls_mem_access(~is_ls_addr_in_perph_region),
 		.s_req_valid(s_lsu_valid),
 		.s_req_ready(s_lsu_ready),
 		
@@ -245,18 +328,64 @@ module panda_risc_v_func_units #(
 		.m_resp_valid(m_lsu_valid),
 		.m_resp_ready(1'b1),
 		
-		.m_icb_cmd_addr(m_icb_cmd_data_addr),
-		.m_icb_cmd_read(m_icb_cmd_data_read),
-		.m_icb_cmd_wdata(m_icb_cmd_data_wdata),
-		.m_icb_cmd_wmask(m_icb_cmd_data_wmask),
-		.m_icb_cmd_valid(m_icb_cmd_data_valid),
-		.m_icb_cmd_ready(m_icb_cmd_data_ready),
-		.m_icb_rsp_rdata(m_icb_rsp_data_rdata),
-		.m_icb_rsp_err(m_icb_rsp_data_err),
-		.m_icb_rsp_valid(m_icb_rsp_data_valid),
-		.m_icb_rsp_ready(m_icb_rsp_data_ready),
+		.m_axi_mem_araddr(m_axi_mem_araddr),
+		.m_axi_mem_arburst(m_axi_mem_arburst),
+		.m_axi_mem_arlen(m_axi_mem_arlen),
+		.m_axi_mem_arsize(m_axi_mem_arsize),
+		.m_axi_mem_arvalid(m_axi_mem_arvalid),
+		.m_axi_mem_arready(m_axi_mem_arready),
+		.m_axi_mem_rdata(m_axi_mem_rdata),
+		.m_axi_mem_rresp(m_axi_mem_rresp),
+		.m_axi_mem_rlast(m_axi_mem_rlast),
+		.m_axi_mem_rvalid(m_axi_mem_rvalid),
+		.m_axi_mem_rready(m_axi_mem_rready),
+		.m_axi_mem_awaddr(m_axi_mem_awaddr),
+		.m_axi_mem_awburst(m_axi_mem_awburst),
+		.m_axi_mem_awlen(m_axi_mem_awlen),
+		.m_axi_mem_awsize(m_axi_mem_awsize),
+		.m_axi_mem_awvalid(m_axi_mem_awvalid),
+		.m_axi_mem_awready(m_axi_mem_awready),
+		.m_axi_mem_bresp(m_axi_mem_bresp),
+		.m_axi_mem_bvalid(m_axi_mem_bvalid),
+		.m_axi_mem_bready(m_axi_mem_bready),
+		.m_axi_mem_wdata(m_axi_mem_wdata),
+		.m_axi_mem_wstrb(m_axi_mem_wstrb),
+		.m_axi_mem_wlast(m_axi_mem_wlast),
+		.m_axi_mem_wvalid(m_axi_mem_wvalid),
+		.m_axi_mem_wready(m_axi_mem_wready),
 		
-		.dbus_timeout(dbus_timeout)
+		.m_axi_perph_araddr(m_axi_perph_araddr),
+		.m_axi_perph_arburst(m_axi_perph_arburst),
+		.m_axi_perph_arlen(m_axi_perph_arlen),
+		.m_axi_perph_arsize(m_axi_perph_arsize),
+		.m_axi_perph_arvalid(m_axi_perph_arvalid),
+		.m_axi_perph_arready(m_axi_perph_arready),
+		.m_axi_perph_rdata(m_axi_perph_rdata),
+		.m_axi_perph_rresp(m_axi_perph_rresp),
+		.m_axi_perph_rlast(m_axi_perph_rlast),
+		.m_axi_perph_rvalid(m_axi_perph_rvalid),
+		.m_axi_perph_rready(m_axi_perph_rready),
+		.m_axi_perph_awaddr(m_axi_perph_awaddr),
+		.m_axi_perph_awburst(m_axi_perph_awburst),
+		.m_axi_perph_awlen(m_axi_perph_awlen),
+		.m_axi_perph_awsize(m_axi_perph_awsize),
+		.m_axi_perph_awvalid(m_axi_perph_awvalid),
+		.m_axi_perph_awready(m_axi_perph_awready),
+		.m_axi_perph_bresp(m_axi_perph_bresp),
+		.m_axi_perph_bvalid(m_axi_perph_bvalid),
+		.m_axi_perph_bready(m_axi_perph_bready),
+		.m_axi_perph_wdata(m_axi_perph_wdata),
+		.m_axi_perph_wstrb(m_axi_perph_wstrb),
+		.m_axi_perph_wlast(m_axi_perph_wlast),
+		.m_axi_perph_wvalid(m_axi_perph_wvalid),
+		.m_axi_perph_wready(m_axi_perph_wready),
+		
+		.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
+		.has_processing_perph_access_req(has_processing_perph_access_req),
+		
+		.rd_mem_timeout(rd_mem_timeout),
+		.wr_mem_timeout(wr_mem_timeout),
+		.perph_access_timeout(perph_access_timeout)
 	);
 	
 	/** 乘法器 **/

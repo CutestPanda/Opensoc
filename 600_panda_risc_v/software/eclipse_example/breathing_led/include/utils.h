@@ -1,8 +1,7 @@
 #ifndef _UTILS_H_
 #define _UTILS_H_
 
-#define CPU_FREQ_HZ (50000000) // 50MHz
-#define CPU_FREQ_MHZ (50) // 50MHz
+#define CPU_FREQ_HZ (CPU_FREQ_MHZ * 1000000)
 
 #define read_csr(reg) ({ unsigned long __tmp; \
   asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \

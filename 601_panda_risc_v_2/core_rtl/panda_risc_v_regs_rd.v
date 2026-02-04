@@ -38,7 +38,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/06/29
+日期: 2026/01/24
 ********************************************************************/
 
 
@@ -144,6 +144,8 @@ module panda_risc_v_regs_rd #(
 	wire fu_res_vld_arr[0:LSN_FU_N-1]; // 有效标志
 	wire[IBUS_TID_WIDTH-1:0] fu_res_tid_arr[0:LSN_FU_N-1]; // 指令ID
 	wire[FU_RES_WIDTH-1:0] fu_res_data_arr[0:LSN_FU_N-1]; // 执行结果
+	wire[LSN_FU_N-1:0] fu_res_tid_match_op1_vec; // 指令ID匹配操作数1所绑定指令的ID(标志向量)
+	wire[LSN_FU_N-1:0] fu_res_tid_match_op2_vec; // 指令ID匹配操作数2所绑定指令的ID(标志向量)
 	
 	genvar fu_i;
 	generate
@@ -155,6 +157,11 @@ module panda_risc_v_regs_rd #(
 				fu_res_tid[(fu_i+1)*IBUS_TID_WIDTH-1:fu_i*IBUS_TID_WIDTH];
 			assign fu_res_data_arr[fu_i] = 
 				fu_res_data[(fu_i+1)*FU_RES_WIDTH-1:fu_i*FU_RES_WIDTH];
+			
+			assign fu_res_tid_match_op1_vec[fu_i] = 
+				(op1_ftc_fuid == fu_i) & fu_res_vld_arr[fu_i] & (fu_res_tid_arr[fu_i] == op1_ftc_tid);
+			assign fu_res_tid_match_op2_vec[fu_i] = 
+				(op2_ftc_fuid == fu_i) & fu_res_vld_arr[fu_i] & (fu_res_tid_arr[fu_i] == op2_ftc_tid);
 		end
 	endgenerate
 	
@@ -188,14 +195,14 @@ module panda_risc_v_regs_rd #(
 		(
 			op1_ftc_from_reg_file | 
 			op1_ftc_from_rob | 
-			(op1_ftc_from_byp & fu_res_vld_arr[op1_ftc_fuid] & (fu_res_tid_arr[op1_ftc_fuid] == op1_ftc_tid))
+			(|fu_res_tid_match_op1_vec)
 		);
 	assign op2_pftc_success = 
 		(~op2_stage_regs_raw_dpc) & // 与段寄存器上的指令不存在RAW相关性
 		(
 			op2_ftc_from_reg_file | 
 			op2_ftc_from_rob | 
-			(op2_ftc_from_byp & fu_res_vld_arr[op2_ftc_fuid] & (fu_res_tid_arr[op2_ftc_fuid] == op2_ftc_tid))
+			(|fu_res_tid_match_op2_vec)
 		);
 	
 	/** 段寄存器 **/
@@ -228,26 +235,26 @@ module panda_risc_v_regs_rd #(
 	assign op1_fuid = 
 		(
 			op1_stage_regs_raw_dpc ? 
-				stage_regs_fuid:
+				stage_regs_fuid: // 与段寄存器上的指令存在RAW相关性, 那么操作数1就要从段寄存器上的指令的执行结果获取
 				op1_ftc_fuid
 		) | 16'h0000;
 	assign op2_fuid = 
 		(
 			op2_stage_regs_raw_dpc ? 
-				stage_regs_fuid:
+				stage_regs_fuid: // 与段寄存器上的指令存在RAW相关性, 那么操作数2就要从段寄存器上的指令的执行结果获取
 				op2_ftc_fuid
 		) | 16'h0000;
 	
 	assign op1_tid = 
 		(
 			op1_stage_regs_raw_dpc ? 
-				m_regs_rd_id:
+				m_regs_rd_id: // 与段寄存器上的指令存在RAW相关性, 那么操作数1就要从段寄存器上的指令的执行结果获取
 				op1_ftc_tid
 		) | 16'h0000;
 	assign op2_tid = 
 		(
 			op2_stage_regs_raw_dpc ? 
-				m_regs_rd_id:
+				m_regs_rd_id: // 与段寄存器上的指令存在RAW相关性, 那么操作数2就要从段寄存器上的指令的执行结果获取
 				op2_ftc_tid
 		) | 16'h0000;
 	
@@ -273,12 +280,9 @@ module panda_risc_v_regs_rd #(
 	begin
 		if(s_regs_rd_valid & s_regs_rd_ready)
 			stage_regs_rd_id <= # SIM_DELAY 
-				(
-					s_regs_rd_data[PRE_DCD_MSG_IS_B_INST_SID+32] | 
-					s_regs_rd_data[PRE_DCD_MSG_IS_STORE_INST_SID+32]
-				) ? 
-					5'b00000:
-					s_regs_rd_data[11:7];
+				s_regs_rd_data[PRE_DCD_MSG_RD_VLD_SID+32] ? 
+					s_regs_rd_data[11:7]:
+					5'b00000;
 	end
 	
 	// 段寄存器上指令的执行单元ID

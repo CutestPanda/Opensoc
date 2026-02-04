@@ -30,31 +30,32 @@ SOFTWARE.
 小胖达RISC-V处理器核顶层模块
 
 注意：
-考虑增加"Store Buffer"以在退休时处理store指令, 否则前序指令遇到异常/中断/调试时, store指令无法取消
+无
 
 协议:
 MEM MASTER
-ICB MASTER
+AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2025/07/02
+日期: 2026/01/29
 ********************************************************************/
 
 
 module panda_risc_v_core #(
-	// 指令/数据ICB主机AXIS寄存器片配置
-	parameter EN_INST_CMD_FWD = "false", // 是否使能指令ICB主机命令通道前向寄存器
-	parameter EN_INST_RSP_BCK = "false", // 是否使能指令ICB主机响应通道后向寄存器
-	parameter EN_DATA_CMD_FWD = "false", // 是否使能数据ICB主机命令通道前向寄存器
-	parameter EN_DATA_RSP_BCK = "false", // 是否使能数据ICB主机响应通道后向寄存器
-	// 总线控制单元配置
-	parameter IMEM_BASEADDR = 32'h0000_0000, // 指令存储器基址
-	parameter integer IMEM_ADDR_RANGE = 32 * 1024, // 指令存储器地址区间长度
-	parameter DM_REGS_BASEADDR = 32'hFFFF_F800, // DM寄存器区基址
-	parameter integer DM_REGS_ADDR_RANGE = 1024, // DM寄存器区地址区间长度
+	// 总线配置
 	parameter integer IBUS_ACCESS_TIMEOUT_TH = 16, // 指令总线访问超时周期数(0 -> 不设超时 | 正整数)
 	parameter integer IBUS_OUTSTANDING_N = 4, // 指令总线滞外深度(1 | 2 | 4 | 8)
-	parameter integer DBUS_ACCESS_TIMEOUT_TH = 1024, // 数据总线访问超时周期数(必须>=1)
+	parameter integer AXI_MEM_DATA_WIDTH = 64, // 存储器AXI主机的数据位宽(32 | 64 | 128 | 256)
+	parameter integer MEM_ACCESS_TIMEOUT_TH = 0, // 存储器访问超时周期数(0 -> 不设超时 | 正整数)
+	parameter integer PERPH_ACCESS_TIMEOUT_TH = 32, // 外设访问超时周期数(0 -> 不设超时 | 正整数)
+	parameter PERPH_ADDR_REGION_0_BASE = 32'h4000_0000, // 外设地址区域#0基地址
+	parameter PERPH_ADDR_REGION_0_LEN = 32'h1000_0000, // 外设地址区域#0长度(以字节计)
+	parameter PERPH_ADDR_REGION_1_BASE = 32'hF000_0000, // 外设地址区域#1基地址
+	parameter PERPH_ADDR_REGION_1_LEN = 32'h0800_0000, // 外设地址区域#1长度(以字节计)
+	parameter IMEM_BASEADDR = 32'h0000_0000, // 指令存储器基址
+	parameter integer IMEM_ADDR_RANGE = 32 * 1024, // 指令存储器地址区间长度(以字节计)
+	parameter DM_REGS_BASEADDR = 32'hFFFF_F800, // DM寄存器区基址
+	parameter integer DM_REGS_ADDR_RANGE = 1 * 1024, // DM寄存器区地址区间长度(以字节计)
 	// 分支预测配置
 	parameter integer GHR_WIDTH = 8, // 全局分支历史寄存器的位宽(<=16)
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
@@ -83,33 +84,101 @@ module panda_risc_v_core #(
 	input wire sys_reset_req, // 系统复位请求
 	input wire[31:0] rst_pc, // 复位时的PC
 	
-	// 指令ICB主机
-	// [命令通道]
-	output wire[31:0] m_icb_cmd_inst_addr,
-	output wire m_icb_cmd_inst_read,
-	output wire[31:0] m_icb_cmd_inst_wdata,
-	output wire[3:0] m_icb_cmd_inst_wmask,
-	output wire m_icb_cmd_inst_valid,
-	input wire m_icb_cmd_inst_ready,
-	// [响应通道]
-	input wire[31:0] m_icb_rsp_inst_rdata,
-	input wire m_icb_rsp_inst_err,
-	input wire m_icb_rsp_inst_valid,
-	output wire m_icb_rsp_inst_ready,
+	// (指令总线)存储器AXI主机
+	// [AR通道]
+	output wire[31:0] m_axi_imem_araddr,
+	output wire[1:0] m_axi_imem_arburst,
+	output wire[7:0] m_axi_imem_arlen,
+	output wire[2:0] m_axi_imem_arsize,
+	output wire m_axi_imem_arvalid,
+	input wire m_axi_imem_arready,
+	// [R通道]
+	input wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_imem_rdata,
+	input wire[1:0] m_axi_imem_rresp,
+	input wire m_axi_imem_rlast,
+	input wire m_axi_imem_rvalid,
+	output wire m_axi_imem_rready,
+	// [AW通道]
+	output wire[31:0] m_axi_imem_awaddr,
+	output wire[1:0] m_axi_imem_awburst,
+	output wire[7:0] m_axi_imem_awlen,
+	output wire[2:0] m_axi_imem_awsize,
+	output wire m_axi_imem_awvalid,
+	input wire m_axi_imem_awready,
+	// [B通道]
+	input wire[1:0] m_axi_imem_bresp,
+	input wire m_axi_imem_bvalid,
+	output wire m_axi_imem_bready,
+	// [W通道]
+	output wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_imem_wdata,
+	output wire[AXI_MEM_DATA_WIDTH/8-1:0] m_axi_imem_wstrb,
+	output wire m_axi_imem_wlast,
+	output wire m_axi_imem_wvalid,
+	input wire m_axi_imem_wready,
 	
-	// 数据ICB主机
-	// 命令通道
-	output wire[31:0] m_icb_cmd_data_addr,
-	output wire m_icb_cmd_data_read,
-	output wire[31:0] m_icb_cmd_data_wdata,
-	output wire[3:0] m_icb_cmd_data_wmask,
-	output wire m_icb_cmd_data_valid,
-	input wire m_icb_cmd_data_ready,
-	// 响应通道
-	input wire[31:0] m_icb_rsp_data_rdata,
-	input wire m_icb_rsp_data_err,
-	input wire m_icb_rsp_data_valid,
-	output wire m_icb_rsp_data_ready,
+	// (数据总线)存储器AXI主机
+	// [AR通道]
+	output wire[31:0] m_axi_dmem_araddr,
+	output wire[1:0] m_axi_dmem_arburst,
+	output wire[7:0] m_axi_dmem_arlen,
+	output wire[2:0] m_axi_dmem_arsize,
+	output wire m_axi_dmem_arvalid,
+	input wire m_axi_dmem_arready,
+	// [R通道]
+	input wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_dmem_rdata,
+	input wire[1:0] m_axi_dmem_rresp,
+	input wire m_axi_dmem_rlast,
+	input wire m_axi_dmem_rvalid,
+	output wire m_axi_dmem_rready,
+	// [AW通道]
+	output wire[31:0] m_axi_dmem_awaddr,
+	output wire[1:0] m_axi_dmem_awburst,
+	output wire[7:0] m_axi_dmem_awlen,
+	output wire[2:0] m_axi_dmem_awsize,
+	output wire m_axi_dmem_awvalid,
+	input wire m_axi_dmem_awready,
+	// [B通道]
+	input wire[1:0] m_axi_dmem_bresp,
+	input wire m_axi_dmem_bvalid,
+	output wire m_axi_dmem_bready,
+	// [W通道]
+	output wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_dmem_wdata,
+	output wire[AXI_MEM_DATA_WIDTH/8-1:0] m_axi_dmem_wstrb,
+	output wire m_axi_dmem_wlast,
+	output wire m_axi_dmem_wvalid,
+	input wire m_axi_dmem_wready,
+	
+	// (数据总线)外设AXI主机
+	// [AR通道]
+	output wire[31:0] m_axi_perph_araddr,
+	output wire[1:0] m_axi_perph_arburst,
+	output wire[7:0] m_axi_perph_arlen,
+	output wire[2:0] m_axi_perph_arsize,
+	output wire m_axi_perph_arvalid,
+	input wire m_axi_perph_arready,
+	// [R通道]
+	input wire[31:0] m_axi_perph_rdata,
+	input wire[1:0] m_axi_perph_rresp,
+	input wire m_axi_perph_rlast,
+	input wire m_axi_perph_rvalid,
+	output wire m_axi_perph_rready,
+	// [AW通道]
+	output wire[31:0] m_axi_perph_awaddr,
+	output wire[1:0] m_axi_perph_awburst,
+	output wire[7:0] m_axi_perph_awlen,
+	output wire[2:0] m_axi_perph_awsize,
+	output wire m_axi_perph_awvalid,
+	input wire m_axi_perph_awready,
+	// [B通道]
+	input wire[1:0] m_axi_perph_bresp,
+	input wire m_axi_perph_bvalid,
+	output wire m_axi_perph_bready,
+	// [W通道]
+	output wire[31:0] m_axi_perph_wdata,
+	output wire[3:0] m_axi_perph_wstrb,
+	output wire m_axi_perph_wlast,
+	output wire m_axi_perph_wvalid,
+	input wire m_axi_perph_wready,
 	
 	// BTB存储器
 	// [端口A]
@@ -140,7 +209,9 @@ module panda_risc_v_core #(
 	// 错误标志
 	output wire clr_inst_buf_while_suppressing, // 在镇压ICB事务时清空指令缓存(错误标志)
 	output wire ibus_timeout, // 指令总线访问超时(错误标志)
-	output wire dbus_timeout // 数据总线访问超时(错误标志)
+	output wire rd_mem_timeout, // 读存储器超时(错误标志)
+	output wire wr_mem_timeout, // 写存储器超时(错误标志)
+	output wire perph_access_timeout // 外设访问超时(错误标志)
 );
 	
 	// 计算bit_depth的最高有效位编号(即位数-1)
@@ -167,6 +238,7 @@ module panda_risc_v_core #(
 	localparam EN_GHR_FOR_PHT_ADDR = "false"; // 生成PHT地址时是否考虑GHR
 	localparam integer PC_TAG_WIDTH = 32 - clogb2(BTB_ENTRY_N) - 2; // PC标签的位宽
 	localparam integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2; // BTB存储器的数据位宽
+	localparam NO_INIT_BTB = "false"; // 是否无需初始化BTB存储器
 	// 取操作数和指令译码配置
 	localparam integer LSN_FU_N = 5; // 要监听结果的执行单元的个数(正整数)
 	localparam integer FU_ID_WIDTH = 3; // 执行单元ID位宽(1~16)
@@ -185,11 +257,18 @@ module panda_risc_v_core #(
 	localparam init_marchid = 32'h00_00_00_00; // marchid状态寄存器复位值
 	localparam init_mimpid = 32'h31_2E_30_30; // mimpid状态寄存器复位值
 	localparam init_mhartid = 32'h00_00_00_00; // mhartid状态寄存器复位值
+	// LSU配置
+	localparam integer LSU_REQ_BUF_ENTRY_N = 8; // LSU请求缓存区条目数(2~16)
+	localparam integer RD_MEM_BUF_ENTRY_N = 4; // 读存储器缓存区条目数(2~16)
+	localparam integer WR_MEM_BUF_ENTRY_N = 4; // 写存储器缓存区条目数(2~16)
+	localparam EN_LOW_LATENCY_PERPH_ACCESS = "true"; // 是否启用低时延的外设访问模式
+	localparam integer EN_LOW_LATENCY_RD_MEM_ACCESS_IN_LSU = 1; // LSU读存储器访问时延优化等级(0 | 1 | 2)
 	// ROB配置
 	localparam integer FU_ERR_WIDTH = 3; // 执行单元错误码位宽(正整数)
-	localparam EN_ARCT_REG_POS_TB = "true"; // 是否使用逻辑寄存器位置表
 	localparam integer LSU_FU_ID = 2; // LSU的执行单元ID
 	localparam AUTO_CANCEL_SYNC_ERR_ENTRY = "false"; // 是否在发射时自动取消带有同步异常的项
+	// 总线互联单元配置
+	localparam EN_BIU_LOW_LATENCY_DMEM_RD = "true"; // 是否使能低时延的数据存储器读模式
 	
 	/** 取指单元(IFU) **/
 	// 全局冲刷请求
@@ -226,16 +305,16 @@ module panda_risc_v_core #(
 	wire m_if_res_valid;
 	wire m_if_res_ready;
 	// CPU核内指令ICB主机
-	wire[31:0] m_icb_imem_cmd_inst_addr;
-	wire m_icb_imem_cmd_inst_read;
-	wire[31:0] m_icb_imem_cmd_inst_wdata;
-	wire[3:0] m_icb_imem_cmd_inst_wmask;
-	wire m_icb_imem_cmd_inst_valid;
-	wire m_icb_imem_cmd_inst_ready;
-	wire[31:0] m_icb_imem_rsp_inst_rdata;
-	wire m_icb_imem_rsp_inst_err;
-	wire m_icb_imem_rsp_inst_valid;
-	wire m_icb_imem_rsp_inst_ready;
+	wire[31:0] m_icb_inner_imem_cmd_inst_addr;
+	wire m_icb_inner_imem_cmd_inst_read;
+	wire[31:0] m_icb_inner_imem_cmd_inst_wdata;
+	wire[3:0] m_icb_inner_imem_cmd_inst_wmask;
+	wire m_icb_inner_imem_cmd_inst_valid;
+	wire m_icb_inner_imem_cmd_inst_ready;
+	wire[31:0] m_icb_inner_imem_rsp_inst_rdata;
+	wire m_icb_inner_imem_rsp_inst_err;
+	wire m_icb_inner_imem_rsp_inst_valid;
+	wire m_icb_inner_imem_rsp_inst_ready;
 	// 指令总线控制单元状态
 	wire suppressing_ibus_access; // 当前有正在镇压的ICB事务(状态标志)
 	
@@ -270,6 +349,7 @@ module panda_risc_v_core #(
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.PC_TAG_WIDTH(PC_TAG_WIDTH),
 		.BTB_MEM_WIDTH(BTB_MEM_WIDTH),
+		.NO_INIT_BTB(NO_INIT_BTB),
 		.RAS_ENTRY_N(RAS_ENTRY_N),
 		.SIM_DELAY(SIM_DELAY)
 	)ifu_u(
@@ -320,16 +400,16 @@ module panda_risc_v_core #(
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		
-		.m_icb_cmd_inst_addr(m_icb_imem_cmd_inst_addr),
-		.m_icb_cmd_inst_read(m_icb_imem_cmd_inst_read),
-		.m_icb_cmd_inst_wdata(m_icb_imem_cmd_inst_wdata),
-		.m_icb_cmd_inst_wmask(m_icb_imem_cmd_inst_wmask),
-		.m_icb_cmd_inst_valid(m_icb_imem_cmd_inst_valid),
-		.m_icb_cmd_inst_ready(m_icb_imem_cmd_inst_ready),
-		.m_icb_rsp_inst_rdata(m_icb_imem_rsp_inst_rdata),
-		.m_icb_rsp_inst_err(m_icb_imem_rsp_inst_err),
-		.m_icb_rsp_inst_valid(m_icb_imem_rsp_inst_valid),
-		.m_icb_rsp_inst_ready(m_icb_imem_rsp_inst_ready),
+		.m_icb_cmd_inst_addr(m_icb_inner_imem_cmd_inst_addr),
+		.m_icb_cmd_inst_read(m_icb_inner_imem_cmd_inst_read),
+		.m_icb_cmd_inst_wdata(m_icb_inner_imem_cmd_inst_wdata),
+		.m_icb_cmd_inst_wmask(m_icb_inner_imem_cmd_inst_wmask),
+		.m_icb_cmd_inst_valid(m_icb_inner_imem_cmd_inst_valid),
+		.m_icb_cmd_inst_ready(m_icb_inner_imem_cmd_inst_ready),
+		.m_icb_rsp_inst_rdata(m_icb_inner_imem_rsp_inst_rdata),
+		.m_icb_rsp_inst_err(m_icb_inner_imem_rsp_inst_err),
+		.m_icb_rsp_inst_valid(m_icb_inner_imem_rsp_inst_valid),
+		.m_icb_rsp_inst_ready(m_icb_inner_imem_rsp_inst_ready),
 		
 		.suppressing_ibus_access(suppressing_ibus_access),
 		.clr_inst_buf_while_suppressing(clr_inst_buf_while_suppressing),
@@ -472,7 +552,7 @@ module panda_risc_v_core #(
 	// 取指结果
 	wire[127:0] s_if_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[98:0] s_if_res_msg; // 取指附加信息({分支预测信息(96bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
-	wire[IBUS_TID_WIDTH-1:0] s_if_res_id; // 指令编号
+	wire[IBUS_TID_WIDTH-1:0] s_if_res_id; // 指令ID
 	wire s_if_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[129:0] s_if_res_op; // 预取的操作数({操作数1已取得(1bit), 操作数2已取得(1bit), 
 	                         //   操作数1(32bit), 操作数2(32bit), 用于取操作数1的执行单元ID(16bit), 用于取操作数2的执行单元ID(16bit), 
@@ -484,7 +564,7 @@ module panda_risc_v_core #(
 	wire[127:0] m_op_ftc_id_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[146:0] m_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
 	wire[143:0] m_op_ftc_id_res_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
-	wire[IBUS_TID_WIDTH-1:0] m_op_ftc_id_res_id; // 指令编号
+	wire[IBUS_TID_WIDTH-1:0] m_op_ftc_id_res_id; // 指令ID
 	wire m_op_ftc_id_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
 	wire[31:0] m_op_ftc_id_res_op1; // 操作数1
 	wire[31:0] m_op_ftc_id_res_op2; // 操作数2
@@ -591,9 +671,10 @@ module panda_risc_v_core #(
 	/** 发射单元 **/
 	// ROB状态
 	wire rob_full_n; // ROB满(标志)
-	wire rob_empty_n; // ROB空(标志)
 	wire rob_csr_rw_inst_allowed; // 允许发射CSR读写指令(标志)
-	wire rob_has_ls_inst; // ROB中存在访存指令(标志)
+	// LSU状态
+	wire has_buffered_wr_mem_req; // 存在已缓存的写存储器请求(标志)
+	wire has_processing_perph_access_req; // 存在处理中的外设访问请求(标志)
 	// 取操作数和译码结果
 	wire[127:0] s_op_ftc_id_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[146:0] s_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
@@ -633,9 +714,10 @@ module panda_risc_v_core #(
 		.aresetn(aresetn),
 		
 		.rob_full_n(rob_full_n),
-		.rob_empty_n(rob_empty_n),
 		.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
-		.rob_has_ls_inst(rob_has_ls_inst),
+		
+		.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
+		.has_processing_perph_access_req(has_processing_perph_access_req),
 		
 		.sys_reset_req(sys_reset_req),
 		.flush_req(global_flush_req),
@@ -1024,23 +1106,45 @@ module panda_risc_v_core #(
 	wire[IBUS_TID_WIDTH-1:0] s_div_inst_id; // 指令ID
 	wire s_div_valid;
 	wire s_div_ready;
-	// CPU核内数据ICB主机
-	wire[31:0] m_icb_lsu_cmd_data_addr;
-	wire m_icb_lsu_cmd_data_read;
-	wire[31:0] m_icb_lsu_cmd_data_wdata;
-	wire[3:0] m_icb_lsu_cmd_data_wmask;
-	wire m_icb_lsu_cmd_data_valid;
-	wire m_icb_lsu_cmd_data_ready;
-	wire[31:0] m_icb_lsu_rsp_data_rdata;
-	wire m_icb_lsu_rsp_data_err;
-	wire m_icb_lsu_rsp_data_valid;
-	wire m_icb_lsu_rsp_data_ready;
-	// 接受访存请求阶段ROB记录广播
-	wire rob_ls_start_bdcst_vld; // 广播有效
-	wire[IBUS_TID_WIDTH-1:0] rob_ls_start_bdcst_tid; // 指令ID
-	// 访存许可
-	wire ls_allow_vld;
-	wire[IBUS_TID_WIDTH-1:0] ls_allow_inst_id; // 指令编号
+	// CPU核内存储器AXI主机
+	// [AR通道]
+	wire[31:0] m_axi_inner_mem_araddr;
+	wire[1:0] m_axi_inner_mem_arburst;
+	wire[7:0] m_axi_inner_mem_arlen;
+	wire[2:0] m_axi_inner_mem_arsize;
+	wire m_axi_inner_mem_arvalid;
+	wire m_axi_inner_mem_arready;
+	// [R通道]
+	wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_inner_mem_rdata;
+	wire[1:0] m_axi_inner_mem_rresp;
+	wire m_axi_inner_mem_rlast;
+	wire m_axi_inner_mem_rvalid;
+	wire m_axi_inner_mem_rready;
+	// [AW通道]
+	wire[31:0] m_axi_inner_mem_awaddr;
+	wire[1:0] m_axi_inner_mem_awburst;
+	wire[7:0] m_axi_inner_mem_awlen;
+	wire[2:0] m_axi_inner_mem_awsize;
+	wire m_axi_inner_mem_awvalid;
+	wire m_axi_inner_mem_awready;
+	// [B通道]
+	wire[1:0] m_axi_inner_mem_bresp;
+	wire m_axi_inner_mem_bvalid;
+	wire m_axi_inner_mem_bready;
+	// [W通道]
+	wire[AXI_MEM_DATA_WIDTH-1:0] m_axi_inner_mem_wdata;
+	wire[AXI_MEM_DATA_WIDTH/8-1:0] m_axi_inner_mem_wstrb;
+	wire m_axi_inner_mem_wlast;
+	wire m_axi_inner_mem_wvalid;
+	wire m_axi_inner_mem_wready;
+	// 写存储器缓存区控制
+	wire wr_mem_permitted_flag; // 写存储器许可标志
+	wire[IBUS_TID_WIDTH-1:0] init_mem_bus_tr_store_inst_tid; // 待发起存储器总线事务的存储指令ID
+	wire clr_wr_mem_buf; // 清空缓存区指示
+	// 外设访问控制
+	wire perph_access_permitted_flag; // 外设访问许可标志
+	wire[IBUS_TID_WIDTH-1:0] init_perph_bus_tr_ls_inst_tid; // 待发起外设总线事务的访存指令ID
+	wire cancel_subseq_perph_access; // 取消后续外设访问指示
 	
 	assign s_alu_op_mode = m_alu_op_mode;
 	assign s_alu_op1 = m_alu_op1;
@@ -1079,8 +1183,19 @@ module panda_risc_v_core #(
 	
 	panda_risc_v_func_units #(
 		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
-		.DBUS_ACCESS_TIMEOUT_TH(DBUS_ACCESS_TIMEOUT_TH),
+		.AXI_MEM_DATA_WIDTH(AXI_MEM_DATA_WIDTH),
+		.MEM_ACCESS_TIMEOUT_TH(MEM_ACCESS_TIMEOUT_TH),
+		.PERPH_ACCESS_TIMEOUT_TH(PERPH_ACCESS_TIMEOUT_TH),
+		.LSU_REQ_BUF_ENTRY_N(LSU_REQ_BUF_ENTRY_N),
+		.RD_MEM_BUF_ENTRY_N(RD_MEM_BUF_ENTRY_N),
+		.WR_MEM_BUF_ENTRY_N(WR_MEM_BUF_ENTRY_N),
+		.PERPH_ADDR_REGION_0_BASE(PERPH_ADDR_REGION_0_BASE),
+		.PERPH_ADDR_REGION_0_LEN(PERPH_ADDR_REGION_0_LEN),
+		.PERPH_ADDR_REGION_1_BASE(PERPH_ADDR_REGION_1_BASE),
+		.PERPH_ADDR_REGION_1_LEN(PERPH_ADDR_REGION_1_LEN),
 		.EN_SGN_PERIOD_MUL(EN_SGN_PERIOD_MUL),
+		.EN_LOW_LATENCY_PERPH_ACCESS(EN_LOW_LATENCY_PERPH_ACCESS),
+		.EN_LOW_LATENCY_RD_MEM_ACCESS_IN_LSU(EN_LOW_LATENCY_RD_MEM_ACCESS_IN_LSU),
 		.SIM_DELAY(SIM_DELAY)
 	)func_units(
 		.aclk(aclk),
@@ -1155,24 +1270,71 @@ module panda_risc_v_core #(
 		.fu_res_data(fu_res_data),
 		.fu_res_err(fu_res_err),
 		
-		.m_icb_cmd_data_addr(m_icb_lsu_cmd_data_addr),
-		.m_icb_cmd_data_read(m_icb_lsu_cmd_data_read),
-		.m_icb_cmd_data_wdata(m_icb_lsu_cmd_data_wdata),
-		.m_icb_cmd_data_wmask(m_icb_lsu_cmd_data_wmask),
-		.m_icb_cmd_data_valid(m_icb_lsu_cmd_data_valid),
-		.m_icb_cmd_data_ready(m_icb_lsu_cmd_data_ready),
-		.m_icb_rsp_data_rdata(m_icb_lsu_rsp_data_rdata),
-		.m_icb_rsp_data_err(m_icb_lsu_rsp_data_err),
-		.m_icb_rsp_data_valid(m_icb_lsu_rsp_data_valid),
-		.m_icb_rsp_data_ready(m_icb_lsu_rsp_data_ready),
+		.m_axi_mem_araddr(m_axi_inner_mem_araddr),
+		.m_axi_mem_arburst(m_axi_inner_mem_arburst),
+		.m_axi_mem_arlen(m_axi_inner_mem_arlen),
+		.m_axi_mem_arsize(m_axi_inner_mem_arsize),
+		.m_axi_mem_arvalid(m_axi_inner_mem_arvalid),
+		.m_axi_mem_arready(m_axi_inner_mem_arready),
+		.m_axi_mem_rdata(m_axi_inner_mem_rdata),
+		.m_axi_mem_rresp(m_axi_inner_mem_rresp),
+		.m_axi_mem_rlast(m_axi_inner_mem_rlast),
+		.m_axi_mem_rvalid(m_axi_inner_mem_rvalid),
+		.m_axi_mem_rready(m_axi_inner_mem_rready),
+		.m_axi_mem_awaddr(m_axi_inner_mem_awaddr),
+		.m_axi_mem_awburst(m_axi_inner_mem_awburst),
+		.m_axi_mem_awlen(m_axi_inner_mem_awlen),
+		.m_axi_mem_awsize(m_axi_inner_mem_awsize),
+		.m_axi_mem_awvalid(m_axi_inner_mem_awvalid),
+		.m_axi_mem_awready(m_axi_inner_mem_awready),
+		.m_axi_mem_bresp(m_axi_inner_mem_bresp),
+		.m_axi_mem_bvalid(m_axi_inner_mem_bvalid),
+		.m_axi_mem_bready(m_axi_inner_mem_bready),
+		.m_axi_mem_wdata(m_axi_inner_mem_wdata),
+		.m_axi_mem_wstrb(m_axi_inner_mem_wstrb),
+		.m_axi_mem_wlast(m_axi_inner_mem_wlast),
+		.m_axi_mem_wvalid(m_axi_inner_mem_wvalid),
+		.m_axi_mem_wready(m_axi_inner_mem_wready),
 		
-		.rob_ls_start_bdcst_vld(rob_ls_start_bdcst_vld),
-		.rob_ls_start_bdcst_tid(rob_ls_start_bdcst_tid),
+		.m_axi_perph_araddr(m_axi_perph_araddr),
+		.m_axi_perph_arburst(m_axi_perph_arburst),
+		.m_axi_perph_arlen(m_axi_perph_arlen),
+		.m_axi_perph_arsize(m_axi_perph_arsize),
+		.m_axi_perph_arvalid(m_axi_perph_arvalid),
+		.m_axi_perph_arready(m_axi_perph_arready),
+		.m_axi_perph_rdata(m_axi_perph_rdata),
+		.m_axi_perph_rresp(m_axi_perph_rresp),
+		.m_axi_perph_rlast(m_axi_perph_rlast),
+		.m_axi_perph_rvalid(m_axi_perph_rvalid),
+		.m_axi_perph_rready(m_axi_perph_rready),
+		.m_axi_perph_awaddr(m_axi_perph_awaddr),
+		.m_axi_perph_awburst(m_axi_perph_awburst),
+		.m_axi_perph_awlen(m_axi_perph_awlen),
+		.m_axi_perph_awsize(m_axi_perph_awsize),
+		.m_axi_perph_awvalid(m_axi_perph_awvalid),
+		.m_axi_perph_awready(m_axi_perph_awready),
+		.m_axi_perph_bresp(m_axi_perph_bresp),
+		.m_axi_perph_bvalid(m_axi_perph_bvalid),
+		.m_axi_perph_bready(m_axi_perph_bready),
+		.m_axi_perph_wdata(m_axi_perph_wdata),
+		.m_axi_perph_wstrb(m_axi_perph_wstrb),
+		.m_axi_perph_wlast(m_axi_perph_wlast),
+		.m_axi_perph_wvalid(m_axi_perph_wvalid),
+		.m_axi_perph_wready(m_axi_perph_wready),
 		
-		.ls_allow_vld(ls_allow_vld),
-		.ls_allow_inst_id(ls_allow_inst_id),
+		.wr_mem_permitted_flag(wr_mem_permitted_flag),
+		.init_mem_bus_tr_store_inst_tid(init_mem_bus_tr_store_inst_tid),
+		.clr_wr_mem_buf(clr_wr_mem_buf),
 		
-		.dbus_timeout(dbus_timeout)
+		.perph_access_permitted_flag(perph_access_permitted_flag),
+		.init_perph_bus_tr_ls_inst_tid(init_perph_bus_tr_ls_inst_tid),
+		.cancel_subseq_perph_access(cancel_subseq_perph_access),
+		
+		.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
+		.has_processing_perph_access_req(has_processing_perph_access_req),
+		.rd_mem_timeout(rd_mem_timeout),
+		.wr_mem_timeout(wr_mem_timeout),
+		.perph_access_timeout(perph_access_timeout)
 	);
 	
 	/** 重排序队列(ROB) **/
@@ -1217,7 +1379,6 @@ module panda_risc_v_core #(
 		.LSN_FU_N(LSN_FU_N),
 		.FU_RES_WIDTH(FU_RES_WIDTH),
 		.FU_ERR_WIDTH(FU_ERR_WIDTH),
-		.EN_ARCT_REG_POS_TB(EN_ARCT_REG_POS_TB),
 		.LSU_FU_ID(LSU_FU_ID),
 		.AUTO_CANCEL_SYNC_ERR_ENTRY(AUTO_CANCEL_SYNC_ERR_ENTRY),
 		.SIM_DELAY(SIM_DELAY)
@@ -1227,17 +1388,14 @@ module panda_risc_v_core #(
 		
 		.rob_clr(rob_clr),
 		.rob_full_n(rob_full_n),
-		.rob_empty_n(rob_empty_n),
+		.rob_empty_n(),
 		.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
-		.rob_has_ls_inst(rob_has_ls_inst),
+		.rob_has_ls_inst(),
 		
 		.rob_sng_cancel_vld(1'b0),
 		.rob_sng_cancel_tid({IBUS_TID_WIDTH{1'b0}}),
 		.rob_yngr_cancel_vld(1'b0),
 		.rob_yngr_cancel_bchmk_wptr(6'b000000),
-		
-		.ls_allow_vld(ls_allow_vld),
-		.ls_allow_inst_id(ls_allow_inst_id),
 		
 		.op1_ftc_rs1_id(op1_ftc_rs1_id),
 		.op1_ftc_from_reg_file(op1_ftc_from_reg_file),
@@ -1280,6 +1438,11 @@ module panda_risc_v_core #(
 		.s_bru_o_b_inst_res(s_bru_o_b_inst_res),
 		.s_bru_o_valid(s_bru_o_valid),
 		
+		.wr_mem_permitted_flag(wr_mem_permitted_flag),
+		.init_mem_bus_tr_store_inst_tid(init_mem_bus_tr_store_inst_tid),
+		.perph_access_permitted_flag(perph_access_permitted_flag),
+		.init_perph_bus_tr_ls_inst_tid(init_perph_bus_tr_ls_inst_tid),
+		
 		.rob_luc_bdcst_vld(rob_luc_bdcst_vld),
 		.rob_luc_bdcst_tid(rob_luc_bdcst_tid),
 		.rob_luc_bdcst_fuid(rob_luc_bdcst_fuid),
@@ -1289,9 +1452,6 @@ module panda_risc_v_core #(
 		.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
 		.rob_luc_bdcst_err(rob_luc_bdcst_err),
 		.rob_luc_bdcst_spec_inst_type(rob_luc_bdcst_spec_inst_type),
-		
-		.rob_ls_start_bdcst_vld(rob_ls_start_bdcst_vld),
-		.rob_ls_start_bdcst_tid(rob_ls_start_bdcst_tid),
 		
 		.rob_rtr_bdcst_vld(rob_rtr_bdcst_vld)
 	);
@@ -1312,6 +1472,8 @@ module panda_risc_v_core #(
 		.cmt_flush_grant(cmt_flush_grant),
 		
 		.rob_clr(rob_clr),
+		.lsu_clr_wr_mem_buf(clr_wr_mem_buf),
+		.cancel_lsu_subseq_perph_access(cancel_subseq_perph_access),
 		
 		.rob_prep_rtr_entry_vld(rob_prep_rtr_entry_vld),
 		.rob_prep_rtr_entry_saved(rob_prep_rtr_entry_saved),
@@ -1397,304 +1559,108 @@ module panda_risc_v_core #(
 		.csr_atom_wen(csr_atom_wen)
 	);
 	
-	/** 指令ICB主机(命令通道输出寄存器片) **/
-	// 输出寄存器片AXIS从机
-	wire[63:0] s0_reg_slice_data;
-	wire[4:0] s0_reg_slice_user;
-	wire s0_reg_slice_valid;
-	wire s0_reg_slice_ready;
-	// 输出寄存器片AXIS主机
-	wire[63:0] m0_reg_slice_data;
-	wire[4:0] m0_reg_slice_user;
-	wire m0_reg_slice_valid;
-	wire m0_reg_slice_ready;
-	
-	assign {m_icb_cmd_inst_addr, m_icb_cmd_inst_wdata} = m0_reg_slice_data;
-	assign {m_icb_cmd_inst_read, m_icb_cmd_inst_wmask} = m0_reg_slice_user;
-	assign m_icb_cmd_inst_valid = m0_reg_slice_valid;
-	assign m0_reg_slice_ready = m_icb_cmd_inst_ready;
-	
-	axis_reg_slice #(
-		.data_width(64),
-		.user_width(5),
-		.forward_registered(EN_INST_CMD_FWD),
-		.back_registered("false"),
-		.en_ready("true"),
-		.simulation_delay(SIM_DELAY)
-	)axis_reg_slice_u0(
-		.clk(aclk),
-		.rst_n(aresetn),
-		
-		.s_axis_data(s0_reg_slice_data),
-		.s_axis_user(s0_reg_slice_user),
-		.s_axis_valid(s0_reg_slice_valid),
-		.s_axis_ready(s0_reg_slice_ready),
-		
-		.m_axis_data(m0_reg_slice_data),
-		.m_axis_user(m0_reg_slice_user),
-		.m_axis_valid(m0_reg_slice_valid),
-		.m_axis_ready(m0_reg_slice_ready)
-	);
-	
-	/** 数据ICB主机(命令通道输出寄存器片) **/
-	// 输出寄存器片AXIS从机
-	wire[63:0] s1_reg_slice_data;
-	wire[4:0] s1_reg_slice_user;
-	wire s1_reg_slice_valid;
-	wire s1_reg_slice_ready;
-	// 输出寄存器片AXIS主机
-	wire[63:0] m1_reg_slice_data;
-	wire[4:0] m1_reg_slice_user;
-	wire m1_reg_slice_valid;
-	wire m1_reg_slice_ready;
-	
-	assign {m_icb_cmd_data_addr, m_icb_cmd_data_wdata} = m1_reg_slice_data;
-	assign {m_icb_cmd_data_read, m_icb_cmd_data_wmask} = m1_reg_slice_user;
-	assign m_icb_cmd_data_valid = m1_reg_slice_valid;
-	assign m1_reg_slice_ready = m_icb_cmd_data_ready;
-	
-	axis_reg_slice #(
-		.data_width(64),
-		.user_width(5),
-		.forward_registered(EN_DATA_CMD_FWD),
-		.back_registered("false"),
-		.en_ready("true"),
-		.simulation_delay(SIM_DELAY)
-	)axis_reg_slice_u1(
-		.clk(aclk),
-		.rst_n(aresetn),
-		
-		.s_axis_data(s1_reg_slice_data),
-		.s_axis_user(s1_reg_slice_user),
-		.s_axis_valid(s1_reg_slice_valid),
-		.s_axis_ready(s1_reg_slice_ready),
-		
-		.m_axis_data(m1_reg_slice_data),
-		.m_axis_user(m1_reg_slice_user),
-		.m_axis_valid(m1_reg_slice_valid),
-		.m_axis_ready(m1_reg_slice_ready)
-	);
-	
-	/** 指令ICB主机(响应通道输入寄存器片) **/
-	// 输入寄存器片AXIS从机
-	wire[31:0] s2_reg_slice_data;
-	wire s2_reg_slice_user;
-	wire s2_reg_slice_valid;
-	wire s2_reg_slice_ready;
-	// 输入寄存器片AXIS主机
-	wire[31:0] m2_reg_slice_data;
-	wire m2_reg_slice_user;
-	wire m2_reg_slice_valid;
-	wire m2_reg_slice_ready;
-	
-	assign s2_reg_slice_data = m_icb_rsp_inst_rdata;
-	assign s2_reg_slice_user = m_icb_rsp_inst_err;
-	assign s2_reg_slice_valid = m_icb_rsp_inst_valid;
-	assign m_icb_rsp_inst_ready = s2_reg_slice_ready;
-	
-	axis_reg_slice #(
-		.data_width(32),
-		.user_width(1),
-		.forward_registered("false"),
-		.back_registered(EN_INST_RSP_BCK),
-		.en_ready("true"),
-		.simulation_delay(SIM_DELAY)
-	)axis_reg_slice_u2(
-		.clk(aclk),
-		.rst_n(aresetn),
-		
-		.s_axis_data(s2_reg_slice_data),
-		.s_axis_user(s2_reg_slice_user),
-		.s_axis_valid(s2_reg_slice_valid),
-		.s_axis_ready(s2_reg_slice_ready),
-		
-		.m_axis_data(m2_reg_slice_data),
-		.m_axis_user(m2_reg_slice_user),
-		.m_axis_valid(m2_reg_slice_valid),
-		.m_axis_ready(m2_reg_slice_ready)
-	);
-	
-	/** 数据ICB主机(响应通道输入寄存器片) **/
-	// 输入寄存器片AXIS从机
-	wire[31:0] s3_reg_slice_data;
-	wire s3_reg_slice_user;
-	wire s3_reg_slice_valid;
-	wire s3_reg_slice_ready;
-	// 输入寄存器片AXIS主机
-	wire[31:0] m3_reg_slice_data;
-	wire m3_reg_slice_user;
-	wire m3_reg_slice_valid;
-	wire m3_reg_slice_ready;
-	
-	assign s3_reg_slice_data = m_icb_rsp_data_rdata;
-	assign s3_reg_slice_user = m_icb_rsp_data_err;
-	assign s3_reg_slice_valid = m_icb_rsp_data_valid;
-	assign m_icb_rsp_data_ready = s3_reg_slice_ready;
-	
-	axis_reg_slice #(
-		.data_width(32),
-		.user_width(1),
-		.forward_registered("false"),
-		.back_registered(EN_DATA_RSP_BCK),
-		.en_ready("true"),
-		.simulation_delay(SIM_DELAY)
-	)axis_reg_slice_u3(
-		.clk(aclk),
-		.rst_n(aresetn),
-		
-		.s_axis_data(s3_reg_slice_data),
-		.s_axis_user(s3_reg_slice_user),
-		.s_axis_valid(s3_reg_slice_valid),
-		.s_axis_ready(s3_reg_slice_ready),
-		
-		.m_axis_data(m3_reg_slice_data),
-		.m_axis_user(m3_reg_slice_user),
-		.m_axis_valid(m3_reg_slice_valid),
-		.m_axis_ready(m3_reg_slice_ready)
-	);
-	
-	/** 总线控制单元 **/
-	// CPU核内指令ICB从机
-	wire[31:0] s_icb_biu_cmd_inst_addr;
-	wire s_icb_biu_cmd_inst_read;
-	wire[31:0] s_icb_biu_cmd_inst_wdata;
-	wire[3:0] s_icb_biu_cmd_inst_wmask;
-	wire s_icb_biu_cmd_inst_valid;
-	wire s_icb_biu_cmd_inst_ready;
-	wire[31:0] s_icb_biu_rsp_inst_rdata;
-	wire s_icb_biu_rsp_inst_err;
-	wire s_icb_biu_rsp_inst_valid;
-	wire s_icb_biu_rsp_inst_ready;
-	// CPU核内数据ICB从机
-	wire[31:0] s_icb_biu_cmd_data_addr;
-	wire s_icb_biu_cmd_data_read;
-	wire[31:0] s_icb_biu_cmd_data_wdata;
-	wire[3:0] s_icb_biu_cmd_data_wmask;
-	wire s_icb_biu_cmd_data_valid;
-	wire s_icb_biu_cmd_data_ready;
-	wire[31:0] s_icb_biu_rsp_data_rdata;
-	wire s_icb_biu_rsp_data_err;
-	wire s_icb_biu_rsp_data_valid;
-	wire s_icb_biu_rsp_data_ready;
-	// 指令ICB主机
-	wire[31:0] m_icb_biu_cmd_inst_addr;
-	wire m_icb_biu_cmd_inst_read;
-	wire[31:0] m_icb_biu_cmd_inst_wdata;
-	wire[3:0] m_icb_biu_cmd_inst_wmask;
-	wire m_icb_biu_cmd_inst_valid;
-	wire m_icb_biu_cmd_inst_ready;
-	wire[31:0] m_icb_biu_rsp_inst_rdata;
-	wire m_icb_biu_rsp_inst_err;
-	wire m_icb_biu_rsp_inst_valid;
-	wire m_icb_biu_rsp_inst_ready;
-	// 数据ICB主机
-	wire[31:0] m_icb_biu_cmd_data_addr;
-	wire m_icb_biu_cmd_data_read;
-	wire[31:0] m_icb_biu_cmd_data_wdata;
-	wire[3:0] m_icb_biu_cmd_data_wmask;
-	wire m_icb_biu_cmd_data_valid;
-	wire m_icb_biu_cmd_data_ready;
-	wire[31:0] m_icb_biu_rsp_data_rdata;
-	wire m_icb_biu_rsp_data_err;
-	wire m_icb_biu_rsp_data_valid;
-	wire m_icb_biu_rsp_data_ready;
-	
-	assign s0_reg_slice_data = {m_icb_biu_cmd_inst_addr, m_icb_biu_cmd_inst_wdata};
-	assign s0_reg_slice_user = {m_icb_biu_cmd_inst_read, m_icb_biu_cmd_inst_wmask};
-	assign s0_reg_slice_valid = m_icb_biu_cmd_inst_valid;
-	assign m_icb_biu_cmd_inst_ready = s0_reg_slice_ready;
-	
-	assign s1_reg_slice_data = {m_icb_biu_cmd_data_addr, m_icb_biu_cmd_data_wdata};
-	assign s1_reg_slice_user = {m_icb_biu_cmd_data_read, m_icb_biu_cmd_data_wmask};
-	assign s1_reg_slice_valid = m_icb_biu_cmd_data_valid;
-	assign m_icb_biu_cmd_data_ready = s1_reg_slice_ready;
-	
-	assign m_icb_biu_rsp_inst_rdata = m2_reg_slice_data;
-	assign m_icb_biu_rsp_inst_err = m2_reg_slice_user;
-	assign m_icb_biu_rsp_inst_valid = m2_reg_slice_valid;
-	assign m2_reg_slice_ready = m_icb_biu_rsp_inst_ready;
-	
-	assign m_icb_biu_rsp_data_rdata = m3_reg_slice_data;
-	assign m_icb_biu_rsp_data_err = m3_reg_slice_user;
-	assign m_icb_biu_rsp_data_valid = m3_reg_slice_valid;
-	assign m3_reg_slice_ready = m_icb_biu_rsp_data_ready;
-	
-	assign s_icb_biu_cmd_inst_addr = m_icb_imem_cmd_inst_addr;
-	assign s_icb_biu_cmd_inst_read = m_icb_imem_cmd_inst_read;
-	assign s_icb_biu_cmd_inst_wdata = m_icb_imem_cmd_inst_wdata;
-	assign s_icb_biu_cmd_inst_wmask = m_icb_imem_cmd_inst_wmask;
-	assign s_icb_biu_cmd_inst_valid = m_icb_imem_cmd_inst_valid;
-	assign m_icb_imem_cmd_inst_ready = s_icb_biu_cmd_inst_ready;
-	assign m_icb_imem_rsp_inst_rdata = s_icb_biu_rsp_inst_rdata;
-	assign m_icb_imem_rsp_inst_err = s_icb_biu_rsp_inst_err;
-	assign m_icb_imem_rsp_inst_valid = s_icb_biu_rsp_inst_valid;
-	assign s_icb_biu_rsp_inst_ready = m_icb_imem_rsp_inst_ready;
-	
-	assign s_icb_biu_cmd_data_addr = m_icb_lsu_cmd_data_addr;
-	assign s_icb_biu_cmd_data_read = m_icb_lsu_cmd_data_read;
-	assign s_icb_biu_cmd_data_wdata = m_icb_lsu_cmd_data_wdata;
-	assign s_icb_biu_cmd_data_wmask = m_icb_lsu_cmd_data_wmask;
-	assign s_icb_biu_cmd_data_valid = m_icb_lsu_cmd_data_valid;
-	assign m_icb_lsu_cmd_data_ready = s_icb_biu_cmd_data_ready;
-	assign m_icb_lsu_rsp_data_rdata = s_icb_biu_rsp_data_rdata;
-	assign m_icb_lsu_rsp_data_err = s_icb_biu_rsp_data_err;
-	assign m_icb_lsu_rsp_data_valid = s_icb_biu_rsp_data_valid;
-	assign s_icb_biu_rsp_data_ready = m_icb_lsu_rsp_data_ready;
-	
+	/** 总线互联单元 **/
 	panda_risc_v_biu #(
-		.imem_baseaddr(IMEM_BASEADDR),
-		.imem_addr_range(IMEM_ADDR_RANGE),
-		.dm_regs_baseaddr(DM_REGS_BASEADDR),
-		.dm_regs_addr_range(DM_REGS_ADDR_RANGE),
-		.debug_supported(DEBUG_SUPPORTED),
-		.simulation_delay(SIM_DELAY)
-	)panda_risc_v_biu_u(
-		.clk(aclk),
-		.resetn(aresetn),
+		.AXI_MEM_DATA_WIDTH(AXI_MEM_DATA_WIDTH),
+		.IMEM_BASEADDR(IMEM_BASEADDR),
+		.IMEM_ADDR_RANGE(IMEM_ADDR_RANGE),
+		.DM_REGS_BASEADDR(DM_REGS_BASEADDR),
+		.DM_REGS_ADDR_RANGE(DM_REGS_ADDR_RANGE),
+		.DEBUG_SUPPORTED(DEBUG_SUPPORTED),
+		.EN_LOW_LATENCY_DMEM_RD(EN_BIU_LOW_LATENCY_DMEM_RD),
+		.SIM_DELAY(SIM_DELAY)
+	)biu_u(
+		.aclk(aclk),
+		.aresetn(aresetn),
 		
-		.s_icb_cmd_inst_addr(s_icb_biu_cmd_inst_addr),
-		.s_icb_cmd_inst_read(s_icb_biu_cmd_inst_read),
-		.s_icb_cmd_inst_wdata(s_icb_biu_cmd_inst_wdata),
-		.s_icb_cmd_inst_wmask(s_icb_biu_cmd_inst_wmask),
-		.s_icb_cmd_inst_valid(s_icb_biu_cmd_inst_valid),
-		.s_icb_cmd_inst_ready(s_icb_biu_cmd_inst_ready),
-		.s_icb_rsp_inst_rdata(s_icb_biu_rsp_inst_rdata),
-		.s_icb_rsp_inst_err(s_icb_biu_rsp_inst_err),
-		.s_icb_rsp_inst_valid(s_icb_biu_rsp_inst_valid),
-		.s_icb_rsp_inst_ready(s_icb_biu_rsp_inst_ready),
+		.s_icb_cmd_inst_addr(m_icb_inner_imem_cmd_inst_addr),
+		.s_icb_cmd_inst_read(m_icb_inner_imem_cmd_inst_read),
+		.s_icb_cmd_inst_wdata(m_icb_inner_imem_cmd_inst_wdata),
+		.s_icb_cmd_inst_wmask(m_icb_inner_imem_cmd_inst_wmask),
+		.s_icb_cmd_inst_valid(m_icb_inner_imem_cmd_inst_valid),
+		.s_icb_cmd_inst_ready(m_icb_inner_imem_cmd_inst_ready),
+		.s_icb_rsp_inst_rdata(m_icb_inner_imem_rsp_inst_rdata),
+		.s_icb_rsp_inst_err(m_icb_inner_imem_rsp_inst_err),
+		.s_icb_rsp_inst_valid(m_icb_inner_imem_rsp_inst_valid),
+		.s_icb_rsp_inst_ready(m_icb_inner_imem_rsp_inst_ready),
 		
-		.s_icb_cmd_data_addr(s_icb_biu_cmd_data_addr),
-		.s_icb_cmd_data_read(s_icb_biu_cmd_data_read),
-		.s_icb_cmd_data_wdata(s_icb_biu_cmd_data_wdata),
-		.s_icb_cmd_data_wmask(s_icb_biu_cmd_data_wmask),
-		.s_icb_cmd_data_valid(s_icb_biu_cmd_data_valid),
-		.s_icb_cmd_data_ready(s_icb_biu_cmd_data_ready),
-		.s_icb_rsp_data_rdata(s_icb_biu_rsp_data_rdata),
-		.s_icb_rsp_data_err(s_icb_biu_rsp_data_err),
-		.s_icb_rsp_data_valid(s_icb_biu_rsp_data_valid),
-		.s_icb_rsp_data_ready(s_icb_biu_rsp_data_ready),
+		.s_axi_dmem_araddr(m_axi_inner_mem_araddr),
+		.s_axi_dmem_arburst(m_axi_inner_mem_arburst),
+		.s_axi_dmem_arlen(m_axi_inner_mem_arlen),
+		.s_axi_dmem_arsize(m_axi_inner_mem_arsize),
+		.s_axi_dmem_arvalid(m_axi_inner_mem_arvalid),
+		.s_axi_dmem_arready(m_axi_inner_mem_arready),
+		.s_axi_dmem_rdata(m_axi_inner_mem_rdata),
+		.s_axi_dmem_rresp(m_axi_inner_mem_rresp),
+		.s_axi_dmem_rlast(m_axi_inner_mem_rlast),
+		.s_axi_dmem_rvalid(m_axi_inner_mem_rvalid),
+		.s_axi_dmem_rready(m_axi_inner_mem_rready),
+		.s_axi_dmem_awaddr(m_axi_inner_mem_awaddr),
+		.s_axi_dmem_awburst(m_axi_inner_mem_awburst),
+		.s_axi_dmem_awlen(m_axi_inner_mem_awlen),
+		.s_axi_dmem_awsize(m_axi_inner_mem_awsize),
+		.s_axi_dmem_awvalid(m_axi_inner_mem_awvalid),
+		.s_axi_dmem_awready(m_axi_inner_mem_awready),
+		.s_axi_dmem_bresp(m_axi_inner_mem_bresp),
+		.s_axi_dmem_bvalid(m_axi_inner_mem_bvalid),
+		.s_axi_dmem_bready(m_axi_inner_mem_bready),
+		.s_axi_dmem_wdata(m_axi_inner_mem_wdata),
+		.s_axi_dmem_wstrb(m_axi_inner_mem_wstrb),
+		.s_axi_dmem_wlast(m_axi_inner_mem_wlast),
+		.s_axi_dmem_wvalid(m_axi_inner_mem_wvalid),
+		.s_axi_dmem_wready(m_axi_inner_mem_wready),
 		
-		.m_icb_cmd_inst_addr(m_icb_biu_cmd_inst_addr),
-		.m_icb_cmd_inst_read(m_icb_biu_cmd_inst_read),
-		.m_icb_cmd_inst_wdata(m_icb_biu_cmd_inst_wdata),
-		.m_icb_cmd_inst_wmask(m_icb_biu_cmd_inst_wmask),
-		.m_icb_cmd_inst_valid(m_icb_biu_cmd_inst_valid),
-		.m_icb_cmd_inst_ready(m_icb_biu_cmd_inst_ready),
-		.m_icb_rsp_inst_rdata(m_icb_biu_rsp_inst_rdata),
-		.m_icb_rsp_inst_err(m_icb_biu_rsp_inst_err),
-		.m_icb_rsp_inst_valid(m_icb_biu_rsp_inst_valid),
-		.m_icb_rsp_inst_ready(m_icb_biu_rsp_inst_ready),
+		.m_axi_imem_araddr(m_axi_imem_araddr),
+		.m_axi_imem_arburst(m_axi_imem_arburst),
+		.m_axi_imem_arlen(m_axi_imem_arlen),
+		.m_axi_imem_arsize(m_axi_imem_arsize),
+		.m_axi_imem_arvalid(m_axi_imem_arvalid),
+		.m_axi_imem_arready(m_axi_imem_arready),
+		.m_axi_imem_rdata(m_axi_imem_rdata),
+		.m_axi_imem_rresp(m_axi_imem_rresp),
+		.m_axi_imem_rlast(m_axi_imem_rlast),
+		.m_axi_imem_rvalid(m_axi_imem_rvalid),
+		.m_axi_imem_rready(m_axi_imem_rready),
+		.m_axi_imem_awaddr(m_axi_imem_awaddr),
+		.m_axi_imem_awburst(m_axi_imem_awburst),
+		.m_axi_imem_awlen(m_axi_imem_awlen),
+		.m_axi_imem_awsize(m_axi_imem_awsize),
+		.m_axi_imem_awvalid(m_axi_imem_awvalid),
+		.m_axi_imem_awready(m_axi_imem_awready),
+		.m_axi_imem_bresp(m_axi_imem_bresp),
+		.m_axi_imem_bvalid(m_axi_imem_bvalid),
+		.m_axi_imem_bready(m_axi_imem_bready),
+		.m_axi_imem_wdata(m_axi_imem_wdata),
+		.m_axi_imem_wstrb(m_axi_imem_wstrb),
+		.m_axi_imem_wlast(m_axi_imem_wlast),
+		.m_axi_imem_wvalid(m_axi_imem_wvalid),
+		.m_axi_imem_wready(m_axi_imem_wready),
 		
-		.m_icb_cmd_data_addr(m_icb_biu_cmd_data_addr),
-		.m_icb_cmd_data_read(m_icb_biu_cmd_data_read),
-		.m_icb_cmd_data_wdata(m_icb_biu_cmd_data_wdata),
-		.m_icb_cmd_data_wmask(m_icb_biu_cmd_data_wmask),
-		.m_icb_cmd_data_valid(m_icb_biu_cmd_data_valid),
-		.m_icb_cmd_data_ready(m_icb_biu_cmd_data_ready),
-		.m_icb_rsp_data_rdata(m_icb_biu_rsp_data_rdata),
-		.m_icb_rsp_data_err(m_icb_biu_rsp_data_err),
-		.m_icb_rsp_data_valid(m_icb_biu_rsp_data_valid),
-		.m_icb_rsp_data_ready(m_icb_biu_rsp_data_ready)
+		.m_axi_dmem_araddr(m_axi_dmem_araddr),
+		.m_axi_dmem_arburst(m_axi_dmem_arburst),
+		.m_axi_dmem_arlen(m_axi_dmem_arlen),
+		.m_axi_dmem_arsize(m_axi_dmem_arsize),
+		.m_axi_dmem_arvalid(m_axi_dmem_arvalid),
+		.m_axi_dmem_arready(m_axi_dmem_arready),
+		.m_axi_dmem_rdata(m_axi_dmem_rdata),
+		.m_axi_dmem_rresp(m_axi_dmem_rresp),
+		.m_axi_dmem_rlast(m_axi_dmem_rlast),
+		.m_axi_dmem_rvalid(m_axi_dmem_rvalid),
+		.m_axi_dmem_rready(m_axi_dmem_rready),
+		.m_axi_dmem_awaddr(m_axi_dmem_awaddr),
+		.m_axi_dmem_awburst(m_axi_dmem_awburst),
+		.m_axi_dmem_awlen(m_axi_dmem_awlen),
+		.m_axi_dmem_awsize(m_axi_dmem_awsize),
+		.m_axi_dmem_awvalid(m_axi_dmem_awvalid),
+		.m_axi_dmem_awready(m_axi_dmem_awready),
+		.m_axi_dmem_bresp(m_axi_dmem_bresp),
+		.m_axi_dmem_bvalid(m_axi_dmem_bvalid),
+		.m_axi_dmem_bready(m_axi_dmem_bready),
+		.m_axi_dmem_wdata(m_axi_dmem_wdata),
+		.m_axi_dmem_wstrb(m_axi_dmem_wstrb),
+		.m_axi_dmem_wlast(m_axi_dmem_wlast),
+		.m_axi_dmem_wvalid(m_axi_dmem_wvalid),
+		.m_axi_dmem_wready(m_axi_dmem_wready)
 	);
 	
 endmodule

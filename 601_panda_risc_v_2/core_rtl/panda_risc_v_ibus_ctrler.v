@@ -46,7 +46,7 @@ SOFTWARE.
 ICB MASTER
 
 作者: 陈家耀
-日期: 2025/06/01
+日期: 2026/01/23
 ********************************************************************/
 
 
@@ -256,10 +256,10 @@ module panda_risc_v_ibus_ctrler #(
 	reg[clogb2(IBUS_OUTSTANDING_N-1):0] ibus_access_resp_wptr; // 响应阶段写指针
 	reg[clogb2(IBUS_OUTSTANDING_N-1):0] ibus_access_ack_rptr; // 访问应答读指针
 	// [标志向量]
-	wire[IBUS_OUTSTANDING_N-1:0] ibus_access_buf_empty_vec; // 缓存条目空标志向量
+	reg[IBUS_OUTSTANDING_N-1:0] ibus_access_buf_empty_vec; // 缓存条目空标志向量
 	wire[IBUS_OUTSTANDING_N-1:0] ibus_access_buf_wait_resp_vec; // 缓存条目等待ICB响应标志向量
 	// [清空指令缓存时镇压的ICB事务]
-	reg[clogb2(IBUS_OUTSTANDING_N-1):0] ibus_access_req_wptr_copy; // 备份的访问请求写指针
+	reg[clogb2(IBUS_OUTSTANDING_N-1):0] ibus_access_req_wptr_backup; // 备份的访问请求写指针
 	wire[IBUS_OUTSTANDING_N-1:0] ibus_access_resp_vec; // ICB响应向量
 	wire[IBUS_OUTSTANDING_N-1:0] ibus_access_suppress_vec; // ICB事务镇压向量
 	
@@ -268,24 +268,22 @@ module panda_risc_v_ibus_ctrler #(
 	
 	assign ibus_access_req_ready = 
 		(~ibus_timeout_flag) & 
-		(ibus_access_sts[ibus_access_req_wptr] == IBUS_ACCESS_STS_EMPTY) & 
+		(|(ibus_access_buf_empty_vec & (1 << ibus_access_req_wptr))) & 
 		// 地址非对齐的访问请求必须等到访问缓存区全空时才能被接受
 		((~ibus_access_addr_unaligned_flag) | (&ibus_access_buf_empty_vec));
 	
 	assign waiting_icb_resp = ibus_access_sts[ibus_access_resp_wptr] == IBUS_ACCESS_STS_ICB_RESP;
 	
-	// 访问状态, 事务镇压标志, 访问地址, 事务ID, 附带信息, 读数据, 指令预译码信息, 分支预测信息, 错误码
+	// 访问状态, 缓存条目空标志向量, 事务镇压标志, 访问地址, 事务ID, 附带信息, 读数据, 指令预译码信息, 分支预测信息, 错误码
 	genvar ibus_access_entry_i;
 	generate
 		for(ibus_access_entry_i = 0;ibus_access_entry_i < IBUS_OUTSTANDING_N;ibus_access_entry_i = ibus_access_entry_i + 1)
 		begin:ibus_access_entry_blk
-			assign ibus_access_buf_empty_vec[ibus_access_entry_i] = 
-				ibus_access_sts[ibus_access_entry_i] == IBUS_ACCESS_STS_EMPTY;
 			assign ibus_access_buf_wait_resp_vec[ibus_access_entry_i] = 
 				(ibus_access_sts[ibus_access_entry_i] == IBUS_ACCESS_STS_ICB_RESP) & 
 				(~ibus_access_resp_vec[ibus_access_entry_i]);
 			assign ibus_access_resp_vec[ibus_access_entry_i] = 
-				// 当前指令在ICB总线上得到响应
+				// 当前指令在ICB总线上得到响应, 或访问超时
 				((m_icb_rsp_valid & m_icb_rsp_ready) | ibus_timeout_flag) & 
 				(ibus_access_resp_wptr == ibus_access_entry_i);
 			assign ibus_access_suppress_vec[ibus_access_entry_i] = ibus_access_suppress_flag[ibus_access_entry_i];
@@ -293,7 +291,10 @@ module panda_risc_v_ibus_ctrler #(
 			always @(posedge aclk or negedge aresetn)
 			begin
 				if(~aresetn)
+				begin
 					ibus_access_sts[ibus_access_entry_i] <= IBUS_ACCESS_STS_EMPTY;
+					ibus_access_buf_empty_vec[ibus_access_entry_i] <= 1'b1;
+				end
 				else if(
 					(
 						(ibus_access_sts[ibus_access_entry_i] == IBUS_ACCESS_STS_EMPTY) & 
@@ -323,6 +324,7 @@ module panda_risc_v_ibus_ctrler #(
 				begin
 					case(ibus_access_sts[ibus_access_entry_i])
 						IBUS_ACCESS_STS_EMPTY:
+						begin
 							/*
 							对于地址非对齐的事务, 直接跳到应答阶段
 							对于命令阶段立即完成的事务, 直接跳到等待响应阶段
@@ -334,22 +336,40 @@ module panda_risc_v_ibus_ctrler #(
 											IBUS_ACCESS_STS_ICB_RESP:
 											IBUS_ACCESS_STS_ICB_CMD
 									);
+							
+							ibus_access_buf_empty_vec[ibus_access_entry_i] <= # SIM_DELAY 1'b0;
+						end
 						IBUS_ACCESS_STS_ICB_CMD:
+						begin
 							ibus_access_sts[ibus_access_entry_i] <= # SIM_DELAY 
 								// 清空指令缓存时, 若当前事务的命令阶段尚未完成, 则不再发送命令
 								clr_inst_buf ? 
 									IBUS_ACCESS_STS_EMPTY:
 									IBUS_ACCESS_STS_ICB_RESP;
+							
+							ibus_access_buf_empty_vec[ibus_access_entry_i] <= # SIM_DELAY clr_inst_buf;
+						end
 						IBUS_ACCESS_STS_ICB_RESP:
+						begin
 							ibus_access_sts[ibus_access_entry_i] <= # SIM_DELAY 
 								// 被镇压的事务不再进入应答阶段
 								(clr_inst_buf | ibus_access_suppress_flag[ibus_access_entry_i]) ? 
 									IBUS_ACCESS_STS_EMPTY:
 									IBUS_ACCESS_STS_ACK;
+							
+							ibus_access_buf_empty_vec[ibus_access_entry_i] <= # SIM_DELAY 
+								clr_inst_buf | ibus_access_suppress_flag[ibus_access_entry_i];
+						end
 						IBUS_ACCESS_STS_ACK:
+						begin
 							ibus_access_sts[ibus_access_entry_i] <= # SIM_DELAY IBUS_ACCESS_STS_EMPTY;
+							ibus_access_buf_empty_vec[ibus_access_entry_i] <= # SIM_DELAY 1'b1;
+						end
 						default:
+						begin
 							ibus_access_sts[ibus_access_entry_i] <= # SIM_DELAY IBUS_ACCESS_STS_EMPTY;
+							ibus_access_buf_empty_vec[ibus_access_entry_i] <= # SIM_DELAY 1'b1;
+						end
 					endcase
 				end
 			end
@@ -523,7 +543,7 @@ module panda_risc_v_ibus_ctrler #(
 							((m_icb_rsp_valid & m_icb_rsp_ready) | ibus_timeout_flag) & 
 							(ibus_access_suppress_vec == ibus_access_resp_vec)
 						) ? 
-							ibus_access_req_wptr_copy:
+							ibus_access_req_wptr_backup:
 							(ibus_access_resp_wptr + 1)
 					);
 	end
@@ -538,15 +558,17 @@ module panda_risc_v_ibus_ctrler #(
 			(ibus_access_resp_valid & ibus_access_resp_ready)
 		)
 			ibus_access_ack_rptr <= # SIM_DELAY 
-				// 清空指令缓存时, 跳到访问请求写指针
-				(clr_inst_buf ? ibus_access_req_wptr:ibus_access_ack_rptr) + (clr_inst_buf ? 0:1);
+				clr_inst_buf ? 
+					// 清空指令缓存时, 跳到访问请求写指针
+					ibus_access_req_wptr:
+					(ibus_access_ack_rptr + 1);
 	end
 	
 	// 备份的访问请求写指针
 	always @(posedge aclk)
 	begin
 		if(clr_inst_buf)
-			ibus_access_req_wptr_copy <= # SIM_DELAY ibus_access_req_wptr;
+			ibus_access_req_wptr_backup <= # SIM_DELAY ibus_access_req_wptr;
 	end
 	
 	/** 指令总线访问应答 **/
@@ -568,7 +590,7 @@ module panda_risc_v_ibus_ctrler #(
 	assign m_icb_cmd_wdata = 32'h0000_0000;
 	assign m_icb_cmd_wmask = 4'b0000;
 	assign m_icb_cmd_valid = 
-		// 当前选中的事务是空的, 则将指令总线访问请求直接旁路
+		// 当前选中的事务是空的, 则将指令总线访问请求直接旁路出去
 		(
 			(ibus_access_sts[ibus_access_cmd_rptr] == IBUS_ACCESS_STS_EMPTY) & 
 			ibus_access_req_valid & 

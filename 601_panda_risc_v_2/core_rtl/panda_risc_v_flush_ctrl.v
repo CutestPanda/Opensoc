@@ -28,7 +28,8 @@ SOFTWARE.
 
 描述:
 对来自BRU/交付单元的冲刷请求进行仲裁
-来自交付单元的冲刷请求的优先级更高
+
+因为处于交付单元的指令更老, 而处于BRU的指令更年轻, 所以来自交付单元的冲刷请求的优先级更高
 
 注意：
 无
@@ -37,7 +38,7 @@ SOFTWARE.
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/07/01
+日期: 2026/01/20
 ********************************************************************/
 
 
@@ -52,8 +53,8 @@ module panda_risc_v_flush_ctrl #(
 	input wire sys_reset_req,
 	
 	// 全局历史分支预测
-	output wire glb_brc_prdt_on_clr_retired_ghr, // 清零退休GHR
-	output wire glb_brc_prdt_rstr_speculative_ghr, // 恢复推测GHR指示
+	output wire glb_brc_prdt_on_clr_retired_ghr, // 清零退休GHR(指示)
+	output wire glb_brc_prdt_rstr_speculative_ghr, // 恢复推测GHR(指示)
 	
 	// BRU给出的冲刷请求
 	input wire bru_flush_req, // 冲刷请求

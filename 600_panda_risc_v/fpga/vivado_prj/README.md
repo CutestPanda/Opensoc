@@ -2,6 +2,15 @@
 测试FPGA板的型号为zynq7020。  
 [百度云链接](https://pan.baidu.com/s/1Wq-isumnnuQNxXdvCApr0g?pwd=1234)  
 
+可用版本：  
+
+- vivado工程/panda_soc_test_v1.zip  
+- vivado工程/panda_soc_test_v2.zip  
+- vivado工程/panda_soc_test_v3.zip  
+- vivado工程/panda_soc_test_v4.zip  
+- vivado工程/panda_soc_test_v5.zip  
+- vivado工程/panda_soc_test_v6.zip  
+
 ### panda_soc_test_v1
 #### <center>存储映射表</center>
 |内容|地址范围|区间长度|

@@ -4,6 +4,7 @@ RISCV_MCMODEL := medlow
 
 TARGET = plic_test
 
+CFLAGS += -D CPU_FREQ_MHZ=50
 #CFLAGS += -DSIMULATION
 #CFLAGS += -O2
 #ASM_SRCS +=

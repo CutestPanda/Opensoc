@@ -51,7 +51,7 @@ SOFTWARE.
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2025/06/27
+日期: 2026/01/23
 ********************************************************************/
 
 
@@ -71,8 +71,10 @@ module panda_risc_v_commit #(
 	output wire[31:0] cmt_flush_addr, // 冲刷地址
 	input wire cmt_flush_grant, // 冲刷许可
 	
-	// 清空ROB(指示)
-	output wire rob_clr,
+	// ROB与LSU清空控制
+	output wire rob_clr, // 清空ROB(指示)
+	output wire lsu_clr_wr_mem_buf, // 清空LSU写存储器缓存区
+	output wire cancel_lsu_subseq_perph_access, // 取消LSU后续外设访问
 	
 	// 准备退休的ROB项
 	input wire rob_prep_rtr_entry_vld, // 有效标志
@@ -355,7 +357,11 @@ module panda_risc_v_commit #(
 		({3{dbg_grant_halt_on_reset}} & DBG_CAUSE_CODE_RST_HALTREQ) | 
 		({3{dbg_grant_ebreakm}} & DBG_CAUSE_CODE_EBREAK) | 
 		({3{dbg_grant_step}} & DBG_CAUSE_CODE_STEP);
-	// 说明: 仅"EBREAK指令导致的调试请求"返回到进入调试模式时的指令地址, 其余情况返回到进入调试模式时的下一有效指令地址或"中断/异常向量表基地址"
+	/*
+	说明:
+		"EBREAK指令导致的调试请求"返回到进入调试模式时的指令地址
+		其余情况返回到进入调试模式时的下一有效指令地址或"中断/异常向量表基地址"
+	*/
 	assign dbg_mode_ret_addr = 
 		dbg_grant_ebreakm ? 
 			rob_prep_rtr_entry_pc:
@@ -383,14 +389,18 @@ module panda_risc_v_commit #(
 		(
 			(~dbg_req_global) | // 全局调试请求无效
 			(
-				(~dbg_grant_ebreakm) & // 许可除了"EBREAK指令导致的调试请求"以外的其他调试请求
-				(excpt_proc_req | ecall_intr_req) // 当前存在"异常处理请求"或"ECALL指令中断请求"
+				/*
+				对于除"EBREAK指令导致的调试请求"以外的其他调试请求, 若当前存在"异常处理请求"或"ECALL指令中断请求",
+					则在进入调试模式的同时进入中断/异常模式
+				*/
+				(~dbg_grant_ebreakm) & (excpt_proc_req | ecall_intr_req)
 			)
 		);
 	
 	/*
 	说明: 
-		"来自调试器的暂停请求"、"来自调试器的复位释放后暂停请求"和"单步调试请求"没有限制待交付的指令无异常或是ECALL指令, 因此可能会返回到"中断/异常向量表基地址"
+		"来自调试器的暂停请求"、"来自调试器的复位释放后暂停请求"和"单步调试请求"没有限制待交付的指令无异常或是ECALL指令,
+			因此可能会返回到"中断/异常向量表基地址"
 		"EBREAK指令导致的调试请求"要求待交付的指令不能带有异常
 	*/
 	assign dbg_req_halt = 
@@ -488,7 +498,9 @@ module panda_risc_v_commit #(
 	assign cmt_flush_req = flush_pending;
 	assign cmt_flush_addr = flush_addr_saved;
 	
-	assign rob_clr = flush_pending & cmt_flush_grant;
+	assign rob_clr = flush_pending;
+	assign lsu_clr_wr_mem_buf = flush_pending;
+	assign cancel_lsu_subseq_perph_access = flush_pending;
 	
 	assign rob_rtr_bdcst_vld = 
 		rob_prep_rtr_entry_vld & (
@@ -536,7 +548,9 @@ module panda_risc_v_commit #(
 	/** 更新全局历史分支预测器 **/
 	assign glb_brc_prdt_on_upd_retired_ghr = 
 		// 退休1条未被取消、没有异常的指令
-		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL);
+		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL) & 
+		// 这条指令是B指令
+		(rob_prep_rtr_entry_b_inst_res != B_INST_RES_NONE);
 	assign glb_brc_prdt_retired_ghr_shift_in = rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN;
 	
 	assign glb_brc_prdt_upd_i_req = 
