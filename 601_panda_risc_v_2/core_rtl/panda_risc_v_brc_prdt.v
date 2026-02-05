@@ -85,7 +85,7 @@ module panda_risc_v_brc_prdt #(
 	input wire glb_brc_prdt_upd_i_req, // 更新请求
 	input wire[31:0] glb_brc_prdt_upd_i_pc, // 待更新项的PC
 	input wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_upd_i_ghr, // 待更新项的GHR
-	input wire[((BHR_WIDTH <= 2) ? 2:BHR_WIDTH)-1:0] glb_brc_prdt_upd_i_bhr, // 待更新项的BHR
+	input wire[15:0] glb_brc_prdt_upd_i_bhr, // 待更新项的BHR
 	// 说明: PHT_MEM_IMPL == "sram"时可用
 	input wire[1:0] glb_brc_prdt_upd_i_2bit_sat_cnt, // 新的2bit饱和计数器
 	input wire glb_brc_prdt_upd_i_brc_taken, // 待更新项的实际分支跳转方向

@@ -569,7 +569,7 @@ module panda_risc_v_commit #(
 	assign glb_brc_prdt_upd_i_ghr = 
 		glb_brc_prdt_retired_ghr_o;
 	assign glb_brc_prdt_upd_i_bhr = 
-		rob_prep_rtr_entry_bhr[((BHR_WIDTH <= 2) ? 2:BHR_WIDTH)-1:0];
+		rob_prep_rtr_entry_bhr;
 	assign glb_brc_prdt_upd_i_2bit_sat_cnt = 
 		/*
 		(rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN) ? 
