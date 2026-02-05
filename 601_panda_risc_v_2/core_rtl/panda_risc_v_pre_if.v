@@ -38,7 +38,7 @@ SOFTWARE.
 对于以下这种情况, 属于分支预测特例, 此时会从取指阶段或发射阶段的分支信息广播获取真实的BTA -> 
 	BTB命中, 分支指令类型为JALR, RAS出栈标志无效
 
-向指令总线控制单元广播预测信息, 可为替换BTB条目、更新全局历史分支预测器、检查分支预测是否正确提供参考
+向指令总线控制单元广播预测信息, 可为替换BTB条目、更新基于历史的分支预测器、检查分支预测是否正确提供参考
 
 注意：
 要求指令总线控制单元从接受访问请求到返回应答(发送取指阶段的分支信息广播)至少有2clk时延
@@ -47,7 +47,7 @@ SOFTWARE.
 MEM MASTER
 
 作者: 陈家耀
-日期: 2026/01/22
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -56,10 +56,13 @@ module panda_risc_v_pre_if #(
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
 	parameter integer IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH = 1, // 指令总线访问请求附带信息的位宽(正整数)
 	parameter integer PRDT_MSG_WIDTH = 96, // 分支预测信息的位宽(正整数)
-	// 全局历史分支预测配置
-	parameter EN_PC_FOR_PHT_ADDR = "true", // 生成PHT地址时是否考虑PC
-	parameter EN_GHR_FOR_PHT_ADDR = "true", // 生成PHT地址时是否考虑GHR
+	// 基于历史的分支预测配置
 	parameter integer GHR_WIDTH = 8, // 全局分支历史寄存器的位宽(<=16)
+	parameter integer PC_WIDTH = 4, // 截取的低位PC的位宽(必须在范围[1, 16]内)
+	parameter integer BHR_WIDTH = 9, // 局部分支历史寄存器(BHR)的位宽
+	parameter integer BHT_DEPTH = 256, // 局部分支历史表(BHT)的深度(必须>=2且为2^n)
+	parameter PHT_MEM_IMPL = "reg", // PHT存储器的实现方式(reg | sram)
+	parameter NO_INIT_PHT = "false", // 是否无需初始化PHT存储器
 	// BTB配置
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
 	parameter integer BTB_ENTRY_N = 512, // BTB项数(<=65536)
@@ -114,7 +117,7 @@ module panda_risc_v_pre_if #(
 	input wire brc_bdcst_luc_is_jalr_inst, // 是否JALR指令
 	input wire[31:0] brc_bdcst_luc_bta, // 分支目标地址
 	
-	// 全局历史分支预测
+	// 基于历史的分支预测
 	// [更新退休GHR]
 	input wire glb_brc_prdt_on_clr_retired_ghr, // 清零退休GHR
 	input wire glb_brc_prdt_on_upd_retired_ghr, // 退休GHR更新指示
@@ -124,10 +127,29 @@ module panda_risc_v_pre_if #(
 	// [更新PHT]
 	input wire glb_brc_prdt_upd_i_req, // 更新请求
 	input wire[31:0] glb_brc_prdt_upd_i_pc, // 待更新项的PC
-	input wire[GHR_WIDTH-1:0] glb_brc_prdt_upd_i_ghr, // 待更新项的GHR
+	input wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_upd_i_ghr, // 待更新项的GHR
+	input wire[((BHR_WIDTH <= 2) ? 2:BHR_WIDTH)-1:0] glb_brc_prdt_upd_i_bhr, // 待更新项的BHR
+	// 说明: PHT_MEM_IMPL == "sram"时可用
+	input wire[1:0] glb_brc_prdt_upd_i_2bit_sat_cnt, // 新的2bit饱和计数器
 	input wire glb_brc_prdt_upd_i_brc_taken, // 待更新项的实际分支跳转方向
 	// [GHR值]
-	output wire[GHR_WIDTH-1:0] glb_brc_prdt_retired_ghr_o, // 当前的退休GHR
+	output wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_retired_ghr_o, // 当前的退休GHR
+	// [PHT存储器]
+	// 说明: PHT_MEM_IMPL == "sram"时可用
+	// [端口A]
+	output wire pht_mem_clka,
+	output wire pht_mem_ena,
+	output wire pht_mem_wea,
+	output wire[15:0] pht_mem_addra,
+	output wire[1:0] pht_mem_dina,
+	input wire[1:0] pht_mem_douta,
+	// [端口B]
+	output wire pht_mem_clkb,
+	output wire pht_mem_enb,
+	output wire pht_mem_web,
+	output wire[15:0] pht_mem_addrb,
+	output wire[1:0] pht_mem_dinb,
+	input wire[1:0] pht_mem_doutb,
 	
 	// BTB置换
 	input wire btb_rplc_req, // 置换请求
@@ -170,10 +192,11 @@ module panda_risc_v_pre_if #(
 	localparam integer PRDT_MSG_BTB_HIT_SID = 36; // BTB命中
 	localparam integer PRDT_MSG_BTB_WID_SID = 37; // BTB命中的缓存路编号
 	localparam integer PRDT_MSG_BTB_WVLD_SID = 39; // BTB缓存路有效标志
-	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 全局历史分支预测给出的2bit饱和计数器
+	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 基于历史的分支预测给出的2bit饱和计数器
 	localparam integer PRDT_MSG_BTB_BTA_SID = 45; // BTB分支目标地址
 	localparam integer PRDT_MSG_PUSH_RAS_SID = 77; // RAS压栈标志
 	localparam integer PRDT_MSG_POP_RAS_SID = 78; // RAS出栈标志
+	localparam integer PRDT_MSG_BHR_SID = 79; // BHR
 	// 指令总线访问请求附带信息各字段的起始索引
 	localparam integer IBUS_ACCESS_REQ_EXTRA_MSG_IS_FIRST_INST_SID = 0; // 是否复位释放后的第1条指令
 	
@@ -196,14 +219,18 @@ module panda_risc_v_pre_if #(
 	wire[1:0] prdt_o_btb_wid; // BTB命中的缓存路编号
 	wire[BTB_WAY_N-1:0] prdt_o_btb_wvld; // BTB缓存路有效标志
 	wire[31:0] prdt_o_btb_bta; // BTB分支目标地址
-	wire[GHR_WIDTH-1:0] prdt_o_glb_speculative_ghr; // 推测GHR
-	wire[1:0] prdt_o_glb_2bit_sat_cnt; // 全局历史分支预测给出的2bit饱和计数器
+	wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] prdt_o_glb_speculative_ghr; // 推测GHR
+	wire[1:0] prdt_o_glb_2bit_sat_cnt; // 基于历史的分支预测给出的2bit饱和计数器
+	wire[15:0] prdt_o_bhr; // 基于历史的分支预测给出BHR
 	wire[15:0] prdt_o_tid; // 事务ID
 	
 	panda_risc_v_brc_prdt #(
-		.EN_PC_FOR_PHT_ADDR(EN_PC_FOR_PHT_ADDR),
-		.EN_GHR_FOR_PHT_ADDR(EN_GHR_FOR_PHT_ADDR),
 		.GHR_WIDTH(GHR_WIDTH),
+		.PC_WIDTH(PC_WIDTH),
+		.BHR_WIDTH(BHR_WIDTH),
+		.BHT_DEPTH(BHT_DEPTH),
+		.PHT_MEM_IMPL(PHT_MEM_IMPL),
+		.NO_INIT_PHT(NO_INIT_PHT),
 		.BTB_WAY_N(BTB_WAY_N),
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.PC_TAG_WIDTH(PC_TAG_WIDTH),
@@ -224,8 +251,24 @@ module panda_risc_v_pre_if #(
 		.glb_brc_prdt_upd_i_req(glb_brc_prdt_upd_i_req),
 		.glb_brc_prdt_upd_i_pc(glb_brc_prdt_upd_i_pc),
 		.glb_brc_prdt_upd_i_ghr(glb_brc_prdt_upd_i_ghr),
+		.glb_brc_prdt_upd_i_bhr(glb_brc_prdt_upd_i_bhr),
+		.glb_brc_prdt_upd_i_2bit_sat_cnt(glb_brc_prdt_upd_i_2bit_sat_cnt),
 		.glb_brc_prdt_upd_i_brc_taken(glb_brc_prdt_upd_i_brc_taken),
 		.glb_brc_prdt_retired_ghr_o(glb_brc_prdt_retired_ghr_o),
+		
+		.pht_mem_clka(pht_mem_clka),
+		.pht_mem_ena(pht_mem_ena),
+		.pht_mem_wea(pht_mem_wea),
+		.pht_mem_addra(pht_mem_addra),
+		.pht_mem_dina(pht_mem_dina),
+		.pht_mem_douta(pht_mem_douta),
+		
+		.pht_mem_clkb(pht_mem_clkb),
+		.pht_mem_enb(pht_mem_enb),
+		.pht_mem_web(pht_mem_web),
+		.pht_mem_addrb(pht_mem_addrb),
+		.pht_mem_dinb(pht_mem_dinb),
+		.pht_mem_doutb(pht_mem_doutb),
 		
 		.btb_rplc_req(btb_rplc_req),
 		.btb_rplc_strgy(btb_rplc_strgy),
@@ -269,6 +312,7 @@ module panda_risc_v_pre_if #(
 		.prdt_o_btb_bta(prdt_o_btb_bta),
 		.prdt_o_glb_speculative_ghr(),
 		.prdt_o_glb_2bit_sat_cnt(prdt_o_glb_2bit_sat_cnt),
+		.prdt_o_bhr(prdt_o_bhr),
 		.prdt_o_tid(prdt_o_tid)
 	);
 	
@@ -326,6 +370,7 @@ module panda_risc_v_pre_if #(
 	assign prdt_bdcst_msg[PRDT_MSG_BTB_BTA_SID+31:PRDT_MSG_BTB_BTA_SID] = prdt_o_btb_bta;
 	assign prdt_bdcst_msg[PRDT_MSG_PUSH_RAS_SID] = prdt_o_push_ras;
 	assign prdt_bdcst_msg[PRDT_MSG_POP_RAS_SID] = prdt_o_pop_ras;
+	assign prdt_bdcst_msg[PRDT_MSG_BHR_SID+15:PRDT_MSG_BHR_SID] = prdt_o_bhr;
 	
 	assign prdt_i_req = ibus_access_req_valid & ibus_access_req_ready;
 	assign prdt_i_pc = pc_nxt;

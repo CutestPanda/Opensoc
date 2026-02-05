@@ -70,7 +70,7 @@ UART MASTER
 GPIO MASTER
 
 作者: 陈家耀
-日期: 2026/02/03
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -121,7 +121,11 @@ module panda_soc_top #(
 	localparam DM_REGS_BASEADDR = 32'hFFFF_F800; // DM寄存器区基址
 	localparam integer DM_REGS_ADDR_RANGE = 1 * 1024; // DM寄存器区地址区间长度(以字节计)
 	// [分支预测配置]
-	localparam integer GHR_WIDTH = 8; // 全局分支历史寄存器的位宽(<=16)
+	localparam integer GHR_WIDTH = 0; // 全局分支历史寄存器的位宽(<=16)
+	localparam integer PC_WIDTH_FOR_PHT_ADDR = 4; // PHT地址截取的低位PC的位宽(必须在范围[1, 16]内)
+	localparam integer BHR_WIDTH = 12; // 局部分支历史寄存器(BHR)的位宽
+	localparam integer BHT_DEPTH = 256; // 局部分支历史表(BHT)的深度(必须>=2且为2^n)
+	localparam PHT_MEM_IMPL = "sram"; // PHT存储器的实现方式(reg | sram)
 	localparam integer BTB_WAY_N = 2; // BTB路数(1 | 2 | 4)
 	localparam integer BTB_ENTRY_N = 1024; // BTB项数(<=65536)
 	localparam integer RAS_ENTRY_N = 4; // 返回地址堆栈的条目数(2 | 4 | 8 | 16)
@@ -287,6 +291,22 @@ module panda_soc_top #(
 	wire[BTB_WAY_N*16-1:0] btb_mem_addrb;
 	wire[BTB_WAY_N*64-1:0] btb_mem_dinb;
 	wire[BTB_WAY_N*64-1:0] btb_mem_doutb;
+	// PHT存储器
+	// 说明: PHT_MEM_IMPL == "sram"时可用
+	// [端口A]
+	wire pht_mem_clka;
+	wire pht_mem_ena;
+	wire pht_mem_wea;
+	wire[15:0] pht_mem_addra;
+	wire[1:0] pht_mem_dina;
+	wire[1:0] pht_mem_douta;
+	// [端口B]
+	wire pht_mem_clkb;
+	wire pht_mem_enb;
+	wire pht_mem_web;
+	wire[15:0] pht_mem_addrb;
+	wire[1:0] pht_mem_dinb;
+	wire[1:0] pht_mem_doutb;
 	// 中断请求
 	wire sw_itr_req; // 软件中断请求
 	wire tmr_itr_req; // 计时器中断请求
@@ -310,6 +330,10 @@ module panda_soc_top #(
 		.DM_REGS_BASEADDR(DM_REGS_BASEADDR),
 		.DM_REGS_ADDR_RANGE(DM_REGS_ADDR_RANGE),
 		.GHR_WIDTH(GHR_WIDTH),
+		.PC_WIDTH_FOR_PHT_ADDR(PC_WIDTH_FOR_PHT_ADDR),
+		.BHR_WIDTH(BHR_WIDTH),
+		.BHT_DEPTH(BHT_DEPTH),
+		.PHT_MEM_IMPL(PHT_MEM_IMPL),
 		.BTB_WAY_N(BTB_WAY_N),
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.RAS_ENTRY_N(RAS_ENTRY_N),
@@ -420,6 +444,20 @@ module panda_soc_top #(
 		.btb_mem_dinb(btb_mem_dinb),
 		.btb_mem_doutb(btb_mem_doutb),
 		
+		.pht_mem_clka(pht_mem_clka),
+		.pht_mem_ena(pht_mem_ena),
+		.pht_mem_wea(pht_mem_wea),
+		.pht_mem_addra(pht_mem_addra),
+		.pht_mem_dina(pht_mem_dina),
+		.pht_mem_douta(pht_mem_douta),
+		
+		.pht_mem_clkb(pht_mem_clkb),
+		.pht_mem_enb(pht_mem_enb),
+		.pht_mem_web(pht_mem_web),
+		.pht_mem_addrb(pht_mem_addrb),
+		.pht_mem_dinb(pht_mem_dinb),
+		.pht_mem_doutb(pht_mem_doutb),
+		
 		.sw_itr_req(sw_itr_req),
 		.tmr_itr_req(tmr_itr_req),
 		.ext_itr_req(ext_itr_req),
@@ -448,6 +486,7 @@ module panda_soc_top #(
 		.ITCM_MEM_INIT_FILE(ITCM_MEM_INIT_FILE),
 		.BTB_WAY_N(BTB_WAY_N),
 		.BTB_ENTRY_N(BTB_ENTRY_N),
+		.PHT_ADDR_WIDTH(PC_WIDTH_FOR_PHT_ADDR + BHR_WIDTH),
 		.SIM_DELAY(0)
 	)panda_risc_v_basis_inst_device_u(
 		.jtag_slave_tck(jtag_slave_tck),
@@ -504,7 +543,21 @@ module panda_soc_top #(
 		.btb_mem_web(btb_mem_web),
 		.btb_mem_addrb(btb_mem_addrb),
 		.btb_mem_dinb(btb_mem_dinb),
-		.btb_mem_doutb(btb_mem_doutb)
+		.btb_mem_doutb(btb_mem_doutb),
+		
+		.pht_mem_clka(pht_mem_clka),
+		.pht_mem_ena(pht_mem_ena),
+		.pht_mem_wea(pht_mem_wea),
+		.pht_mem_addra(pht_mem_addra),
+		.pht_mem_dina(pht_mem_dina),
+		.pht_mem_douta(pht_mem_douta),
+		
+		.pht_mem_clkb(pht_mem_clkb),
+		.pht_mem_enb(pht_mem_enb),
+		.pht_mem_web(pht_mem_web),
+		.pht_mem_addrb(pht_mem_addrb),
+		.pht_mem_dinb(pht_mem_dinb),
+		.pht_mem_doutb(pht_mem_doutb)
 	);
 	
 	/** 小胖达RISC-V基础数据系统设备 **/

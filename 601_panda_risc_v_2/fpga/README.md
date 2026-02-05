@@ -6,6 +6,7 @@
 
 - vivado工程/panda_soc_test_v7.zip  
 - vivado工程/panda_soc_test_v8.zip  
+- vivado工程/panda_soc_test_v9.zip  
 
 ### panda_soc_test_v7
 #### <center>存储映射表</center>
@@ -31,3 +32,8 @@
 ### panda_soc_test_v8
 存储映射和外部中断同panda_soc_test_v7。  
 修改了分支预测部分的逻辑。  
+
+### panda_soc_test_v9
+
+存储映射和外部中断同panda_soc_test_v7。  
+继续优化分支预测。  

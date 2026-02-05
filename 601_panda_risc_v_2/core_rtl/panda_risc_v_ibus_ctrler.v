@@ -46,7 +46,7 @@ SOFTWARE.
 ICB MASTER
 
 作者: 陈家耀
-日期: 2026/01/23
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -138,10 +138,11 @@ module panda_risc_v_ibus_ctrler #(
 	localparam integer PRDT_MSG_BTB_HIT_SID = 36; // BTB命中
 	localparam integer PRDT_MSG_BTB_WID_SID = 37; // BTB命中的缓存路编号
 	localparam integer PRDT_MSG_BTB_WVLD_SID = 39; // BTB缓存路有效标志
-	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 全局历史分支预测给出的2bit饱和计数器
+	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 基于历史的分支预测给出的2bit饱和计数器
 	localparam integer PRDT_MSG_BTB_BTA_SID = 45; // BTB分支目标地址
 	localparam integer PRDT_MSG_PUSH_RAS_SID = 77; // RAS压栈标志
 	localparam integer PRDT_MSG_POP_RAS_SID = 78; // RAS出栈标志
+	localparam integer PRDT_MSG_BHR_SID = 79; // BHR
 	// 空指令
 	localparam NOP_INST = 32'h0000_0013;
 	

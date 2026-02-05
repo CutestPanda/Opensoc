@@ -27,7 +27,7 @@ SOFTWARE.
 本模块: 小胖达RISC-V基础指令系统设备
 
 描述: 
-包括调试机制(DTM和DM)、ITCM控制器、ITCM存储器、BTB存储器
+包括调试机制(DTM和DM)、ITCM控制器、ITCM存储器、BTB存储器、PHT存储器
 
 注意：
 无
@@ -38,7 +38,7 @@ AXI-Lite SLAVE
 MEM SLAVE
 
 作者: 陈家耀
-日期: 2026/01/31
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -55,6 +55,7 @@ module panda_risc_v_basis_inst_device #(
 	parameter ITCM_MEM_INIT_FILE = "no_init", // ITCM存储器初始化文件路径
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
 	parameter integer BTB_ENTRY_N = 1024, // BTB项数(<=65536)
+	parameter integer PHT_ADDR_WIDTH = 13, // PHT地址位宽(必须在范围[2, 16]内)
     parameter real SIM_DELAY = 1 // 仿真延时
 )(
 	// JTAG从机
@@ -125,7 +126,23 @@ module panda_risc_v_basis_inst_device #(
 	input wire[BTB_WAY_N-1:0] btb_mem_web,
 	input wire[BTB_WAY_N*16-1:0] btb_mem_addrb,
 	input wire[BTB_WAY_N*64-1:0] btb_mem_dinb,
-	output wire[BTB_WAY_N*64-1:0] btb_mem_doutb
+	output wire[BTB_WAY_N*64-1:0] btb_mem_doutb,
+	
+	// PHT存储器
+	// [端口A]
+	input wire pht_mem_clka,
+	input wire pht_mem_ena,
+	input wire pht_mem_wea,
+	input wire[15:0] pht_mem_addra,
+	input wire[1:0] pht_mem_dina,
+	output wire[1:0] pht_mem_douta,
+	// [端口B]
+	input wire pht_mem_clkb,
+	input wire pht_mem_enb,
+	input wire pht_mem_web,
+	input wire[15:0] pht_mem_addrb,
+	input wire[1:0] pht_mem_dinb,
+	output wire[1:0] pht_mem_doutb
 );
 	
 	// 计算bit_depth的最高有效位编号(即位数-1)
@@ -378,5 +395,30 @@ module panda_risc_v_basis_inst_device #(
 			);
 		end
 	endgenerate
+	
+	/** PHT存储器 **/
+	bram_true_dual_port #(
+		.mem_width(2),
+		.mem_depth(2**PHT_ADDR_WIDTH),
+		.INIT_FILE(""),
+		.read_write_mode("read_first"),
+		.use_output_register("false"),
+		.en_byte_write("false"),
+		.simulation_delay(SIM_DELAY)
+	)pht_mem_u(
+		.clk(pht_mem_clka),
+		
+		.ena(pht_mem_ena),
+		.wea(pht_mem_wea),
+		.addra(pht_mem_addra[PHT_ADDR_WIDTH-1:0]),
+		.dina(pht_mem_dina),
+		.douta(pht_mem_douta),
+		
+		.enb(pht_mem_enb),
+		.web(pht_mem_web),
+		.addrb(pht_mem_addrb[PHT_ADDR_WIDTH-1:0]),
+		.dinb(pht_mem_dinb),
+		.doutb(pht_mem_doutb)
+	);
 	
 endmodule

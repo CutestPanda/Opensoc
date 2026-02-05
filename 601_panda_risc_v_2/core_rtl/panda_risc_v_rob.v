@@ -47,7 +47,7 @@ CSR读写指令信息记录槽位数(CSR_RW_RCD_SLOTS_N)不能大于ROB项数(RO
 无
 
 作者: 陈家耀
-日期: 2026/01/23
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -111,6 +111,8 @@ module panda_risc_v_rob #(
 	output wire[31:0] rob_prep_rtr_entry_pc, // 指令对应的PC
 	output wire[31:0] rob_prep_rtr_entry_nxt_pc, // 指令对应的下一有效PC
 	output wire[1:0] rob_prep_rtr_entry_b_inst_res, // B指令执行结果
+	output wire[1:0] rob_prep_rtr_entry_org_2bit_sat_cnt, // 原来的2bit饱和计数器
+	output wire[15:0] rob_prep_rtr_entry_bhr, // BHR
 	output wire[11:0] rob_prep_rtr_entry_csr_rw_waddr, // CSR写地址
 	output wire[1:0] rob_prep_rtr_entry_csr_rw_upd_type, // CSR更新类型
 	output wire[31:0] rob_prep_rtr_entry_csr_rw_upd_mask_v, // CSR更新掩码或更新值
@@ -126,6 +128,8 @@ module panda_risc_v_rob #(
 	input wire[31:0] s_bru_o_pc, // 当前PC地址
 	input wire[31:0] s_bru_o_nxt_pc, // 下一有效PC地址
 	input wire[1:0] s_bru_o_b_inst_res, // B指令执行结果
+	input wire[1:0] s_bru_o_org_2bit_sat_cnt, // 原来的2bit饱和计数器
+	input wire[15:0] s_bru_o_bhr, // BHR
 	input wire s_bru_o_valid,
 	
 	// 写存储器许可
@@ -426,6 +430,8 @@ module panda_risc_v_rob #(
 	reg[31:0] rob_rcd_tb_pc[0:ROB_ENTRY_N-1]; // 指令对应的PC
 	reg[31:0] rob_rcd_tb_nxt_pc[0:ROB_ENTRY_N-1]; // 指令对应的下一有效PC
 	reg[1:0] rob_rcd_tb_b_inst_res[0:ROB_ENTRY_N-1]; // B指令执行结果
+	reg[1:0] rob_rcd_tb_org_2bit_sat_cnt[0:ROB_ENTRY_N-1]; // 原来的2bit饱和计数器
+	reg[15:0] rob_rcd_tb_bhr[0:ROB_ENTRY_N-1]; // BHR
 	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_saved; // 结果已保存(标志)
 	reg[ROB_ENTRY_N-1:0] rob_rcd_tb_vld; // 有效标志
 	wire[ROB_ENTRY_N-1:0] on_rob_sng_cancel_vld; // 取消单个ROB项(标志向量)
@@ -443,6 +449,8 @@ module panda_risc_v_rob #(
 	assign rob_prep_rtr_entry_pc = rob_rcd_tb_pc[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_nxt_pc = rob_rcd_tb_nxt_pc[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_b_inst_res = rob_rcd_tb_b_inst_res[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	assign rob_prep_rtr_entry_org_2bit_sat_cnt = rob_rcd_tb_org_2bit_sat_cnt[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	assign rob_prep_rtr_entry_bhr = rob_rcd_tb_bhr[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
 	assign is_retiring_ls_inst = rob_rcd_tb_is_ls_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
@@ -617,6 +625,8 @@ module panda_risc_v_rob #(
 					rob_rcd_tb_pc[rob_res_i] <= # SIM_DELAY s_bru_o_pc;
 					rob_rcd_tb_nxt_pc[rob_res_i] <= # SIM_DELAY s_bru_o_nxt_pc;
 					rob_rcd_tb_b_inst_res[rob_res_i] <= # SIM_DELAY s_bru_o_b_inst_res;
+					rob_rcd_tb_org_2bit_sat_cnt[rob_res_i] <= # SIM_DELAY s_bru_o_org_2bit_sat_cnt;
+					rob_rcd_tb_bhr[rob_res_i] <= # SIM_DELAY s_bru_o_bhr;
 				end
 			end
 		end

@@ -37,7 +37,7 @@ MEM MASTER
 AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2026/01/29
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -58,6 +58,10 @@ module panda_risc_v_core #(
 	parameter integer DM_REGS_ADDR_RANGE = 1 * 1024, // DM寄存器区地址区间长度(以字节计)
 	// 分支预测配置
 	parameter integer GHR_WIDTH = 8, // 全局分支历史寄存器的位宽(<=16)
+	parameter integer PC_WIDTH_FOR_PHT_ADDR = 4, // PHT地址截取的低位PC的位宽(必须在范围[1, 16]内)
+	parameter integer BHR_WIDTH = 9, // 局部分支历史寄存器(BHR)的位宽
+	parameter integer BHT_DEPTH = 256, // 局部分支历史表(BHT)的深度(必须>=2且为2^n)
+	parameter PHT_MEM_IMPL = "reg", // PHT存储器的实现方式(reg | sram)
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
 	parameter integer BTB_ENTRY_N = 512, // BTB项数(<=65536)
 	parameter integer RAS_ENTRY_N = 4, // 返回地址堆栈的条目数(2 | 4 | 8 | 16)
@@ -196,6 +200,23 @@ module panda_risc_v_core #(
 	output wire[BTB_WAY_N*64-1:0] btb_mem_dinb,
 	input wire[BTB_WAY_N*64-1:0] btb_mem_doutb,
 	
+	// PHT存储器
+	// 说明: PHT_MEM_IMPL == "sram"时可用
+	// [端口A]
+	output wire pht_mem_clka,
+	output wire pht_mem_ena,
+	output wire pht_mem_wea,
+	output wire[15:0] pht_mem_addra,
+	output wire[1:0] pht_mem_dina,
+	input wire[1:0] pht_mem_douta,
+	// [端口B]
+	output wire pht_mem_clkb,
+	output wire pht_mem_enb,
+	output wire pht_mem_web,
+	output wire[15:0] pht_mem_addrb,
+	output wire[1:0] pht_mem_dinb,
+	input wire[1:0] pht_mem_doutb,
+	
 	// 中断请求
 	// 注意: 中断请求保持有效直到中断清零!
 	input wire sw_itr_req, // 软件中断请求
@@ -234,11 +255,10 @@ module panda_risc_v_core #(
 	localparam integer IBUS_TID_WIDTH = 6; // 指令总线事务ID位宽(1~16)
 	localparam integer IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH = 1; // 指令总线访问请求附带信息的位宽(正整数)
 	localparam integer PRDT_MSG_WIDTH = 96; // 分支预测信息的位宽(正整数)
-	localparam EN_PC_FOR_PHT_ADDR = "true"; // 生成PHT地址时是否考虑PC
-	localparam EN_GHR_FOR_PHT_ADDR = "false"; // 生成PHT地址时是否考虑GHR
 	localparam integer PC_TAG_WIDTH = 32 - clogb2(BTB_ENTRY_N) - 2; // PC标签的位宽
 	localparam integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2; // BTB存储器的数据位宽
 	localparam NO_INIT_BTB = "false"; // 是否无需初始化BTB存储器
+	localparam NO_INIT_PHT = "false"; // 是否无需初始化PHT存储器
 	// 取操作数和指令译码配置
 	localparam integer LSN_FU_N = 5; // 要监听结果的执行单元的个数(正整数)
 	localparam integer FU_ID_WIDTH = 3; // 执行单元ID位宽(1~16)
@@ -282,16 +302,19 @@ module panda_risc_v_core #(
 	wire brc_bdcst_luc_is_jal_inst; // 是否JAL指令
 	wire brc_bdcst_luc_is_jalr_inst; // 是否JALR指令
 	wire[31:0] brc_bdcst_luc_bta; // 分支目标地址
-	// 全局历史分支预测
+	// 基于历史的分支预测
 	wire glb_brc_prdt_on_clr_retired_ghr; // 清零退休GHR
 	wire glb_brc_prdt_on_upd_retired_ghr; // 退休GHR更新指示
 	wire glb_brc_prdt_retired_ghr_shift_in; // 退休GHR移位输入
 	wire glb_brc_prdt_rstr_speculative_ghr; // 恢复推测GHR指示
 	wire glb_brc_prdt_upd_i_req; // 更新请求
 	wire[31:0] glb_brc_prdt_upd_i_pc; // 待更新项的PC
-	wire[GHR_WIDTH-1:0] glb_brc_prdt_upd_i_ghr; // 待更新项的GHR
+	wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_upd_i_ghr; // 待更新项的GHR
+	wire[((BHR_WIDTH <= 2) ? 2:BHR_WIDTH)-1:0] glb_brc_prdt_upd_i_bhr; // 待更新项的BHR
+	// 说明: PHT_MEM_IMPL == "sram"时可用
+	wire[1:0] glb_brc_prdt_upd_i_2bit_sat_cnt; // 新的2bit饱和计数器
 	wire glb_brc_prdt_upd_i_brc_taken; // 待更新项的实际分支跳转方向
-	wire[GHR_WIDTH-1:0] glb_brc_prdt_retired_ghr_o; // 当前的退休GHR
+	wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_retired_ghr_o; // 当前的退休GHR
 	// BTB存储器
 	wire[BTB_WAY_N*BTB_MEM_WIDTH-1:0] btb_mem_dina_w;
 	wire[BTB_WAY_N*BTB_MEM_WIDTH-1:0] btb_mem_douta_w;
@@ -342,9 +365,12 @@ module panda_risc_v_core #(
 		.IBUS_OUTSTANDING_N(IBUS_OUTSTANDING_N),
 		.IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH(IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH),
 		.PRDT_MSG_WIDTH(PRDT_MSG_WIDTH),
-		.EN_PC_FOR_PHT_ADDR(EN_PC_FOR_PHT_ADDR),
-		.EN_GHR_FOR_PHT_ADDR(EN_GHR_FOR_PHT_ADDR),
 		.GHR_WIDTH(GHR_WIDTH),
+		.PC_WIDTH(PC_WIDTH_FOR_PHT_ADDR),
+		.BHR_WIDTH(BHR_WIDTH),
+		.BHT_DEPTH(BHT_DEPTH),
+		.PHT_MEM_IMPL(PHT_MEM_IMPL),
+		.NO_INIT_PHT(NO_INIT_PHT),
 		.BTB_WAY_N(BTB_WAY_N),
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.PC_TAG_WIDTH(PC_TAG_WIDTH),
@@ -377,8 +403,24 @@ module panda_risc_v_core #(
 		.glb_brc_prdt_upd_i_req(glb_brc_prdt_upd_i_req),
 		.glb_brc_prdt_upd_i_pc(glb_brc_prdt_upd_i_pc),
 		.glb_brc_prdt_upd_i_ghr(glb_brc_prdt_upd_i_ghr),
+		.glb_brc_prdt_upd_i_bhr(glb_brc_prdt_upd_i_bhr),
+		.glb_brc_prdt_upd_i_2bit_sat_cnt(glb_brc_prdt_upd_i_2bit_sat_cnt),
 		.glb_brc_prdt_upd_i_brc_taken(glb_brc_prdt_upd_i_brc_taken),
 		.glb_brc_prdt_retired_ghr_o(glb_brc_prdt_retired_ghr_o),
+		
+		.pht_mem_clka(pht_mem_clka),
+		.pht_mem_ena(pht_mem_ena),
+		.pht_mem_wea(pht_mem_wea),
+		.pht_mem_addra(pht_mem_addra),
+		.pht_mem_dina(pht_mem_dina),
+		.pht_mem_douta(pht_mem_douta),
+		
+		.pht_mem_clkb(pht_mem_clkb),
+		.pht_mem_enb(pht_mem_enb),
+		.pht_mem_web(pht_mem_web),
+		.pht_mem_addrb(pht_mem_addrb),
+		.pht_mem_dinb(pht_mem_dinb),
+		.pht_mem_doutb(pht_mem_doutb),
 		
 		.btb_mem_clka(btb_mem_clka),
 		.btb_mem_ena(btb_mem_ena),
@@ -562,7 +604,7 @@ module panda_risc_v_core #(
 	wire s_if_res_ready;
 	// 取操作数和译码结果
 	wire[127:0] m_op_ftc_id_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[146:0] m_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	wire[162:0] m_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	wire[143:0] m_op_ftc_id_res_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	wire[IBUS_TID_WIDTH-1:0] m_op_ftc_id_res_id; // 指令ID
 	wire m_op_ftc_id_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
@@ -677,7 +719,7 @@ module panda_risc_v_core #(
 	wire has_processing_perph_access_req; // 存在处理中的外设访问请求(标志)
 	// 取操作数和译码结果
 	wire[127:0] s_op_ftc_id_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[146:0] s_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	wire[162:0] s_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	wire[143:0] s_op_ftc_id_res_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	wire[IBUS_TID_WIDTH-1:0] s_op_ftc_id_res_id; // 指令编号
 	wire s_op_ftc_id_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
@@ -687,7 +729,7 @@ module panda_risc_v_core #(
 	wire s_op_ftc_id_res_ready;
 	// 发射单元输出
 	wire[127:0] m_luc_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[146:0] m_luc_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	wire[162:0] m_luc_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	wire[143:0] m_luc_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	wire[IBUS_TID_WIDTH-1:0] m_luc_id; // 指令编号
 	wire m_luc_is_first_inst_after_rst; // 是否复位释放后的第1条指令
@@ -746,7 +788,7 @@ module panda_risc_v_core #(
 	/** 分发单元 **/
 	// 分发单元输入
 	wire[127:0] s_dsptc_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[146:0] s_dsptc_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	wire[162:0] s_dsptc_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	wire[143:0] s_dsptc_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	wire[IBUS_TID_WIDTH-1:0] s_dsptc_id; // 指令编号
 	wire s_dsptc_is_first_inst_after_rst; // 是否复位释放后的第1条指令
@@ -754,7 +796,7 @@ module panda_risc_v_core #(
 	wire s_dsptc_ready;
 	// BRU
 	wire[127:0] m_bru_i_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[146:0] m_bru_i_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	wire[162:0] m_bru_i_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	wire[143:0] m_bru_i_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	wire[IBUS_TID_WIDTH-1:0] m_bru_i_id; // 指令编号
 	wire m_bru_i_valid;
@@ -1008,7 +1050,7 @@ module panda_risc_v_core #(
 	wire alu_brc_cond_res;
 	// BRU输入
 	wire[127:0] s_bru_i_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[146:0] s_bru_i_msg; // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	wire[162:0] s_bru_i_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	wire[143:0] s_bru_i_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	wire[IBUS_TID_WIDTH-1:0] s_bru_i_tid; // 指令ID
 	wire s_bru_i_valid;
@@ -1018,6 +1060,8 @@ module panda_risc_v_core #(
 	wire[31:0] m_bru_o_pc; // 当前PC地址
 	wire[31:0] m_bru_o_nxt_pc; // 下一有效PC地址
 	wire[1:0] m_bru_o_b_inst_res; // B指令执行结果
+	wire[1:0] m_bru_o_org_2bit_sat_cnt; // 原来的2bit饱和计数器
+	wire[15:0] m_bru_o_bhr; // BHR
 	wire m_bru_o_valid;
 	
 	assign rst_bru = cmt_flush_req;
@@ -1067,6 +1111,8 @@ module panda_risc_v_core #(
 		.m_bru_o_pc(m_bru_o_pc),
 		.m_bru_o_nxt_pc(m_bru_o_nxt_pc),
 		.m_bru_o_b_inst_res(m_bru_o_b_inst_res),
+		.m_bru_o_org_2bit_sat_cnt(m_bru_o_org_2bit_sat_cnt),
+		.m_bru_o_bhr(m_bru_o_bhr),
 		.m_bru_o_valid(m_bru_o_valid)
 	);
 	
@@ -1352,6 +1398,8 @@ module panda_risc_v_core #(
 	wire[31:0] rob_prep_rtr_entry_pc; // 指令对应的PC
 	wire[31:0] rob_prep_rtr_entry_nxt_pc; // 指令对应的下一有效PC
 	wire[1:0] rob_prep_rtr_entry_b_inst_res; // B指令执行结果
+	wire[1:0] rob_prep_rtr_entry_org_2bit_sat_cnt; // 原来的2bit饱和计数器
+	wire[15:0] rob_prep_rtr_entry_bhr; // BHR
 	wire[11:0] rob_prep_rtr_entry_csr_rw_waddr; // CSR写地址
 	wire[1:0] rob_prep_rtr_entry_csr_rw_upd_type; // CSR更新类型
 	wire[31:0] rob_prep_rtr_entry_csr_rw_upd_mask_v; // CSR更新掩码或更新值
@@ -1360,6 +1408,8 @@ module panda_risc_v_core #(
 	wire[31:0] s_bru_o_pc; // 当前PC地址
 	wire[31:0] s_bru_o_nxt_pc; // 下一有效PC地址
 	wire[1:0] s_bru_o_b_inst_res; // B指令执行结果
+	wire[1:0] s_bru_o_org_2bit_sat_cnt; // 原来的2bit饱和计数器
+	wire[15:0] s_bru_o_bhr; // BHR
 	wire s_bru_o_valid;
 	// 退休阶段ROB记录广播
 	wire rob_rtr_bdcst_vld; // 广播有效
@@ -1369,6 +1419,8 @@ module panda_risc_v_core #(
 	assign s_bru_o_pc = m_bru_o_pc;
 	assign s_bru_o_nxt_pc = m_bru_o_nxt_pc;
 	assign s_bru_o_b_inst_res = m_bru_o_b_inst_res;
+	assign s_bru_o_org_2bit_sat_cnt = m_bru_o_org_2bit_sat_cnt;
+	assign s_bru_o_bhr = m_bru_o_bhr;
 	assign s_bru_o_valid = m_bru_o_valid;
 	
 	panda_risc_v_rob #(
@@ -1423,6 +1475,8 @@ module panda_risc_v_core #(
 		.rob_prep_rtr_entry_pc(rob_prep_rtr_entry_pc),
 		.rob_prep_rtr_entry_nxt_pc(rob_prep_rtr_entry_nxt_pc),
 		.rob_prep_rtr_entry_b_inst_res(rob_prep_rtr_entry_b_inst_res),
+		.rob_prep_rtr_entry_org_2bit_sat_cnt(rob_prep_rtr_entry_org_2bit_sat_cnt),
+		.rob_prep_rtr_entry_bhr(rob_prep_rtr_entry_bhr),
 		.rob_prep_rtr_entry_csr_rw_waddr(rob_prep_rtr_entry_csr_rw_waddr),
 		.rob_prep_rtr_entry_csr_rw_upd_type(rob_prep_rtr_entry_csr_rw_upd_type),
 		.rob_prep_rtr_entry_csr_rw_upd_mask_v(rob_prep_rtr_entry_csr_rw_upd_mask_v),
@@ -1436,6 +1490,8 @@ module panda_risc_v_core #(
 		.s_bru_o_pc(s_bru_o_pc),
 		.s_bru_o_nxt_pc(s_bru_o_nxt_pc),
 		.s_bru_o_b_inst_res(s_bru_o_b_inst_res),
+		.s_bru_o_org_2bit_sat_cnt(s_bru_o_org_2bit_sat_cnt),
+		.s_bru_o_bhr(s_bru_o_bhr),
 		.s_bru_o_valid(s_bru_o_valid),
 		
 		.wr_mem_permitted_flag(wr_mem_permitted_flag),
@@ -1462,6 +1518,7 @@ module panda_risc_v_core #(
 		.DEBUG_SUPPORTED(DEBUG_SUPPORTED),
 		.FU_RES_WIDTH(FU_RES_WIDTH),
 		.GHR_WIDTH(GHR_WIDTH),
+		.BHR_WIDTH(BHR_WIDTH),
 		.SIM_DELAY(SIM_DELAY)
 	)commit_u(
 		.aclk(aclk),
@@ -1485,6 +1542,8 @@ module panda_risc_v_core #(
 		.rob_prep_rtr_entry_pc(rob_prep_rtr_entry_pc),
 		.rob_prep_rtr_entry_nxt_pc(rob_prep_rtr_entry_nxt_pc),
 		.rob_prep_rtr_entry_b_inst_res(rob_prep_rtr_entry_b_inst_res),
+		.rob_prep_rtr_entry_org_2bit_sat_cnt(rob_prep_rtr_entry_org_2bit_sat_cnt),
+		.rob_prep_rtr_entry_bhr(rob_prep_rtr_entry_bhr),
 		
 		.rob_rtr_bdcst_vld(rob_rtr_bdcst_vld),
 		.rob_rtr_bdcst_excpt_proc_grant(rob_rtr_bdcst_excpt_proc_grant),
@@ -1530,6 +1589,8 @@ module panda_risc_v_core #(
 		.glb_brc_prdt_upd_i_req(glb_brc_prdt_upd_i_req),
 		.glb_brc_prdt_upd_i_pc(glb_brc_prdt_upd_i_pc),
 		.glb_brc_prdt_upd_i_ghr(glb_brc_prdt_upd_i_ghr),
+		.glb_brc_prdt_upd_i_bhr(glb_brc_prdt_upd_i_bhr),
+		.glb_brc_prdt_upd_i_2bit_sat_cnt(glb_brc_prdt_upd_i_2bit_sat_cnt),
 		.glb_brc_prdt_upd_i_brc_taken(glb_brc_prdt_upd_i_brc_taken),
 		.glb_brc_prdt_retired_ghr_o(glb_brc_prdt_retired_ghr_o)
 	);
@@ -1560,6 +1621,29 @@ module panda_risc_v_core #(
 	);
 	
 	/** 总线互联单元 **/
+	// (指令总线)存储器AXI主机AR通道寄存器片
+	// [寄存器片AXIS从机]
+	wire[31:0] m_axi_imem_reg_i_araddr;
+	wire[1:0] m_axi_imem_reg_i_arburst;
+	wire[7:0] m_axi_imem_reg_i_arlen;
+	wire[2:0] m_axi_imem_reg_i_arsize;
+	wire m_axi_imem_reg_i_arvalid;
+	wire m_axi_imem_reg_i_arready;
+	// [寄存器片AXIS主机]
+	wire[31:0] m_axi_imem_reg_o_araddr;
+	wire[1:0] m_axi_imem_reg_o_arburst;
+	wire[7:0] m_axi_imem_reg_o_arlen;
+	wire[2:0] m_axi_imem_reg_o_arsize;
+	wire m_axi_imem_reg_o_arvalid;
+	wire m_axi_imem_reg_o_arready;
+	
+	assign m_axi_imem_araddr = m_axi_imem_reg_o_araddr;
+	assign m_axi_imem_arburst = m_axi_imem_reg_o_arburst;
+	assign m_axi_imem_arlen = m_axi_imem_reg_o_arlen;
+	assign m_axi_imem_arsize = m_axi_imem_reg_o_arsize;
+	assign m_axi_imem_arvalid = m_axi_imem_reg_o_arvalid;
+	assign m_axi_imem_reg_o_arready = m_axi_imem_arready;
+	
 	panda_risc_v_biu #(
 		.AXI_MEM_DATA_WIDTH(AXI_MEM_DATA_WIDTH),
 		.IMEM_BASEADDR(IMEM_BASEADDR),
@@ -1610,12 +1694,12 @@ module panda_risc_v_core #(
 		.s_axi_dmem_wvalid(m_axi_inner_mem_wvalid),
 		.s_axi_dmem_wready(m_axi_inner_mem_wready),
 		
-		.m_axi_imem_araddr(m_axi_imem_araddr),
-		.m_axi_imem_arburst(m_axi_imem_arburst),
-		.m_axi_imem_arlen(m_axi_imem_arlen),
-		.m_axi_imem_arsize(m_axi_imem_arsize),
-		.m_axi_imem_arvalid(m_axi_imem_arvalid),
-		.m_axi_imem_arready(m_axi_imem_arready),
+		.m_axi_imem_araddr(m_axi_imem_reg_i_araddr),
+		.m_axi_imem_arburst(m_axi_imem_reg_i_arburst),
+		.m_axi_imem_arlen(m_axi_imem_reg_i_arlen),
+		.m_axi_imem_arsize(m_axi_imem_reg_i_arsize),
+		.m_axi_imem_arvalid(m_axi_imem_reg_i_arvalid),
+		.m_axi_imem_arready(m_axi_imem_reg_i_arready),
 		.m_axi_imem_rdata(m_axi_imem_rdata),
 		.m_axi_imem_rresp(m_axi_imem_rresp),
 		.m_axi_imem_rlast(m_axi_imem_rlast),
@@ -1661,6 +1745,34 @@ module panda_risc_v_core #(
 		.m_axi_dmem_wlast(m_axi_dmem_wlast),
 		.m_axi_dmem_wvalid(m_axi_dmem_wvalid),
 		.m_axi_dmem_wready(m_axi_dmem_wready)
+	);
+	
+	axis_reg_slice #(
+		.data_width(40),
+		.user_width(5),
+		.forward_registered("true"),
+		.back_registered("false"),
+		.en_ready("true"),
+		.en_clk_en("false"),
+		.simulation_delay(SIM_DELAY)
+	)m_axi_imem_ar_reg_slice_u(
+		.clk(aclk),
+		.rst_n(aresetn),
+		.clken(1'b1),
+		
+		.s_axis_data({m_axi_imem_reg_i_arlen, m_axi_imem_reg_i_araddr}),
+		.s_axis_keep(5'bxxxxx),
+		.s_axis_user({m_axi_imem_reg_i_arsize, m_axi_imem_reg_i_arburst}),
+		.s_axis_last(1'bx),
+		.s_axis_valid(m_axi_imem_reg_i_arvalid),
+		.s_axis_ready(m_axi_imem_reg_i_arready),
+		
+		.m_axis_data({m_axi_imem_reg_o_arlen, m_axi_imem_reg_o_araddr}),
+		.m_axis_keep(),
+		.m_axis_user({m_axi_imem_reg_o_arsize, m_axi_imem_reg_o_arburst}),
+		.m_axis_last(),
+		.m_axis_valid(m_axi_imem_reg_o_arvalid),
+		.m_axis_ready(m_axi_imem_reg_o_arready)
 	);
 	
 endmodule

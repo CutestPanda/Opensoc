@@ -80,7 +80,7 @@ module panda_risc_v_op_fetch_idec #(
 	
 	// 取操作数和译码结果
 	output wire[127:0] m_op_ftc_id_res_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	output wire[146:0] m_op_ftc_id_res_msg, // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	output wire[162:0] m_op_ftc_id_res_msg, // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	output wire[143:0] m_op_ftc_id_res_dcd_res, // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	output wire[IBUS_TID_WIDTH-1:0] m_op_ftc_id_res_id, // 指令ID
 	output wire m_op_ftc_id_res_is_first_inst_after_rst, // 是否复位释放后的第1条指令
@@ -177,8 +177,9 @@ module panda_risc_v_op_fetch_idec #(
 	localparam integer PRDT_MSG_BTB_BTA_SID = 45; // BTB分支目标地址
 	localparam integer PRDT_MSG_PUSH_RAS_SID = 77; // RAS压栈标志
 	localparam integer PRDT_MSG_POP_RAS_SID = 78; // RAS出栈标志
-	localparam integer PRDT_MSG_ACTUAL_BTA_SID = 79; // 实际的分支目标地址
-	localparam integer PRDT_MSG_NXT_SEQ_PC_SID = 111; // 顺序取指时的下一PC
+	localparam integer PRDT_MSG_BHR_SID = 79; // BHR
+	localparam integer PRDT_MSG_ACTUAL_BTA_SID = 95; // 实际的分支目标地址
+	localparam integer PRDT_MSG_NXT_SEQ_PC_SID = 127; // 顺序取指时的下一PC
 	// 打包的指令类型标志各项的起始索引
 	localparam integer INST_TYPE_FLAG_IS_REM_INST_SID = 0;
 	localparam integer INST_TYPE_FLAG_IS_DIV_INST_SID = 1;
@@ -471,10 +472,12 @@ module panda_risc_v_op_fetch_idec #(
 		s_if_res_data[95:32], // 打包的预译码信息
 		s_if_res_data[31:0] // 取到的指令
 	};
-	assign m_op_ftc_id_res_msg[146:3] = 
+	
+	assign m_op_ftc_id_res_msg[162:3] = 
 		{
-			nxt_seq_pc, // 顺序取指时的下一PC
-			actual_bta, // 实际的分支目标地址
+			nxt_seq_pc[31:0], // 顺序取指时的下一PC
+			actual_bta[31:0], // 实际的分支目标地址
+			s_if_res_msg[15+PRDT_MSG_BHR_SID+3:PRDT_MSG_BHR_SID+3], // BHR
 			s_if_res_msg[PRDT_MSG_POP_RAS_SID+3:PRDT_MSG_POP_RAS_SID+3], // RAS出栈标志
 			s_if_res_msg[PRDT_MSG_PUSH_RAS_SID+3:PRDT_MSG_PUSH_RAS_SID+3], // RAS压栈标志
 			s_if_res_msg[31+PRDT_MSG_BTB_BTA_SID+3:PRDT_MSG_BTB_BTA_SID+3], // BTB分支目标地址
@@ -485,7 +488,7 @@ module panda_risc_v_op_fetch_idec #(
 			s_if_res_msg[PRDT_MSG_IS_TAKEN_SID+3:PRDT_MSG_IS_TAKEN_SID+3], // 是否跳转
 			s_if_res_msg[2+PRDT_MSG_BTYPE_SID+3:PRDT_MSG_BTYPE_SID+3], // 分支指令类型
 			prdt_addr_corrected // 跳转地址
-		} | 144'd0; // 分支预测信息
+		} | 160'd0; // 分支预测信息
 	assign m_op_ftc_id_res_msg[2:0] = 
 		// 正常
 		({3{(~is_illegal_inst) & (s_if_res_msg[1:0] == IBUS_ACCESS_NORMAL) & 

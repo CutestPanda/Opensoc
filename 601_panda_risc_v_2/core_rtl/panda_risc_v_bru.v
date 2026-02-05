@@ -67,6 +67,10 @@ module panda_risc_v_bru #(
 	output wire[31:0] jalr_prdt_success_inst_n, // 预测正确的JALR指令数
 	output wire[31:0] b_inst_n_acpt, // 接受的B指令总数
 	output wire[31:0] b_prdt_success_inst_n, // 预测正确的B指令数
+	output wire[31:0] b_prdt_not_taken_but_actually_taken, // 预测为不跳但实际上跳的B指令数
+	output wire[31:0] b_prdt_taken_but_actually_not_taken, // 预测为跳但实际上不跳的B指令数
+	output wire[31:0] b_actually_taken, // 实际上跳的B指令数
+	output wire[31:0] b_actually_not_taken, // 实际上不跳的B指令数
 	output wire[31:0] common_inst_n_acpt, // 接受的非分支指令总数
 	output wire[31:0] common_prdt_success_inst_n, // 预测正确的非分支指令数
 	output wire[31:0] brc_inst_n_acpt, // 接受的分支指令总数
@@ -83,7 +87,7 @@ module panda_risc_v_bru #(
 	
 	// BRU输入
 	input wire[127:0] s_bru_i_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	input wire[146:0] s_bru_i_msg, // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	input wire[162:0] s_bru_i_msg, // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	input wire[143:0] s_bru_i_dcd_res, // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	input wire[IBUS_TID_WIDTH-1:0] s_bru_i_tid, // 指令ID
 	input wire s_bru_i_valid,
@@ -94,6 +98,8 @@ module panda_risc_v_bru #(
 	output wire[31:0] m_bru_o_pc, // 当前PC地址
 	output wire[31:0] m_bru_o_nxt_pc, // 下一有效PC地址
 	output wire[1:0] m_bru_o_b_inst_res, // B指令执行结果
+	output wire[1:0] m_bru_o_org_2bit_sat_cnt, // 原来的2bit饱和计数器
+	output wire[15:0] m_bru_o_bhr, // BHR
 	output wire m_bru_o_valid
 );
 	
@@ -131,8 +137,9 @@ module panda_risc_v_bru #(
 	localparam integer PRDT_MSG_BTB_BTA_SID = 45; // BTB分支目标地址
 	localparam integer PRDT_MSG_PUSH_RAS_SID = 77; // RAS压栈标志
 	localparam integer PRDT_MSG_POP_RAS_SID = 78; // RAS出栈标志
-	localparam integer PRDT_MSG_ACTUAL_BTA_SID = 79; // 实际的分支目标地址
-	localparam integer PRDT_MSG_NXT_SEQ_PC_SID = 111; // 顺序取指时的下一PC
+	localparam integer PRDT_MSG_BHR_SID = 79; // BHR
+	localparam integer PRDT_MSG_ACTUAL_BTA_SID = 95; // 实际的分支目标地址
+	localparam integer PRDT_MSG_NXT_SEQ_PC_SID = 127; // 顺序取指时的下一PC
 	// 打包的指令类型标志各项的起始索引
 	localparam integer INST_TYPE_FLAG_IS_REM_INST_SID = 0;
 	localparam integer INST_TYPE_FLAG_IS_DIV_INST_SID = 1;
@@ -246,6 +253,10 @@ module panda_risc_v_bru #(
 					B_INST_RES_NOT_TAKEN
 			):
 			B_INST_RES_NONE;
+	assign m_bru_o_org_2bit_sat_cnt = 
+		s_bru_i_msg[PRDT_MSG_GLB_SAT_CNT_SID+1+3:PRDT_MSG_GLB_SAT_CNT_SID+3];
+	assign m_bru_o_bhr = 
+		s_bru_i_msg[PRDT_MSG_BHR_SID+15+3:PRDT_MSG_BHR_SID+3];
 	assign m_bru_o_valid = s_bru_i_valid & s_bru_i_ready;
 	
 	assign need_flush = (~prdt_success) | is_fence_i_inst | (in_dbg_mode & is_ebreak_inst);
@@ -284,6 +295,10 @@ module panda_risc_v_bru #(
 	reg[31:0] jalr_prdt_success_inst_n_r; // 预测正确的JALR指令数
 	reg[31:0] b_inst_n_acpt_r; // 接受的B指令总数
 	reg[31:0] b_prdt_success_inst_n_r; // 预测正确的B指令数
+	reg[31:0] b_prdt_not_taken_but_actually_taken_r; // 预测为不跳但实际上跳的B指令数
+	reg[31:0] b_prdt_taken_but_actually_not_taken_r; // 预测为跳但实际上不跳的B指令数
+	reg[31:0] b_actually_taken_r; // 实际上跳的B指令数
+	reg[31:0] b_actually_not_taken_r; // 实际上不跳的B指令数
 	reg[31:0] common_inst_n_acpt_r; // 接受的非分支指令总数
 	reg[31:0] common_prdt_success_inst_n_r; // 预测正确的非分支指令数
 	reg[31:0] brc_inst_n_acpt_r; // 接受的分支指令总数
@@ -295,6 +310,10 @@ module panda_risc_v_bru #(
 	assign jalr_prdt_success_inst_n = jalr_prdt_success_inst_n_r;
 	assign b_inst_n_acpt = b_inst_n_acpt_r;
 	assign b_prdt_success_inst_n = b_prdt_success_inst_n_r;
+	assign b_prdt_not_taken_but_actually_taken = b_prdt_not_taken_but_actually_taken_r;
+	assign b_prdt_taken_but_actually_not_taken = b_prdt_taken_but_actually_not_taken_r;
+	assign b_actually_taken = b_actually_taken_r;
+	assign b_actually_not_taken = b_actually_not_taken_r;
 	assign common_inst_n_acpt = common_inst_n_acpt_r;
 	assign common_prdt_success_inst_n = common_prdt_success_inst_n_r;
 	assign brc_inst_n_acpt = brc_inst_n_acpt_r;
@@ -370,6 +389,54 @@ module panda_risc_v_bru #(
 			prdt_success
 		)
 			b_prdt_success_inst_n_r <= # SIM_DELAY b_prdt_success_inst_n_r + 1'b1;
+	end
+	// 预测为不跳但实际上跳的B指令数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			b_prdt_not_taken_but_actually_taken_r <= 32'd0;
+		else if(
+			s_bru_i_valid & s_bru_i_ready & 
+			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			(~s_bru_i_msg[PRDT_MSG_IS_TAKEN_SID+3]) & alu_brc_cond_res
+		)
+			b_prdt_not_taken_but_actually_taken_r <= # SIM_DELAY b_prdt_not_taken_but_actually_taken_r + 1'b1;
+	end
+	// 预测为跳但实际上不跳的B指令数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			b_prdt_taken_but_actually_not_taken_r <= 32'd0;
+		else if(
+			s_bru_i_valid & s_bru_i_ready & 
+			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			s_bru_i_msg[PRDT_MSG_IS_TAKEN_SID+3] & (~alu_brc_cond_res)
+		)
+			b_prdt_taken_but_actually_not_taken_r <= # SIM_DELAY b_prdt_taken_but_actually_not_taken_r + 1'b1;
+	end
+	// 实际上跳的B指令数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			b_actually_taken_r <= 32'd0;
+		else if(
+			s_bru_i_valid & s_bru_i_ready & 
+			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			alu_brc_cond_res
+		)
+			b_actually_taken_r <= # SIM_DELAY b_actually_taken_r + 1'b1;
+	end
+	// 实际上不跳的B指令数
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			b_actually_not_taken_r <= 32'd0;
+		else if(
+			s_bru_i_valid & s_bru_i_ready & 
+			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			(~alu_brc_cond_res)
+		)
+			b_actually_not_taken_r <= # SIM_DELAY b_actually_not_taken_r + 1'b1;
 	end
 	
 	// 接受的非分支指令总数

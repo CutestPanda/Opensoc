@@ -47,7 +47,7 @@ module panda_risc_v_dispatch #(
 )(
 	// 分发单元输入
 	input wire[127:0] s_dsptc_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	input wire[146:0] s_dsptc_msg, // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	input wire[162:0] s_dsptc_msg, // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	input wire[143:0] s_dsptc_dcd_res, // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	input wire[IBUS_TID_WIDTH-1:0] s_dsptc_id, // 指令编号
 	input wire s_dsptc_is_first_inst_after_rst, // 是否复位释放后的第1条指令
@@ -56,7 +56,7 @@ module panda_risc_v_dispatch #(
 	
 	// BRU
 	output wire[127:0] m_bru_i_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	output wire[146:0] m_bru_i_msg, // 取指附加信息({分支预测信息(144bit), 错误码(3bit)})
+	output wire[162:0] m_bru_i_msg, // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	output wire[143:0] m_bru_i_dcd_res, // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
 	output wire[IBUS_TID_WIDTH-1:0] m_bru_i_id, // 指令编号
 	output wire m_bru_i_valid,

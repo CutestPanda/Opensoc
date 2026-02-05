@@ -29,7 +29,7 @@ SOFTWARE.
 描述:
 每clk最多从ROB退休1条指令
 
-更新全局历史分支预测器
+更新基于历史的分支预测器
 
 处理调试/中断/异常请求:
 	调试优先级 -> 来自调试器的复位释放后暂停请求 > 来自调试器的暂停请求 > 断点调试 > 单步调试
@@ -51,7 +51,7 @@ SOFTWARE.
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2026/01/23
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -60,6 +60,7 @@ module panda_risc_v_commit #(
 	parameter DEBUG_SUPPORTED = "true", // 是否需要支持Debug
 	parameter integer FU_RES_WIDTH = 32, // 执行单元结果位宽(正整数)
 	parameter integer GHR_WIDTH = 8, // 全局分支历史寄存器的位宽(<=16)
+	parameter integer BHR_WIDTH = 9, // 局部分支历史寄存器(BHR)的位宽
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
@@ -87,6 +88,8 @@ module panda_risc_v_commit #(
 	input wire[31:0] rob_prep_rtr_entry_pc, // 指令对应的PC
 	input wire[31:0] rob_prep_rtr_entry_nxt_pc, // 指令对应的下一有效PC
 	input wire[1:0] rob_prep_rtr_entry_b_inst_res, // B指令执行结果
+	input wire[1:0] rob_prep_rtr_entry_org_2bit_sat_cnt, // 原来的2bit饱和计数器
+	input wire[15:0] rob_prep_rtr_entry_bhr, // BHR
 	
 	// 退休阶段ROB记录广播
 	output wire rob_rtr_bdcst_vld, // 广播有效
@@ -134,17 +137,19 @@ module panda_risc_v_commit #(
 	input wire dcsr_step_v, // dcsr状态寄存器STEP域
 	output wire in_dbg_mode, // 当前处于调试模式(标志)
 	
-	// 全局历史分支预测
+	// 基于历史的分支预测
 	// [更新退休GHR]
 	output wire glb_brc_prdt_on_upd_retired_ghr, // 退休GHR更新指示
 	output wire glb_brc_prdt_retired_ghr_shift_in, // 退休GHR移位输入
 	// [更新PHT]
 	output wire glb_brc_prdt_upd_i_req, // 更新请求
 	output wire[31:0] glb_brc_prdt_upd_i_pc, // 待更新项的PC
-	output wire[GHR_WIDTH-1:0] glb_brc_prdt_upd_i_ghr, // 待更新项的GHR
+	output wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_upd_i_ghr, // 待更新项的GHR
+	output wire[((BHR_WIDTH <= 2) ? 2:BHR_WIDTH)-1:0] glb_brc_prdt_upd_i_bhr, // 待更新项的BHR
+	output wire[1:0] glb_brc_prdt_upd_i_2bit_sat_cnt, // 新的2bit饱和计数器
 	output wire glb_brc_prdt_upd_i_brc_taken, // 待更新项的实际分支跳转方向
 	// [GHR值]
-	input wire[GHR_WIDTH-1:0] glb_brc_prdt_retired_ghr_o // 当前的退休GHR
+	input wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_retired_ghr_o // 当前的退休GHR
 );
 	
 	/** 常量 **/
@@ -545,7 +550,7 @@ module panda_risc_v_commit #(
 			flush_addr_saved <= # SIM_DELAY flush_addr_cur;
 	end
 	
-	/** 更新全局历史分支预测器 **/
+	/** 更新基于历史的分支预测器 **/
 	assign glb_brc_prdt_on_upd_retired_ghr = 
 		// 退休1条未被取消、没有异常的指令
 		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL) & 
@@ -563,6 +568,25 @@ module panda_risc_v_commit #(
 		rob_prep_rtr_entry_pc;
 	assign glb_brc_prdt_upd_i_ghr = 
 		glb_brc_prdt_retired_ghr_o;
+	assign glb_brc_prdt_upd_i_bhr = 
+		rob_prep_rtr_entry_bhr[((BHR_WIDTH <= 2) ? 2:BHR_WIDTH)-1:0];
+	assign glb_brc_prdt_upd_i_2bit_sat_cnt = 
+		/*
+		(rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN) ? 
+			(
+				(rob_prep_rtr_entry_org_2bit_sat_cnt == 2'b11) ? 
+					2'b11:
+					(rob_prep_rtr_entry_org_2bit_sat_cnt + 1'b1)
+			):
+			(
+				(rob_prep_rtr_entry_org_2bit_sat_cnt == 2'b00) ? 
+					2'b00:
+					(rob_prep_rtr_entry_org_2bit_sat_cnt - 1'b1)
+			)
+		*/
+		(rob_prep_rtr_entry_org_2bit_sat_cnt == {2{rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN}}) ? 
+			{2{rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN}}:
+			(rob_prep_rtr_entry_org_2bit_sat_cnt + {rob_prep_rtr_entry_b_inst_res != B_INST_RES_TAKEN, 1'b1});
 	assign glb_brc_prdt_upd_i_brc_taken = 
 		rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN;
 	
