@@ -122,9 +122,9 @@ module panda_soc_top #(
 	localparam integer DM_REGS_ADDR_RANGE = 1 * 1024; // DM寄存器区地址区间长度(以字节计)
 	// [分支预测配置]
 	localparam integer GHR_WIDTH = 0; // 全局分支历史寄存器的位宽(<=16)
-	localparam integer PC_WIDTH_FOR_PHT_ADDR = 4; // PHT地址截取的低位PC的位宽(必须在范围[1, 16]内)
-	localparam integer BHR_WIDTH = 12; // 局部分支历史寄存器(BHR)的位宽
-	localparam integer BHT_DEPTH = 256; // 局部分支历史表(BHT)的深度(必须>=2且为2^n)
+	localparam integer PC_WIDTH_FOR_PHT_ADDR = 3; // PHT地址截取的低位PC的位宽(必须在范围[1, 16]内)
+	localparam integer BHR_WIDTH = 13; // 局部分支历史寄存器(BHR)的位宽
+	localparam integer BHT_DEPTH = 512; // 局部分支历史表(BHT)的深度(必须>=2且为2^n)
 	localparam PHT_MEM_IMPL = "sram"; // PHT存储器的实现方式(reg | sram)
 	localparam integer BTB_WAY_N = 2; // BTB路数(1 | 2 | 4)
 	localparam integer BTB_ENTRY_N = 1024; // BTB项数(<=65536)

@@ -289,6 +289,7 @@ module panda_risc_v_core #(
 	localparam AUTO_CANCEL_SYNC_ERR_ENTRY = "false"; // 是否在发射时自动取消带有同步异常的项
 	// 总线互联单元配置
 	localparam EN_BIU_LOW_LATENCY_DMEM_RD = "true"; // 是否使能低时延的数据存储器读模式
+	localparam EN_M_AXI_IMEM_AR_REG_SLICE = "false"; // 是否在(指令总线)存储器AXI主机AR通道插入寄存器片
 	
 	/** 取指单元(IFU) **/
 	// 全局冲刷请求
@@ -310,7 +311,7 @@ module panda_risc_v_core #(
 	wire glb_brc_prdt_upd_i_req; // 更新请求
 	wire[31:0] glb_brc_prdt_upd_i_pc; // 待更新项的PC
 	wire[((GHR_WIDTH <= 2) ? 2:GHR_WIDTH)-1:0] glb_brc_prdt_upd_i_ghr; // 待更新项的GHR
-	wire[((BHR_WIDTH <= 2) ? 2:BHR_WIDTH)-1:0] glb_brc_prdt_upd_i_bhr; // 待更新项的BHR
+	wire[15:0] glb_brc_prdt_upd_i_bhr; // 待更新项的BHR
 	// 说明: PHT_MEM_IMPL == "sram"时可用
 	wire[1:0] glb_brc_prdt_upd_i_2bit_sat_cnt; // 新的2bit饱和计数器
 	wire glb_brc_prdt_upd_i_brc_taken; // 待更新项的实际分支跳转方向
@@ -1750,7 +1751,7 @@ module panda_risc_v_core #(
 	axis_reg_slice #(
 		.data_width(40),
 		.user_width(5),
-		.forward_registered("true"),
+		.forward_registered(EN_M_AXI_IMEM_AR_REG_SLICE),
 		.back_registered("false"),
 		.en_ready("true"),
 		.en_clk_en("false"),
