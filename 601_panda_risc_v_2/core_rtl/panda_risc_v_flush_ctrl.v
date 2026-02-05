@@ -27,9 +27,12 @@ SOFTWARE.
 本模块: 冲刷控制
 
 描述:
-对来自BRU/交付单元的冲刷请求进行仲裁
+对来自IFU/BRU/交付单元的冲刷请求进行仲裁
 
-因为处于交付单元的指令更老, 而处于BRU的指令更年轻, 所以来自交付单元的冲刷请求的优先级更高
+冲刷请求的优先级从高到低分别是 -> 
+	交付单元给出的冲刷请求
+	BRU给出的冲刷请求
+	IFU给出的冲刷请求
 
 注意：
 无
@@ -38,7 +41,7 @@ SOFTWARE.
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2026/01/20
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -56,6 +59,11 @@ module panda_risc_v_flush_ctrl #(
 	output wire glb_brc_prdt_on_clr_retired_ghr, // 清零退休GHR(指示)
 	output wire glb_brc_prdt_rstr_speculative_ghr, // 恢复推测GHR(指示)
 	
+	// IFU给出的冲刷请求
+	input wire ifu_flush_req, // 冲刷请求
+	input wire[31:0] ifu_flush_addr, // 冲刷地址
+	output wire ifu_flush_grant, // 冲刷许可
+	
 	// BRU给出的冲刷请求
 	input wire bru_flush_req, // 冲刷请求
 	input wire[31:0] bru_flush_addr, // 冲刷地址
@@ -69,6 +77,9 @@ module panda_risc_v_flush_ctrl #(
 	// 指令总线控制单元状态
 	input wire suppressing_ibus_access, // 当前有正在镇压的ICB事务(状态标志)
 	
+	// IFU专用冲刷请求
+	output wire ifu_exclusive_flush_req,
+	
 	// 全局冲刷请求
 	output wire global_flush_req, // 冲刷请求
 	output wire[31:0] global_flush_addr, // 冲刷地址
@@ -76,14 +87,24 @@ module panda_risc_v_flush_ctrl #(
 );
 	
 	reg global_flush_pending; // 全局冲刷等待(标志)
+	reg sel_ifu_flush; // 选择IFU给出的冲刷请求(标志)
 	reg sel_bru_flush; // 选择BRU给出的冲刷请求(标志)
+	reg sel_cmt_flush; // 选择交付单元给出的冲刷请求(标志)
 	
 	assign glb_brc_prdt_on_clr_retired_ghr = 
 		sys_reset_req | 
 		(cmt_flush_req & (~suppressing_ibus_access) & (~global_flush_pending));
 	assign glb_brc_prdt_rstr_speculative_ghr = 
-		sys_reset_req | global_flush_req;
+		sys_reset_req | 
+		((bru_flush_req | cmt_flush_req) & (~suppressing_ibus_access) & (~global_flush_pending));
 	
+	assign ifu_flush_grant = 
+		ifu_flush_req & global_flush_ack & 
+		(
+			global_flush_pending ? 
+				sel_ifu_flush:
+				((~bru_flush_req) & (~cmt_flush_req))
+		);
 	assign bru_flush_grant = 
 		bru_flush_req & global_flush_ack & 
 		(
@@ -95,16 +116,22 @@ module panda_risc_v_flush_ctrl #(
 		cmt_flush_req & global_flush_ack & 
 		(
 			global_flush_pending ? 
-				(~sel_bru_flush):
+				sel_cmt_flush:
 				1'b1
 		);
 	
+	assign ifu_exclusive_flush_req = 
+		ifu_flush_req & (~suppressing_ibus_access) & (~global_flush_pending);
 	assign global_flush_req = 
 		(bru_flush_req | cmt_flush_req) & (~suppressing_ibus_access) & (~global_flush_pending);
 	assign global_flush_addr = 
 		cmt_flush_req ? 
 			cmt_flush_addr:
-			bru_flush_addr;
+			(
+				bru_flush_req ? 
+					bru_flush_addr:
+					ifu_flush_addr
+			);
 	
 	// 全局冲刷等待(标志)
 	always @(posedge aclk or negedge aresetn)
@@ -116,19 +143,24 @@ module panda_risc_v_flush_ctrl #(
 				/*
 				global_flush_pending ? 
 					(~global_flush_ack):
-					((bru_flush_req | cmt_flush_req) & (~suppressing_ibus_access) & (~global_flush_ack))
+					((ifu_flush_req | bru_flush_req | cmt_flush_req) & (~suppressing_ibus_access) & (~global_flush_ack))
 				*/
 				(
 					global_flush_pending | 
-					((bru_flush_req | cmt_flush_req) & (~suppressing_ibus_access))
-				) & (~global_flush_ack);
+					((ifu_flush_req | bru_flush_req | cmt_flush_req) & (~suppressing_ibus_access))
+				) & 
+				(~global_flush_ack);
 	end
 	
-	// 选择BRU给出的冲刷请求(标志)
+	// 选择IFU给出的冲刷请求(标志), 选择BRU给出的冲刷请求(标志), 选择交付单元给出的冲刷请求(标志)
 	always @(posedge aclk)
 	begin
-		if(global_flush_req)
-			sel_bru_flush <= # SIM_DELAY ~cmt_flush_req;
+		if(ifu_exclusive_flush_req | global_flush_req)
+		begin
+			sel_ifu_flush <= # SIM_DELAY ifu_flush_req & (~bru_flush_req) & (~cmt_flush_req);
+			sel_bru_flush <= # SIM_DELAY bru_flush_req & (~cmt_flush_req);
+			sel_cmt_flush <= # SIM_DELAY cmt_flush_req;
+		end
 	end
 	
 endmodule

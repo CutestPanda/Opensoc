@@ -28,7 +28,7 @@ SOFTWARE.
 
 描述:
 将已发射的指令输出给交付单元, 同时分发给多个执行单元
-所有指令都会经过BRU
+
 纯组合逻辑模块
 
 注意：
@@ -38,7 +38,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2026/01/24
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -191,11 +191,18 @@ module panda_risc_v_dispatch #(
 	/** 分发单元输入 **/
 	wire fu_ready; // 执行单元就绪(标志)
 	
-	assign s_dsptc_ready = m_bru_i_ready & fu_ready;
+	assign s_dsptc_ready = fu_ready;
 	
 	assign fu_ready = 
-		(s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) | // 非法指令显然不会经过LSU、乘法器、除法器
+		s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID] | // 非法指令显然不会经过BRU、LSU、乘法器、除法器
 		(
+			(
+				(~(
+					s_dsptc_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_JALR_INST_SID] | 
+					s_dsptc_dcd_res[INST_TYPE_FLAG_IS_EBREAK_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_FENCE_I_INST_SID]
+				)) | 
+				m_bru_i_ready
+			) & // B指令、JALR指令、EBREAK指令或FENCE.I指令需要经过BRU
 			(
 				(~(s_dsptc_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_LOAD_INST_SID])) | 
 				m_lsu_ready
@@ -215,7 +222,14 @@ module panda_risc_v_dispatch #(
 	assign m_bru_i_msg = s_dsptc_msg;
 	assign m_bru_i_dcd_res = s_dsptc_dcd_res;
 	assign m_bru_i_id = s_dsptc_id;
-	assign m_bru_i_valid = s_dsptc_valid & fu_ready;
+	assign m_bru_i_valid = 
+		s_dsptc_valid & 
+		// 属于B指令、JALR指令、EBREAK指令或FENCE.I指令
+		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
+		(
+			s_dsptc_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_JALR_INST_SID] | 
+			s_dsptc_dcd_res[INST_TYPE_FLAG_IS_EBREAK_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_FENCE_I_INST_SID]
+		);
 	
 	/** 分发给ALU **/
 	assign m_alu_op_mode = 
@@ -268,7 +282,6 @@ module panda_risc_v_dispatch #(
 	assign m_lsu_inst_id = s_dsptc_id;
 	assign m_lsu_valid = 
 		s_dsptc_valid & 
-		m_bru_i_ready & 
 		// 属于访存指令
 		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
 		(s_dsptc_dcd_res[INST_TYPE_FLAG_IS_STORE_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_LOAD_INST_SID]);
@@ -281,7 +294,6 @@ module panda_risc_v_dispatch #(
 	assign m_mul_inst_id = s_dsptc_id;
 	assign m_mul_valid = 
 		s_dsptc_valid & 
-		m_bru_i_ready & 
 		// 属于乘法指令
 		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_dsptc_dcd_res[INST_TYPE_FLAG_IS_MUL_INST_SID];
 	
@@ -293,7 +305,6 @@ module panda_risc_v_dispatch #(
 	assign m_div_inst_id = s_dsptc_id;
 	assign m_div_valid = 
 		s_dsptc_valid & 
-		m_bru_i_ready & 
 		// 属于除法/求余指令
 		(~s_dsptc_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
 		(s_dsptc_dcd_res[INST_TYPE_FLAG_IS_REM_INST_SID] | s_dsptc_dcd_res[INST_TYPE_FLAG_IS_DIV_INST_SID]);

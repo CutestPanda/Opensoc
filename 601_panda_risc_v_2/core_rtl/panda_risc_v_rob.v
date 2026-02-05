@@ -113,6 +113,7 @@ module panda_risc_v_rob #(
 	output wire[1:0] rob_prep_rtr_entry_b_inst_res, // B指令执行结果
 	output wire[1:0] rob_prep_rtr_entry_org_2bit_sat_cnt, // 原来的2bit饱和计数器
 	output wire[15:0] rob_prep_rtr_entry_bhr, // BHR
+	output wire rob_prep_rtr_is_b_inst, // 是否B指令
 	output wire[11:0] rob_prep_rtr_entry_csr_rw_waddr, // CSR写地址
 	output wire[1:0] rob_prep_rtr_entry_csr_rw_upd_type, // CSR更新类型
 	output wire[31:0] rob_prep_rtr_entry_csr_rw_upd_mask_v, // CSR更新掩码或更新值
@@ -150,6 +151,9 @@ module panda_risc_v_rob #(
 	input wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	input wire[2:0] rob_luc_bdcst_err, // 错误类型
 	input wire[2:0] rob_luc_bdcst_spec_inst_type, // 特殊指令类型
+	input wire rob_luc_bdcst_is_b_inst, // 是否B指令
+	input wire[31:0] rob_luc_bdcst_pc, // 指令对应的PC
+	input wire[31:0] rob_luc_bdcst_nxt_pc, // 指令对应的下一有效PC
 	// [退休阶段]
 	input wire rob_rtr_bdcst_vld // 广播有效
 );
@@ -423,6 +427,7 @@ module panda_risc_v_rob #(
 	reg rob_rcd_tb_is_ls_inst[0:ROB_ENTRY_N-1]; // 是否加载/存储指令
 	reg rob_rcd_tb_is_csr_rw_inst[0:ROB_ENTRY_N-1]; // 是否CSR读写指令
 	reg[2:0] rob_rcd_tb_spec_inst_type[0:ROB_ENTRY_N-1]; // 特殊指令类型
+	reg rob_rcd_tb_is_b_inst[0:ROB_ENTRY_N-1]; // 是否B指令
 	reg rob_rcd_tb_cancel[0:ROB_ENTRY_N-1]; // 取消标志
 	reg[2:0] rob_rcd_tb_err[0:ROB_ENTRY_N-1]; // 错误类型
 	reg[clogb2(ROB_ENTRY_N):0] rob_rcd_tb_wptr_saved[0:ROB_ENTRY_N-1]; // 记录的写指针
@@ -451,6 +456,7 @@ module panda_risc_v_rob #(
 	assign rob_prep_rtr_entry_b_inst_res = rob_rcd_tb_b_inst_res[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_org_2bit_sat_cnt = rob_rcd_tb_org_2bit_sat_cnt[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	assign rob_prep_rtr_entry_bhr = rob_rcd_tb_bhr[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
+	assign rob_prep_rtr_is_b_inst = rob_rcd_tb_is_b_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
 	assign is_retiring_ls_inst = rob_rcd_tb_is_ls_inst[rob_rcd_tb_rptr[clogb2(ROB_ENTRY_N-1):0]];
 	
@@ -486,6 +492,8 @@ module panda_risc_v_rob #(
 					rob_rcd_tb_is_ls_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_ls_inst;
 					rob_rcd_tb_is_csr_rw_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_csr_rw_inst;
 					rob_rcd_tb_spec_inst_type[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_spec_inst_type;
+					rob_rcd_tb_is_b_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_b_inst;
+					rob_rcd_tb_pc[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_pc;
 					
 					rob_rcd_tb_wptr_saved[rob_rcd_tb_entry_i][clogb2(ROB_ENTRY_N)] <= # SIM_DELAY 
 						rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N)];
@@ -620,10 +628,20 @@ module panda_risc_v_rob #(
 			
 			always @(posedge aclk)
 			begin
-				if(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i])) // 所有指令都会经过BRU, 且BRU结果必定在(FU)执行结果之前得到
+				if(
+					(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)) | 
+					(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i]))
+				)
+					rob_rcd_tb_nxt_pc[rob_res_i] <= # SIM_DELAY 
+						(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i])) ? 
+							s_bru_o_nxt_pc:
+							rob_luc_bdcst_nxt_pc;
+			end
+			
+			always @(posedge aclk)
+			begin
+				if(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i])) // BRU结果必定在(FU)执行结果同时或之前得到
 				begin
-					rob_rcd_tb_pc[rob_res_i] <= # SIM_DELAY s_bru_o_pc;
-					rob_rcd_tb_nxt_pc[rob_res_i] <= # SIM_DELAY s_bru_o_nxt_pc;
 					rob_rcd_tb_b_inst_res[rob_res_i] <= # SIM_DELAY s_bru_o_b_inst_res;
 					rob_rcd_tb_org_2bit_sat_cnt[rob_res_i] <= # SIM_DELAY s_bru_o_org_2bit_sat_cnt;
 					rob_rcd_tb_bhr[rob_res_i] <= # SIM_DELAY s_bru_o_bhr;

@@ -90,6 +90,7 @@ module panda_risc_v_commit #(
 	input wire[1:0] rob_prep_rtr_entry_b_inst_res, // B指令执行结果
 	input wire[1:0] rob_prep_rtr_entry_org_2bit_sat_cnt, // 原来的2bit饱和计数器
 	input wire[15:0] rob_prep_rtr_entry_bhr, // BHR
+	input wire rob_prep_rtr_is_b_inst, // 是否B指令
 	
 	// 退休阶段ROB记录广播
 	output wire rob_rtr_bdcst_vld, // 广播有效
@@ -555,7 +556,7 @@ module panda_risc_v_commit #(
 		// 退休1条未被取消、没有异常的指令
 		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL) & 
 		// 这条指令是B指令
-		(rob_prep_rtr_entry_b_inst_res != B_INST_RES_NONE);
+		rob_prep_rtr_is_b_inst;
 	assign glb_brc_prdt_retired_ghr_shift_in = 
 		rob_prep_rtr_entry_b_inst_res == B_INST_RES_TAKEN;
 	
@@ -563,7 +564,7 @@ module panda_risc_v_commit #(
 		// 退休1条未被取消、没有异常的指令
 		rob_rtr_bdcst_vld & (~rob_prep_rtr_entry_cancel) & (rob_prep_rtr_entry_err == INST_ERR_CODE_NORMAL) & 
 		// 这条指令是B指令
-		(rob_prep_rtr_entry_b_inst_res != B_INST_RES_NONE);
+		rob_prep_rtr_is_b_inst;
 	assign glb_brc_prdt_upd_i_pc = 
 		rob_prep_rtr_entry_pc;
 	assign glb_brc_prdt_upd_i_ghr = 

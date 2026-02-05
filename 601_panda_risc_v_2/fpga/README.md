@@ -37,3 +37,9 @@
 
 存储映射和外部中断同panda_soc_test_v7。  
 继续优化分支预测。  
+
+### panda_soc_test_v10
+
+存储映射和外部中断同panda_soc_test_v7。  
+在IFU处增加1个冲刷槽以处理JAL指令与非分支指令的分支预测失败，BRU现仅接受B指令、JALR指令、EBREAK指令或FENCE.I指令。  
+

@@ -296,6 +296,12 @@ module panda_risc_v_core #(
 	wire global_flush_req; // 冲刷请求
 	wire[31:0] global_flush_addr; // 冲刷地址
 	wire global_flush_ack; // 冲刷应答
+	// IFU专用冲刷请求
+	wire ifu_exclusive_flush_req;
+	// IFU给出的冲刷请求
+	wire ifu_flush_req; // 冲刷请求
+	wire[31:0] ifu_flush_addr; // 冲刷地址
+	wire ifu_flush_grant; // 冲刷许可
 	// 发射阶段分支信息广播
 	wire brc_bdcst_luc_vld; // 广播有效
 	wire[IBUS_TID_WIDTH-1:0] brc_bdcst_luc_tid; // 事务ID
@@ -386,9 +392,14 @@ module panda_risc_v_core #(
 		.sys_reset_req(sys_reset_req),
 		.rst_pc(rst_pc),
 		.flush_req(global_flush_req),
+		.ifu_exclusive_flush_req(ifu_exclusive_flush_req),
 		.flush_addr(global_flush_addr),
 		.rst_ack(),
 		.flush_ack(global_flush_ack),
+		
+		.ifu_flush_req(ifu_flush_req),
+		.ifu_flush_addr(ifu_flush_addr),
+		.ifu_flush_grant(ifu_flush_grant),
 		
 		.brc_bdcst_luc_vld(brc_bdcst_luc_vld),
 		.brc_bdcst_luc_tid(brc_bdcst_luc_tid),
@@ -623,6 +634,9 @@ module panda_risc_v_core #(
 	wire[45:0] rob_luc_bdcst_csr_rw_inst_msg; // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	wire[2:0] rob_luc_bdcst_err; // 错误类型
 	wire[2:0] rob_luc_bdcst_spec_inst_type; // 特殊指令类型
+	wire rob_luc_bdcst_is_b_inst; // 是否B指令
+	wire[31:0] rob_luc_bdcst_pc; // 指令对应的PC
+	wire[31:0] rob_luc_bdcst_nxt_pc; // 指令对应的下一有效PC
 	
 	assign s_if_res_data = m_regs_rd_data;
 	assign s_if_res_msg = m_regs_rd_msg;
@@ -683,6 +697,9 @@ module panda_risc_v_core #(
 		.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
 		.rob_luc_bdcst_err(rob_luc_bdcst_err),
 		.rob_luc_bdcst_spec_inst_type(rob_luc_bdcst_spec_inst_type),
+		.rob_luc_bdcst_is_b_inst(rob_luc_bdcst_is_b_inst),
+		.rob_luc_bdcst_pc(rob_luc_bdcst_pc),
+		.rob_luc_bdcst_nxt_pc(rob_luc_bdcst_nxt_pc),
 		
 		.op1_ftc_rs1_id(),
 		.op1_ftc_from_reg_file(1'b0),
@@ -922,6 +939,10 @@ module panda_risc_v_core #(
 		.glb_brc_prdt_on_clr_retired_ghr(glb_brc_prdt_on_clr_retired_ghr),
 		.glb_brc_prdt_rstr_speculative_ghr(glb_brc_prdt_rstr_speculative_ghr),
 		
+		.ifu_flush_req(ifu_flush_req),
+		.ifu_flush_addr(ifu_flush_addr),
+		.ifu_flush_grant(ifu_flush_grant),
+		
 		.bru_flush_req(bru_flush_req),
 		.bru_flush_addr(bru_flush_addr),
 		.bru_flush_grant(bru_flush_grant),
@@ -931,6 +952,8 @@ module panda_risc_v_core #(
 		.cmt_flush_grant(cmt_flush_grant),
 		
 		.suppressing_ibus_access(suppressing_ibus_access),
+		
+		.ifu_exclusive_flush_req(ifu_exclusive_flush_req),
 		
 		.global_flush_req(global_flush_req),
 		.global_flush_addr(global_flush_addr),
@@ -1401,6 +1424,7 @@ module panda_risc_v_core #(
 	wire[1:0] rob_prep_rtr_entry_b_inst_res; // B指令执行结果
 	wire[1:0] rob_prep_rtr_entry_org_2bit_sat_cnt; // 原来的2bit饱和计数器
 	wire[15:0] rob_prep_rtr_entry_bhr; // BHR
+	wire rob_prep_rtr_is_b_inst; // 是否B指令
 	wire[11:0] rob_prep_rtr_entry_csr_rw_waddr; // CSR写地址
 	wire[1:0] rob_prep_rtr_entry_csr_rw_upd_type; // CSR更新类型
 	wire[31:0] rob_prep_rtr_entry_csr_rw_upd_mask_v; // CSR更新掩码或更新值
@@ -1478,6 +1502,7 @@ module panda_risc_v_core #(
 		.rob_prep_rtr_entry_b_inst_res(rob_prep_rtr_entry_b_inst_res),
 		.rob_prep_rtr_entry_org_2bit_sat_cnt(rob_prep_rtr_entry_org_2bit_sat_cnt),
 		.rob_prep_rtr_entry_bhr(rob_prep_rtr_entry_bhr),
+		.rob_prep_rtr_is_b_inst(rob_prep_rtr_is_b_inst),
 		.rob_prep_rtr_entry_csr_rw_waddr(rob_prep_rtr_entry_csr_rw_waddr),
 		.rob_prep_rtr_entry_csr_rw_upd_type(rob_prep_rtr_entry_csr_rw_upd_type),
 		.rob_prep_rtr_entry_csr_rw_upd_mask_v(rob_prep_rtr_entry_csr_rw_upd_mask_v),
@@ -1509,6 +1534,9 @@ module panda_risc_v_core #(
 		.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
 		.rob_luc_bdcst_err(rob_luc_bdcst_err),
 		.rob_luc_bdcst_spec_inst_type(rob_luc_bdcst_spec_inst_type),
+		.rob_luc_bdcst_is_b_inst(rob_luc_bdcst_is_b_inst),
+		.rob_luc_bdcst_pc(rob_luc_bdcst_pc),
+		.rob_luc_bdcst_nxt_pc(rob_luc_bdcst_nxt_pc),
 		
 		.rob_rtr_bdcst_vld(rob_rtr_bdcst_vld)
 	);
@@ -1545,6 +1573,7 @@ module panda_risc_v_core #(
 		.rob_prep_rtr_entry_b_inst_res(rob_prep_rtr_entry_b_inst_res),
 		.rob_prep_rtr_entry_org_2bit_sat_cnt(rob_prep_rtr_entry_org_2bit_sat_cnt),
 		.rob_prep_rtr_entry_bhr(rob_prep_rtr_entry_bhr),
+		.rob_prep_rtr_is_b_inst(rob_prep_rtr_is_b_inst),
 		
 		.rob_rtr_bdcst_vld(rob_rtr_bdcst_vld),
 		.rob_rtr_bdcst_excpt_proc_grant(rob_rtr_bdcst_excpt_proc_grant),

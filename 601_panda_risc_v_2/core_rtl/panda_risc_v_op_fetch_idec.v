@@ -43,7 +43,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2026/01/25
+日期: 2026/02/05
 ********************************************************************/
 
 
@@ -107,6 +107,9 @@ module panda_risc_v_op_fetch_idec #(
 	output wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
 	output wire[2:0] rob_luc_bdcst_err, // 错误类型
 	output wire[2:0] rob_luc_bdcst_spec_inst_type, // 特殊指令类型
+	output wire rob_luc_bdcst_is_b_inst, // 是否B指令
+	output wire[31:0] rob_luc_bdcst_pc, // 指令对应的PC
+	output wire[31:0] rob_luc_bdcst_nxt_pc, // 指令对应的下一有效PC
 	
 	// 数据相关性检查
 	// [操作数1]
@@ -442,6 +445,7 @@ module panda_risc_v_op_fetch_idec #(
 	end
 	
 	/** 指令译码 **/
+	wire is_b_inst; // 是否B指令
 	wire is_csr_rw_inst; // 是否CSR读写指令
 	wire is_load_inst; // 是否load指令
 	wire is_store_inst; // 是否store指令
@@ -452,6 +456,8 @@ module panda_risc_v_op_fetch_idec #(
 	wire is_mret_inst; // 是否MRET指令
 	wire is_ebreak_inst; // 是否EBREAK指令
 	wire is_dret_inst; // 是否DRET指令
+	wire is_jal_inst; // 是否JAL指令
+	wire is_jalr_inst; // 是否JALR指令
 	wire is_illegal_inst; // 是否非法指令
 	wire ls_addr_aligned; // 访存地址对齐(标志)
 	wire[31:0] actual_bta; // 实际的分支目标地址
@@ -586,17 +592,37 @@ module panda_risc_v_op_fetch_idec #(
 		({3{is_mret_inst}} & SPEC_INST_TYPE_MRET) | 
 		({3{is_ebreak_inst}} & SPEC_INST_TYPE_EBREAK) | 
 		({3{is_dret_inst}} & SPEC_INST_TYPE_DRET);
+	assign rob_luc_bdcst_is_b_inst = 
+		(~m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
+		m_op_ftc_id_res_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID];
+	assign rob_luc_bdcst_pc = s_if_res_data[127:96];
+	assign rob_luc_bdcst_nxt_pc = 
+		((~is_illegal_inst) & is_jal_inst) ? 
+			brc_bdcst_luc_bta:
+			nxt_seq_pc;
 	
 	assign nxt_seq_pc = s_if_res_data[127:96] + 3'd4; // PC + 指令长度
 	assign prdt_addr_corrected = 
 		(
-			// 分支预测特例: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
-			s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3] & 
-			(s_if_res_msg[2+PRDT_MSG_BTYPE_SID+3:PRDT_MSG_BTYPE_SID+3] == BRANCH_TYPE_JALR) & 
-			(~s_if_res_msg[PRDT_MSG_POP_RAS_SID+3:PRDT_MSG_POP_RAS_SID+3])
+			(
+				// 当前指令是分支指令
+				((~is_illegal_inst) & (is_b_inst | is_jal_inst | is_jalr_inst)) & 
+				// 分支预测特例: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
+				s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3] & 
+				(s_if_res_msg[2+PRDT_MSG_BTYPE_SID+3:PRDT_MSG_BTYPE_SID+3] == BRANCH_TYPE_JALR) & 
+				(~s_if_res_msg[PRDT_MSG_POP_RAS_SID+3:PRDT_MSG_POP_RAS_SID+3])
+			) | 
+			(
+				// 当前指令是JAL指令
+				(~is_illegal_inst) & is_jal_inst
+			)
 		) ? 
 			brc_bdcst_luc_bta:
-			s_if_res_msg[31+PRDT_MSG_TARGET_ADDR_SID+3:PRDT_MSG_TARGET_ADDR_SID+3];
+			(
+				(is_illegal_inst | ((~is_b_inst) & (~is_jal_inst) & (~is_jalr_inst))) ? 
+					nxt_seq_pc: // 当前指令是非法指令或普通指令(非分支指令)
+					s_if_res_msg[31+PRDT_MSG_TARGET_ADDR_SID+3:PRDT_MSG_TARGET_ADDR_SID+3]
+			);
 	
 	panda_risc_v_decoder decoder_u(
 		.inst(s_if_res_data[31:0]),
@@ -607,7 +633,7 @@ module panda_risc_v_op_fetch_idec #(
 		.rs1_v(m_op_ftc_id_res_op1),
 		.rs2_v(m_op_ftc_id_res_op2),
 		
-		.is_b_inst(),
+		.is_b_inst(is_b_inst),
 		.is_csr_rw_inst(is_csr_rw_inst),
 		.is_load_inst(is_load_inst),
 		.is_store_inst(is_store_inst),
@@ -620,8 +646,8 @@ module panda_risc_v_op_fetch_idec #(
 		.is_fence_i_inst(),
 		.is_ebreak_inst(is_ebreak_inst),
 		.is_dret_inst(is_dret_inst),
-		.is_jal_inst(),
-		.is_jalr_inst(),
+		.is_jal_inst(is_jal_inst),
+		.is_jalr_inst(is_jalr_inst),
 		.is_illegal_inst(is_illegal_inst),
 		
 		.rs1_vld(),

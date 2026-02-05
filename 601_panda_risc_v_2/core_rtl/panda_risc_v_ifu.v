@@ -39,6 +39,8 @@ SOFTWARE.
 协议:
 MEM MASTER
 ICB MASTER
+REQ/GRANT
+REQ/ACK
 
 作者: 陈家耀
 日期: 2026/02/05
@@ -81,9 +83,15 @@ module panda_risc_v_ifu #(
 	input wire sys_reset_req, // 系统复位请求
 	input wire[31:0] rst_pc, // 复位时的PC
 	input wire flush_req, // 冲刷请求
+	input wire ifu_exclusive_flush_req, // IFU专用冲刷请求
 	input wire[31:0] flush_addr, // 冲刷地址
 	output wire rst_ack, // 复位应答
 	output wire flush_ack, // 冲刷应答
+	
+	// IFU给出的冲刷请求
+	output wire ifu_flush_req, // 冲刷请求
+	output wire[31:0] ifu_flush_addr, // 冲刷地址
+	input wire ifu_flush_grant, // 冲刷许可
 	
 	// 发射阶段分支信息广播
 	input wire brc_bdcst_luc_vld, // 广播有效
@@ -252,7 +260,7 @@ module panda_risc_v_ifu #(
 				.aresetn(aresetn),
 				
 				.sys_reset_req(sys_reset_req),
-				.flush_req(flush_req),
+				.flush_req(flush_req | ifu_exclusive_flush_req),
 				
 				.s_if_regs_data(s_if_regs_data),
 				.s_if_regs_msg(s_if_regs_msg),
@@ -335,9 +343,9 @@ module panda_risc_v_ifu #(
 	
 	assign s_if_regs_id = ibus_access_resp_tid;
 	assign s_if_regs_is_first_inst_after_rst = ibus_access_resp_extra_msg[IBUS_ACCESS_REQ_EXTRA_MSG_IS_FIRST_INST_SID];
-	assign s_if_regs_valid = (~(sys_reset_req | flush_req)) & ibus_access_resp_valid;
+	assign s_if_regs_valid = (~(sys_reset_req | flush_req | ifu_exclusive_flush_req)) & ibus_access_resp_valid;
 	
-	assign ibus_access_resp_ready = (~(sys_reset_req | flush_req)) & s_if_regs_ready;
+	assign ibus_access_resp_ready = (~(sys_reset_req | flush_req | ifu_exclusive_flush_req)) & s_if_regs_ready;
 	
 	assign brc_bdcst_iftc_vld = ibus_access_resp_valid & ibus_access_resp_ready;
 	assign brc_bdcst_iftc_tid = ibus_access_resp_tid;
@@ -409,6 +417,75 @@ module panda_risc_v_ifu #(
 		.m_icb_rsp_valid(m_icb_rsp_inst_valid),
 		.m_icb_rsp_ready(m_icb_rsp_inst_ready)
 	);
+	
+	/** 检查JAL和普通指令的分支预测 **/
+	wire on_need_flush; // 需要冲刷(指示)
+	wire[31:0] correct_npc; // 正确的下一PC值
+	reg on_start_flush; // 开始冲刷(指示)
+	reg flush_pending; // 冲刷等待(标志)
+	reg[31:0] flush_addr_r; // 冲刷地址
+	
+	assign ifu_flush_req = on_start_flush | flush_pending;
+	assign ifu_flush_addr = flush_addr_r;
+	
+	assign on_need_flush = 
+		(~(sys_reset_req | flush_req | ifu_exclusive_flush_req)) & 
+		ibus_access_resp_valid & ibus_access_resp_ready & 
+		(~(
+			// 分支预测特例: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
+			ibus_access_resp_prdt[PRDT_MSG_BTB_HIT_SID] & 
+			(ibus_access_resp_prdt[2+PRDT_MSG_BTYPE_SID:PRDT_MSG_BTYPE_SID] == BRANCH_TYPE_JALR) & 
+			(~ibus_access_resp_prdt[PRDT_MSG_POP_RAS_SID])
+		)) & 
+		(
+			// 是JAL指令或非法指令或普通指令(非分支指令)
+			(
+				(~ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID]) & 
+				ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_IS_JAL_INST_SID]
+			) | 
+			(
+				ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_ILLEGAL_INST_FLAG_SID] | 
+				(~(
+					ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_IS_B_INST_SID] | 
+					ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_IS_JAL_INST_SID] | 
+					ibus_access_resp_pre_decoding_msg[PRE_DCD_MSG_IS_JALR_INST_SID]
+				))
+			)
+		) & 
+		(ibus_access_resp_prdt[31+PRDT_MSG_TARGET_ADDR_SID:PRDT_MSG_TARGET_ADDR_SID] != correct_npc);
+	assign correct_npc = brc_bdcst_iftc_bta;
+	
+	// 冲刷地址
+	always @(posedge aclk)
+	begin
+		if(on_need_flush)
+			flush_addr_r <= # SIM_DELAY correct_npc;
+	end
+	
+	// 开始冲刷(指示)
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			on_start_flush <= 1'b0;
+		else
+			on_start_flush <= # SIM_DELAY on_need_flush;
+	end
+	
+	// 冲刷等待(标志)
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			flush_pending <= 1'b0;
+		else if(
+			flush_req | 
+			(
+				flush_pending ? 
+					ifu_flush_grant:
+					(on_start_flush & (~ifu_flush_grant))
+			)
+		)
+			flush_pending <= # SIM_DELAY ~(flush_req | flush_pending);
+	end
 	
 	/** 置换BTB条目 **/
 	wire btb_rplc_req; // 置换请求
@@ -507,7 +584,7 @@ module panda_risc_v_ifu #(
 		if(~aresetn)
 			btb_rplc_suppress <= 1'b0;
 		else if(
-			(sys_reset_req | flush_req) | (
+			(sys_reset_req | flush_req | ifu_exclusive_flush_req) | (
 				/*
 				btb_rplc_suppress ? 
 					ibus_access_resp_ready:
@@ -518,7 +595,7 @@ module panda_risc_v_ifu #(
 			)
 		)
 			btb_rplc_suppress <= # SIM_DELAY 
-				(~(sys_reset_req | flush_req)) & (~btb_rplc_suppress);
+				(~(sys_reset_req | flush_req | ifu_exclusive_flush_req)) & (~btb_rplc_suppress);
 	end
 	
 	/** 预取指单元(含分支预测) **/
@@ -545,7 +622,7 @@ module panda_risc_v_ifu #(
 		
 		.sys_reset_req(sys_reset_req),
 		.rst_pc(rst_pc),
-		.flush_req(flush_req),
+		.flush_req(flush_req | ifu_exclusive_flush_req),
 		.flush_addr(flush_addr),
 		.rst_ack(rst_ack),
 		.flush_ack(flush_ack),

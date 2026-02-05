@@ -25,7 +25,6 @@ module panda_risc_v_sim #(
 	parameter integer IBUS_OUTSTANDING_N = 4, // 指令总线滞外深度(1 | 2 | 4 | 8)
 	parameter integer MEM_ACCESS_TIMEOUT_TH = 0, // 存储器访问超时周期数(0 -> 不设超时 | 正整数)
 	parameter integer PERPH_ACCESS_TIMEOUT_TH = 32, // 外设访问超时周期数(0 -> 不设超时 | 正整数)
-	parameter integer GHR_WIDTH = 8, // 全局分支历史寄存器的位宽(<=16)
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
 	parameter integer BTB_ENTRY_N = 1024, // BTB项数(<=65536)
 	parameter integer RAS_ENTRY_N = 4, // 返回地址堆栈的条目数(2 | 4 | 8 | 16)
@@ -55,7 +54,7 @@ module panda_risc_v_sim #(
 	input wire tmr_itr_req, // 计时器中断请求
 	input wire ext_itr_req // 外部中断请求
 );
-    
+	
     // 计算bit_depth的最高有效位编号(即位数-1)
     function integer clogb2(input integer bit_depth);
     begin
@@ -165,6 +164,21 @@ module panda_risc_v_sim #(
 	wire[BTB_WAY_N*16-1:0] btb_mem_addrb;
 	wire[BTB_WAY_N*64-1:0] btb_mem_dinb;
 	wire[BTB_WAY_N*64-1:0] btb_mem_doutb;
+	// PHT存储器
+	// [端口A]
+	wire pht_mem_clka;
+	wire pht_mem_ena;
+	wire pht_mem_wea;
+	wire[15:0] pht_mem_addra;
+	wire[1:0] pht_mem_dina;
+	wire[1:0] pht_mem_douta;
+	// [端口B]
+	wire pht_mem_clkb;
+	wire pht_mem_enb;
+	wire pht_mem_web;
+	wire[15:0] pht_mem_addrb;
+	wire[1:0] pht_mem_dinb;
+	wire[1:0] pht_mem_doutb;
 	
 	panda_risc_v_core #(
 		.IBUS_ACCESS_TIMEOUT_TH(IBUS_ACCESS_TIMEOUT_TH),
@@ -180,7 +194,11 @@ module panda_risc_v_sim #(
 		.IMEM_ADDR_RANGE(IMEM_DEPTH * 4),
 		.DM_REGS_BASEADDR(32'hFFFF_F800),
 		.DM_REGS_ADDR_RANGE(1 * 1024),
-		.GHR_WIDTH(GHR_WIDTH),
+		.GHR_WIDTH(0),
+		.PC_WIDTH_FOR_PHT_ADDR(8),
+		.BHR_WIDTH(0),
+		.BHT_DEPTH(512),
+		.PHT_MEM_IMPL("sram"),
 		.BTB_WAY_N(BTB_WAY_N),
 		.BTB_ENTRY_N(BTB_ENTRY_N),
 		.RAS_ENTRY_N(RAS_ENTRY_N),
@@ -290,6 +308,20 @@ module panda_risc_v_sim #(
 		.btb_mem_addrb(btb_mem_addrb),
 		.btb_mem_dinb(btb_mem_dinb),
 		.btb_mem_doutb(btb_mem_doutb),
+		
+		.pht_mem_clka(pht_mem_clka),
+		.pht_mem_ena(pht_mem_ena),
+		.pht_mem_wea(pht_mem_wea),
+		.pht_mem_addra(pht_mem_addra),
+		.pht_mem_dina(pht_mem_dina),
+		.pht_mem_douta(pht_mem_douta),
+		
+		.pht_mem_clkb(pht_mem_clkb),
+		.pht_mem_enb(pht_mem_enb),
+		.pht_mem_web(pht_mem_web),
+		.pht_mem_addrb(pht_mem_addrb),
+		.pht_mem_dinb(pht_mem_dinb),
+		.pht_mem_doutb(pht_mem_doutb),
 		
 		.sw_itr_req(sw_itr_req),
 		.tmr_itr_req(tmr_itr_req),
@@ -519,5 +551,30 @@ module panda_risc_v_sim #(
 			);
 		end
 	endgenerate
+	
+	/** PHT存储器 **/
+	bram_true_dual_port #(
+		.mem_width(2),
+		.mem_depth(2**16),
+		.INIT_FILE(""),
+		.read_write_mode("read_first"),
+		.use_output_register("false"),
+		.en_byte_write("false"),
+		.simulation_delay(SIM_DELAY)
+	)pht_mem_u(
+		.clk(pht_mem_clka),
+		
+		.ena(pht_mem_ena),
+		.wea(pht_mem_wea),
+		.addra(pht_mem_addra[16-1:0]),
+		.dina(pht_mem_dina),
+		.douta(pht_mem_douta),
+		
+		.enb(pht_mem_enb),
+		.web(pht_mem_web),
+		.addrb(pht_mem_addrb[16-1:0]),
+		.dinb(pht_mem_dinb),
+		.doutb(pht_mem_doutb)
+	);
 	
 endmodule
