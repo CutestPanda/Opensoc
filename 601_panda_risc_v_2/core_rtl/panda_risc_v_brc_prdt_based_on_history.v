@@ -42,7 +42,7 @@ PHT存储器的读延迟为1clk
 MEM MASTER
 
 作者: 陈家耀
-日期: 2026/02/05
+日期: 2026/02/06
 ********************************************************************/
 
 
@@ -52,6 +52,7 @@ module panda_risc_v_brc_prdt_based_on_history #(
 	parameter integer BHR_WIDTH = 9, // 局部分支历史寄存器(BHR)的位宽
 	parameter integer BHT_DEPTH = 256, // 局部分支历史表(BHT)的深度(必须>=2且为2^n)
 	parameter PHT_MEM_IMPL = "reg", // PHT存储器的实现方式(reg | sram)
+	parameter BHT_IMPL = "reg", // BHT的实现方式(reg | sram)
 	parameter NO_INIT_PHT = "false", // 是否无需初始化PHT存储器
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
@@ -183,18 +184,33 @@ module panda_risc_v_brc_prdt_based_on_history #(
 	
 	/** 局部分支历史表(BHT) **/
 	reg[FIXED_BHR_WIDTH-1:0] bht[0:BHT_DEPTH-1];
+	wire[FIXED_BHR_WIDTH-1:0] bht_query_rdata;
+	
+	assign bht_query_rdata = bht[query_i_pc[clogb2(BHT_DEPTH-1)+2:2]];
 	
 	genvar bht_i;
 	generate
-		for(bht_i = 0;bht_i < BHT_DEPTH;bht_i = bht_i + 1)
-		begin:bht_blk
-			always @(posedge aclk or negedge aresetn)
+		if(BHT_IMPL == "reg")
+		begin
+			for(bht_i = 0;bht_i < BHT_DEPTH;bht_i = bht_i + 1)
+			begin:bht_reg_blk
+				always @(posedge aclk or negedge aresetn)
+				begin
+					if(~aresetn)
+						bht[bht_i] <= 0;
+					else if(update_i_req & (update_i_pc[clogb2(BHT_DEPTH-1)+2:2] == bht_i))
+						bht[bht_i] <= # SIM_DELAY 
+							{update_i_brc_taken, update_i_bhr[FIXED_BHR_WIDTH-1:1]};
+				end
+			end
+		end
+		else
+		begin
+			always @(posedge aclk)
 			begin
-				if(~aresetn)
-					bht[bht_i] <= 0;
-				else if(update_i_req & (update_i_pc[clogb2(BHT_DEPTH-1)+2:2] == bht_i))
-					bht[bht_i] <= # SIM_DELAY 
-						{update_i_brc_taken, bht[bht_i][FIXED_BHR_WIDTH-1:1]};
+				if(update_i_req)
+					bht[update_i_pc[clogb2(BHT_DEPTH-1)+2:2]] <= # SIM_DELAY 
+						{update_i_brc_taken, update_i_bhr[FIXED_BHR_WIDTH-1:1]};
 			end
 		end
 	endgenerate
@@ -270,7 +286,7 @@ module panda_risc_v_brc_prdt_based_on_history #(
 		) ^ 
 		(
 			(query_i_pc[PC_WIDTH+2-1:2] | {PHT_ADDR_WIDTH{1'b0}}) | 
-			(((bht[query_i_pc[clogb2(BHT_DEPTH-1)+2:2]] & ((1 << BHR_WIDTH) - 1)) | {PHT_ADDR_WIDTH{1'b0}}) << PC_WIDTH)
+			(((bht_query_rdata & ((1 << BHR_WIDTH) - 1)) | {PHT_ADDR_WIDTH{1'b0}}) << PC_WIDTH)
 		);
 	
 	assign pht_mem_query_en = query_i_req & pht_init_sts[2];
@@ -284,7 +300,7 @@ module panda_risc_v_brc_prdt_based_on_history #(
 	begin
 		if(query_i_req & (~pht_initializing))
 			query_o_bhr_r <= # SIM_DELAY 
-				(bht[query_i_pc[clogb2(BHT_DEPTH-1)+2:2]] & ((1 << BHR_WIDTH) - 1)) | 16'h0000;
+				(bht_query_rdata & ((1 << BHR_WIDTH) - 1)) | 16'h0000;
 	end
 	
 	// 查询结果有效(指示)

@@ -47,7 +47,7 @@ SOFTWARE.
 MEM MASTER
 
 作者: 陈家耀
-日期: 2026/02/05
+日期: 2026/02/06
 ********************************************************************/
 
 
@@ -62,6 +62,7 @@ module panda_risc_v_pre_if #(
 	parameter integer BHR_WIDTH = 9, // 局部分支历史寄存器(BHR)的位宽
 	parameter integer BHT_DEPTH = 256, // 局部分支历史表(BHT)的深度(必须>=2且为2^n)
 	parameter PHT_MEM_IMPL = "reg", // PHT存储器的实现方式(reg | sram)
+	parameter BHT_IMPL = "reg", // BHT的实现方式(reg | sram)
 	parameter NO_INIT_PHT = "false", // 是否无需初始化PHT存储器
 	// BTB配置
 	parameter integer BTB_WAY_N = 2, // BTB路数(1 | 2 | 4)
@@ -230,6 +231,7 @@ module panda_risc_v_pre_if #(
 		.BHR_WIDTH(BHR_WIDTH),
 		.BHT_DEPTH(BHT_DEPTH),
 		.PHT_MEM_IMPL(PHT_MEM_IMPL),
+		.BHT_IMPL(BHT_IMPL),
 		.NO_INIT_PHT(NO_INIT_PHT),
 		.BTB_WAY_N(BTB_WAY_N),
 		.BTB_ENTRY_N(BTB_ENTRY_N),

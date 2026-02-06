@@ -37,7 +37,7 @@ MEM MASTER
 AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2026/02/05
+日期: 2026/02/06
 ********************************************************************/
 
 
@@ -257,6 +257,7 @@ module panda_risc_v_core #(
 	localparam integer PRDT_MSG_WIDTH = 96; // 分支预测信息的位宽(正整数)
 	localparam integer PC_TAG_WIDTH = 32 - clogb2(BTB_ENTRY_N) - 2; // PC标签的位宽
 	localparam integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2; // BTB存储器的数据位宽
+	localparam BHT_IMPL = "sram"; // BHT的实现方式(reg | sram)
 	localparam NO_INIT_BTB = "false"; // 是否无需初始化BTB存储器
 	localparam NO_INIT_PHT = "false"; // 是否无需初始化PHT存储器
 	// 取操作数和指令译码配置
@@ -377,6 +378,7 @@ module panda_risc_v_core #(
 		.BHR_WIDTH(BHR_WIDTH),
 		.BHT_DEPTH(BHT_DEPTH),
 		.PHT_MEM_IMPL(PHT_MEM_IMPL),
+		.BHT_IMPL(BHT_IMPL),
 		.NO_INIT_PHT(NO_INIT_PHT),
 		.BTB_WAY_N(BTB_WAY_N),
 		.BTB_ENTRY_N(BTB_ENTRY_N),
