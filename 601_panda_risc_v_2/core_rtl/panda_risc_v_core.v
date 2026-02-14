@@ -1839,6 +1839,7 @@ module panda_risc_v_core #(
 	assign s_bru_o_to_rob_valid = m_bru_o_valid;
 	
 	panda_risc_v_rob #(
+		.EN_OUT_OF_ORDER_ISSUE(EN_OUT_OF_ORDER_ISSUE),
 		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
 		.FU_ID_WIDTH(3),
 		.ROB_ENTRY_N(ROB_ENTRY_N),

@@ -52,6 +52,7 @@ CSR读写指令信息记录槽位数(CSR_RW_RCD_SLOTS_N)不能大于ROB项数(RO
 
 
 module panda_risc_v_rob #(
+	parameter EN_OUT_OF_ORDER_ISSUE = "true", // 是否启用乱序发射
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
 	parameter integer FU_ID_WIDTH = 8, // 执行单元ID位宽(1~16)
 	parameter integer ROB_ENTRY_N = 8, // 重排序队列项数(4 | 8 | 16 | 32)
@@ -377,16 +378,21 @@ module panda_risc_v_rob #(
 					saving_csr_rw_msg_vld & 
 					(
 						(
-							rob_luc_bdcst_vld & rob_rcd_tb_full_n & rob_luc_bdcst_is_csr_rw_inst & (csr_rw_rcd_wptr == csr_rw_rcd_i) & 
-							(saving_csr_rw_msg_rob_entry_id[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0])
-						) | 
+							csr_rw_rcd_valid[csr_rw_rcd_i] | 
+							((EN_OUT_OF_ORDER_ISSUE == "false") & rob_luc_bdcst_vld & rob_rcd_tb_full_n & rob_luc_bdcst_is_csr_rw_inst & (csr_rw_rcd_wptr == csr_rw_rcd_i))
+						) & 
 						(
-							csr_rw_rcd_valid[csr_rw_rcd_i] & 
-							(saving_csr_rw_msg_rob_entry_id[clogb2(ROB_ENTRY_N-1):0] == csr_rw_rcd_wptr_saved[csr_rw_rcd_i][clogb2(ROB_ENTRY_N-1):0])
+							saving_csr_rw_msg_rob_entry_id[clogb2(ROB_ENTRY_N-1):0] == 
+								(
+									((EN_OUT_OF_ORDER_ISSUE == "true") | csr_rw_rcd_valid[csr_rw_rcd_i]) ? 
+										csr_rw_rcd_wptr_saved[csr_rw_rcd_i][clogb2(ROB_ENTRY_N-1):0]:
+										rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0]
+								)
 						)
 					)
 				)
-					csr_rw_rcd_upd_mask_v[csr_rw_rcd_i] <= # SIM_DELAY saving_csr_rw_msg_upd_mask_v;
+					csr_rw_rcd_upd_mask_v[csr_rw_rcd_i] <= # SIM_DELAY 
+						saving_csr_rw_msg_upd_mask_v;
 			end
 			
 			always @(posedge aclk or negedge aresetn)
