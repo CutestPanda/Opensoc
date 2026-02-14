@@ -165,6 +165,11 @@ module panda_risc_v_lsu #(
 	output wire m_axi_perph_wvalid,
 	input wire m_axi_perph_wready,
 	
+	// 读存储器结果快速旁路
+	output wire on_get_instant_rd_mem_res,
+	output wire[INST_ID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten,
+	output wire[31:0] data_of_instant_rd_mem_res_gotten,
+	
 	// LSU状态
 	output wire has_buffered_wr_mem_req, // 存在已缓存的写存储器请求(标志)
 	output wire has_processing_perph_access_req, // 存在处理中的外设访问请求(标志)
@@ -1949,18 +1954,19 @@ module panda_risc_v_lsu #(
 	assign rd_mem_rdata_final_for_pos_prcs = 
 		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_BYTE}} & {{24{rd_mem_rdata_algn_for_pos_prcs[7]}}, rd_mem_rdata_algn_for_pos_prcs[7:0]}) | 
 		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD}} & {{16{rd_mem_rdata_algn_for_pos_prcs[15]}}, rd_mem_rdata_algn_for_pos_prcs[15:0]}) | 
-		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_WORD}} & rd_mem_rdata_algn_for_pos_prcs) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_WORD}} & rd_mem_rdata_algn_for_pos_prcs[31:0]) | 
 		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_BYTE_UNSIGNED}} & {24'd0, rd_mem_rdata_algn_for_pos_prcs[7:0]}) | 
 		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD_UNSIGNED}} & {16'd0, rd_mem_rdata_algn_for_pos_prcs[15:0]});
 	
 	assign rd_perph_ls_type_for_pos_prcs = ls_req_table_ls_type[perph_trans_req_id];
 	assign rd_perph_ls_addr_for_pos_prcs = ls_req_table_ls_addr[perph_trans_req_id];
 	assign rd_perph_rdata_org_for_pos_prcs = perph_trans_res_rdata;
-	assign rd_perph_rdata_algn_for_pos_prcs = rd_perph_rdata_org_for_pos_prcs >> {rd_perph_ls_addr_for_pos_prcs[1:0], 3'b000};
+	assign rd_perph_rdata_algn_for_pos_prcs = 
+		rd_perph_rdata_org_for_pos_prcs >> {rd_perph_ls_addr_for_pos_prcs[1:0], 3'b000};
 	assign rd_perph_rdata_final_for_pos_prcs = 
 		({32{rd_perph_ls_type_for_pos_prcs == LS_TYPE_BYTE}} & {{24{rd_perph_rdata_algn_for_pos_prcs[7]}}, rd_perph_rdata_algn_for_pos_prcs[7:0]}) | 
 		({32{rd_perph_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD}} & {{16{rd_perph_rdata_algn_for_pos_prcs[15]}}, rd_perph_rdata_algn_for_pos_prcs[15:0]}) | 
-		({32{rd_perph_ls_type_for_pos_prcs == LS_TYPE_WORD}} & rd_perph_rdata_algn_for_pos_prcs) | 
+		({32{rd_perph_ls_type_for_pos_prcs == LS_TYPE_WORD}} & rd_perph_rdata_algn_for_pos_prcs[31:0]) | 
 		({32{rd_perph_ls_type_for_pos_prcs == LS_TYPE_BYTE_UNSIGNED}} & {24'd0, rd_perph_rdata_algn_for_pos_prcs[7:0]}) | 
 		({32{rd_perph_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD_UNSIGNED}} & {16'd0, rd_perph_rdata_algn_for_pos_prcs[15:0]});
 	
@@ -2204,5 +2210,34 @@ module panda_risc_v_lsu #(
 			end
 		end
 	endgenerate
+	
+	/** 读存储器结果快速旁路 **/
+	wire[31:0] instant_rd_mem_res_algn;
+	wire[31:0] instant_rd_mem_res_final;
+	
+	assign on_get_instant_rd_mem_res = 
+		on_complete_rd_mem_trans & 
+		// 说明: 为了降低组合逻辑延迟, 只将写存储器缓存检查无冲突的读存储器结果旁路出去
+		(~(|(
+			(
+				(EN_LOW_LATENCY_RD_MEM_ACCESS >= 2) & 
+				on_return_wr_mem_buf_check_res & (req_id_of_wr_mem_buf_check_res == req_id_of_completed_rd_mem_trans_w)
+			) ? 
+				merging_mask_of_wr_mem_buf_check_res:
+				ls_req_table_byte_mask[req_id_of_completed_rd_mem_trans_w]
+		)));
+	assign inst_id_of_instant_rd_mem_res_gotten = 
+		ls_req_table_inst_id[req_id_of_completed_rd_mem_trans_w];
+	assign data_of_instant_rd_mem_res_gotten = 
+		instant_rd_mem_res_final;
+	
+	assign instant_rd_mem_res_algn = 
+		rdata_of_completed_rd_mem_trans_w >> {rd_mem_ls_addr_for_pos_prcs[1:0], 3'b000};
+	assign instant_rd_mem_res_final = 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_BYTE}} & {{24{instant_rd_mem_res_algn[7]}}, instant_rd_mem_res_algn[7:0]}) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD}} & {{16{instant_rd_mem_res_algn[15]}}, instant_rd_mem_res_algn[15:0]}) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_WORD}} & instant_rd_mem_res_algn[31:0]) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_BYTE_UNSIGNED}} & {24'd0, instant_rd_mem_res_algn[7:0]}) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD_UNSIGNED}} & {16'd0, instant_rd_mem_res_algn[15:0]});
 	
 endmodule

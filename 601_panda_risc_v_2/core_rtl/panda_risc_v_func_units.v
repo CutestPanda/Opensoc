@@ -228,6 +228,11 @@ module panda_risc_v_func_units #(
 	// [取消后续外设访问]
 	input wire cancel_subseq_perph_access, // 取消指示
 	
+	// 读存储器结果快速旁路
+	output wire on_get_instant_rd_mem_res,
+	output wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten,
+	output wire[31:0] data_of_instant_rd_mem_res_gotten,
+	
 	// LSU状态
 	output wire has_buffered_wr_mem_req, // 存在已缓存的写存储器请求(标志)
 	output wire has_processing_perph_access_req, // 存在处理中的外设访问请求(标志)
@@ -389,6 +394,10 @@ module panda_risc_v_func_units #(
 		.m_axi_perph_wlast(m_axi_perph_wlast),
 		.m_axi_perph_wvalid(m_axi_perph_wvalid),
 		.m_axi_perph_wready(m_axi_perph_wready),
+		
+		.on_get_instant_rd_mem_res(on_get_instant_rd_mem_res),
+		.inst_id_of_instant_rd_mem_res_gotten(inst_id_of_instant_rd_mem_res_gotten),
+		.data_of_instant_rd_mem_res_gotten(data_of_instant_rd_mem_res_gotten),
 		
 		.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
 		.has_processing_perph_access_req(has_processing_perph_access_req),

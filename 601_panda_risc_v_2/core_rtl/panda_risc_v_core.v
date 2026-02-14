@@ -264,9 +264,9 @@ module panda_risc_v_core #(
 	localparam EN_OUT_OF_ORDER_ISSUE = "true"; // 是否启用乱序发射
 	localparam integer IQ0_ENTRY_N = 4; // 发射队列#0条目数(2 | 4 | 8 | 16)
 	localparam integer IQ1_ENTRY_N = 4; // 发射队列#1条目数(2 | 4 | 8 | 16)
-	localparam EN_IQ1_LOW_LA_LSU_LSN = "true"; // 是否启用发射队列#1对LSU结果的低时延监听
+	localparam integer IQ1_LOW_LA_LSU_LSN_OPT_LEVEL = 1; // 发射队列#1对LSU结果的低时延监听(优化等级)(0 | 1 | 2)
 	localparam EN_LOW_LA_BRC_PRDT_FAILURE_PROC = "true"; // 是否启用低时延的分支预测失败处理
-	localparam integer BRU_NOMINAL_RES_LATENCY = 1; // BRU名义结果输出时延
+	localparam integer BRU_NOMINAL_RES_LATENCY = 1; // BRU名义结果输出时延(0 | 1)
 	// CSR初值配置
 	localparam INIT_MTVEC_BASE = 30'd0; // mtvec状态寄存器BASE域复位值
 	localparam INIT_MCAUSE_INTERRUPT = 1'b0; // mcause状态寄存器Interrupt域复位值
@@ -814,6 +814,10 @@ module panda_risc_v_core #(
 	// 发射队列控制/状态
 	wire clr_iq0; // 清空发射队列#0(指示)
 	wire clr_iq1; // 清空发射队列#1(指示)
+	// 读存储器结果快速旁路
+	wire on_get_instant_rd_mem_res;
+	wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten;
+	wire[31:0] data_of_instant_rd_mem_res_gotten;
 	// LSU状态
 	wire has_buffered_wr_mem_req; // 存在已缓存的写存储器请求(标志)
 	wire has_processing_perph_access_req; // 存在处理中的外设访问请求(标志)
@@ -979,7 +983,7 @@ module panda_risc_v_core #(
 				.AGE_TAG_WIDTH(clogb2(ROB_ENTRY_N-1)+1+1),
 				.LSN_FU_N((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5),
 				.LSU_FU_ID(LSU_FU_ID),
-				.EN_IQ1_LOW_LA_LSU_LSN(EN_IQ1_LOW_LA_LSU_LSN),
+				.IQ1_LOW_LA_LSU_LSN_OPT_LEVEL(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL),
 				.EN_LOW_LA_BRC_PRDT_FAILURE_PROC(EN_LOW_LA_BRC_PRDT_FAILURE_PROC),
 				.IQ0_OTHER_PAYLOAD_WIDTH(64),
 				.IQ1_OTHER_PAYLOAD_WIDTH(256),
@@ -991,6 +995,10 @@ module panda_risc_v_core #(
 				
 				.clr_iq0(clr_iq0),
 				.clr_iq1(clr_iq1),
+				
+				.on_get_instant_rd_mem_res(on_get_instant_rd_mem_res),
+				.inst_id_of_instant_rd_mem_res_gotten(inst_id_of_instant_rd_mem_res_gotten),
+				.data_of_instant_rd_mem_res_gotten(data_of_instant_rd_mem_res_gotten),
 				
 				.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
 				.has_processing_perph_access_req(has_processing_perph_access_req),
@@ -1785,6 +1793,10 @@ module panda_risc_v_core #(
 		.perph_access_permitted_flag(perph_access_permitted_flag),
 		.init_perph_bus_tr_ls_inst_tid(init_perph_bus_tr_ls_inst_tid),
 		.cancel_subseq_perph_access(cancel_subseq_perph_access),
+		
+		.on_get_instant_rd_mem_res(on_get_instant_rd_mem_res),
+		.inst_id_of_instant_rd_mem_res_gotten(inst_id_of_instant_rd_mem_res_gotten),
+		.data_of_instant_rd_mem_res_gotten(data_of_instant_rd_mem_res_gotten),
 		
 		.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
 		.has_processing_perph_access_req(has_processing_perph_access_req),
