@@ -99,7 +99,7 @@ module panda_risc_v_multiplier #(
 	// 寄存器fifo
 	fifo_based_on_regs #(
 		.fwft_mode("true"),
-		.low_latency_mode("true"),
+		.low_latency_mode("false"),
 		.fifo_depth(2),
 		.fifo_data_width(72+inst_id_width),
 		.almost_full_th(1),

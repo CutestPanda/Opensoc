@@ -181,6 +181,8 @@ module panda_risc_v_sim #(
 	wire[1:0] pht_mem_doutb;
 	
 	panda_risc_v_core #(
+		.NO_INIT_BTB("true"),
+		.NO_INIT_PHT("true"),
 		.IBUS_ACCESS_TIMEOUT_TH(IBUS_ACCESS_TIMEOUT_TH),
 		.IBUS_OUTSTANDING_N(IBUS_OUTSTANDING_N),
 		.AXI_MEM_DATA_WIDTH(32),

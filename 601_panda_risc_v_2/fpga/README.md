@@ -8,6 +8,7 @@
 - vivado工程/panda_soc_test_v8.zip  
 - vivado工程/panda_soc_test_v9.zip  
 - vivado工程/panda_soc_test_v10.zip  
+- vivado工程/panda_soc_test_v11.zip  
 
 ### panda_soc_test_v7
 #### <center>存储映射表</center>
@@ -44,3 +45,7 @@
 存储映射和外部中断同panda_soc_test_v7。  
 在IFU处增加1个冲刷槽以处理JAL指令与非分支指令的分支预测失败，BRU现仅接受B指令、JALR指令、EBREAK指令或FENCE.I指令。  
 
+### panda_soc_test_v11
+
+存储映射和外部中断同panda_soc_test_v7。  
+从这个版本开始支持乱序发射。  

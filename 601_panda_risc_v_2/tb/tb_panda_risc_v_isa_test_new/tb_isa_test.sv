@@ -33,8 +33,8 @@ module tb_isa_test();
 	parameter integer DMEM_DEPTH = 8 * 1024; // 数据存储器深度
 	// parameter IMEM_INIT_FILE = "../coremark_sim.txt"; // 指令存储器的初始化文件路径
 	// parameter DMEM_INIT_FILE = "no_init"; // 数据存储器的初始化文件路径
-	parameter IMEM_INIT_FILE = "test_compiled/rv32ui-p-jalr.mem"; // 指令存储器的初始化文件路径
-	parameter DMEM_INIT_FILE = "test_compiled/rv32ui-p-jalr.mem"; // 数据存储器的初始化文件路径
+	parameter IMEM_INIT_FILE = "test_compiled/rv32ui-p-andi.mem"; // 指令存储器的初始化文件路径
+	parameter DMEM_INIT_FILE = "test_compiled/rv32ui-p-andi.mem"; // 数据存储器的初始化文件路径
 	// 待测模块配置
 	parameter integer IBUS_ACCESS_TIMEOUT_TH = 16; // 指令总线访问超时周期数(0 -> 不设超时 | 正整数)
 	parameter integer IBUS_OUTSTANDING_N = 4; // 指令总线滞外深度(1 | 2 | 4 | 8)

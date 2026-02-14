@@ -42,7 +42,7 @@ SOFTWARE.
 ********************************************************************/
 
 
-module panda_risc_v_regs_rd #(
+module panda_risc_v_regs_rd_in_order #(
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
 	parameter integer LSN_FU_N = 5, // 要监听结果的执行单元的个数(正整数)
 	parameter integer FU_ID_WIDTH = 8, // 执行单元ID位宽(1~16)

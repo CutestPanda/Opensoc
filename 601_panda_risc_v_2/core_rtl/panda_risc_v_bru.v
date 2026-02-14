@@ -50,6 +50,7 @@ module panda_risc_v_bru #(
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
 	parameter EN_IMDT_FLUSH = "false", // 是否启用立即冲刷
 	parameter DEBUG_ROM_ADDR = 32'h0000_0600, // Debug ROM基地址
+	parameter integer BRU_RES_LATENCY = 0, // BRU输出时延(0 | 1)
 	parameter real SIM_DELAY = 1 // 仿真延时
 )(
     // 时钟和复位
@@ -81,25 +82,19 @@ module panda_risc_v_bru #(
 	output wire[31:0] bru_flush_addr, // 冲刷地址
 	input wire bru_flush_grant, // 冲刷许可
 	
-	// ALU给出的分支判定结果
-	// 说明: BRU输入有效(s_bru_i_valid有效)且指令类型为B指令时, 分支判定结果必定有效
-	input wire alu_brc_cond_res,
-	
 	// BRU输入
-	input wire[127:0] s_bru_i_data, // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	input wire[162:0] s_bru_i_msg, // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
-	input wire[143:0] s_bru_i_dcd_res, // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
+	input wire[159:0] s_bru_i_prdt_msg, // 分支预测信息
+	input wire[15:0] s_bru_i_inst_type, // 打包的指令类型标志
 	input wire[IBUS_TID_WIDTH-1:0] s_bru_i_tid, // 指令ID
+	input wire s_bru_i_prdt_suc, // 是否预判分支预测成功
+	input wire s_bru_i_brc_cond_res, // 分支判定结果
 	input wire s_bru_i_valid,
 	output wire s_bru_i_ready,
 	
 	// BRU输出
 	output wire[IBUS_TID_WIDTH-1:0] m_bru_o_tid, // 指令ID
-	output wire[31:0] m_bru_o_pc, // 当前PC地址
 	output wire[31:0] m_bru_o_nxt_pc, // 下一有效PC地址
 	output wire[1:0] m_bru_o_b_inst_res, // B指令执行结果
-	output wire[1:0] m_bru_o_org_2bit_sat_cnt, // 原来的2bit饱和计数器
-	output wire[15:0] m_bru_o_bhr, // BHR
 	output wire m_bru_o_valid
 );
 	
@@ -133,7 +128,7 @@ module panda_risc_v_bru #(
 	localparam integer PRDT_MSG_BTB_HIT_SID = 36; // BTB命中
 	localparam integer PRDT_MSG_BTB_WID_SID = 37; // BTB命中的缓存路编号
 	localparam integer PRDT_MSG_BTB_WVLD_SID = 39; // BTB缓存路有效标志
-	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 全局历史分支预测给出的2bit饱和计数器
+	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 基于历史的分支预测给出的2bit饱和计数器
 	localparam integer PRDT_MSG_BTB_BTA_SID = 45; // BTB分支目标地址
 	localparam integer PRDT_MSG_PUSH_RAS_SID = 77; // RAS压栈标志
 	localparam integer PRDT_MSG_POP_RAS_SID = 78; // RAS出栈标志
@@ -180,21 +175,21 @@ module panda_risc_v_bru #(
 	wire[31:0] actual_jmp_addr; // 实际的跳转地址
 	
 	assign is_brc_inst = 
-		(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & (
-			s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] | 
-			s_bru_i_dcd_res[INST_TYPE_FLAG_IS_JAL_INST_SID] | 
-			s_bru_i_dcd_res[INST_TYPE_FLAG_IS_JALR_INST_SID]
+		(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & (
+			s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID] | 
+			s_bru_i_inst_type[INST_TYPE_FLAG_IS_JAL_INST_SID] | 
+			s_bru_i_inst_type[INST_TYPE_FLAG_IS_JALR_INST_SID]
 		);
 	
 	// 说明: 即使不是分支指令, 也可能预测跳转, 这只在"指令自修改"时可能发生, 因为此时BTB中的分支信息是过时的
-	assign prdt_success = prdt_jmp_addr == actual_jmp_addr;
+	assign prdt_success = s_bru_i_prdt_suc | (prdt_jmp_addr == actual_jmp_addr);
 	
-	assign actual_bta = s_bru_i_msg[31+PRDT_MSG_ACTUAL_BTA_SID+3:PRDT_MSG_ACTUAL_BTA_SID+3];
-	assign nxt_seq_pc = s_bru_i_msg[31+PRDT_MSG_NXT_SEQ_PC_SID+3:PRDT_MSG_NXT_SEQ_PC_SID+3];
-	assign prdt_jmp_addr = s_bru_i_msg[31+PRDT_MSG_TARGET_ADDR_SID+3:PRDT_MSG_TARGET_ADDR_SID+3];
+	assign actual_bta = s_bru_i_prdt_msg[31+PRDT_MSG_ACTUAL_BTA_SID:PRDT_MSG_ACTUAL_BTA_SID];
+	assign nxt_seq_pc = s_bru_i_prdt_msg[31+PRDT_MSG_NXT_SEQ_PC_SID:PRDT_MSG_NXT_SEQ_PC_SID];
+	assign prdt_jmp_addr = s_bru_i_prdt_msg[31+PRDT_MSG_TARGET_ADDR_SID:PRDT_MSG_TARGET_ADDR_SID];
 	
 	assign actual_jmp_addr = 
-		((~is_brc_inst) | (s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & (~alu_brc_cond_res))) ? 
+		((~is_brc_inst) | (s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID] & (~s_bru_i_brc_cond_res))) ? 
 			nxt_seq_pc:
 			actual_bta;
 	
@@ -202,15 +197,15 @@ module panda_risc_v_bru #(
 	wire is_fence_i_inst; // 是否FENCE.I指令(标志)
 	
 	assign is_fence_i_inst = 
-		(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
-		s_bru_i_dcd_res[INST_TYPE_FLAG_IS_FENCE_I_INST_SID];
+		(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
+		s_bru_i_inst_type[INST_TYPE_FLAG_IS_FENCE_I_INST_SID];
 	
 	/** 处理调试模式下的EBREAK指令 **/
 	wire is_ebreak_inst; // 是否EBREAK指令(标志)
 	
 	assign is_ebreak_inst = 
-		(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
-		s_bru_i_dcd_res[INST_TYPE_FLAG_IS_EBREAK_INST_SID];
+		(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
+		s_bru_i_inst_type[INST_TYPE_FLAG_IS_EBREAK_INST_SID];
 	
 	/** 产生冲刷请求 **/
 	wire need_flush; // 需要冲刷(标志)
@@ -222,9 +217,7 @@ module panda_risc_v_bru #(
 		(~rst_bru) & 
 		(
 			bru_flush_pending | 
-			(
-				(EN_IMDT_FLUSH == "true") & s_bru_i_valid & need_flush
-			)
+			((EN_IMDT_FLUSH == "true") & s_bru_i_valid & need_flush)
 		);
 	assign bru_flush_addr = 
 		((EN_IMDT_FLUSH == "false") | bru_flush_pending) ? 
@@ -237,27 +230,6 @@ module panda_risc_v_bru #(
 		后级(交付)镇压时, 接受或不接受输入都是无所谓的, 因为后级此时通常是发生了异常/中断/调试, 这个时候肯定也是要冲刷CPU前端
 	*/
 	assign s_bru_i_ready = rst_bru | (~bru_flush_pending) | (~need_flush);
-	
-	assign m_bru_o_tid = s_bru_i_tid;
-	assign m_bru_o_pc = s_bru_i_data[127:96];
-	// 说明: 下一有效PC地址未考虑到中断/异常, 只考虑了实际的分支跳转地址
-	assign m_bru_o_nxt_pc = actual_jmp_addr;
-	assign m_bru_o_b_inst_res = 
-		(
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & 
-			s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID]
-		) ? 
-			(
-				alu_brc_cond_res ? 
-					B_INST_RES_TAKEN:
-					B_INST_RES_NOT_TAKEN
-			):
-			B_INST_RES_NONE;
-	assign m_bru_o_org_2bit_sat_cnt = 
-		s_bru_i_msg[PRDT_MSG_GLB_SAT_CNT_SID+1+3:PRDT_MSG_GLB_SAT_CNT_SID+3];
-	assign m_bru_o_bhr = 
-		s_bru_i_msg[PRDT_MSG_BHR_SID+15+3:PRDT_MSG_BHR_SID+3];
-	assign m_bru_o_valid = s_bru_i_valid & s_bru_i_ready;
 	
 	assign need_flush = (~prdt_success) | is_fence_i_inst | (in_dbg_mode & is_ebreak_inst);
 	assign flush_addr_cur = 
@@ -286,6 +258,48 @@ module panda_risc_v_bru #(
 	begin
 		if((~bru_flush_pending) & s_bru_i_valid & need_flush & ((EN_IMDT_FLUSH == "false") | (~bru_flush_grant)))
 			bru_flush_addr_gen <= # SIM_DELAY flush_addr_cur;
+	end
+	
+	/** BRU输出 **/
+	wire[IBUS_TID_WIDTH-1:0] bru_o_tid_w; // 指令ID
+	wire[31:0] bru_o_nxt_pc_w; // 下一有效PC地址
+	wire[1:0] bru_o_b_inst_res_w; // B指令执行结果
+	wire bru_o_valid_w;
+	reg[IBUS_TID_WIDTH-1:0] bru_o_tid_r; // 指令ID
+	reg[31:0] bru_o_nxt_pc_r; // 下一有效PC地址
+	reg[1:0] bru_o_b_inst_res_r; // B指令执行结果
+	reg bru_o_valid_r;
+	
+	assign m_bru_o_tid = (BRU_RES_LATENCY == 0) ? bru_o_tid_w:bru_o_tid_r;
+	assign m_bru_o_nxt_pc = (BRU_RES_LATENCY == 0) ? bru_o_nxt_pc_w:bru_o_nxt_pc_r;
+	assign m_bru_o_b_inst_res = (BRU_RES_LATENCY == 0) ? bru_o_b_inst_res_w:bru_o_b_inst_res_r;
+	assign m_bru_o_valid = (BRU_RES_LATENCY == 0) ? bru_o_valid_w:bru_o_valid_r;
+	
+	assign bru_o_tid_w = s_bru_i_tid;
+	assign bru_o_nxt_pc_w = actual_jmp_addr; // 说明: 下一有效PC地址未考虑到中断/异常, 只考虑了实际的分支跳转地址
+	assign bru_o_b_inst_res_w = 
+		((~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID]) ? 
+			(
+				s_bru_i_brc_cond_res ? 
+					B_INST_RES_TAKEN:
+					B_INST_RES_NOT_TAKEN
+			):
+			B_INST_RES_NONE;
+	assign bru_o_valid_w = s_bru_i_valid & s_bru_i_ready;
+	
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			bru_o_valid_r <= 1'b0;
+		else
+			bru_o_valid_r <= # SIM_DELAY bru_o_valid_w;
+	end
+	
+	always @(posedge aclk)
+	begin
+		if(bru_o_valid_w)
+			{bru_o_tid_r, bru_o_nxt_pc_r, bru_o_b_inst_res_r} <= # SIM_DELAY 
+				{bru_o_tid_w, bru_o_nxt_pc_w, bru_o_b_inst_res_w};
 	end
 	
 	/** 分支预测统计信息 **/
@@ -326,7 +340,7 @@ module panda_risc_v_bru #(
 			jal_inst_n_acpt_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_JAL_INST_SID]
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_JAL_INST_SID]
 		)
 			jal_inst_n_acpt_r <= # SIM_DELAY jal_inst_n_acpt_r + 1'b1;
 	end
@@ -337,7 +351,7 @@ module panda_risc_v_bru #(
 			jal_prdt_success_inst_n_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_JAL_INST_SID] & 
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_JAL_INST_SID] & 
 			prdt_success
 		)
 			jal_prdt_success_inst_n_r <= # SIM_DELAY jal_prdt_success_inst_n_r + 1'b1;
@@ -350,7 +364,7 @@ module panda_risc_v_bru #(
 			jalr_inst_n_acpt_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_JALR_INST_SID]
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_JALR_INST_SID]
 		)
 			jalr_inst_n_acpt_r <= # SIM_DELAY jalr_inst_n_acpt_r + 1'b1;
 	end
@@ -361,7 +375,7 @@ module panda_risc_v_bru #(
 			jalr_prdt_success_inst_n_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_JALR_INST_SID] & 
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_JALR_INST_SID] & 
 			prdt_success
 		)
 			jalr_prdt_success_inst_n_r <= # SIM_DELAY jalr_prdt_success_inst_n_r + 1'b1;
@@ -374,7 +388,7 @@ module panda_risc_v_bru #(
 			b_inst_n_acpt_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID]
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID]
 		)
 			b_inst_n_acpt_r <= # SIM_DELAY b_inst_n_acpt_r + 1'b1;
 	end
@@ -385,7 +399,7 @@ module panda_risc_v_bru #(
 			b_prdt_success_inst_n_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID] & 
 			prdt_success
 		)
 			b_prdt_success_inst_n_r <= # SIM_DELAY b_prdt_success_inst_n_r + 1'b1;
@@ -397,8 +411,8 @@ module panda_risc_v_bru #(
 			b_prdt_not_taken_but_actually_taken_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
-			(~s_bru_i_msg[PRDT_MSG_IS_TAKEN_SID+3]) & alu_brc_cond_res
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			(~s_bru_i_prdt_msg[PRDT_MSG_IS_TAKEN_SID]) & s_bru_i_brc_cond_res
 		)
 			b_prdt_not_taken_but_actually_taken_r <= # SIM_DELAY b_prdt_not_taken_but_actually_taken_r + 1'b1;
 	end
@@ -409,8 +423,8 @@ module panda_risc_v_bru #(
 			b_prdt_taken_but_actually_not_taken_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
-			s_bru_i_msg[PRDT_MSG_IS_TAKEN_SID+3] & (~alu_brc_cond_res)
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			s_bru_i_prdt_msg[PRDT_MSG_IS_TAKEN_SID] & (~s_bru_i_brc_cond_res)
 		)
 			b_prdt_taken_but_actually_not_taken_r <= # SIM_DELAY b_prdt_taken_but_actually_not_taken_r + 1'b1;
 	end
@@ -421,8 +435,8 @@ module panda_risc_v_bru #(
 			b_actually_taken_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
-			alu_brc_cond_res
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			s_bru_i_brc_cond_res
 		)
 			b_actually_taken_r <= # SIM_DELAY b_actually_taken_r + 1'b1;
 	end
@@ -433,8 +447,8 @@ module panda_risc_v_bru #(
 			b_actually_not_taken_r <= 32'd0;
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
-			(~s_bru_i_dcd_res[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_dcd_res[INST_TYPE_FLAG_IS_B_INST_SID] & 
-			(~alu_brc_cond_res)
+			(~s_bru_i_inst_type[INST_TYPE_FLAG_IS_ILLEGAL_INST_SID]) & s_bru_i_inst_type[INST_TYPE_FLAG_IS_B_INST_SID] & 
+			(~s_bru_i_brc_cond_res)
 		)
 			b_actually_not_taken_r <= # SIM_DELAY b_actually_not_taken_r + 1'b1;
 	end
@@ -482,7 +496,7 @@ module panda_risc_v_bru #(
 		else if(
 			s_bru_i_valid & s_bru_i_ready & 
 			is_brc_inst & 
-			s_bru_i_msg[PRDT_MSG_BTB_HIT_SID+3]
+			s_bru_i_prdt_msg[PRDT_MSG_BTB_HIT_SID]
 		)
 			brc_inst_with_btb_hit_n_r <= # SIM_DELAY brc_inst_with_btb_hit_n_r + 1'b1;
 	end

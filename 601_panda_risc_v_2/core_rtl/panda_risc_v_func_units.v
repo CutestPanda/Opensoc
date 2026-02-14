@@ -30,17 +30,18 @@ SOFTWARE.
 一组执行单元, 包括ALU、CSR原子读写(需要外接)、LSU、乘法器、除法器
 
 注意：
-LSU的访存地址由ALU计算得到
+无
 
 协议:
 AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2026/01/29
+日期: 2026/02/11
 ********************************************************************/
 
 
 module panda_risc_v_func_units #(
+	parameter EN_OUT_OF_ORDER_ISSUE = "true", // 是否启用乱序发射
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
 	parameter integer AXI_MEM_DATA_WIDTH = 64, // 存储器AXI主机的数据位宽(32 | 64 | 128 | 256)
 	parameter integer MEM_ACCESS_TIMEOUT_TH = 0, // 存储器访问超时周期数(0 -> 不设超时 | 正整数)
@@ -90,6 +91,7 @@ module panda_risc_v_func_units #(
 	input wire s_lsu_ls_sel, // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
 	input wire[2:0] s_lsu_ls_type, // 访存类型
 	input wire[4:0] s_lsu_rd_id_for_ld, // 用于加载的目标寄存器的索引
+	input wire[31:0] s_lsu_ls_addr, // 访存地址
 	input wire[31:0] s_lsu_ls_din, // 写数据
 	input wire[IBUS_TID_WIDTH-1:0] s_lsu_inst_id, // 指令ID
 	input wire s_lsu_valid,
@@ -137,11 +139,16 @@ module panda_risc_v_func_units #(
 	output wire[11:0] csr_atom_raddr, // CSR读地址
 	input wire[31:0] csr_atom_dout, // CSR原值
 	
+	// BRU名义结果
+	input wire bru_nominal_res_vld, // 有效标志
+	input wire[IBUS_TID_WIDTH-1:0] bru_nominal_res_tid, // 指令ID
+	input wire[31:0] bru_nominal_res, // 执行结果
+	
 	// 执行单元结果返回
-	output wire[4:0] fu_res_vld, // 有效标志
-	output wire[5*IBUS_TID_WIDTH-1:0] fu_res_tid, // 指令ID
-	output wire[5*32-1:0] fu_res_data, // 执行结果
-	output wire[5*3-1:0] fu_res_err, // 错误码
+	output wire[6-1:0] fu_res_vld, // 有效标志
+	output wire[6*IBUS_TID_WIDTH-1:0] fu_res_tid, // 指令ID
+	output wire[6*32-1:0] fu_res_data, // 执行结果
+	output wire[6*3-1:0] fu_res_err, // 错误码
 	
 	// 存储器AXI主机
 	// [AR通道]
@@ -253,7 +260,8 @@ module panda_risc_v_func_units #(
 	localparam LSU_ERR_CODE_WT_FAILED = 3'b100; // 写访问失败
 	
 	/** ALU **/
-	wire[31:0] alu_ls_addr; // 访存地址
+	// ALU特定结果输出
+	wire[31:0] ls_addr; // 访存地址
 	
 	assign m_alu_tid = s_alu_tid;
 	assign m_alu_valid = s_alu_valid & s_alu_use_res;
@@ -267,7 +275,7 @@ module panda_risc_v_func_units #(
 		.op2(s_alu_op2),
 		
 		.brc_cond_res(m_alu_brc_cond_res),
-		.ls_addr(alu_ls_addr),
+		.ls_addr(ls_addr),
 		
 		.res(m_alu_res)
 	);
@@ -280,11 +288,13 @@ module panda_risc_v_func_units #(
 	assign m_csr_valid = s_csr_valid;
 	
 	/** LSU **/
+	wire[31:0] cur_ls_addr; // 当前的访存地址
 	wire is_ls_addr_in_perph_region; // 访存地址处于外设区域(标志)
 	
+	assign cur_ls_addr = (EN_OUT_OF_ORDER_ISSUE == "true") ? s_lsu_ls_addr:ls_addr;
 	assign is_ls_addr_in_perph_region = 
-		((alu_ls_addr >= PERPH_ADDR_REGION_0_BASE) & (alu_ls_addr < (PERPH_ADDR_REGION_0_BASE + PERPH_ADDR_REGION_0_LEN))) | 
-		((alu_ls_addr >= PERPH_ADDR_REGION_1_BASE) & (alu_ls_addr < (PERPH_ADDR_REGION_1_BASE + PERPH_ADDR_REGION_1_LEN)));
+		((cur_ls_addr >= PERPH_ADDR_REGION_0_BASE) & (cur_ls_addr < (PERPH_ADDR_REGION_0_BASE + PERPH_ADDR_REGION_0_LEN))) | 
+		((cur_ls_addr >= PERPH_ADDR_REGION_1_BASE) & (cur_ls_addr < (PERPH_ADDR_REGION_1_BASE + PERPH_ADDR_REGION_1_LEN)));
 	
 	panda_risc_v_lsu #(
 		.INST_ID_WIDTH(IBUS_TID_WIDTH),
@@ -313,7 +323,7 @@ module panda_risc_v_func_units #(
 		.s_req_ls_sel(s_lsu_ls_sel),
 		.s_req_ls_type(s_lsu_ls_type),
 		.s_req_rd_id_for_ld(s_lsu_rd_id_for_ld),
-		.s_req_ls_addr(alu_ls_addr),
+		.s_req_ls_addr(cur_ls_addr),
 		.s_req_ls_din(s_lsu_ls_din),
 		.s_req_lsu_inst_id(s_lsu_inst_id),
 		.s_req_ls_mem_access(~is_ls_addr_in_perph_region),
@@ -436,30 +446,65 @@ module panda_risc_v_func_units #(
 	);
 	
 	/** 执行单元结果返回 **/
-	assign fu_res_vld = {m_div_valid, m_mul_valid, m_lsu_valid, m_csr_valid, m_alu_valid};
-	assign fu_res_tid = {m_div_inst_id, m_mul_inst_id, m_lsu_inst_id, m_csr_tid, m_alu_tid};
-	assign fu_res_data = {
-		m_div_data,
-		m_mul_data,
-		m_lsu_dout_ls_addr, // 发送LSU错误时给出访存地址而非读数据
-		m_csr_dout,
-		m_alu_res
-	};
-	assign fu_res_err = {
-		3'b000, 
-		3'b000, 
-		({3{m_lsu_err == DBUS_ACCESS_NORMAL}} & 
-			LSU_ERR_CODE_NORMAL) | 
-		({3{(m_lsu_err == DBUS_ACCESS_LS_UNALIGNED) & (~m_lsu_ls_sel)}} & 
-			LSU_ERR_CODE_RD_ADDR_UNALIGNED) | 
-		({3{(m_lsu_err == DBUS_ACCESS_LS_UNALIGNED) & m_lsu_ls_sel}} & 
-			LSU_ERR_CODE_WT_ADDR_UNALIGNED) | 
-		({3{((m_lsu_err == DBUS_ACCESS_BUS_ERR) | (m_lsu_err == DBUS_ACCESS_TIMEOUT)) & (~m_lsu_ls_sel)}} & 
-			LSU_ERR_CODE_RD_FAILED) | 
-		({3{((m_lsu_err == DBUS_ACCESS_BUS_ERR) | (m_lsu_err == DBUS_ACCESS_TIMEOUT)) & m_lsu_ls_sel}} & 
-			LSU_ERR_CODE_WT_FAILED), 
-		3'b000, 
-		3'b000
-	};
+	generate
+		if(EN_OUT_OF_ORDER_ISSUE == "true")
+		begin
+			assign fu_res_vld = {bru_nominal_res_vld, m_div_valid, m_mul_valid, m_lsu_valid, m_csr_valid, m_alu_valid};
+			assign fu_res_tid = {bru_nominal_res_tid, m_div_inst_id, m_mul_inst_id, m_lsu_inst_id, m_csr_tid, m_alu_tid};
+			assign fu_res_data = {
+				bru_nominal_res,
+				m_div_data,
+				m_mul_data,
+				m_lsu_dout_ls_addr, // 发送LSU错误时给出访存地址而非读数据
+				m_csr_dout,
+				m_alu_res
+			};
+			assign fu_res_err = {
+				3'b000,
+				3'b000, 
+				3'b000, 
+				({3{m_lsu_err == DBUS_ACCESS_NORMAL}} & 
+					LSU_ERR_CODE_NORMAL) | 
+				({3{(m_lsu_err == DBUS_ACCESS_LS_UNALIGNED) & (~m_lsu_ls_sel)}} & 
+					LSU_ERR_CODE_RD_ADDR_UNALIGNED) | 
+				({3{(m_lsu_err == DBUS_ACCESS_LS_UNALIGNED) & m_lsu_ls_sel}} & 
+					LSU_ERR_CODE_WT_ADDR_UNALIGNED) | 
+				({3{((m_lsu_err == DBUS_ACCESS_BUS_ERR) | (m_lsu_err == DBUS_ACCESS_TIMEOUT)) & (~m_lsu_ls_sel)}} & 
+					LSU_ERR_CODE_RD_FAILED) | 
+				({3{((m_lsu_err == DBUS_ACCESS_BUS_ERR) | (m_lsu_err == DBUS_ACCESS_TIMEOUT)) & m_lsu_ls_sel}} & 
+					LSU_ERR_CODE_WT_FAILED), 
+				3'b000, 
+				3'b000
+			};
+		end
+		else
+		begin
+			assign fu_res_vld = {m_div_valid, m_mul_valid, m_lsu_valid, m_csr_valid, m_alu_valid};
+			assign fu_res_tid = {m_div_inst_id, m_mul_inst_id, m_lsu_inst_id, m_csr_tid, m_alu_tid};
+			assign fu_res_data = {
+				m_div_data,
+				m_mul_data,
+				m_lsu_dout_ls_addr, // 发送LSU错误时给出访存地址而非读数据
+				m_csr_dout,
+				m_alu_res
+			};
+			assign fu_res_err = {
+				3'b000, 
+				3'b000, 
+				({3{m_lsu_err == DBUS_ACCESS_NORMAL}} & 
+					LSU_ERR_CODE_NORMAL) | 
+				({3{(m_lsu_err == DBUS_ACCESS_LS_UNALIGNED) & (~m_lsu_ls_sel)}} & 
+					LSU_ERR_CODE_RD_ADDR_UNALIGNED) | 
+				({3{(m_lsu_err == DBUS_ACCESS_LS_UNALIGNED) & m_lsu_ls_sel}} & 
+					LSU_ERR_CODE_WT_ADDR_UNALIGNED) | 
+				({3{((m_lsu_err == DBUS_ACCESS_BUS_ERR) | (m_lsu_err == DBUS_ACCESS_TIMEOUT)) & (~m_lsu_ls_sel)}} & 
+					LSU_ERR_CODE_RD_FAILED) | 
+				({3{((m_lsu_err == DBUS_ACCESS_BUS_ERR) | (m_lsu_err == DBUS_ACCESS_TIMEOUT)) & m_lsu_ls_sel}} & 
+					LSU_ERR_CODE_WT_FAILED), 
+				3'b000, 
+				3'b000
+			};
+		end
+	endgenerate
 	
 endmodule

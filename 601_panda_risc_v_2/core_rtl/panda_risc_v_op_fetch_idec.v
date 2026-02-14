@@ -49,7 +49,7 @@ SOFTWARE.
 
 module panda_risc_v_op_fetch_idec #(
 	parameter integer IBUS_TID_WIDTH = 8, // 指令总线事务ID位宽(1~16)
-	parameter integer LSN_FU_N = 5, // 要监听结果的执行单元的个数(正整数)
+	parameter integer LSN_FU_N = 6, // 要监听结果的执行单元的个数(正整数)
 	parameter integer FU_ID_WIDTH = 8, // 执行单元ID位宽(1~16)
 	parameter integer FU_RES_WIDTH = 32, // 执行单元结果位宽(正整数)
 	parameter GEN_LS_ADDR_UNALIGNED_EXPT = "false", // 是否考虑访存地址非对齐异常
@@ -97,6 +97,9 @@ module panda_risc_v_op_fetch_idec #(
 	output wire brc_bdcst_luc_is_jalr_inst, // 是否JALR指令
 	output wire[31:0] brc_bdcst_luc_bta, // 分支目标地址
 	
+	// ROB状态
+	input wire[7:0] rob_entry_id_to_be_written, // 待写项的条目编号
+	
 	// 发射阶段ROB记录广播
 	output wire rob_luc_bdcst_vld, // 广播有效
 	output wire[IBUS_TID_WIDTH-1:0] rob_luc_bdcst_tid, // 指令ID
@@ -104,12 +107,19 @@ module panda_risc_v_op_fetch_idec #(
 	output wire[4:0] rob_luc_bdcst_rd_id, // 目的寄存器编号
 	output wire rob_luc_bdcst_is_ls_inst, // 是否加载/存储指令
 	output wire rob_luc_bdcst_is_csr_rw_inst, // 是否CSR读写指令
-	output wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
+	output wire[13:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit)})
 	output wire[2:0] rob_luc_bdcst_err, // 错误类型
 	output wire[2:0] rob_luc_bdcst_spec_inst_type, // 特殊指令类型
 	output wire rob_luc_bdcst_is_b_inst, // 是否B指令
 	output wire[31:0] rob_luc_bdcst_pc, // 指令对应的PC
 	output wire[31:0] rob_luc_bdcst_nxt_pc, // 指令对应的下一有效PC
+	output wire[1:0] rob_luc_bdcst_org_2bit_sat_cnt, // 原来的2bit饱和计数器
+	output wire[15:0] rob_luc_bdcst_bhr, // BHR
+	
+	// 更新ROB的"CSR更新掩码或更新值"字段
+	output wire[31:0] saving_csr_rw_msg_upd_mask_v, // 更新掩码或更新值
+	output wire[7:0] saving_csr_rw_msg_rob_entry_id, // ROB条目编号
+	output wire saving_csr_rw_msg_vld,
 	
 	// 数据相关性检查
 	// [操作数1]
@@ -176,7 +186,7 @@ module panda_risc_v_op_fetch_idec #(
 	localparam integer PRDT_MSG_BTB_HIT_SID = 36; // BTB命中
 	localparam integer PRDT_MSG_BTB_WID_SID = 37; // BTB命中的缓存路编号
 	localparam integer PRDT_MSG_BTB_WVLD_SID = 39; // BTB缓存路有效标志
-	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 全局历史分支预测给出的2bit饱和计数器
+	localparam integer PRDT_MSG_GLB_SAT_CNT_SID = 43; // 基于历史的分支预测给出的2bit饱和计数器
 	localparam integer PRDT_MSG_BTB_BTA_SID = 45; // BTB分支目标地址
 	localparam integer PRDT_MSG_PUSH_RAS_SID = 77; // RAS压栈标志
 	localparam integer PRDT_MSG_POP_RAS_SID = 78; // RAS出栈标志
@@ -256,6 +266,7 @@ module panda_risc_v_op_fetch_idec #(
 	localparam integer FU_LSU_ID = 2; // LSU
 	localparam integer FU_MUL_ID = 3; // 乘法器
 	localparam integer FU_DIV_ID = 4; // 除法器
+	localparam integer FU_BRU_ID = 5; // BRU
 	// 特殊指令类型
 	localparam SPEC_INST_TYPE_NONE = 3'b000; // 非特殊指令
 	localparam SPEC_INST_TYPE_ECALL = 3'b100; // ECALL指令
@@ -582,8 +593,7 @@ module panda_risc_v_op_fetch_idec #(
 		m_op_ftc_id_res_dcd_res[PRE_DCD_MSG_IS_CSR_RW_INST_SID];
 	assign rob_luc_bdcst_csr_rw_inst_msg = {
 		m_op_ftc_id_res_dcd_res[11+CSR_RW_OP_MSG_ADDR_SID+16:CSR_RW_OP_MSG_ADDR_SID+16], // CSR写地址
-		m_op_ftc_id_res_dcd_res[1+CSR_RW_OP_MSG_UPD_TYPE_SID+16:CSR_RW_OP_MSG_UPD_TYPE_SID+16], // CSR更新类型
-		m_op_ftc_id_res_dcd_res[31+CSR_RW_OP_MSG_MASK_V_SID+16:CSR_RW_OP_MSG_MASK_V_SID+16] // CSR更新掩码或更新值
+		m_op_ftc_id_res_dcd_res[1+CSR_RW_OP_MSG_UPD_TYPE_SID+16:CSR_RW_OP_MSG_UPD_TYPE_SID+16] // CSR更新类型
 	};
 	assign rob_luc_bdcst_err = m_op_ftc_id_res_msg[2:0];
 	assign rob_luc_bdcst_spec_inst_type = 
@@ -600,29 +610,24 @@ module panda_risc_v_op_fetch_idec #(
 		((~is_illegal_inst) & is_jal_inst) ? 
 			brc_bdcst_luc_bta:
 			nxt_seq_pc;
+	assign rob_luc_bdcst_org_2bit_sat_cnt = s_if_res_msg[1+PRDT_MSG_GLB_SAT_CNT_SID+3:PRDT_MSG_GLB_SAT_CNT_SID+3];
+	assign rob_luc_bdcst_bhr = s_if_res_msg[15+PRDT_MSG_BHR_SID+3:PRDT_MSG_BHR_SID+3];
+	
+	assign saving_csr_rw_msg_upd_mask_v = m_op_ftc_id_res_dcd_res[31+CSR_RW_OP_MSG_MASK_V_SID+16:CSR_RW_OP_MSG_MASK_V_SID+16];
+	assign saving_csr_rw_msg_rob_entry_id = rob_entry_id_to_be_written;
+	assign saving_csr_rw_msg_vld = m_op_ftc_id_res_valid & m_op_ftc_id_res_ready;
 	
 	assign nxt_seq_pc = s_if_res_data[127:96] + 3'd4; // PC + 指令长度
 	assign prdt_addr_corrected = 
+		// 说明: 只有通过BRU的指令(B指令或JALR指令)才需要检查跳转地址
 		(
-			(
-				// 当前指令是分支指令
-				((~is_illegal_inst) & (is_b_inst | is_jal_inst | is_jalr_inst)) & 
-				// 分支预测特例: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
-				s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3] & 
-				(s_if_res_msg[2+PRDT_MSG_BTYPE_SID+3:PRDT_MSG_BTYPE_SID+3] == BRANCH_TYPE_JALR) & 
-				(~s_if_res_msg[PRDT_MSG_POP_RAS_SID+3:PRDT_MSG_POP_RAS_SID+3])
-			) | 
-			(
-				// 当前指令是JAL指令
-				(~is_illegal_inst) & is_jal_inst
-			)
+			// 分支预测特例: BTB命中, BTB给出的分支指令类型为JALR, RAS出栈标志无效
+			s_if_res_msg[PRDT_MSG_BTB_HIT_SID+3:PRDT_MSG_BTB_HIT_SID+3] & 
+			(s_if_res_msg[2+PRDT_MSG_BTYPE_SID+3:PRDT_MSG_BTYPE_SID+3] == BRANCH_TYPE_JALR) & 
+			(~s_if_res_msg[PRDT_MSG_POP_RAS_SID+3:PRDT_MSG_POP_RAS_SID+3])
 		) ? 
-			brc_bdcst_luc_bta:
-			(
-				(is_illegal_inst | ((~is_b_inst) & (~is_jal_inst) & (~is_jalr_inst))) ? 
-					nxt_seq_pc: // 当前指令是非法指令或普通指令(非分支指令)
-					s_if_res_msg[31+PRDT_MSG_TARGET_ADDR_SID+3:PRDT_MSG_TARGET_ADDR_SID+3]
-			);
+			brc_bdcst_luc_bta: // 修正到实际BTA
+			s_if_res_msg[31+PRDT_MSG_TARGET_ADDR_SID+3:PRDT_MSG_TARGET_ADDR_SID+3];
 	
 	panda_risc_v_decoder decoder_u(
 		.inst(s_if_res_data[31:0]),

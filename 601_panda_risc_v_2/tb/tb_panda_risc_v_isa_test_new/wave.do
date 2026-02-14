@@ -56,183 +56,6 @@ add wave -noupdate -group ifu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu
 add wave -noupdate -group ifu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/correct_npc
 add wave -noupdate -group ifu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/on_start_flush
 add wave -noupdate -group ifu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/flush_pending
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/aclk
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/aresetn
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/sys_reset_req
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/flush_req
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_id
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_valid
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_ready
-add wave -noupdate -group op_pre_fetch -radix unsigned -childformat {{{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[5]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[4]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[3]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[2]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[1]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[0]} -radix unsigned}} -subitemconfig {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[5]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[4]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[3]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[2]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[1]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id[0]} {-height 15 -radix unsigned}} /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_id
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_fuid
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_valid
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_regs_rd_ready
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_rs1_id
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_from_reg_file
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_from_rob
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_from_byp
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_fuid
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_tid
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_rob_saved_data
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_rs2_id
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_from_reg_file
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_from_rob
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_from_byp
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_fuid
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_tid
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_rob_saved_data
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_raddr_p0
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_dout_p0
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_raddr_p1
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_dout_p1
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_vld_arr
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_tid_arr
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_data_arr
-add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_tid_match_op1_vec
-add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_tid_match_op2_vec
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_prefetched
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_prefetched
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_pftc_success
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_pftc_success
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_stage_regs_raw_dpc
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_stage_regs_raw_dpc
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_rd_id
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_fuid
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_fuid
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_fuid
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_tid
-add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_tid
-add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_valid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/aclk
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/aresetn
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/sys_reset_req
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/flush_req
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/s_if_res_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/s_if_res_valid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/s_if_res_ready
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_op1
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_op2
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_valid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_ready
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_vld
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_tid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_fuid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_rd_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_is_ls_inst
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_is_csr_rw_inst
-add wave -noupdate -group op_fetch_idec -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_err
-add wave -noupdate -group op_fetch_idec -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_spec_inst_type
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_rs1_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_from_reg_file
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_from_rob
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_from_byp
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_fuid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_tid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_rob_saved_data
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_rs2_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_from_reg_file
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_from_rob
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_from_byp
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_fuid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_tid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_rob_saved_data
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_vld
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_tid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_data
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_vld_arr
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_tid_arr
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_data_arr
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_rst_flush
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op1_fetch_from_bypass_network
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op2_fetch_from_bypass_network
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op1_fetch
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op2_fetch
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_no_need
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_no_need
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_fetch_cur
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_fetch_cur
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ready
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ready
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_latched
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_latched
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/to_sel_op1_latched
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/to_sel_op2_latched
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/aclk
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/aresetn
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/sys_reset_req
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/flush_req
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/s_if_res_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/s_if_res_valid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/s_if_res_ready
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_id
-add wave -noupdate -group op_fetch_idec -radix hexadecimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_op1
-add wave -noupdate -group op_fetch_idec -radix hexadecimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_op2
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_valid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/m_op_ftc_id_res_ready
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_vld
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_tid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_fuid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_rd_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_is_ls_inst
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_is_csr_rw_inst
-add wave -noupdate -group op_fetch_idec -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_err
-add wave -noupdate -group op_fetch_idec -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/rob_luc_bdcst_spec_inst_type
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_rs1_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_from_reg_file
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_from_rob
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_from_byp
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_fuid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_tid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ftc_rob_saved_data
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_rs2_id
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_from_reg_file
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_from_rob
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_from_byp
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_fuid
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_tid
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ftc_rob_saved_data
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_vld_arr
-add wave -noupdate -group op_fetch_idec -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_tid_arr
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/fu_res_data_arr
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_rst_flush
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op1_fetch_from_bypass_network
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op2_fetch_from_bypass_network
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op1_fetch
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/on_op2_fetch
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_no_need
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_no_need
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_fetch_cur
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_fetch_cur
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_ready
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_ready
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op1_latched
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/op2_latched
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/to_sel_op1_latched
-add wave -noupdate -group op_fetch_idec /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/to_sel_op2_latched
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/aclk
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/aresetn
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/rob_full_n
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/rob_csr_rw_inst_allowed
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/has_buffered_wr_mem_req
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/has_processing_perph_access_req
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/aclk
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/aresetn
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/rob_full_n
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/rob_csr_rw_inst_allowed
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/sys_reset_req
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/flush_req
-add wave -noupdate -group launch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/s_op_ftc_id_res_id
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/s_op_ftc_id_res_op1
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/s_op_ftc_id_res_op2
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/s_op_ftc_id_res_valid
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/s_op_ftc_id_res_ready
-add wave -noupdate -group launch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/m_luc_id
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/m_luc_op1
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/m_luc_op2
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/m_luc_valid
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/m_luc_ready
-add wave -noupdate -group launch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/launch_u/fence_csr_rw_allowed
 add wave -noupdate -group pre_if /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/pre_inst_fetch_u/aclk
 add wave -noupdate -group pre_if /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/pre_inst_fetch_u/aresetn
 add wave -noupdate -group pre_if /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/pre_inst_fetch_u/sys_reset_req
@@ -315,79 +138,6 @@ add wave -noupdate -group pre_if /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/
 add wave -noupdate -group pre_if /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/pre_inst_fetch_u/brc_prdt_u/ras_pop_req
 add wave -noupdate -group pre_if /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/pre_inst_fetch_u/brc_prdt_u/ras_query_req
 add wave -noupdate -group pre_if /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/ifu_u/pre_inst_fetch_u/brc_prdt_u/ras_query_addr
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/s_dsptc_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/s_dsptc_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/s_dsptc_ready
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_bru_i_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_bru_i_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_bru_i_ready
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_op_mode
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_op1
-add wave -noupdate -group dispatch -radix decimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_op2
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_tid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_use_res
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_csr_addr
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_csr_tid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_csr_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ls_sel
-add wave -noupdate -group dispatch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ls_type
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_rd_id_for_ld
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ls_din
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_inst_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ready
-add wave -noupdate -group dispatch -radix decimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_op_a
-add wave -noupdate -group dispatch -radix decimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_op_b
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_res_sel
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_rd_id
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_inst_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_ready
-add wave -noupdate -group dispatch -radix decimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_op_a
-add wave -noupdate -group dispatch -radix decimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_op_b
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_rem_sel
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_rd_id
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_inst_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_ready
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/s_dsptc_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/s_dsptc_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/s_dsptc_ready
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_bru_i_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_bru_i_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_bru_i_ready
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_op_mode
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_op1
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_op2
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_tid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_use_res
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_alu_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_csr_addr
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_csr_tid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_csr_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ls_sel
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ls_type
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_rd_id_for_ld
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ls_din
-add wave -noupdate -group dispatch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_inst_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_lsu_ready
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_op_a
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_op_b
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_res_sel
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_rd_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_inst_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_mul_ready
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_op_a
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_op_b
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_rem_sel
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_rd_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_inst_id
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_valid
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/m_div_ready
-add wave -noupdate -group dispatch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/dispatch_u/fu_ready
 add wave -noupdate -group flush_ctrl /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/flush_ctrl_u/aclk
 add wave -noupdate -group flush_ctrl /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/flush_ctrl_u/aresetn
 add wave -noupdate -group flush_ctrl /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/flush_ctrl_u/sys_reset_req
@@ -667,12 +417,10 @@ add wave -noupdate -group bru -radix unsigned /tb_isa_test/panda_risc_v_sim_u/pa
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/bru_flush_req
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/bru_flush_addr
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/bru_flush_grant
-add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/alu_brc_cond_res
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/s_bru_i_tid
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/s_bru_i_valid
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/s_bru_i_ready
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/m_bru_o_tid
-add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/m_bru_o_pc
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/m_bru_o_nxt_pc
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/m_bru_o_b_inst_res
 add wave -noupdate -group bru /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/bru_u/m_bru_o_valid
@@ -875,113 +623,6 @@ add wave -noupdate -group biu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/biu
 add wave -noupdate -group biu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/biu_u/dbus_wr_trans_sending_wdata_ptr
 add wave -noupdate -group biu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/biu_u/dbus_wr_trans_waiting_resp_ptr
 add wave -noupdate -group biu /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/biu_u/dbus_wr_chn_fall_into_inst_region
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/pre_decoding_msg_packeted
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/pc_of_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/inst_len_type
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/rs1_v
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/rs2_v
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_b_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csr_rw_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_load_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_store_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mul_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_div_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_rem_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_ecall_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mret_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_fence_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_fence_i_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_ebreak_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_dret_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_jal_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_jalr_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_illegal_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/rs1_vld
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/rs2_vld
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/rd_vld
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/ls_type
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/ls_addr_aligned
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/mul_div_op_a
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/mul_div_op_b
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/mul_res_sel
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/csr_addr
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/csr_upd_type
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/csr_upd_mask_v
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/alu_op_mode
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/alu_op1
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/alu_op2
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/actual_bta
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/brc_jump_baseaddr_sel_rs1
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_arth_imm_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_arth_regs_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_lui_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_auipc_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_beq_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_bne_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_blt_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_bge_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_bltu_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_bgeu_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_addi_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_slti_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_sltiu_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_xori_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_ori_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_andi_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_slli_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_srli_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_srai_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_add_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_sub_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_sll_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_slt_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_sltu_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_xor_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_srl_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_sra_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_or_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_and_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_fence_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_fence_i_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrw_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrs_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrc_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrwi_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrsi_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrci_inst
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mul_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mulh_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mulhsu_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mulhu_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_div_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_divu_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_rem_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_remu_inst_acc
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/csr_upd_imm
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/load_reg_imm
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/ls_ofs_imm
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/arth_imm
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_srli_srai_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/alu_op1_sel_rs1
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/alu_op2_sel_rs2
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/brc_jump_ofs
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/ls_addr_pre_cal
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mul_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mulhsu_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_mulhu_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_divu_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_remu_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/mul_div_op_a_unsigned
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/mul_div_op_b_unsigned
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrw_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrs_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrc_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrwi_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrsi_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/is_csrrci_inst_fast
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/csr_upd_mask_v_sel_rs1
-add wave -noupdate -group decoder /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_fetch_idec_u/decoder_u/csr_upd_mask_v_sel_rs1_inv
 add wave -noupdate -group imem_ctrler /tb_isa_test/panda_risc_v_sim_u/tcm_ctrler_u0/aclk
 add wave -noupdate -group imem_ctrler /tb_isa_test/panda_risc_v_sim_u/tcm_ctrler_u0/aresetn
 add wave -noupdate -group imem_ctrler /tb_isa_test/panda_risc_v_sim_u/tcm_ctrler_u0/s_axi_araddr
@@ -1045,10 +686,475 @@ add wave -noupdate -group pref -radix unsigned /tb_isa_test/panda_risc_v_sim_u/p
 add wave -noupdate -group pref -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/csr_u/mcycle_mcycle
 add wave -noupdate -group pref -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/csr_u/minstreth_minstreth
 add wave -noupdate -group pref -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/csr_u/minstret_minstret
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/aclk
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/aresetn
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/sys_reset_req
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/flush_req
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_full_n
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_csr_rw_inst_allowed
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_entry_id_to_be_written
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_entry_age_tbit_to_be_written
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_data
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_tid
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_vld
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_data
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_msg
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_is_first_inst_after_rst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_valid
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/s_regs_rd_ready
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_inst_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_rob_entry_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_age_tag
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op1_lsn_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op2_lsn_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op1_lsn_inst_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op2_lsn_inst_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_other_payload
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op1_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op2_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op1_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_op2_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_valid
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq0_ready
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_inst_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_rob_entry_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_age_tag
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op1_lsn_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op2_lsn_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op1_lsn_inst_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op2_lsn_inst_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_other_payload
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op1_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op2_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op1_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_op2_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_valid
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/m_wr_iq1_ready
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_rs1_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_from_reg_file
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_from_rob
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_from_byp
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_tid
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_ftc_rob_saved_data
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_rs2_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_from_reg_file
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_from_rob
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_from_byp
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_tid
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_ftc_rob_saved_data
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_vld
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_tid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_rd_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_is_ls_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_is_csr_rw_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_csr_rw_inst_msg
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_err
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_spec_inst_type
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_is_b_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_pc
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_nxt_pc
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_org_2bit_sat_cnt
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rob_luc_bdcst_bhr
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_raddr_p0
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_dout_p0
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_raddr_p1
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/reg_file_dout_p1
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_data_r
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_tid_r
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_vld_r
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_tid_match_op1_vec
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/fu_res_tid_match_op2_vec
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_b_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_csr_rw_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_load_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_store_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_lui_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_auipc_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_csr_rw_imm_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_arth_imm_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_ecall_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_mret_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_ebreak_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_dret_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/is_illegal_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rs1_vld
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rs2_vld
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/rd_vld
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/ls_type
+add wave -noupdate -group op_pre_fetch -radix decimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/ls_ofs_imm
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/mul_res_sel
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/mul_div_op_a_unsigned
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/mul_div_op_b_unsigned
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/mul_div_res_sel
+add wave -noupdate -group op_pre_fetch -radix hexadecimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/csr_addr
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/csr_upd_type
+add wave -noupdate -group op_pre_fetch -radix hexadecimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/csr_upd_imm
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/alu_op_mode
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/alu_op1
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/alu_op2
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/nxt_seq_pc
+add wave -noupdate -group op_pre_fetch -radix decimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/brc_jump_ofs
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/actual_bta
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/dcd_res_inst_type_packeted
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/need_op1
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/need_op2
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_prefetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_prefetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_pftc_success
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_pftc_success
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op1_stage_regs_raw_dpc
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/op2_stage_regs_raw_dpc
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_inst_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_rd_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op1_lsn_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op2_lsn_fuid
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op1_lsn_inst_id
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op2_lsn_inst_id
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op1_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op2_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op1_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_op2_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_other_payload
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_is_ls_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_is_csr_rw_inst
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_is_b_inst
+add wave -noupdate -group op_pre_fetch -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_spec_inst_type
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_csr_upd_type
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_pc
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_nxt_pc
+add wave -noupdate -group op_pre_fetch -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_payload_err_code
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/instant_op1_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/instant_op2_pre_fetched
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/instant_op1_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/instant_op2_rdy
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_valid
+add wave -noupdate -group op_pre_fetch /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/op_pre_fetch_u/stage_regs_ready
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/aclk
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/aresetn
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/clr_iq0
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/clr_iq1
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/has_buffered_wr_mem_req
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/has_processing_perph_access_req
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/fu_res_data
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/fu_res_tid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/fu_res_vld
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_bru_o_tid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_bru_o_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/bru_nominal_res_vld
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/bru_nominal_res_tid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/bru_nominal_res
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_rob_entry_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_age_tag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op1_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op2_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op1_lsn_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op2_lsn_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_other_payload
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op1_pre_fetched
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op2_pre_fetched
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op1_rdy
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_op2_rdy
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq0_ready
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_rob_entry_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_age_tag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op1_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op2_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op1_lsn_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op2_lsn_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_other_payload
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op1_pre_fetched
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op2_pre_fetched
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op1_rdy
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_op2_rdy
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/s_wr_iq1_ready
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/brc_bdcst_luc_vld
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/brc_bdcst_luc_tid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/brc_bdcst_luc_is_b_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/brc_bdcst_luc_is_jal_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/brc_bdcst_luc_is_jalr_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/brc_bdcst_luc_bta
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/saving_csr_rw_msg_upd_mask_v
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/saving_csr_rw_msg_rob_entry_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/saving_csr_rw_msg_vld
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/on_upd_rob_field_nxt_pc
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/inst_id_of_upd_rob_field_nxt_pc
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/rob_field_nxt_pc
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_alu_op_mode
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_alu_op1
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_alu_op2
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_alu_tid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_alu_use_res
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_alu_valid
+add wave -noupdate -group issue_queue -radix hexadecimal /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_csr_addr
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_csr_tid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_csr_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_mul_op_a
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_mul_op_b
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_mul_res_sel
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_mul_rd_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_mul_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_mul_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_mul_ready
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_div_op_a
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_div_op_b
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_div_rem_sel
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_div_rd_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_div_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_div_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_div_ready
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_ls_sel
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_ls_type
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_rd_id_for_ld
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_ls_addr
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_ls_din
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_lsu_ready
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_bru_prdt_msg
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_bru_inst_type
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_bru_tid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_bru_prdt_suc
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_bru_brc_cond_res
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_bru_valid
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/m_bru_ready
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/fu_res_data_r
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/fu_res_tid_r
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/fu_res_vld_r
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_rob_entry_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_age_tag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op1_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op2_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op1_lsn_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op2_lsn_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_other_payload
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op1_saved
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op2_saved
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op1_rdy_flag
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_op2_rdy_flag
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_table_vld_flag
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/is_iq0_full_n
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_entry_to_wr_onehot
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/is_iq0_empty_n
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_fu_ready_flag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_allowed_flag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_op1_instant_rdy_flag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_op2_instant_rdy_flag
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_instant_op1
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_instant_op2
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s0_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s0_age_tag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s0_vld_flag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s1_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s1_age_tag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s1_vld_flag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s2_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s2_age_tag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s2_vld_flag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s3_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s3_age_tag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_s3_vld_flag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_fnl_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_fnl_age_tag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq0_issue_arb_fnl_vld_flag
+add wave -noupdate -group issue_queue -radix unsigned -childformat {{{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[0]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[1]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[2]} -radix unsigned} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[3]} -radix unsigned}} -subitemconfig {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[0]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[1]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[2]} {-height 15 -radix unsigned} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id[3]} {-height 15 -radix unsigned}} /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_rob_entry_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_age_tag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op2_lsn_fuid
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_lsn_inst_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op2_lsn_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_other_payload
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_saved
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op2_saved
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_actual_brc_direction_saved
+add wave -noupdate -group issue_queue -radix binary -childformat {{{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[3]} -radix binary} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[2]} -radix binary} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[1]} -radix binary} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[0]} -radix binary}} -subitemconfig {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[3]} {-height 15 -radix binary} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[2]} {-height 15 -radix binary} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[1]} {-height 15 -radix binary} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag[0]} {-height 15 -radix binary}} /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op1_rdy_flag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_op2_rdy_flag
+add wave -noupdate -group issue_queue -radix binary -childformat {{{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[3]} -radix binary} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[2]} -radix binary} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[1]} -radix binary} {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[0]} -radix binary}} -subitemconfig {{/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[3]} {-height 15 -radix binary} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[2]} {-height 15 -radix binary} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[1]} {-height 15 -radix binary} {/tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag[0]} {-height 15 -radix binary}} /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_table_vld_flag
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/is_iq1_full_n
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_wptr
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/is_iq1_empty_n
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_fu_ready_flag
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_rptr
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_pending_ebreak_fence_i_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_pending_for_ebreak_fence_i_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_fence_inst_allowed
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_inst_launched
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_op1_instant_rdy_flag
+add wave -noupdate -group issue_queue -radix binary /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_op2_instant_rdy_flag
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_instant_op1
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_instant_op2
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_confirming_brc_inst_entry_id
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_confirming_brc_inst_inst_id
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/has_confirming_brc_inst_in_iq1
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_pending_for_brc_prdt_failure
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_is_confirming_brc_inst_classified_as_spec_case_0
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_actual_bta_of_confirming_brc_inst_rdy
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_actual_bta_of_confirming_brc_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_actual_brc_direction_of_confirming_brc_inst_rdy
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_actual_brc_direction_of_confirming_brc_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_is_confirming_brc_inst_prdt_success
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_corrected_prdt_addr_of_confirming_brc_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_actual_bta_of_failed_brc_prdt_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/iq1_corrected_prdt_addr_of_failed_brc_prdt_inst
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/brc_path_confirmed
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/saving_csr_rw_msg_vld_r
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/saving_csr_rw_msg_upd_mask_v_r
+add wave -noupdate -group issue_queue -radix unsigned /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/saving_csr_rw_msg_rob_entry_id_r
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/on_upd_rob_field_nxt_pc_r
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/inst_id_of_upd_rob_field_nxt_pc_r
+add wave -noupdate -group issue_queue /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/issue_queue_u/rob_field_nxt_pc_r
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/aclk
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/aresetn
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_clr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_full_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_empty_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_csr_rw_inst_allowed
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_has_ls_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_entry_id_to_be_written
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_entry_age_tbit_to_be_written
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_sng_cancel_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_sng_cancel_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_yngr_cancel_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_yngr_cancel_bchmk_wptr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_ftc_rs1_id
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_ftc_from_reg_file
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_ftc_from_rob
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_ftc_from_byp
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_ftc_fuid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_ftc_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_ftc_rob_saved_data
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_ftc_rs2_id
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_ftc_from_reg_file
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_ftc_from_rob
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_ftc_from_byp
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_ftc_fuid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_ftc_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_ftc_rob_saved_data
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_saved
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_err
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_rd_id
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_is_csr_rw_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_spec_inst_type
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_cancel
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_fu_res
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_nxt_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_b_inst_res
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_org_2bit_sat_cnt
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_bhr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_is_b_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_csr_rw_waddr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_csr_rw_upd_type
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_prep_rtr_entry_csr_rw_upd_mask_v
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_data
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_err
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/s_bru_o_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/s_bru_o_b_inst_res
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/s_bru_o_valid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/saving_csr_rw_msg_upd_mask_v
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/saving_csr_rw_msg_rob_entry_id
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/saving_csr_rw_msg_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/on_upd_rob_field_nxt_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/inst_id_of_upd_rob_field_nxt_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_field_nxt_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/wr_mem_permitted_flag
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/init_mem_bus_tr_store_inst_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/perph_access_permitted_flag
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/init_perph_bus_tr_ls_inst_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_fuid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_rd_id
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_is_ls_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_is_csr_rw_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_csr_rw_inst_msg
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_err
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_spec_inst_type
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_is_b_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_nxt_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_org_2bit_sat_cnt
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_luc_bdcst_bhr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rtr_bdcst_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_vld_entry_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_full_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_empty_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_wptr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_rptr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_inst_stored_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_full_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_wptr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_rptr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_waddr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_upd_type
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_upd_mask_v
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_wptr_saved
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_rcd_valid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/csr_rw_inst_collision
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/is_retiring_ls_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_vld_ls_inst_n
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_has_ls_inst_r
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_tid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_fuid
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_rd_id
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_is_ls_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_is_csr_rw_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_spec_inst_type
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_is_b_inst
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_cancel
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_err
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_wptr_saved
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_fu_res
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_nxt_pc
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_b_inst_res
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_org_2bit_sat_cnt
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_bhr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_saved
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_rcd_tb_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/on_rob_sng_cancel_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/on_rob_yngr_cancel_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/on_rob_sync_err_cancel_vld
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_vld_r
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_tid_r
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_data_r
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_err_r
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_vld_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_tid_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_data_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/fu_res_err_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_entry_res_on_lsn
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_entry_res_vld_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_entry_res_tid_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_entry_res_data_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/rob_entry_res_err_arr
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/is_arct_reg_at_rob
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/arct_reg_rob_entry_i
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op1_rs1_rob_entry_i
+add wave -noupdate -group rob /tb_isa_test/panda_risc_v_sim_u/panda_risc_v_u/rob_u/op2_rs2_rob_entry_i
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {12077580 ps} 0}
+WaveRestoreCursors {{Cursor 1} {39990019 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 273
+configure wave -namecolwidth 334
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
@@ -1062,4 +1168,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {11900761 ps} {11959610 ps}
+WaveRestoreZoom {39925364 ps} {40025580 ps}

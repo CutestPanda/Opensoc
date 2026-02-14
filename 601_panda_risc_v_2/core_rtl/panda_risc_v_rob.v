@@ -47,7 +47,7 @@ CSR读写指令信息记录槽位数(CSR_RW_RCD_SLOTS_N)不能大于ROB项数(RO
 无
 
 作者: 陈家耀
-日期: 2026/02/05
+日期: 2026/02/11
 ********************************************************************/
 
 
@@ -56,7 +56,8 @@ module panda_risc_v_rob #(
 	parameter integer FU_ID_WIDTH = 8, // 执行单元ID位宽(1~16)
 	parameter integer ROB_ENTRY_N = 8, // 重排序队列项数(4 | 8 | 16 | 32)
 	parameter integer CSR_RW_RCD_SLOTS_N = 4, // CSR读写指令信息记录槽位数(2 | 4 | 8 | 16 | 32)
-	parameter integer LSN_FU_N = 5, // 要监听结果的执行单元的个数(正整数)
+	parameter integer FU_LSN_LATENCY = 0, // 执行单元监听时延(0 | 1)
+	parameter integer LSN_FU_N = 6, // 要监听结果的执行单元的个数(正整数)
 	parameter integer FU_RES_WIDTH = 32, // 执行单元结果位宽(正整数)
 	parameter integer FU_ERR_WIDTH = 3, // 执行单元错误码位宽(正整数)
 	parameter integer LSU_FU_ID = 2, // LSU的执行单元ID
@@ -73,6 +74,8 @@ module panda_risc_v_rob #(
 	output wire rob_empty_n, // ROB空(标志)
 	output wire rob_csr_rw_inst_allowed, // 允许发射CSR读写指令(标志)
 	output wire rob_has_ls_inst, // ROB中存在访存指令(标志)
+	output wire[7:0] rob_entry_id_to_be_written, // 待写项的条目编号
+	output wire rob_entry_age_tbit_to_be_written, // 待写项的年龄翻转位
 	
 	// 取消指定的1项
 	input wire rob_sng_cancel_vld, // 有效标志
@@ -126,12 +129,18 @@ module panda_risc_v_rob #(
 	
 	// BRU结果
 	input wire[IBUS_TID_WIDTH-1:0] s_bru_o_tid, // 指令ID
-	input wire[31:0] s_bru_o_pc, // 当前PC地址
-	input wire[31:0] s_bru_o_nxt_pc, // 下一有效PC地址
 	input wire[1:0] s_bru_o_b_inst_res, // B指令执行结果
-	input wire[1:0] s_bru_o_org_2bit_sat_cnt, // 原来的2bit饱和计数器
-	input wire[15:0] s_bru_o_bhr, // BHR
 	input wire s_bru_o_valid,
+	
+	// 更新ROB的"CSR更新掩码或更新值"字段
+	input wire[31:0] saving_csr_rw_msg_upd_mask_v, // 更新掩码或更新值
+	input wire[7:0] saving_csr_rw_msg_rob_entry_id, // ROB条目编号
+	input wire saving_csr_rw_msg_vld,
+	
+	// 更新ROB的"指令对应的下一有效PC"字段
+	input wire on_upd_rob_field_nxt_pc,
+	input wire[IBUS_TID_WIDTH-1:0] inst_id_of_upd_rob_field_nxt_pc,
+	input wire[31:0] rob_field_nxt_pc,
 	
 	// 写存储器许可
 	output wire wr_mem_permitted_flag, // 许可标志
@@ -148,12 +157,14 @@ module panda_risc_v_rob #(
 	input wire[4:0] rob_luc_bdcst_rd_id, // 目的寄存器编号
 	input wire rob_luc_bdcst_is_ls_inst, // 是否加载/存储指令
 	input wire rob_luc_bdcst_is_csr_rw_inst, // 是否CSR读写指令
-	input wire[45:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
+	input wire[13:0] rob_luc_bdcst_csr_rw_inst_msg, // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit)})
 	input wire[2:0] rob_luc_bdcst_err, // 错误类型
 	input wire[2:0] rob_luc_bdcst_spec_inst_type, // 特殊指令类型
 	input wire rob_luc_bdcst_is_b_inst, // 是否B指令
 	input wire[31:0] rob_luc_bdcst_pc, // 指令对应的PC
 	input wire[31:0] rob_luc_bdcst_nxt_pc, // 指令对应的下一有效PC
+	input wire[1:0] rob_luc_bdcst_org_2bit_sat_cnt, // 原来的2bit饱和计数器
+	input wire[15:0] rob_luc_bdcst_bhr, // BHR
 	// [退休阶段]
 	input wire rob_rtr_bdcst_vld // 广播有效
 );
@@ -197,6 +208,8 @@ module panda_risc_v_rob #(
 	
 	assign rob_full_n = rob_rcd_tb_full_n;
 	assign rob_empty_n = rob_rcd_tb_empty_n;
+	assign rob_entry_id_to_be_written = rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] | 8'd0;
+	assign rob_entry_age_tbit_to_be_written = rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N)];
 	
 	// ROB记录表有效项数
 	always @(posedge aclk or negedge aresetn)
@@ -339,20 +352,41 @@ module panda_risc_v_rob #(
 		begin:csr_rw_rcd_blk
 			assign csr_rw_inst_collision[csr_rw_rcd_i] = 
 				// 待发射(CSR读写)指令的CSR地址与尚未退休的CSR读写指令产生冲突
-				csr_rw_rcd_valid[csr_rw_rcd_i] & (csr_rw_rcd_waddr[csr_rw_rcd_i] == rob_luc_bdcst_csr_rw_inst_msg[45:34]);
+				csr_rw_rcd_valid[csr_rw_rcd_i] & (csr_rw_rcd_waddr[csr_rw_rcd_i] == rob_luc_bdcst_csr_rw_inst_msg[13:2]);
 			
 			always @(posedge aclk)
 			begin
 				if(rob_luc_bdcst_vld & rob_rcd_tb_full_n & rob_luc_bdcst_is_csr_rw_inst & (csr_rw_rcd_wptr == csr_rw_rcd_i))
 				begin
 					{
-						csr_rw_rcd_waddr[csr_rw_rcd_i], 
-						csr_rw_rcd_upd_type[csr_rw_rcd_i], 
-						csr_rw_rcd_upd_mask_v[csr_rw_rcd_i]
-					} <= # SIM_DELAY rob_luc_bdcst_csr_rw_inst_msg;
+						csr_rw_rcd_waddr[csr_rw_rcd_i],
+						csr_rw_rcd_upd_type[csr_rw_rcd_i]
+					} <= # SIM_DELAY 
+						{
+							rob_luc_bdcst_csr_rw_inst_msg[13:2],
+							rob_luc_bdcst_csr_rw_inst_msg[1:0]
+						};
 					
 					csr_rw_rcd_wptr_saved[csr_rw_rcd_i] <= # SIM_DELAY rob_rcd_tb_wptr;
 				end
+			end
+			
+			always @(posedge aclk)
+			begin
+				if(
+					saving_csr_rw_msg_vld & 
+					(
+						(
+							rob_luc_bdcst_vld & rob_rcd_tb_full_n & rob_luc_bdcst_is_csr_rw_inst & (csr_rw_rcd_wptr == csr_rw_rcd_i) & 
+							(saving_csr_rw_msg_rob_entry_id[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0])
+						) | 
+						(
+							csr_rw_rcd_valid[csr_rw_rcd_i] & 
+							(saving_csr_rw_msg_rob_entry_id[clogb2(ROB_ENTRY_N-1):0] == csr_rw_rcd_wptr_saved[csr_rw_rcd_i][clogb2(ROB_ENTRY_N-1):0])
+						)
+					)
+				)
+					csr_rw_rcd_upd_mask_v[csr_rw_rcd_i] <= # SIM_DELAY saving_csr_rw_msg_upd_mask_v;
 			end
 			
 			always @(posedge aclk or negedge aresetn)
@@ -484,16 +518,15 @@ module panda_risc_v_rob #(
 				if(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_rcd_tb_entry_i))
 				begin
 					rob_rcd_tb_tid[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_tid;
-					rob_rcd_tb_fuid[rob_rcd_tb_entry_i] <= # SIM_DELAY 
-						(rob_luc_bdcst_fuid >= LSN_FU_N) ? 
-							0:
-							rob_luc_bdcst_fuid;
+					rob_rcd_tb_fuid[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_fuid;
 					rob_rcd_tb_rd_id[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_rd_id;
 					rob_rcd_tb_is_ls_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_ls_inst;
 					rob_rcd_tb_is_csr_rw_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_csr_rw_inst;
 					rob_rcd_tb_spec_inst_type[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_spec_inst_type;
 					rob_rcd_tb_is_b_inst[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_is_b_inst;
 					rob_rcd_tb_pc[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_pc;
+					rob_rcd_tb_org_2bit_sat_cnt[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_org_2bit_sat_cnt;
+					rob_rcd_tb_bhr[rob_rcd_tb_entry_i] <= # SIM_DELAY rob_luc_bdcst_bhr;
 					
 					rob_rcd_tb_wptr_saved[rob_rcd_tb_entry_i][clogb2(ROB_ENTRY_N)] <= # SIM_DELAY 
 						rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N)];
@@ -534,6 +567,11 @@ module panda_risc_v_rob #(
 	endgenerate
 	
 	/** 执行单元结果监听 **/
+	// 延迟1clk的执行单元结果返回
+	reg[LSN_FU_N-1:0] fu_res_vld_r; // 有效标志
+	reg[LSN_FU_N*IBUS_TID_WIDTH-1:0] fu_res_tid_r; // 指令ID
+	reg[LSN_FU_N*FU_RES_WIDTH-1:0] fu_res_data_r; // 执行结果
+	reg[LSN_FU_N*FU_ERR_WIDTH-1:0] fu_res_err_r; // 错误码
 	// 执行单元结果返回(数组)
 	wire fu_res_vld_arr[0:LSN_FU_N-1]; // 有效标志
 	wire[IBUS_TID_WIDTH-1:0] fu_res_tid_arr[0:LSN_FU_N-1]; // 指令ID
@@ -550,10 +588,43 @@ module panda_risc_v_rob #(
 	generate
 		for(fu_i = 0;fu_i < LSN_FU_N;fu_i = fu_i + 1)
 		begin:fu_res_lsn_blk
-			assign fu_res_vld_arr[fu_i] = fu_res_vld[fu_i];
-			assign fu_res_tid_arr[fu_i] = fu_res_tid[(fu_i+1)*IBUS_TID_WIDTH-1:fu_i*IBUS_TID_WIDTH];
-			assign fu_res_data_arr[fu_i] = fu_res_data[(fu_i+1)*FU_RES_WIDTH-1:fu_i*FU_RES_WIDTH];
-			assign fu_res_err_arr[fu_i] = fu_res_err[(fu_i+1)*FU_ERR_WIDTH-1:fu_i*FU_ERR_WIDTH];
+			assign fu_res_vld_arr[fu_i] = 
+				(FU_LSN_LATENCY == 1) ? 
+					fu_res_vld_r[fu_i]:
+					fu_res_vld[fu_i];
+			assign fu_res_tid_arr[fu_i] = 
+				(FU_LSN_LATENCY == 1) ? 
+					fu_res_tid_r[(fu_i+1)*IBUS_TID_WIDTH-1:fu_i*IBUS_TID_WIDTH]:
+					fu_res_tid[(fu_i+1)*IBUS_TID_WIDTH-1:fu_i*IBUS_TID_WIDTH];
+			assign fu_res_data_arr[fu_i] = 
+				(FU_LSN_LATENCY == 1) ? 
+					fu_res_data_r[(fu_i+1)*FU_RES_WIDTH-1:fu_i*FU_RES_WIDTH]:
+					fu_res_data[(fu_i+1)*FU_RES_WIDTH-1:fu_i*FU_RES_WIDTH];
+			assign fu_res_err_arr[fu_i] = 
+				(FU_LSN_LATENCY == 1) ? 
+					fu_res_err_r[(fu_i+1)*FU_ERR_WIDTH-1:fu_i*FU_ERR_WIDTH]:
+					fu_res_err[(fu_i+1)*FU_ERR_WIDTH-1:fu_i*FU_ERR_WIDTH];
+			
+			always @(posedge aclk or negedge aresetn)
+			begin
+				if(~aresetn)
+					fu_res_vld_r[fu_i] <= 1'b0;
+				else
+					fu_res_vld_r[fu_i] <= # SIM_DELAY fu_res_vld[fu_i];
+			end
+			
+			always @(posedge aclk)
+			begin
+				if(fu_res_vld[fu_i])
+				begin
+					fu_res_tid_r[(fu_i+1)*IBUS_TID_WIDTH-1:fu_i*IBUS_TID_WIDTH] <= # SIM_DELAY 
+						fu_res_tid[(fu_i+1)*IBUS_TID_WIDTH-1:fu_i*IBUS_TID_WIDTH];
+					fu_res_data_r[(fu_i+1)*FU_RES_WIDTH-1:fu_i*FU_RES_WIDTH] <= # SIM_DELAY 
+						fu_res_data[(fu_i+1)*FU_RES_WIDTH-1:fu_i*FU_RES_WIDTH];
+					fu_res_err_r[(fu_i+1)*FU_ERR_WIDTH-1:fu_i*FU_ERR_WIDTH] <= # SIM_DELAY 
+						fu_res_err[(fu_i+1)*FU_ERR_WIDTH-1:fu_i*FU_ERR_WIDTH];
+				end
+			end
 		end
 	endgenerate
 	
@@ -594,10 +665,7 @@ module panda_risc_v_rob #(
 				)
 					rob_rcd_tb_err[rob_res_i] <= # SIM_DELAY 
 						// 断言: 不会出现同时写ROB项和得到这一项的执行结果(或者得知LSU返回的错误)的情况
-						(
-							rob_luc_bdcst_vld & rob_rcd_tb_full_n & 
-							(rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)
-						) ? 
+						(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)) ? 
 							rob_luc_bdcst_err:
 							(
 								({3{fu_res_err_arr[LSU_FU_ID] == LSU_ERR_CODE_RD_ADDR_UNALIGNED}} & 
@@ -630,22 +698,19 @@ module panda_risc_v_rob #(
 			begin
 				if(
 					(rob_luc_bdcst_vld & rob_rcd_tb_full_n & (rob_rcd_tb_wptr[clogb2(ROB_ENTRY_N-1):0] == rob_res_i)) | 
-					(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i]))
+					(rob_rcd_tb_vld[rob_res_i] & on_upd_rob_field_nxt_pc & (inst_id_of_upd_rob_field_nxt_pc == rob_rcd_tb_tid[rob_res_i]))
 				)
 					rob_rcd_tb_nxt_pc[rob_res_i] <= # SIM_DELAY 
-						(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i])) ? 
-							s_bru_o_nxt_pc:
+						(rob_rcd_tb_vld[rob_res_i] & on_upd_rob_field_nxt_pc & (inst_id_of_upd_rob_field_nxt_pc == rob_rcd_tb_tid[rob_res_i])) ? 
+							rob_field_nxt_pc:
 							rob_luc_bdcst_nxt_pc;
 			end
 			
 			always @(posedge aclk)
 			begin
-				if(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i])) // BRU结果必定在(FU)执行结果同时或之前得到
-				begin
-					rob_rcd_tb_b_inst_res[rob_res_i] <= # SIM_DELAY s_bru_o_b_inst_res;
-					rob_rcd_tb_org_2bit_sat_cnt[rob_res_i] <= # SIM_DELAY s_bru_o_org_2bit_sat_cnt;
-					rob_rcd_tb_bhr[rob_res_i] <= # SIM_DELAY s_bru_o_bhr;
-				end
+				if(s_bru_o_valid & (s_bru_o_tid == rob_rcd_tb_tid[rob_res_i]))
+					rob_rcd_tb_b_inst_res[rob_res_i] <= # SIM_DELAY 
+						s_bru_o_b_inst_res;
 			end
 		end
 	endgenerate

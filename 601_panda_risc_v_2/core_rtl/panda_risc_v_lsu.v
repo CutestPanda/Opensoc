@@ -45,7 +45,7 @@ SOFTWARE.
 AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2026/01/25
+日期: 2026/02/12
 ********************************************************************/
 
 
@@ -870,14 +870,27 @@ module panda_risc_v_lsu #(
 	
 	// [AR通道]
 	assign m_axi_mem_araddr = 
-		rd_mem_trans_table_org_addr[rd_mem_trans_addr_setup_ptr] & (~(AXI_MEM_DATA_WIDTH/8 - 1));
+		(
+			((EN_LOW_LATENCY_RD_MEM_ACCESS >= 2) & (~rd_mem_trans_table_vld_flag[rd_mem_trans_addr_setup_ptr])) ? 
+				new_rd_mem_trans_org_addr:
+				rd_mem_trans_table_org_addr[rd_mem_trans_addr_setup_ptr]
+		) & (~(AXI_MEM_DATA_WIDTH/8 - 1));
 	assign m_axi_mem_arburst = 2'b01;
 	assign m_axi_mem_arlen = 8'd0;
 	assign m_axi_mem_arsize = clogb2(AXI_MEM_DATA_WIDTH/8);
 	assign m_axi_mem_arvalid = 
 		|(
 			(
-				rd_mem_trans_table_vld_flag & (~rd_mem_trans_table_addr_setup_flag) & 
+				(
+					rd_mem_trans_table_vld_flag | 
+					(
+						{RD_MEM_BUF_ENTRY_N{
+							(EN_LOW_LATENCY_RD_MEM_ACCESS >= 2) & on_initiate_rd_mem_trans & is_allowed_to_submit_new_rd_mem_req
+						}} & 
+						(1 << rd_mem_trans_wptr)
+					)
+				) & 
+				(~rd_mem_trans_table_addr_setup_flag) & 
 				(
 					rd_mem_trans_table_check_done_flag | 
 					(
@@ -1114,10 +1127,7 @@ module panda_risc_v_lsu #(
 				if(~aresetn)
 					rd_mem_trans_table_vld_flag[rd_mem_trans_table_entry_i] <= 1'b0;
 				else if(
-					(
-						on_initiate_rd_mem_trans & is_allowed_to_submit_new_rd_mem_req & 
-						(rd_mem_trans_wptr == rd_mem_trans_table_entry_i)
-					) | 
+					(on_initiate_rd_mem_trans & is_allowed_to_submit_new_rd_mem_req & (rd_mem_trans_wptr == rd_mem_trans_table_entry_i)) | 
 					((on_complete_rd_mem_trans | on_rd_mem_timeout) & (rd_mem_trans_waiting_resp_ptr == rd_mem_trans_table_entry_i))
 				)
 					rd_mem_trans_table_vld_flag[rd_mem_trans_table_entry_i] <= # SIM_DELAY 

@@ -37,11 +37,14 @@ MEM MASTER
 AXI-Lite MASTER
 
 作者: 陈家耀
-日期: 2026/02/06
+日期: 2026/02/12
 ********************************************************************/
 
 
 module panda_risc_v_core #(
+	// IFU配置
+	parameter NO_INIT_BTB = "false", // 是否无需初始化BTB存储器
+	parameter NO_INIT_PHT = "false", // 是否无需初始化PHT存储器
 	// 总线配置
 	parameter integer IBUS_ACCESS_TIMEOUT_TH = 16, // 指令总线访问超时周期数(0 -> 不设超时 | 正整数)
 	parameter integer IBUS_OUTSTANDING_N = 4, // 指令总线滞外深度(1 | 2 | 4 | 8)
@@ -249,48 +252,46 @@ module panda_risc_v_core #(
     endfunction
 	
 	/** 内部配置 **/
-	// 取指单元配置
-	localparam EN_IF_REGS = "false"; // 是否启用取指缓存
+	// IFU配置
+	localparam EN_IF_REGS = "true"; // 是否启用取指缓存
 	localparam integer INST_ADDR_ALIGNMENT_WIDTH = 32; // 指令地址对齐位宽(16 | 32)
 	localparam integer IBUS_TID_WIDTH = 6; // 指令总线事务ID位宽(1~16)
-	localparam integer IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH = 1; // 指令总线访问请求附带信息的位宽(正整数)
-	localparam integer PRDT_MSG_WIDTH = 96; // 分支预测信息的位宽(正整数)
 	localparam integer PC_TAG_WIDTH = 32 - clogb2(BTB_ENTRY_N) - 2; // PC标签的位宽
 	localparam integer BTB_MEM_WIDTH = PC_TAG_WIDTH + 32 + 3 + 1 + 1 + 2; // BTB存储器的数据位宽
 	localparam BHT_IMPL = "sram"; // BHT的实现方式(reg | sram)
-	localparam NO_INIT_BTB = "false"; // 是否无需初始化BTB存储器
-	localparam NO_INIT_PHT = "false"; // 是否无需初始化PHT存储器
-	// 取操作数和指令译码配置
-	localparam integer LSN_FU_N = 5; // 要监听结果的执行单元的个数(正整数)
-	localparam integer FU_ID_WIDTH = 3; // 执行单元ID位宽(1~16)
-	localparam integer FU_RES_WIDTH = 32; // 执行单元结果位宽(正整数)
-	localparam GEN_LS_ADDR_UNALIGNED_EXPT = "false"; // 是否考虑访存地址非对齐异常
-	// BRU配置
-	localparam EN_BRU_IMDT_FLUSH = "true"; // 是否启用立即冲刷
+	localparam EN_REG_SLICE_IN_ICB_INNER_IMEM_CMD_INST = "true"; // 是否在CPU核内指令ICB主机的命令通道插入寄存器片
+	// IQ配置
+	localparam EN_OUT_OF_ORDER_ISSUE = "true"; // 是否启用乱序发射
+	localparam integer IQ0_ENTRY_N = 4; // 发射队列#0条目数(2 | 4 | 8 | 16)
+	localparam integer IQ1_ENTRY_N = 4; // 发射队列#1条目数(2 | 4 | 8 | 16)
+	localparam EN_IQ1_LOW_LA_LSU_LSN = "true"; // 是否启用发射队列#1对LSU结果的低时延监听
+	localparam EN_LOW_LA_BRC_PRDT_FAILURE_PROC = "true"; // 是否启用低时延的分支预测失败处理
+	localparam integer BRU_NOMINAL_RES_LATENCY = 1; // BRU名义结果输出时延
 	// CSR初值配置
-	localparam init_mtvec_base = 30'd0; // mtvec状态寄存器BASE域复位值
-	localparam init_mcause_interrupt = 1'b0; // mcause状态寄存器Interrupt域复位值
-	localparam init_mcause_exception_code = 31'd16; // mcause状态寄存器Exception Code域复位值
-	localparam init_misa_mxl = 2'b01; // misa状态寄存器MXL域复位值
-	localparam init_misa_extensions = 26'b00_0000_0000_0001_0001_0000_0000; // misa状态寄存器Extensions域复位值
-	localparam init_mvendorid_bank = 25'h0_00_00_00; // mvendorid状态寄存器Bank域复位值
-	localparam init_mvendorid_offset = 7'h00; // mvendorid状态寄存器Offset域复位值
-	localparam init_marchid = 32'h00_00_00_00; // marchid状态寄存器复位值
-	localparam init_mimpid = 32'h31_2E_30_30; // mimpid状态寄存器复位值
-	localparam init_mhartid = 32'h00_00_00_00; // mhartid状态寄存器复位值
+	localparam INIT_MTVEC_BASE = 30'd0; // mtvec状态寄存器BASE域复位值
+	localparam INIT_MCAUSE_INTERRUPT = 1'b0; // mcause状态寄存器Interrupt域复位值
+	localparam INIT_MCAUSE_EXCEPTION_CODE = 31'd16; // mcause状态寄存器Exception Code域复位值
+	localparam INIT_MISA_MXL = 2'b01; // misa状态寄存器MXL域复位值
+	localparam INIT_MISA_EXTENSIONS = 26'b00_0000_0000_0001_0001_0000_0000; // misa状态寄存器Extensions域复位值
+	localparam INIT_MVENDORID_BANK = 25'h0_00_00_00; // mvendorid状态寄存器Bank域复位值
+	localparam INIT_MVENDORID_OFFSET = 7'h00; // mvendorid状态寄存器Offset域复位值
+	localparam INIT_MARCHID = 32'h00_00_00_00; // marchid状态寄存器复位值
+	localparam INIT_MIMPID = 32'h31_2E_30_30; // mimpid状态寄存器复位值
+	localparam INIT_MHARTID = 32'h00_00_00_00; // mhartid状态寄存器复位值
 	// LSU配置
 	localparam integer LSU_REQ_BUF_ENTRY_N = 8; // LSU请求缓存区条目数(2~16)
 	localparam integer RD_MEM_BUF_ENTRY_N = 4; // 读存储器缓存区条目数(2~16)
 	localparam integer WR_MEM_BUF_ENTRY_N = 4; // 写存储器缓存区条目数(2~16)
 	localparam EN_LOW_LATENCY_PERPH_ACCESS = "true"; // 是否启用低时延的外设访问模式
-	localparam integer EN_LOW_LATENCY_RD_MEM_ACCESS_IN_LSU = 1; // LSU读存储器访问时延优化等级(0 | 1 | 2)
+	localparam integer EN_LOW_LATENCY_RD_MEM_ACCESS_IN_LSU = 2; // LSU读存储器访问时延优化等级(0 | 1 | 2)
+	// BRU配置
+	localparam integer BRU_RES_LATENCY = 0; // BRU输出时延(0 | 1)
 	// ROB配置
-	localparam integer FU_ERR_WIDTH = 3; // 执行单元错误码位宽(正整数)
 	localparam integer LSU_FU_ID = 2; // LSU的执行单元ID
 	localparam AUTO_CANCEL_SYNC_ERR_ENTRY = "false"; // 是否在发射时自动取消带有同步异常的项
-	// 总线互联单元配置
+	// BIU配置
 	localparam EN_BIU_LOW_LATENCY_DMEM_RD = "true"; // 是否使能低时延的数据存储器读模式
-	localparam EN_M_AXI_IMEM_AR_REG_SLICE = "false"; // 是否在(指令总线)存储器AXI主机AR通道插入寄存器片
+	localparam EN_M_AXI_IMEM_AR_REG_SLICE = "true"; // 是否在(指令总线)存储器AXI主机AR通道插入寄存器片
 	
 	/** 取指单元(IFU) **/
 	// 全局冲刷请求
@@ -336,6 +337,18 @@ module panda_risc_v_core #(
 	wire m_if_res_valid;
 	wire m_if_res_ready;
 	// CPU核内指令ICB主机
+	wire[31:0] s_icb_reg_inner_imem_cmd_inst_addr;
+	wire s_icb_reg_inner_imem_cmd_inst_read;
+	wire[31:0] s_icb_reg_inner_imem_cmd_inst_wdata;
+	wire[3:0] s_icb_reg_inner_imem_cmd_inst_wmask;
+	wire s_icb_reg_inner_imem_cmd_inst_valid;
+	wire s_icb_reg_inner_imem_cmd_inst_ready;
+	wire[31:0] m_icb_reg_inner_imem_cmd_inst_addr;
+	wire m_icb_reg_inner_imem_cmd_inst_read;
+	wire[31:0] m_icb_reg_inner_imem_cmd_inst_wdata;
+	wire[3:0] m_icb_reg_inner_imem_cmd_inst_wmask;
+	wire m_icb_reg_inner_imem_cmd_inst_valid;
+	wire m_icb_reg_inner_imem_cmd_inst_ready;
 	wire[31:0] m_icb_inner_imem_cmd_inst_addr;
 	wire m_icb_inner_imem_cmd_inst_read;
 	wire[31:0] m_icb_inner_imem_cmd_inst_wdata;
@@ -365,14 +378,21 @@ module panda_risc_v_core #(
 		end
 	endgenerate
 	
+	assign m_icb_inner_imem_cmd_inst_addr = m_icb_reg_inner_imem_cmd_inst_addr;
+	assign m_icb_inner_imem_cmd_inst_read = m_icb_reg_inner_imem_cmd_inst_read;
+	assign m_icb_inner_imem_cmd_inst_wdata = m_icb_reg_inner_imem_cmd_inst_wdata;
+	assign m_icb_inner_imem_cmd_inst_wmask = m_icb_reg_inner_imem_cmd_inst_wmask;
+	assign m_icb_inner_imem_cmd_inst_valid = m_icb_reg_inner_imem_cmd_inst_valid;
+	assign m_icb_reg_inner_imem_cmd_inst_ready = m_icb_inner_imem_cmd_inst_ready;
+	
 	panda_risc_v_ifu #(
 		.EN_IF_REGS(EN_IF_REGS),
 		.IBUS_ACCESS_TIMEOUT_TH(IBUS_ACCESS_TIMEOUT_TH),
 		.INST_ADDR_ALIGNMENT_WIDTH(INST_ADDR_ALIGNMENT_WIDTH),
 		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
 		.IBUS_OUTSTANDING_N(IBUS_OUTSTANDING_N),
-		.IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH(IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH),
-		.PRDT_MSG_WIDTH(PRDT_MSG_WIDTH),
+		.IBUS_ACCESS_REQ_EXTRA_MSG_WIDTH(1),
+		.PRDT_MSG_WIDTH(96),
 		.GHR_WIDTH(GHR_WIDTH),
 		.PC_WIDTH(PC_WIDTH_FOR_PHT_ADDR),
 		.BHR_WIDTH(BHR_WIDTH),
@@ -456,12 +476,12 @@ module panda_risc_v_core #(
 		.m_if_res_valid(m_if_res_valid),
 		.m_if_res_ready(m_if_res_ready),
 		
-		.m_icb_cmd_inst_addr(m_icb_inner_imem_cmd_inst_addr),
-		.m_icb_cmd_inst_read(m_icb_inner_imem_cmd_inst_read),
-		.m_icb_cmd_inst_wdata(m_icb_inner_imem_cmd_inst_wdata),
-		.m_icb_cmd_inst_wmask(m_icb_inner_imem_cmd_inst_wmask),
-		.m_icb_cmd_inst_valid(m_icb_inner_imem_cmd_inst_valid),
-		.m_icb_cmd_inst_ready(m_icb_inner_imem_cmd_inst_ready),
+		.m_icb_cmd_inst_addr(s_icb_reg_inner_imem_cmd_inst_addr),
+		.m_icb_cmd_inst_read(s_icb_reg_inner_imem_cmd_inst_read),
+		.m_icb_cmd_inst_wdata(s_icb_reg_inner_imem_cmd_inst_wdata),
+		.m_icb_cmd_inst_wmask(s_icb_reg_inner_imem_cmd_inst_wmask),
+		.m_icb_cmd_inst_valid(s_icb_reg_inner_imem_cmd_inst_valid),
+		.m_icb_cmd_inst_ready(s_icb_reg_inner_imem_cmd_inst_ready),
 		.m_icb_rsp_inst_rdata(m_icb_inner_imem_rsp_inst_rdata),
 		.m_icb_rsp_inst_err(m_icb_inner_imem_rsp_inst_err),
 		.m_icb_rsp_inst_valid(m_icb_inner_imem_rsp_inst_valid),
@@ -470,6 +490,34 @@ module panda_risc_v_core #(
 		.suppressing_ibus_access(suppressing_ibus_access),
 		.clr_inst_buf_while_suppressing(clr_inst_buf_while_suppressing),
 		.ibus_timeout(ibus_timeout)
+	);
+	
+	axis_reg_slice #(
+		.data_width(64),
+		.user_width(5),
+		.forward_registered("false"),
+		.back_registered(EN_REG_SLICE_IN_ICB_INNER_IMEM_CMD_INST),
+		.en_ready("true"),
+		.en_clk_en("false"),
+		.simulation_delay(SIM_DELAY)
+	)icb_inner_imem_cmd_inst_reg_slice_u(
+		.clk(aclk),
+		.rst_n(aresetn),
+		.clken(1'b1),
+		
+		.s_axis_data({s_icb_reg_inner_imem_cmd_inst_addr, s_icb_reg_inner_imem_cmd_inst_wdata}),
+		.s_axis_keep(),
+		.s_axis_user({s_icb_reg_inner_imem_cmd_inst_read, s_icb_reg_inner_imem_cmd_inst_wmask}),
+		.s_axis_last(),
+		.s_axis_valid(s_icb_reg_inner_imem_cmd_inst_valid),
+		.s_axis_ready(s_icb_reg_inner_imem_cmd_inst_ready),
+		
+		.m_axis_data({m_icb_reg_inner_imem_cmd_inst_addr, m_icb_reg_inner_imem_cmd_inst_wdata}),
+		.m_axis_keep(),
+		.m_axis_user({m_icb_reg_inner_imem_cmd_inst_read, m_icb_reg_inner_imem_cmd_inst_wmask}),
+		.m_axis_last(),
+		.m_axis_valid(m_icb_reg_inner_imem_cmd_inst_valid),
+		.m_axis_ready(m_icb_reg_inner_imem_cmd_inst_ready)
 	);
 	
 	/** 通用寄存器堆 **/
@@ -502,6 +550,16 @@ module panda_risc_v_core #(
 	);
 	
 	/** 预取操作数 **/
+	// ROB控制/状态
+	wire rob_full_n; // ROB满(标志)
+	wire rob_csr_rw_inst_allowed; // 允许发射CSR读写指令(标志)
+	wire[7:0] rob_entry_id_to_be_written; // 待写项的条目编号
+	wire rob_entry_age_tbit_to_be_written; // 待写项的年龄翻转位
+	// 执行单元结果返回
+	wire[((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5)-1:0] fu_res_vld; // 有效标志
+	wire[((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5)*IBUS_TID_WIDTH-1:0] fu_res_tid; // 指令ID
+	wire[((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5)*32-1:0] fu_res_data; // 执行结果
+	wire[((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5)*3-1:0] fu_res_err; // 错误码
 	// 读ARF/ROB输入
 	wire[127:0] s_regs_rd_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[98:0] s_regs_rd_msg; // 取指附加信息({分支预测信息(96bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
@@ -517,31 +575,73 @@ module panda_risc_v_core #(
 	wire[129:0] m_regs_rd_op; // 预取的操作数({操作数1已取得(1bit), 操作数2已取得(1bit), 
 	                          //   操作数1(32bit), 操作数2(32bit), 用于取操作数1的执行单元ID(16bit), 用于取操作数2的执行单元ID(16bit), 
 							  //   用于取操作数1的指令ID(16bit), 用于取操作数2的指令ID(16bit)})
-	wire[FU_ID_WIDTH-1:0] m_regs_rd_fuid; // 执行单元ID
+	wire[2:0] m_regs_rd_fuid; // 执行单元ID
 	wire m_regs_rd_valid;
 	wire m_regs_rd_ready;
+	// 写发射队列#0
+	wire[IBUS_TID_WIDTH-1:0] m_wr_iq0_inst_id; // 指令ID
+	wire[3:0] m_wr_iq0_fuid; // 执行单元ID
+	wire[7:0] m_wr_iq0_rob_entry_id; // ROB条目ID
+	wire[clogb2(ROB_ENTRY_N-1)+1:0] m_wr_iq0_age_tag; // 年龄标识
+	wire[3:0] m_wr_iq0_op1_lsn_fuid; // OP1所监听的执行单元ID
+	wire[3:0] m_wr_iq0_op2_lsn_fuid; // OP2所监听的执行单元ID
+	wire[IBUS_TID_WIDTH-1:0] m_wr_iq0_op1_lsn_inst_id; // OP1所监听的指令ID
+	wire[IBUS_TID_WIDTH-1:0] m_wr_iq0_op2_lsn_inst_id; // OP2所监听的指令ID
+	wire[63:0] m_wr_iq0_other_payload; // 其他负载数据
+	wire[31:0] m_wr_iq0_op1_pre_fetched; // 预取的OP1
+	wire[31:0] m_wr_iq0_op2_pre_fetched; // 预取的OP2
+	wire m_wr_iq0_op1_rdy; // OP1已就绪
+	wire m_wr_iq0_op2_rdy; // OP2已就绪
+	wire m_wr_iq0_valid;
+	wire m_wr_iq0_ready;
+	// 写发射队列#1
+	wire[IBUS_TID_WIDTH-1:0] m_wr_iq1_inst_id; // 指令ID
+	wire[3:0] m_wr_iq1_fuid; // 执行单元ID
+	wire[7:0] m_wr_iq1_rob_entry_id; // ROB条目ID
+	wire[clogb2(ROB_ENTRY_N-1)+1:0] m_wr_iq1_age_tag; // 年龄标识
+	wire[3:0] m_wr_iq1_op1_lsn_fuid; // OP1所监听的执行单元ID
+	wire[3:0] m_wr_iq1_op2_lsn_fuid; // OP2所监听的执行单元ID
+	wire[IBUS_TID_WIDTH-1:0] m_wr_iq1_op1_lsn_inst_id; // OP1所监听的指令ID
+	wire[IBUS_TID_WIDTH-1:0] m_wr_iq1_op2_lsn_inst_id; // OP2所监听的指令ID
+	wire[255:0] m_wr_iq1_other_payload; // 其他负载数据
+	wire[31:0] m_wr_iq1_op1_pre_fetched; // 预取的OP1
+	wire[31:0] m_wr_iq1_op2_pre_fetched; // 预取的OP2
+	wire m_wr_iq1_op1_rdy; // OP1已就绪
+	wire m_wr_iq1_op2_rdy; // OP2已就绪
+	wire m_wr_iq1_valid;
+	wire m_wr_iq1_ready;
 	// 数据相关性检查
 	// [操作数1]
 	wire[4:0] op1_ftc_rs1_id; // 1号源寄存器编号
 	wire op1_ftc_from_reg_file; // 从寄存器堆取到操作数(标志)
 	wire op1_ftc_from_rob; // 从ROB取到操作数(标志)
 	wire op1_ftc_from_byp; // 从旁路网络取到操作数(标志)
-	wire[FU_ID_WIDTH-1:0] op1_ftc_fuid; // 待旁路的执行单元编号
+	wire[2:0] op1_ftc_fuid; // 待旁路的执行单元编号
 	wire[IBUS_TID_WIDTH-1:0] op1_ftc_tid; // 待旁路的指令ID
-	wire[FU_RES_WIDTH-1:0] op1_ftc_rob_saved_data; // ROB暂存的执行结果
+	wire[31:0] op1_ftc_rob_saved_data; // ROB暂存的执行结果
 	// [操作数2]
 	wire[4:0] op2_ftc_rs2_id; // 2号源寄存器编号
 	wire op2_ftc_from_reg_file; // 从寄存器堆取到操作数(标志)
 	wire op2_ftc_from_rob; // 从ROB取到操作数(标志)
 	wire op2_ftc_from_byp; // 从旁路网络取到操作数(标志)
-	wire[FU_ID_WIDTH-1:0] op2_ftc_fuid; // 待旁路的执行单元编号
+	wire[2:0] op2_ftc_fuid; // 待旁路的执行单元编号
 	wire[IBUS_TID_WIDTH-1:0] op2_ftc_tid; // 待旁路的指令ID
-	wire[FU_RES_WIDTH-1:0] op2_ftc_rob_saved_data; // ROB暂存的执行结果
-	// 执行单元结果返回
-	wire[LSN_FU_N-1:0] fu_res_vld; // 有效标志
-	wire[LSN_FU_N*IBUS_TID_WIDTH-1:0] fu_res_tid; // 指令ID
-	wire[LSN_FU_N*FU_RES_WIDTH-1:0] fu_res_data; // 执行结果
-	wire[LSN_FU_N*FU_ERR_WIDTH-1:0] fu_res_err; // 错误码
+	wire[31:0] op2_ftc_rob_saved_data; // ROB暂存的执行结果
+	// 发射阶段ROB记录广播
+	wire rob_luc_bdcst_vld; // 广播有效
+	wire[IBUS_TID_WIDTH-1:0] rob_luc_bdcst_tid; // 指令ID
+	wire[3:0] rob_luc_bdcst_fuid; // 被发射到的执行单元ID
+	wire[4:0] rob_luc_bdcst_rd_id; // 目的寄存器编号
+	wire rob_luc_bdcst_is_ls_inst; // 是否加载/存储指令
+	wire rob_luc_bdcst_is_csr_rw_inst; // 是否CSR读写指令
+	wire[13:0] rob_luc_bdcst_csr_rw_inst_msg; // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit)})
+	wire[2:0] rob_luc_bdcst_err; // 错误类型
+	wire[2:0] rob_luc_bdcst_spec_inst_type; // 特殊指令类型
+	wire rob_luc_bdcst_is_b_inst; // 是否B指令
+	wire[31:0] rob_luc_bdcst_pc; // 指令对应的PC
+	wire[31:0] rob_luc_bdcst_nxt_pc; // 指令对应的下一有效PC
+	wire[1:0] rob_luc_bdcst_org_2bit_sat_cnt; // 原来的2bit饱和计数器
+	wire[15:0] rob_luc_bdcst_bhr; // BHR
 	
 	assign s_regs_rd_data = m_if_res_data;
 	assign s_regs_rd_msg = m_if_res_msg;
@@ -550,72 +650,212 @@ module panda_risc_v_core #(
 	assign s_regs_rd_valid = m_if_res_valid;
 	assign m_if_res_ready = s_regs_rd_ready;
 	
-	panda_risc_v_regs_rd #(
-		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
-		.LSN_FU_N(LSN_FU_N),
-		.FU_ID_WIDTH(FU_ID_WIDTH),
-		.FU_RES_WIDTH(FU_RES_WIDTH),
-		.SIM_DELAY(SIM_DELAY)
-	)op_pre_fetch_u(
-		.aclk(aclk),
-		.aresetn(aresetn),
-		
-		.sys_reset_req(sys_reset_req),
-		.flush_req(global_flush_req),
-		
-		.s_regs_rd_data(s_regs_rd_data),
-		.s_regs_rd_msg(s_regs_rd_msg),
-		.s_regs_rd_id(s_regs_rd_id),
-		.s_regs_rd_is_first_inst_after_rst(s_regs_rd_is_first_inst_after_rst),
-		.s_regs_rd_valid(s_regs_rd_valid),
-		.s_regs_rd_ready(s_regs_rd_ready),
-		
-		.m_regs_rd_data(m_regs_rd_data),
-		.m_regs_rd_msg(m_regs_rd_msg),
-		.m_regs_rd_id(m_regs_rd_id),
-		.m_regs_rd_is_first_inst_after_rst(m_regs_rd_is_first_inst_after_rst),
-		.m_regs_rd_op(m_regs_rd_op),
-		.m_regs_rd_fuid(m_regs_rd_fuid),
-		.m_regs_rd_valid(m_regs_rd_valid),
-		.m_regs_rd_ready(m_regs_rd_ready),
-		
-		.op1_ftc_rs1_id(op1_ftc_rs1_id),
-		.op1_ftc_from_reg_file(op1_ftc_from_reg_file),
-		.op1_ftc_from_rob(op1_ftc_from_rob),
-		.op1_ftc_from_byp(op1_ftc_from_byp),
-		.op1_ftc_fuid(op1_ftc_fuid),
-		.op1_ftc_tid(op1_ftc_tid),
-		.op1_ftc_rob_saved_data(op1_ftc_rob_saved_data),
-		.op2_ftc_rs2_id(op2_ftc_rs2_id),
-		.op2_ftc_from_reg_file(op2_ftc_from_reg_file),
-		.op2_ftc_from_rob(op2_ftc_from_rob),
-		.op2_ftc_from_byp(op2_ftc_from_byp),
-		.op2_ftc_fuid(op2_ftc_fuid),
-		.op2_ftc_tid(op2_ftc_tid),
-		.op2_ftc_rob_saved_data(op2_ftc_rob_saved_data),
-		
-		.fu_res_vld(fu_res_vld),
-		.fu_res_tid(fu_res_tid),
-		.fu_res_data(fu_res_data),
-		
-		.reg_file_raddr_p0(reg_file_raddr_p0),
-		.reg_file_dout_p0(reg_file_dout_p0),
-		.reg_file_raddr_p1(reg_file_raddr_p1),
-		.reg_file_dout_p1(reg_file_dout_p1)
-	);
+	generate
+		if(EN_OUT_OF_ORDER_ISSUE == "true")
+		begin
+			panda_risc_v_regs_rd_out_of_order #(
+				.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
+				.AGE_TAG_WIDTH(clogb2(ROB_ENTRY_N-1)+1+1),
+				.LSN_FU_N((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5),
+				.IQ0_OTHER_PAYLOAD_WIDTH(64),
+				.IQ1_OTHER_PAYLOAD_WIDTH(256),
+				.ROB_ENTRY_N(ROB_ENTRY_N),
+				.SIM_DELAY(SIM_DELAY)
+			)op_pre_fetch_u(
+				.aclk(aclk),
+				.aresetn(aresetn),
+				
+				.sys_reset_req(sys_reset_req),
+				.flush_req(global_flush_req),
+				
+				.rob_full_n(rob_full_n),
+				.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
+				.rob_entry_id_to_be_written(rob_entry_id_to_be_written),
+				.rob_entry_age_tbit_to_be_written(rob_entry_age_tbit_to_be_written),
+				
+				.fu_res_data(fu_res_data),
+				.fu_res_tid(fu_res_tid),
+				.fu_res_vld(fu_res_vld),
+				
+				.s_regs_rd_data(s_regs_rd_data),
+				.s_regs_rd_msg(s_regs_rd_msg),
+				.s_regs_rd_id(s_regs_rd_id),
+				.s_regs_rd_is_first_inst_after_rst(s_regs_rd_is_first_inst_after_rst),
+				.s_regs_rd_valid(s_regs_rd_valid),
+				.s_regs_rd_ready(s_regs_rd_ready),
+				
+				.m_wr_iq0_inst_id(m_wr_iq0_inst_id),
+				.m_wr_iq0_fuid(m_wr_iq0_fuid),
+				.m_wr_iq0_rob_entry_id(m_wr_iq0_rob_entry_id),
+				.m_wr_iq0_age_tag(m_wr_iq0_age_tag),
+				.m_wr_iq0_op1_lsn_fuid(m_wr_iq0_op1_lsn_fuid),
+				.m_wr_iq0_op2_lsn_fuid(m_wr_iq0_op2_lsn_fuid),
+				.m_wr_iq0_op1_lsn_inst_id(m_wr_iq0_op1_lsn_inst_id),
+				.m_wr_iq0_op2_lsn_inst_id(m_wr_iq0_op2_lsn_inst_id),
+				.m_wr_iq0_other_payload(m_wr_iq0_other_payload),
+				.m_wr_iq0_op1_pre_fetched(m_wr_iq0_op1_pre_fetched),
+				.m_wr_iq0_op2_pre_fetched(m_wr_iq0_op2_pre_fetched),
+				.m_wr_iq0_op1_rdy(m_wr_iq0_op1_rdy),
+				.m_wr_iq0_op2_rdy(m_wr_iq0_op2_rdy),
+				.m_wr_iq0_valid(m_wr_iq0_valid),
+				.m_wr_iq0_ready(m_wr_iq0_ready),
+				
+				.m_wr_iq1_inst_id(m_wr_iq1_inst_id),
+				.m_wr_iq1_fuid(m_wr_iq1_fuid),
+				.m_wr_iq1_rob_entry_id(m_wr_iq1_rob_entry_id),
+				.m_wr_iq1_age_tag(m_wr_iq1_age_tag),
+				.m_wr_iq1_op1_lsn_fuid(m_wr_iq1_op1_lsn_fuid),
+				.m_wr_iq1_op2_lsn_fuid(m_wr_iq1_op2_lsn_fuid),
+				.m_wr_iq1_op1_lsn_inst_id(m_wr_iq1_op1_lsn_inst_id),
+				.m_wr_iq1_op2_lsn_inst_id(m_wr_iq1_op2_lsn_inst_id),
+				.m_wr_iq1_other_payload(m_wr_iq1_other_payload),
+				.m_wr_iq1_op1_pre_fetched(m_wr_iq1_op1_pre_fetched),
+				.m_wr_iq1_op2_pre_fetched(m_wr_iq1_op2_pre_fetched),
+				.m_wr_iq1_op1_rdy(m_wr_iq1_op1_rdy),
+				.m_wr_iq1_op2_rdy(m_wr_iq1_op2_rdy),
+				.m_wr_iq1_valid(m_wr_iq1_valid),
+				.m_wr_iq1_ready(m_wr_iq1_ready),
+				
+				.op1_ftc_rs1_id(op1_ftc_rs1_id),
+				.op1_ftc_from_reg_file(op1_ftc_from_reg_file),
+				.op1_ftc_from_rob(op1_ftc_from_rob),
+				.op1_ftc_from_byp(op1_ftc_from_byp),
+				.op1_ftc_fuid(op1_ftc_fuid | 4'd0),
+				.op1_ftc_tid(op1_ftc_tid),
+				.op1_ftc_rob_saved_data(op1_ftc_rob_saved_data),
+				.op2_ftc_rs2_id(op2_ftc_rs2_id),
+				.op2_ftc_from_reg_file(op2_ftc_from_reg_file),
+				.op2_ftc_from_rob(op2_ftc_from_rob),
+				.op2_ftc_from_byp(op2_ftc_from_byp),
+				.op2_ftc_fuid(op2_ftc_fuid | 4'd0),
+				.op2_ftc_tid(op2_ftc_tid),
+				.op2_ftc_rob_saved_data(op2_ftc_rob_saved_data),
+				
+				.rob_luc_bdcst_vld(rob_luc_bdcst_vld),
+				.rob_luc_bdcst_tid(rob_luc_bdcst_tid),
+				.rob_luc_bdcst_fuid(rob_luc_bdcst_fuid),
+				.rob_luc_bdcst_rd_id(rob_luc_bdcst_rd_id),
+				.rob_luc_bdcst_is_ls_inst(rob_luc_bdcst_is_ls_inst),
+				.rob_luc_bdcst_is_csr_rw_inst(rob_luc_bdcst_is_csr_rw_inst),
+				.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
+				.rob_luc_bdcst_err(rob_luc_bdcst_err),
+				.rob_luc_bdcst_spec_inst_type(rob_luc_bdcst_spec_inst_type),
+				.rob_luc_bdcst_is_b_inst(rob_luc_bdcst_is_b_inst),
+				.rob_luc_bdcst_pc(rob_luc_bdcst_pc),
+				.rob_luc_bdcst_nxt_pc(rob_luc_bdcst_nxt_pc),
+				.rob_luc_bdcst_org_2bit_sat_cnt(rob_luc_bdcst_org_2bit_sat_cnt),
+				.rob_luc_bdcst_bhr(rob_luc_bdcst_bhr),
+				
+				.reg_file_raddr_p0(reg_file_raddr_p0),
+				.reg_file_dout_p0(reg_file_dout_p0),
+				.reg_file_raddr_p1(reg_file_raddr_p1),
+				.reg_file_dout_p1(reg_file_dout_p1)
+			);
+		end
+		else
+		begin
+			panda_risc_v_regs_rd_in_order #(
+				.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
+				.LSN_FU_N((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5),
+				.FU_ID_WIDTH(3),
+				.FU_RES_WIDTH(32),
+				.SIM_DELAY(SIM_DELAY)
+			)op_pre_fetch_u(
+				.aclk(aclk),
+				.aresetn(aresetn),
+				
+				.sys_reset_req(sys_reset_req),
+				.flush_req(global_flush_req),
+				
+				.s_regs_rd_data(s_regs_rd_data),
+				.s_regs_rd_msg(s_regs_rd_msg),
+				.s_regs_rd_id(s_regs_rd_id),
+				.s_regs_rd_is_first_inst_after_rst(s_regs_rd_is_first_inst_after_rst),
+				.s_regs_rd_valid(s_regs_rd_valid),
+				.s_regs_rd_ready(s_regs_rd_ready),
+				
+				.m_regs_rd_data(m_regs_rd_data),
+				.m_regs_rd_msg(m_regs_rd_msg),
+				.m_regs_rd_id(m_regs_rd_id),
+				.m_regs_rd_is_first_inst_after_rst(m_regs_rd_is_first_inst_after_rst),
+				.m_regs_rd_op(m_regs_rd_op),
+				.m_regs_rd_fuid(m_regs_rd_fuid),
+				.m_regs_rd_valid(m_regs_rd_valid),
+				.m_regs_rd_ready(m_regs_rd_ready),
+				
+				.op1_ftc_rs1_id(op1_ftc_rs1_id),
+				.op1_ftc_from_reg_file(op1_ftc_from_reg_file),
+				.op1_ftc_from_rob(op1_ftc_from_rob),
+				.op1_ftc_from_byp(op1_ftc_from_byp),
+				.op1_ftc_fuid(op1_ftc_fuid),
+				.op1_ftc_tid(op1_ftc_tid),
+				.op1_ftc_rob_saved_data(op1_ftc_rob_saved_data),
+				.op2_ftc_rs2_id(op2_ftc_rs2_id),
+				.op2_ftc_from_reg_file(op2_ftc_from_reg_file),
+				.op2_ftc_from_rob(op2_ftc_from_rob),
+				.op2_ftc_from_byp(op2_ftc_from_byp),
+				.op2_ftc_fuid(op2_ftc_fuid),
+				.op2_ftc_tid(op2_ftc_tid),
+				.op2_ftc_rob_saved_data(op2_ftc_rob_saved_data),
+				
+				.fu_res_data(fu_res_data),
+				.fu_res_tid(fu_res_tid),
+				.fu_res_vld(fu_res_vld),
+				
+				.reg_file_raddr_p0(reg_file_raddr_p0),
+				.reg_file_dout_p0(reg_file_dout_p0),
+				.reg_file_raddr_p1(reg_file_raddr_p1),
+				.reg_file_dout_p1(reg_file_dout_p1)
+			);
+		end
+	endgenerate
 	
-	/** 取操作数和指令译码 **/
-	// 取指结果
-	wire[127:0] s_if_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[98:0] s_if_res_msg; // 取指附加信息({分支预测信息(96bit), 是否非法指令(1bit), 指令存储器访问错误码(2bit)})
-	wire[IBUS_TID_WIDTH-1:0] s_if_res_id; // 指令ID
-	wire s_if_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
-	wire[129:0] s_if_res_op; // 预取的操作数({操作数1已取得(1bit), 操作数2已取得(1bit), 
-	                         //   操作数1(32bit), 操作数2(32bit), 用于取操作数1的执行单元ID(16bit), 用于取操作数2的执行单元ID(16bit), 
-						     //   用于取操作数1的指令ID(16bit), 用于取操作数2的指令ID(16bit)})
-	wire[FU_ID_WIDTH-1:0] s_if_res_fuid; // 执行单元ID
-	wire s_if_res_valid;
-	wire s_if_res_ready;
+	/** 发射队列 **/
+	// 发射队列控制/状态
+	wire clr_iq0; // 清空发射队列#0(指示)
+	wire clr_iq1; // 清空发射队列#1(指示)
+	// LSU状态
+	wire has_buffered_wr_mem_req; // 存在已缓存的写存储器请求(标志)
+	wire has_processing_perph_access_req; // 存在处理中的外设访问请求(标志)
+	// BRU处理结果返回
+	wire[IBUS_TID_WIDTH-1:0] s_bru_o_to_iq_tid; // 指令ID
+	wire s_bru_o_to_iq_valid;
+	// BRU名义结果
+	wire bru_nominal_res_vld; // 有效标志
+	wire[IBUS_TID_WIDTH-1:0] bru_nominal_res_tid; // 指令ID
+	wire[31:0] bru_nominal_res; // 执行结果
+	// 写发射队列#0
+	wire[IBUS_TID_WIDTH-1:0] s_wr_iq0_inst_id; // 指令ID
+	wire[3:0] s_wr_iq0_fuid; // 执行单元ID
+	wire[7:0] s_wr_iq0_rob_entry_id; // ROB条目ID
+	wire[clogb2(ROB_ENTRY_N-1)+1:0] s_wr_iq0_age_tag; // 年龄标识
+	wire[3:0] s_wr_iq0_op1_lsn_fuid; // OP1所监听的执行单元ID
+	wire[3:0] s_wr_iq0_op2_lsn_fuid; // OP2所监听的执行单元ID
+	wire[IBUS_TID_WIDTH-1:0] s_wr_iq0_op1_lsn_inst_id; // OP1所监听的指令ID
+	wire[IBUS_TID_WIDTH-1:0] s_wr_iq0_op2_lsn_inst_id; // OP2所监听的指令ID
+	wire[63:0] s_wr_iq0_other_payload; // 其他负载数据
+	wire[31:0] s_wr_iq0_op1_pre_fetched; // 预取的OP1
+	wire[31:0] s_wr_iq0_op2_pre_fetched; // 预取的OP2
+	wire s_wr_iq0_op1_rdy; // OP1已就绪
+	wire s_wr_iq0_op2_rdy; // OP2已就绪
+	wire s_wr_iq0_valid;
+	wire s_wr_iq0_ready;
+	// 写发射队列#1
+	wire[IBUS_TID_WIDTH-1:0] s_wr_iq1_inst_id; // 指令ID
+	wire[3:0] s_wr_iq1_fuid; // 执行单元ID
+	wire[7:0] s_wr_iq1_rob_entry_id; // ROB条目ID
+	wire[clogb2(ROB_ENTRY_N-1)+1:0] s_wr_iq1_age_tag; // 年龄标识
+	wire[3:0] s_wr_iq1_op1_lsn_fuid; // OP1所监听的执行单元ID
+	wire[3:0] s_wr_iq1_op2_lsn_fuid; // OP2所监听的执行单元ID
+	wire[IBUS_TID_WIDTH-1:0] s_wr_iq1_op1_lsn_inst_id; // OP1所监听的指令ID
+	wire[IBUS_TID_WIDTH-1:0] s_wr_iq1_op2_lsn_inst_id; // OP2所监听的指令ID
+	wire[255:0] s_wr_iq1_other_payload; // 其他负载数据
+	wire[31:0] s_wr_iq1_op1_pre_fetched; // 预取的OP1
+	wire[31:0] s_wr_iq1_op2_pre_fetched; // 预取的OP2
+	wire s_wr_iq1_op1_rdy; // OP1已就绪
+	wire s_wr_iq1_op2_rdy; // OP2已就绪
+	wire s_wr_iq1_valid;
+	wire s_wr_iq1_ready;
 	// 取操作数和译码结果
 	wire[127:0] m_op_ftc_id_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[162:0] m_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
@@ -626,127 +866,6 @@ module panda_risc_v_core #(
 	wire[31:0] m_op_ftc_id_res_op2; // 操作数2
 	wire m_op_ftc_id_res_valid;
 	wire m_op_ftc_id_res_ready;
-	// 发射阶段ROB记录广播
-	wire rob_luc_bdcst_vld; // 广播有效
-	wire[IBUS_TID_WIDTH-1:0] rob_luc_bdcst_tid; // 指令ID
-	wire[FU_ID_WIDTH-1:0] rob_luc_bdcst_fuid; // 被发射到的执行单元ID
-	wire[4:0] rob_luc_bdcst_rd_id; // 目的寄存器编号
-	wire rob_luc_bdcst_is_ls_inst; // 是否加载/存储指令
-	wire rob_luc_bdcst_is_csr_rw_inst; // 是否CSR读写指令
-	wire[45:0] rob_luc_bdcst_csr_rw_inst_msg; // CSR读写指令信息({CSR写地址(12bit), CSR更新类型(2bit), CSR更新掩码或更新值(32bit)})
-	wire[2:0] rob_luc_bdcst_err; // 错误类型
-	wire[2:0] rob_luc_bdcst_spec_inst_type; // 特殊指令类型
-	wire rob_luc_bdcst_is_b_inst; // 是否B指令
-	wire[31:0] rob_luc_bdcst_pc; // 指令对应的PC
-	wire[31:0] rob_luc_bdcst_nxt_pc; // 指令对应的下一有效PC
-	
-	assign s_if_res_data = m_regs_rd_data;
-	assign s_if_res_msg = m_regs_rd_msg;
-	assign s_if_res_id = m_regs_rd_id;
-	assign s_if_res_is_first_inst_after_rst = m_regs_rd_is_first_inst_after_rst;
-	assign s_if_res_op = m_regs_rd_op;
-	assign s_if_res_fuid = m_regs_rd_fuid;
-	assign s_if_res_valid = m_regs_rd_valid;
-	assign m_regs_rd_ready = s_if_res_ready;
-	
-	panda_risc_v_op_fetch_idec #(
-		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
-		.LSN_FU_N(LSN_FU_N),
-		.FU_ID_WIDTH(FU_ID_WIDTH),
-		.FU_RES_WIDTH(FU_RES_WIDTH),
-		.GEN_LS_ADDR_UNALIGNED_EXPT(GEN_LS_ADDR_UNALIGNED_EXPT),
-		.OP_PRE_FTC("true"),
-		.SIM_DELAY(SIM_DELAY)
-	)op_fetch_idec_u(
-		.aclk(aclk),
-		.aresetn(aresetn),
-		
-		.sys_reset_req(sys_reset_req),
-		.flush_req(global_flush_req),
-		
-		.s_if_res_data(s_if_res_data),
-		.s_if_res_msg(s_if_res_msg),
-		.s_if_res_id(s_if_res_id),
-		.s_if_res_is_first_inst_after_rst(s_if_res_is_first_inst_after_rst),
-		.s_if_res_op(s_if_res_op),
-		.s_if_res_fuid(s_if_res_fuid),
-		.s_if_res_valid(s_if_res_valid),
-		.s_if_res_ready(s_if_res_ready),
-		
-		.m_op_ftc_id_res_data(m_op_ftc_id_res_data),
-		.m_op_ftc_id_res_msg(m_op_ftc_id_res_msg),
-		.m_op_ftc_id_res_dcd_res(m_op_ftc_id_res_dcd_res),
-		.m_op_ftc_id_res_id(m_op_ftc_id_res_id),
-		.m_op_ftc_id_res_is_first_inst_after_rst(m_op_ftc_id_res_is_first_inst_after_rst),
-		.m_op_ftc_id_res_op1(m_op_ftc_id_res_op1),
-		.m_op_ftc_id_res_op2(m_op_ftc_id_res_op2),
-		.m_op_ftc_id_res_valid(m_op_ftc_id_res_valid),
-		.m_op_ftc_id_res_ready(m_op_ftc_id_res_ready),
-		
-		.brc_bdcst_luc_vld(brc_bdcst_luc_vld),
-		.brc_bdcst_luc_tid(brc_bdcst_luc_tid),
-		.brc_bdcst_luc_is_b_inst(brc_bdcst_luc_is_b_inst),
-		.brc_bdcst_luc_is_jal_inst(brc_bdcst_luc_is_jal_inst),
-		.brc_bdcst_luc_is_jalr_inst(brc_bdcst_luc_is_jalr_inst),
-		.brc_bdcst_luc_bta(brc_bdcst_luc_bta),
-		
-		.rob_luc_bdcst_vld(rob_luc_bdcst_vld),
-		.rob_luc_bdcst_tid(rob_luc_bdcst_tid),
-		.rob_luc_bdcst_fuid(rob_luc_bdcst_fuid),
-		.rob_luc_bdcst_rd_id(rob_luc_bdcst_rd_id),
-		.rob_luc_bdcst_is_ls_inst(rob_luc_bdcst_is_ls_inst),
-		.rob_luc_bdcst_is_csr_rw_inst(rob_luc_bdcst_is_csr_rw_inst),
-		.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
-		.rob_luc_bdcst_err(rob_luc_bdcst_err),
-		.rob_luc_bdcst_spec_inst_type(rob_luc_bdcst_spec_inst_type),
-		.rob_luc_bdcst_is_b_inst(rob_luc_bdcst_is_b_inst),
-		.rob_luc_bdcst_pc(rob_luc_bdcst_pc),
-		.rob_luc_bdcst_nxt_pc(rob_luc_bdcst_nxt_pc),
-		
-		.op1_ftc_rs1_id(),
-		.op1_ftc_from_reg_file(1'b0),
-		.op1_ftc_from_rob(1'b0),
-		.op1_ftc_from_byp(1'b0),
-		.op1_ftc_fuid({FU_ID_WIDTH{1'b0}}),
-		.op1_ftc_tid({IBUS_TID_WIDTH{1'b0}}),
-		.op1_ftc_rob_saved_data({FU_RES_WIDTH{1'b0}}),
-		.op2_ftc_rs2_id(),
-		.op2_ftc_from_reg_file(1'b0),
-		.op2_ftc_from_rob(1'b0),
-		.op2_ftc_from_byp(1'b0),
-		.op2_ftc_fuid({FU_ID_WIDTH{1'b0}}),
-		.op2_ftc_tid({IBUS_TID_WIDTH{1'b0}}),
-		.op2_ftc_rob_saved_data({FU_RES_WIDTH{1'b0}}),
-		
-		.fu_res_bypass_en({LSN_FU_N{1'b1}}),
-		
-		.fu_res_vld(fu_res_vld),
-		.fu_res_tid(fu_res_tid),
-		.fu_res_data(fu_res_data),
-		
-		.reg_file_raddr_p0(),
-		.reg_file_dout_p0(32'h0000_0000),
-		.reg_file_raddr_p1(),
-		.reg_file_dout_p1(32'h0000_0000)
-	);
-	
-	/** 发射单元 **/
-	// ROB状态
-	wire rob_full_n; // ROB满(标志)
-	wire rob_csr_rw_inst_allowed; // 允许发射CSR读写指令(标志)
-	// LSU状态
-	wire has_buffered_wr_mem_req; // 存在已缓存的写存储器请求(标志)
-	wire has_processing_perph_access_req; // 存在处理中的外设访问请求(标志)
-	// 取操作数和译码结果
-	wire[127:0] s_op_ftc_id_res_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[162:0] s_op_ftc_id_res_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
-	wire[143:0] s_op_ftc_id_res_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
-	wire[IBUS_TID_WIDTH-1:0] s_op_ftc_id_res_id; // 指令编号
-	wire s_op_ftc_id_res_is_first_inst_after_rst; // 是否复位释放后的第1条指令
-	wire[31:0] s_op_ftc_id_res_op1; // 操作数1
-	wire[31:0] s_op_ftc_id_res_op2; // 操作数2
-	wire s_op_ftc_id_res_valid;
-	wire s_op_ftc_id_res_ready;
 	// 发射单元输出
 	wire[127:0] m_luc_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[162:0] m_luc_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
@@ -757,64 +876,15 @@ module panda_risc_v_core #(
 	wire[31:0] m_luc_op2; // 操作数2
 	wire m_luc_valid;
 	wire m_luc_ready;
-	
-	assign s_op_ftc_id_res_data = m_op_ftc_id_res_data;
-	assign s_op_ftc_id_res_msg = m_op_ftc_id_res_msg;
-	assign s_op_ftc_id_res_dcd_res = m_op_ftc_id_res_dcd_res;
-	assign s_op_ftc_id_res_id = m_op_ftc_id_res_id;
-	assign s_op_ftc_id_res_is_first_inst_after_rst = m_op_ftc_id_res_is_first_inst_after_rst;
-	assign s_op_ftc_id_res_op1 = m_op_ftc_id_res_op1;
-	assign s_op_ftc_id_res_op2 = m_op_ftc_id_res_op2;
-	assign s_op_ftc_id_res_valid = m_op_ftc_id_res_valid;
-	assign m_op_ftc_id_res_ready = s_op_ftc_id_res_ready;
-	
-	panda_risc_v_launch #(
-		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
-		.SIM_DELAY(SIM_DELAY)
-	)launch_u(
-		.aclk(aclk),
-		.aresetn(aresetn),
-		
-		.rob_full_n(rob_full_n),
-		.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
-		
-		.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
-		.has_processing_perph_access_req(has_processing_perph_access_req),
-		
-		.sys_reset_req(sys_reset_req),
-		.flush_req(global_flush_req),
-		
-		.s_op_ftc_id_res_data(s_op_ftc_id_res_data),
-		.s_op_ftc_id_res_msg(s_op_ftc_id_res_msg),
-		.s_op_ftc_id_res_dcd_res(s_op_ftc_id_res_dcd_res),
-		.s_op_ftc_id_res_id(s_op_ftc_id_res_id),
-		.s_op_ftc_id_res_is_first_inst_after_rst(s_op_ftc_id_res_is_first_inst_after_rst),
-		.s_op_ftc_id_res_op1(s_op_ftc_id_res_op1),
-		.s_op_ftc_id_res_op2(s_op_ftc_id_res_op2),
-		.s_op_ftc_id_res_valid(s_op_ftc_id_res_valid),
-		.s_op_ftc_id_res_ready(s_op_ftc_id_res_ready),
-		
-		.m_luc_data(m_luc_data),
-		.m_luc_msg(m_luc_msg),
-		.m_luc_dcd_res(m_luc_dcd_res),
-		.m_luc_id(m_luc_id),
-		.m_luc_is_first_inst_after_rst(m_luc_is_first_inst_after_rst),
-		.m_luc_op1(m_luc_op1),
-		.m_luc_op2(m_luc_op2),
-		.m_luc_valid(m_luc_valid),
-		.m_luc_ready(m_luc_ready)
-	);
-	
-	/** 分发单元 **/
-	// 分发单元输入
-	wire[127:0] s_dsptc_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[162:0] s_dsptc_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
-	wire[143:0] s_dsptc_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
-	wire[IBUS_TID_WIDTH-1:0] s_dsptc_id; // 指令编号
-	wire s_dsptc_is_first_inst_after_rst; // 是否复位释放后的第1条指令
-	wire s_dsptc_valid;
-	wire s_dsptc_ready;
-	// BRU
+	// 更新ROB的"CSR更新掩码或更新值"字段
+	wire[31:0] saving_csr_rw_msg_upd_mask_v; // 更新掩码或更新值
+	wire[7:0] saving_csr_rw_msg_rob_entry_id; // ROB条目编号
+	wire saving_csr_rw_msg_vld;
+	// 更新ROB的"指令对应的下一有效PC"字段
+	wire on_upd_rob_field_nxt_pc;
+	wire[IBUS_TID_WIDTH-1:0] inst_id_of_upd_rob_field_nxt_pc;
+	wire[31:0] rob_field_nxt_pc;
+	// 分发单元给出的BRU输入
 	wire[127:0] m_bru_i_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
 	wire[162:0] m_bru_i_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
 	wire[143:0] m_bru_i_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
@@ -833,14 +903,6 @@ module panda_risc_v_core #(
 	wire[11:0] m_csr_addr; // CSR地址
 	wire[IBUS_TID_WIDTH-1:0] m_csr_tid; // 指令ID
 	wire m_csr_valid;
-	// [LSU]
-	wire m_lsu_ls_sel; // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
-	wire[2:0] m_lsu_ls_type; // 访存类型
-	wire[4:0] m_lsu_rd_id_for_ld; // 用于加载的目标寄存器的索引
-	wire[31:0] m_lsu_ls_din; // 写数据
-	wire[IBUS_TID_WIDTH-1:0] m_lsu_inst_id; // 指令ID
-	wire m_lsu_valid;
-	wire m_lsu_ready;
 	// [乘法器]
 	wire[32:0] m_mul_op_a; // 操作数A
 	wire[32:0] m_mul_op_b; // 操作数B
@@ -857,68 +919,374 @@ module panda_risc_v_core #(
 	wire[IBUS_TID_WIDTH-1:0] m_div_inst_id; // 指令ID
 	wire m_div_valid;
 	wire m_div_ready;
+	// [LSU]
+	wire m_lsu_ls_sel; // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
+	wire[2:0] m_lsu_ls_type; // 访存类型
+	wire[4:0] m_lsu_rd_id_for_ld; // 用于加载的目标寄存器的索引
+	wire[31:0] m_lsu_ls_addr; // 访存地址
+	wire[31:0] m_lsu_ls_din; // 写数据
+	wire[IBUS_TID_WIDTH-1:0] m_lsu_inst_id; // 指令ID
+	wire m_lsu_valid;
+	wire m_lsu_ready;
+	// [BRU]
+	wire[159:0] m_bru_prdt_msg; // 分支预测信息
+	wire[15:0] m_bru_inst_type; // 打包的指令类型标志
+	wire[IBUS_TID_WIDTH-1:0] m_bru_tid; // 指令ID
+	wire m_bru_prdt_suc; // 是否预判分支预测成功
+	wire m_bru_brc_cond_res; // 分支判定结果
+	wire m_bru_valid;
+	wire m_bru_ready;
 	
-	assign s_dsptc_data = m_luc_data;
-	assign s_dsptc_msg = m_luc_msg;
-	assign s_dsptc_dcd_res = m_luc_dcd_res;
-	assign s_dsptc_id = m_luc_id;
-	assign s_dsptc_is_first_inst_after_rst = m_luc_is_first_inst_after_rst;
-	assign s_dsptc_valid = m_luc_valid;
-	assign m_luc_ready = s_dsptc_ready;
+	assign s_wr_iq0_inst_id = m_wr_iq0_inst_id;
+	assign s_wr_iq0_fuid = m_wr_iq0_fuid;
+	assign s_wr_iq0_rob_entry_id = m_wr_iq0_rob_entry_id;
+	assign s_wr_iq0_age_tag = m_wr_iq0_age_tag;
+	assign s_wr_iq0_op1_lsn_fuid = m_wr_iq0_op1_lsn_fuid;
+	assign s_wr_iq0_op2_lsn_fuid = m_wr_iq0_op2_lsn_fuid;
+	assign s_wr_iq0_op1_lsn_inst_id = m_wr_iq0_op1_lsn_inst_id;
+	assign s_wr_iq0_op2_lsn_inst_id = m_wr_iq0_op2_lsn_inst_id;
+	assign s_wr_iq0_other_payload = m_wr_iq0_other_payload;
+	assign s_wr_iq0_op1_pre_fetched = m_wr_iq0_op1_pre_fetched;
+	assign s_wr_iq0_op2_pre_fetched = m_wr_iq0_op2_pre_fetched;
+	assign s_wr_iq0_op1_rdy = m_wr_iq0_op1_rdy;
+	assign s_wr_iq0_op2_rdy = m_wr_iq0_op2_rdy;
+	assign s_wr_iq0_valid = m_wr_iq0_valid;
+	assign m_wr_iq0_ready = s_wr_iq0_ready;
 	
-	panda_risc_v_dispatch #(
-		.IBUS_TID_WIDTH(IBUS_TID_WIDTH)
-	)dispatch_u(
-		.s_dsptc_data(s_dsptc_data),
-		.s_dsptc_msg(s_dsptc_msg),
-		.s_dsptc_dcd_res(s_dsptc_dcd_res),
-		.s_dsptc_id(s_dsptc_id),
-		.s_dsptc_is_first_inst_after_rst(s_dsptc_is_first_inst_after_rst),
-		.s_dsptc_valid(s_dsptc_valid),
-		.s_dsptc_ready(s_dsptc_ready),
-		
-		.m_bru_i_data(m_bru_i_data),
-		.m_bru_i_msg(m_bru_i_msg),
-		.m_bru_i_dcd_res(m_bru_i_dcd_res),
-		.m_bru_i_id(m_bru_i_id),
-		.m_bru_i_valid(m_bru_i_valid),
-		.m_bru_i_ready(m_bru_i_ready),
-		
-		.m_alu_op_mode(m_alu_op_mode),
-		.m_alu_op1(m_alu_op1),
-		.m_alu_op2(m_alu_op2),
-		.m_alu_tid(m_alu_tid),
-		.m_alu_use_res(m_alu_use_res),
-		.m_alu_valid(m_alu_valid),
-		
-		.m_csr_addr(m_csr_addr),
-		.m_csr_tid(m_csr_tid),
-		.m_csr_valid(m_csr_valid),
-		
-		.m_lsu_ls_sel(m_lsu_ls_sel),
-		.m_lsu_ls_type(m_lsu_ls_type),
-		.m_lsu_rd_id_for_ld(m_lsu_rd_id_for_ld),
-		.m_lsu_ls_din(m_lsu_ls_din),
-		.m_lsu_inst_id(m_lsu_inst_id),
-		.m_lsu_valid(m_lsu_valid),
-		.m_lsu_ready(m_lsu_ready),
-		
-		.m_mul_op_a(m_mul_op_a),
-		.m_mul_op_b(m_mul_op_b),
-		.m_mul_res_sel(m_mul_res_sel),
-		.m_mul_rd_id(m_mul_rd_id),
-		.m_mul_inst_id(m_mul_inst_id),
-		.m_mul_valid(m_mul_valid),
-		.m_mul_ready(m_mul_ready),
-		
-		.m_div_op_a(m_div_op_a),
-		.m_div_op_b(m_div_op_b),
-		.m_div_rem_sel(m_div_rem_sel),
-		.m_div_rd_id(m_div_rd_id),
-		.m_div_inst_id(m_div_inst_id),
-		.m_div_valid(m_div_valid),
-		.m_div_ready(m_div_ready)
-	);
+	assign s_wr_iq1_inst_id = m_wr_iq1_inst_id;
+	assign s_wr_iq1_fuid = m_wr_iq1_fuid;
+	assign s_wr_iq1_rob_entry_id = m_wr_iq1_rob_entry_id;
+	assign s_wr_iq1_age_tag = m_wr_iq1_age_tag;
+	assign s_wr_iq1_op1_lsn_fuid = m_wr_iq1_op1_lsn_fuid;
+	assign s_wr_iq1_op2_lsn_fuid = m_wr_iq1_op2_lsn_fuid;
+	assign s_wr_iq1_op1_lsn_inst_id = m_wr_iq1_op1_lsn_inst_id;
+	assign s_wr_iq1_op2_lsn_inst_id = m_wr_iq1_op2_lsn_inst_id;
+	assign s_wr_iq1_other_payload = m_wr_iq1_other_payload;
+	assign s_wr_iq1_op1_pre_fetched = m_wr_iq1_op1_pre_fetched;
+	assign s_wr_iq1_op2_pre_fetched = m_wr_iq1_op2_pre_fetched;
+	assign s_wr_iq1_op1_rdy = m_wr_iq1_op1_rdy;
+	assign s_wr_iq1_op2_rdy = m_wr_iq1_op2_rdy;
+	assign s_wr_iq1_valid = m_wr_iq1_valid;
+	assign m_wr_iq1_ready = s_wr_iq1_ready;
+	
+	generate
+		if(EN_OUT_OF_ORDER_ISSUE == "true")
+		begin
+			panda_risc_v_issue_queue #(
+				.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
+				.IQ0_ENTRY_N(IQ0_ENTRY_N),
+				.IQ1_ENTRY_N(IQ1_ENTRY_N),
+				.AGE_TAG_WIDTH(clogb2(ROB_ENTRY_N-1)+1+1),
+				.LSN_FU_N((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5),
+				.LSU_FU_ID(LSU_FU_ID),
+				.EN_IQ1_LOW_LA_LSU_LSN(EN_IQ1_LOW_LA_LSU_LSN),
+				.EN_LOW_LA_BRC_PRDT_FAILURE_PROC(EN_LOW_LA_BRC_PRDT_FAILURE_PROC),
+				.IQ0_OTHER_PAYLOAD_WIDTH(64),
+				.IQ1_OTHER_PAYLOAD_WIDTH(256),
+				.BRU_NOMINAL_RES_LATENCY(BRU_NOMINAL_RES_LATENCY),
+				.SIM_DELAY(SIM_DELAY)
+			)issue_queue_u(
+				.aclk(aclk),
+				.aresetn(aresetn),
+				
+				.clr_iq0(clr_iq0),
+				.clr_iq1(clr_iq1),
+				
+				.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
+				.has_processing_perph_access_req(has_processing_perph_access_req),
+				
+				.fu_res_data(fu_res_data),
+				.fu_res_tid(fu_res_tid),
+				.fu_res_vld(fu_res_vld),
+				
+				.s_bru_o_tid(s_bru_o_to_iq_tid),
+				.s_bru_o_valid(s_bru_o_to_iq_valid),
+				
+				.bru_nominal_res_vld(bru_nominal_res_vld),
+				.bru_nominal_res_tid(bru_nominal_res_tid),
+				.bru_nominal_res(bru_nominal_res),
+				
+				.s_wr_iq0_inst_id(s_wr_iq0_inst_id),
+				.s_wr_iq0_fuid(s_wr_iq0_fuid),
+				.s_wr_iq0_rob_entry_id(s_wr_iq0_rob_entry_id),
+				.s_wr_iq0_age_tag(s_wr_iq0_age_tag),
+				.s_wr_iq0_op1_lsn_fuid(s_wr_iq0_op1_lsn_fuid),
+				.s_wr_iq0_op2_lsn_fuid(s_wr_iq0_op2_lsn_fuid),
+				.s_wr_iq0_op1_lsn_inst_id(s_wr_iq0_op1_lsn_inst_id),
+				.s_wr_iq0_op2_lsn_inst_id(s_wr_iq0_op2_lsn_inst_id),
+				.s_wr_iq0_other_payload(s_wr_iq0_other_payload),
+				.s_wr_iq0_op1_pre_fetched(s_wr_iq0_op1_pre_fetched),
+				.s_wr_iq0_op2_pre_fetched(s_wr_iq0_op2_pre_fetched),
+				.s_wr_iq0_op1_rdy(s_wr_iq0_op1_rdy),
+				.s_wr_iq0_op2_rdy(s_wr_iq0_op2_rdy),
+				.s_wr_iq0_valid(s_wr_iq0_valid),
+				.s_wr_iq0_ready(s_wr_iq0_ready),
+				
+				.s_wr_iq1_inst_id(s_wr_iq1_inst_id),
+				.s_wr_iq1_fuid(s_wr_iq1_fuid),
+				.s_wr_iq1_rob_entry_id(s_wr_iq1_rob_entry_id),
+				.s_wr_iq1_age_tag(s_wr_iq1_age_tag),
+				.s_wr_iq1_op1_lsn_fuid(s_wr_iq1_op1_lsn_fuid),
+				.s_wr_iq1_op2_lsn_fuid(s_wr_iq1_op2_lsn_fuid),
+				.s_wr_iq1_op1_lsn_inst_id(s_wr_iq1_op1_lsn_inst_id),
+				.s_wr_iq1_op2_lsn_inst_id(s_wr_iq1_op2_lsn_inst_id),
+				.s_wr_iq1_other_payload(s_wr_iq1_other_payload),
+				.s_wr_iq1_op1_pre_fetched(s_wr_iq1_op1_pre_fetched),
+				.s_wr_iq1_op2_pre_fetched(s_wr_iq1_op2_pre_fetched),
+				.s_wr_iq1_op1_rdy(s_wr_iq1_op1_rdy),
+				.s_wr_iq1_op2_rdy(s_wr_iq1_op2_rdy),
+				.s_wr_iq1_valid(s_wr_iq1_valid),
+				.s_wr_iq1_ready(s_wr_iq1_ready),
+				
+				.brc_bdcst_luc_vld(brc_bdcst_luc_vld),
+				.brc_bdcst_luc_tid(brc_bdcst_luc_tid),
+				.brc_bdcst_luc_is_b_inst(brc_bdcst_luc_is_b_inst),
+				.brc_bdcst_luc_is_jal_inst(brc_bdcst_luc_is_jal_inst),
+				.brc_bdcst_luc_is_jalr_inst(brc_bdcst_luc_is_jalr_inst),
+				.brc_bdcst_luc_bta(brc_bdcst_luc_bta),
+				
+				.saving_csr_rw_msg_upd_mask_v(saving_csr_rw_msg_upd_mask_v),
+				.saving_csr_rw_msg_rob_entry_id(saving_csr_rw_msg_rob_entry_id),
+				.saving_csr_rw_msg_vld(saving_csr_rw_msg_vld),
+				
+				.on_upd_rob_field_nxt_pc(on_upd_rob_field_nxt_pc),
+				.inst_id_of_upd_rob_field_nxt_pc(inst_id_of_upd_rob_field_nxt_pc),
+				.rob_field_nxt_pc(rob_field_nxt_pc),
+				
+				.m_alu_op_mode(m_alu_op_mode),
+				.m_alu_op1(m_alu_op1),
+				.m_alu_op2(m_alu_op2),
+				.m_alu_tid(m_alu_tid),
+				.m_alu_use_res(m_alu_use_res),
+				.m_alu_valid(m_alu_valid),
+				
+				.m_csr_addr(m_csr_addr),
+				.m_csr_tid(m_csr_tid),
+				.m_csr_valid(m_csr_valid),
+				
+				.m_mul_op_a(m_mul_op_a),
+				.m_mul_op_b(m_mul_op_b),
+				.m_mul_res_sel(m_mul_res_sel),
+				.m_mul_rd_id(m_mul_rd_id),
+				.m_mul_inst_id(m_mul_inst_id),
+				.m_mul_valid(m_mul_valid),
+				.m_mul_ready(m_mul_ready),
+				
+				.m_div_op_a(m_div_op_a),
+				.m_div_op_b(m_div_op_b),
+				.m_div_rem_sel(m_div_rem_sel),
+				.m_div_rd_id(m_div_rd_id),
+				.m_div_inst_id(m_div_inst_id),
+				.m_div_valid(m_div_valid),
+				.m_div_ready(m_div_ready),
+				
+				.m_lsu_ls_sel(m_lsu_ls_sel),
+				.m_lsu_ls_type(m_lsu_ls_type),
+				.m_lsu_rd_id_for_ld(m_lsu_rd_id_for_ld),
+				.m_lsu_ls_addr(m_lsu_ls_addr),
+				.m_lsu_ls_din(m_lsu_ls_din),
+				.m_lsu_inst_id(m_lsu_inst_id),
+				.m_lsu_valid(m_lsu_valid),
+				.m_lsu_ready(m_lsu_ready),
+				
+				.m_bru_prdt_msg(m_bru_prdt_msg),
+				.m_bru_inst_type(m_bru_inst_type),
+				.m_bru_tid(m_bru_tid),
+				.m_bru_prdt_suc(m_bru_prdt_suc),
+				.m_bru_brc_cond_res(m_bru_brc_cond_res),
+				.m_bru_valid(m_bru_valid),
+				.m_bru_ready(m_bru_ready)
+			);
+		end
+		else
+		begin
+			assign m_lsu_ls_addr = 32'dx;
+			
+			assign bru_nominal_res_vld = 1'b0;
+			assign bru_nominal_res_tid = {IBUS_TID_WIDTH{1'bx}};
+			assign bru_nominal_res = 32'dx;
+			
+			panda_risc_v_op_fetch_idec #(
+				.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
+				.LSN_FU_N((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5),
+				.FU_ID_WIDTH(3),
+				.FU_RES_WIDTH(32),
+				.GEN_LS_ADDR_UNALIGNED_EXPT("false"),
+				.OP_PRE_FTC("true"),
+				.SIM_DELAY(SIM_DELAY)
+			)op_fetch_idec_u(
+				.aclk(aclk),
+				.aresetn(aresetn),
+				
+				.sys_reset_req(sys_reset_req),
+				.flush_req(global_flush_req),
+				
+				.s_if_res_data(m_regs_rd_data),
+				.s_if_res_msg(m_regs_rd_msg),
+				.s_if_res_id(m_regs_rd_id),
+				.s_if_res_is_first_inst_after_rst(m_regs_rd_is_first_inst_after_rst),
+				.s_if_res_op(m_regs_rd_op),
+				.s_if_res_fuid(m_regs_rd_fuid),
+				.s_if_res_valid(m_regs_rd_valid),
+				.s_if_res_ready(m_regs_rd_ready),
+				
+				.m_op_ftc_id_res_data(m_op_ftc_id_res_data),
+				.m_op_ftc_id_res_msg(m_op_ftc_id_res_msg),
+				.m_op_ftc_id_res_dcd_res(m_op_ftc_id_res_dcd_res),
+				.m_op_ftc_id_res_id(m_op_ftc_id_res_id),
+				.m_op_ftc_id_res_is_first_inst_after_rst(m_op_ftc_id_res_is_first_inst_after_rst),
+				.m_op_ftc_id_res_op1(m_op_ftc_id_res_op1),
+				.m_op_ftc_id_res_op2(m_op_ftc_id_res_op2),
+				.m_op_ftc_id_res_valid(m_op_ftc_id_res_valid),
+				.m_op_ftc_id_res_ready(m_op_ftc_id_res_ready),
+				
+				.brc_bdcst_luc_vld(brc_bdcst_luc_vld),
+				.brc_bdcst_luc_tid(brc_bdcst_luc_tid),
+				.brc_bdcst_luc_is_b_inst(brc_bdcst_luc_is_b_inst),
+				.brc_bdcst_luc_is_jal_inst(brc_bdcst_luc_is_jal_inst),
+				.brc_bdcst_luc_is_jalr_inst(brc_bdcst_luc_is_jalr_inst),
+				.brc_bdcst_luc_bta(brc_bdcst_luc_bta),
+				
+				.rob_entry_id_to_be_written(rob_entry_id_to_be_written),
+				
+				.rob_luc_bdcst_vld(rob_luc_bdcst_vld),
+				.rob_luc_bdcst_tid(rob_luc_bdcst_tid),
+				.rob_luc_bdcst_fuid(rob_luc_bdcst_fuid),
+				.rob_luc_bdcst_rd_id(rob_luc_bdcst_rd_id),
+				.rob_luc_bdcst_is_ls_inst(rob_luc_bdcst_is_ls_inst),
+				.rob_luc_bdcst_is_csr_rw_inst(rob_luc_bdcst_is_csr_rw_inst),
+				.rob_luc_bdcst_csr_rw_inst_msg(rob_luc_bdcst_csr_rw_inst_msg),
+				.rob_luc_bdcst_err(rob_luc_bdcst_err),
+				.rob_luc_bdcst_spec_inst_type(rob_luc_bdcst_spec_inst_type),
+				.rob_luc_bdcst_is_b_inst(rob_luc_bdcst_is_b_inst),
+				.rob_luc_bdcst_pc(rob_luc_bdcst_pc),
+				.rob_luc_bdcst_nxt_pc(rob_luc_bdcst_nxt_pc),
+				.rob_luc_bdcst_org_2bit_sat_cnt(rob_luc_bdcst_org_2bit_sat_cnt),
+				.rob_luc_bdcst_bhr(rob_luc_bdcst_bhr),
+				
+				.saving_csr_rw_msg_upd_mask_v(saving_csr_rw_msg_upd_mask_v),
+				.saving_csr_rw_msg_rob_entry_id(saving_csr_rw_msg_rob_entry_id),
+				.saving_csr_rw_msg_vld(saving_csr_rw_msg_vld),
+				
+				.op1_ftc_rs1_id(),
+				.op1_ftc_from_reg_file(1'b0),
+				.op1_ftc_from_rob(1'b0),
+				.op1_ftc_from_byp(1'b0),
+				.op1_ftc_fuid(3'd0),
+				.op1_ftc_tid({IBUS_TID_WIDTH{1'b0}}),
+				.op1_ftc_rob_saved_data(32'd0),
+				.op2_ftc_rs2_id(),
+				.op2_ftc_from_reg_file(1'b0),
+				.op2_ftc_from_rob(1'b0),
+				.op2_ftc_from_byp(1'b0),
+				.op2_ftc_fuid(3'd0),
+				.op2_ftc_tid({IBUS_TID_WIDTH{1'b0}}),
+				.op2_ftc_rob_saved_data(32'd0),
+				
+				.fu_res_bypass_en({((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5){1'b1}}),
+				
+				.fu_res_vld(fu_res_vld),
+				.fu_res_tid(fu_res_tid),
+				.fu_res_data(fu_res_data),
+				
+				.reg_file_raddr_p0(),
+				.reg_file_dout_p0(32'h0000_0000),
+				.reg_file_raddr_p1(),
+				.reg_file_dout_p1(32'h0000_0000)
+			);
+			
+			panda_risc_v_launch #(
+				.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
+				.SIM_DELAY(SIM_DELAY)
+			)launch_u(
+				.aclk(aclk),
+				.aresetn(aresetn),
+				
+				.rob_full_n(rob_full_n),
+				.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
+				
+				.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
+				.has_processing_perph_access_req(has_processing_perph_access_req),
+				
+				.sys_reset_req(sys_reset_req),
+				.flush_req(global_flush_req),
+				
+				.s_op_ftc_id_res_data(m_op_ftc_id_res_data),
+				.s_op_ftc_id_res_msg(m_op_ftc_id_res_msg),
+				.s_op_ftc_id_res_dcd_res(m_op_ftc_id_res_dcd_res),
+				.s_op_ftc_id_res_id(m_op_ftc_id_res_id),
+				.s_op_ftc_id_res_is_first_inst_after_rst(m_op_ftc_id_res_is_first_inst_after_rst),
+				.s_op_ftc_id_res_op1(m_op_ftc_id_res_op1),
+				.s_op_ftc_id_res_op2(m_op_ftc_id_res_op2),
+				.s_op_ftc_id_res_valid(m_op_ftc_id_res_valid),
+				.s_op_ftc_id_res_ready(m_op_ftc_id_res_ready),
+				
+				.m_luc_data(m_luc_data),
+				.m_luc_msg(m_luc_msg),
+				.m_luc_dcd_res(m_luc_dcd_res),
+				.m_luc_id(m_luc_id),
+				.m_luc_is_first_inst_after_rst(m_luc_is_first_inst_after_rst),
+				.m_luc_op1(m_luc_op1),
+				.m_luc_op2(m_luc_op2),
+				.m_luc_valid(m_luc_valid),
+				.m_luc_ready(m_luc_ready)
+			);
+			
+			panda_risc_v_dispatch #(
+				.IBUS_TID_WIDTH(IBUS_TID_WIDTH)
+			)dispatch_u(
+				.s_dsptc_data(m_luc_data),
+				.s_dsptc_msg(m_luc_msg),
+				.s_dsptc_dcd_res(m_luc_dcd_res),
+				.s_dsptc_id(m_luc_id),
+				.s_dsptc_is_first_inst_after_rst(m_luc_is_first_inst_after_rst),
+				.s_dsptc_valid(m_luc_valid),
+				.s_dsptc_ready(m_luc_ready),
+				
+				.m_bru_i_data(m_bru_i_data),
+				.m_bru_i_msg(m_bru_i_msg),
+				.m_bru_i_dcd_res(m_bru_i_dcd_res),
+				.m_bru_i_id(m_bru_i_id),
+				.m_bru_i_valid(m_bru_i_valid),
+				.m_bru_i_ready(m_bru_i_ready),
+				
+				.m_alu_op_mode(m_alu_op_mode),
+				.m_alu_op1(m_alu_op1),
+				.m_alu_op2(m_alu_op2),
+				.m_alu_tid(m_alu_tid),
+				.m_alu_use_res(m_alu_use_res),
+				.m_alu_valid(m_alu_valid),
+				
+				.m_csr_addr(m_csr_addr),
+				.m_csr_tid(m_csr_tid),
+				.m_csr_valid(m_csr_valid),
+				
+				.m_lsu_ls_sel(m_lsu_ls_sel),
+				.m_lsu_ls_type(m_lsu_ls_type),
+				.m_lsu_rd_id_for_ld(m_lsu_rd_id_for_ld),
+				.m_lsu_ls_din(m_lsu_ls_din),
+				.m_lsu_inst_id(m_lsu_inst_id),
+				.m_lsu_valid(m_lsu_valid),
+				.m_lsu_ready(m_lsu_ready),
+				
+				.m_mul_op_a(m_mul_op_a),
+				.m_mul_op_b(m_mul_op_b),
+				.m_mul_res_sel(m_mul_res_sel),
+				.m_mul_rd_id(m_mul_rd_id),
+				.m_mul_inst_id(m_mul_inst_id),
+				.m_mul_valid(m_mul_valid),
+				.m_mul_ready(m_mul_ready),
+				
+				.m_div_op_a(m_div_op_a),
+				.m_div_op_b(m_div_op_b),
+				.m_div_rem_sel(m_div_rem_sel),
+				.m_div_rd_id(m_div_rd_id),
+				.m_div_inst_id(m_div_inst_id),
+				.m_div_valid(m_div_valid),
+				.m_div_ready(m_div_ready)
+			);
+		end
+	endgenerate
 	
 	/** 冲刷控制 **/
 	// BRU给出的冲刷请求
@@ -1004,16 +1372,16 @@ module panda_risc_v_core #(
 	panda_risc_v_csr_rw #(
 		.en_expt_vec_vectored(EN_EXPT_VEC_VECTORED),
 		.en_performance_monitor(EN_PERF_MONITOR),
-		.init_mtvec_base(init_mtvec_base),
-		.init_mcause_interrupt(init_mcause_interrupt),
-		.init_mcause_exception_code(init_mcause_exception_code),
-		.init_misa_mxl(init_misa_mxl),
-		.init_misa_extensions(init_misa_extensions),
-		.init_mvendorid_bank(init_mvendorid_bank),
-		.init_mvendorid_offset(init_mvendorid_offset),
-		.init_marchid(init_marchid),
-		.init_mimpid(init_mimpid),
-		.init_mhartid(init_mhartid),
+		.init_mtvec_base(INIT_MTVEC_BASE),
+		.init_mcause_interrupt(INIT_MCAUSE_INTERRUPT),
+		.init_mcause_exception_code(INIT_MCAUSE_EXCEPTION_CODE),
+		.init_misa_mxl(INIT_MISA_MXL),
+		.init_misa_extensions(INIT_MISA_EXTENSIONS),
+		.init_mvendorid_bank(INIT_MVENDORID_BANK),
+		.init_mvendorid_offset(INIT_MVENDORID_OFFSET),
+		.init_marchid(INIT_MARCHID),
+		.init_mimpid(INIT_MIMPID),
+		.init_mhartid(INIT_MHARTID),
 		.debug_supported(DEBUG_SUPPORTED),
 		.dscratch_n(DSCRATCH_N),
 		.simulation_delay(SIM_DELAY)
@@ -1064,45 +1432,51 @@ module panda_risc_v_core #(
 	/** 分支处理单元(BRU) **/
 	// 控制/状态
 	wire rst_bru; // 重置BRU
-	wire[31:0] jal_inst_n_acpt; // 接受的JAL指令总数
-	wire[31:0] jal_prdt_success_inst_n; // 预测正确的JAL指令数
-	wire[31:0] jalr_inst_n_acpt; // 接受的JALR指令总数
-	wire[31:0] jalr_prdt_success_inst_n; // 预测正确的JALR指令数
-	wire[31:0] b_inst_n_acpt; // 接受的B指令总数
-	wire[31:0] b_prdt_success_inst_n; // 预测正确的B指令数
-	wire[31:0] common_inst_n_acpt; // 接受的非分支指令总数
-	wire[31:0] common_prdt_success_inst_n; // 预测正确的非分支指令数
 	// ALU给出的分支判定结果
 	wire alu_brc_cond_res;
 	// BRU输入
-	wire[127:0] s_bru_i_data; // 取指数据({指令对应的PC(32bit), 打包的预译码信息(64bit), 取到的指令(32bit)})
-	wire[162:0] s_bru_i_msg; // 取指附加信息({分支预测信息(160bit), 错误码(3bit)})
-	wire[143:0] s_bru_i_dcd_res; // 译码信息({打包的FU操作信息(128bit), 打包的指令类型标志(16bit)})
+	wire[159:0] s_bru_i_prdt_msg; // 分支预测信息
+	wire[15:0] s_bru_i_inst_type; // 打包的指令类型标志
 	wire[IBUS_TID_WIDTH-1:0] s_bru_i_tid; // 指令ID
+	wire s_bru_i_prdt_suc; // 是否预判分支预测成功
+	wire s_bru_i_brc_cond_res; // 分支判定结果
 	wire s_bru_i_valid;
 	wire s_bru_i_ready;
 	// BRU输出
 	wire[IBUS_TID_WIDTH-1:0] m_bru_o_tid; // 指令ID
-	wire[31:0] m_bru_o_pc; // 当前PC地址
 	wire[31:0] m_bru_o_nxt_pc; // 下一有效PC地址
 	wire[1:0] m_bru_o_b_inst_res; // B指令执行结果
-	wire[1:0] m_bru_o_org_2bit_sat_cnt; // 原来的2bit饱和计数器
-	wire[15:0] m_bru_o_bhr; // BHR
 	wire m_bru_o_valid;
+	
+	assign s_bru_o_to_iq_tid = m_bru_o_tid;
+	assign s_bru_o_to_iq_valid = m_bru_o_valid;
 	
 	assign rst_bru = cmt_flush_req;
 	
-	assign s_bru_i_data = m_bru_i_data;
-	assign s_bru_i_msg = m_bru_i_msg;
-	assign s_bru_i_dcd_res = m_bru_i_dcd_res;
-	assign s_bru_i_tid = m_bru_i_id;
-	assign s_bru_i_valid = m_bru_i_valid;
+	assign s_bru_i_prdt_msg = (EN_OUT_OF_ORDER_ISSUE == "true") ? m_bru_prdt_msg:m_bru_i_msg[162:3];
+	assign s_bru_i_inst_type = (EN_OUT_OF_ORDER_ISSUE == "true") ? m_bru_inst_type:m_bru_i_dcd_res[15:0];
+	assign s_bru_i_tid = (EN_OUT_OF_ORDER_ISSUE == "true") ? m_bru_tid:m_bru_i_id;
+	assign s_bru_i_prdt_suc = (EN_OUT_OF_ORDER_ISSUE == "true") ? m_bru_prdt_suc:1'b0;
+	assign s_bru_i_brc_cond_res = (EN_OUT_OF_ORDER_ISSUE == "true") ? m_bru_brc_cond_res:alu_brc_cond_res;
+	assign s_bru_i_valid = (EN_OUT_OF_ORDER_ISSUE == "true") ? m_bru_valid:m_bru_i_valid;
+	assign m_bru_ready = s_bru_i_ready;
+	
 	assign m_bru_i_ready = s_bru_i_ready;
+	
+	generate
+		if(EN_OUT_OF_ORDER_ISSUE == "false")
+		begin
+			assign on_upd_rob_field_nxt_pc = m_bru_o_valid;
+			assign inst_id_of_upd_rob_field_nxt_pc = m_bru_o_tid;
+			assign rob_field_nxt_pc = m_bru_o_nxt_pc;
+		end
+	endgenerate
 	
 	panda_risc_v_bru #(
 		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
-		.EN_IMDT_FLUSH(EN_BRU_IMDT_FLUSH),
+		.EN_IMDT_FLUSH((EN_OUT_OF_ORDER_ISSUE == "true") ? "false":"true"),
 		.DEBUG_ROM_ADDR(DEBUG_ROM_ADDR),
+		.BRU_RES_LATENCY(BRU_RES_LATENCY),
 		.SIM_DELAY(SIM_DELAY)
 	)bru_u(
 		.aclk(aclk),
@@ -1111,34 +1485,36 @@ module panda_risc_v_core #(
 		.in_dbg_mode(in_dbg_mode),
 		
 		.rst_bru(rst_bru),
-		.jal_inst_n_acpt(jal_inst_n_acpt),
-		.jal_prdt_success_inst_n(jal_prdt_success_inst_n),
-		.jalr_inst_n_acpt(jalr_inst_n_acpt),
-		.jalr_prdt_success_inst_n(jalr_prdt_success_inst_n),
-		.b_inst_n_acpt(b_inst_n_acpt),
-		.b_prdt_success_inst_n(b_prdt_success_inst_n),
-		.common_inst_n_acpt(common_inst_n_acpt),
-		.common_prdt_success_inst_n(common_prdt_success_inst_n),
+		.jal_inst_n_acpt(),
+		.jal_prdt_success_inst_n(),
+		.jalr_inst_n_acpt(),
+		.jalr_prdt_success_inst_n(),
+		.b_inst_n_acpt(),
+		.b_prdt_success_inst_n(),
+		.b_prdt_not_taken_but_actually_taken(),
+		.b_prdt_taken_but_actually_not_taken(),
+		.b_actually_taken(),
+		.b_actually_not_taken(),
+		.common_inst_n_acpt(),
+		.common_prdt_success_inst_n(),
+		.brc_inst_n_acpt(),
+		.brc_inst_with_btb_hit_n(),
 		
 		.bru_flush_req(bru_flush_req),
 		.bru_flush_addr(bru_flush_addr),
 		.bru_flush_grant(bru_flush_grant),
 		
-		.alu_brc_cond_res(alu_brc_cond_res),
-		
-		.s_bru_i_data(s_bru_i_data),
-		.s_bru_i_msg(s_bru_i_msg),
-		.s_bru_i_dcd_res(s_bru_i_dcd_res),
+		.s_bru_i_prdt_msg(s_bru_i_prdt_msg),
+		.s_bru_i_inst_type(s_bru_i_inst_type),
 		.s_bru_i_tid(s_bru_i_tid),
+		.s_bru_i_prdt_suc(s_bru_i_prdt_suc),
+		.s_bru_i_brc_cond_res(s_bru_i_brc_cond_res),
 		.s_bru_i_valid(s_bru_i_valid),
 		.s_bru_i_ready(s_bru_i_ready),
 		
 		.m_bru_o_tid(m_bru_o_tid),
-		.m_bru_o_pc(m_bru_o_pc),
 		.m_bru_o_nxt_pc(m_bru_o_nxt_pc),
 		.m_bru_o_b_inst_res(m_bru_o_b_inst_res),
-		.m_bru_o_org_2bit_sat_cnt(m_bru_o_org_2bit_sat_cnt),
-		.m_bru_o_bhr(m_bru_o_bhr),
 		.m_bru_o_valid(m_bru_o_valid)
 	);
 	
@@ -1158,6 +1534,7 @@ module panda_risc_v_core #(
 	wire s_lsu_ls_sel; // 加载/存储选择(1'b0 -> 加载, 1'b1 -> 存储)
 	wire[2:0] s_lsu_ls_type; // 访存类型
 	wire[4:0] s_lsu_rd_id_for_ld; // 用于加载的目标寄存器的索引
+	wire[31:0] s_lsu_ls_addr; // 访存地址
 	wire[31:0] s_lsu_ls_din; // 写数据
 	wire[IBUS_TID_WIDTH-1:0] s_lsu_inst_id; // 指令ID
 	wire s_lsu_valid;
@@ -1232,6 +1609,7 @@ module panda_risc_v_core #(
 	assign s_lsu_ls_sel = m_lsu_ls_sel;
 	assign s_lsu_ls_type = m_lsu_ls_type;
 	assign s_lsu_rd_id_for_ld = m_lsu_rd_id_for_ld;
+	assign s_lsu_ls_addr = m_lsu_ls_addr;
 	assign s_lsu_ls_din = m_lsu_ls_din;
 	assign s_lsu_inst_id = m_lsu_inst_id;
 	assign s_lsu_valid = m_lsu_valid;
@@ -1254,6 +1632,7 @@ module panda_risc_v_core #(
 	assign m_div_ready = s_div_ready;
 	
 	panda_risc_v_func_units #(
+		.EN_OUT_OF_ORDER_ISSUE(EN_OUT_OF_ORDER_ISSUE),
 		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
 		.AXI_MEM_DATA_WIDTH(AXI_MEM_DATA_WIDTH),
 		.MEM_ACCESS_TIMEOUT_TH(MEM_ACCESS_TIMEOUT_TH),
@@ -1296,6 +1675,7 @@ module panda_risc_v_core #(
 		.s_lsu_ls_sel(s_lsu_ls_sel),
 		.s_lsu_ls_type(s_lsu_ls_type),
 		.s_lsu_rd_id_for_ld(s_lsu_rd_id_for_ld),
+		.s_lsu_ls_addr(s_lsu_ls_addr),
 		.s_lsu_ls_din(s_lsu_ls_din),
 		.s_lsu_inst_id(s_lsu_inst_id),
 		.s_lsu_valid(s_lsu_valid),
@@ -1336,6 +1716,10 @@ module panda_risc_v_core #(
 		
 		.csr_atom_raddr(csr_atom_raddr),
 		.csr_atom_dout(csr_atom_dout),
+		
+		.bru_nominal_res_vld(bru_nominal_res_vld),
+		.bru_nominal_res_tid(bru_nominal_res_tid),
+		.bru_nominal_res(bru_nominal_res),
 		
 		.fu_res_vld(fu_res_vld),
 		.fu_res_tid(fu_res_tid),
@@ -1420,7 +1804,7 @@ module panda_risc_v_core #(
 	wire rob_prep_rtr_entry_is_csr_rw_inst; // 是否CSR读写指令
 	wire[2:0] rob_prep_rtr_entry_spec_inst_type; // 特殊指令类型
 	wire rob_prep_rtr_entry_cancel; // 取消标志
-	wire[FU_RES_WIDTH-1:0] rob_prep_rtr_entry_fu_res; // 保存的执行结果
+	wire[31:0] rob_prep_rtr_entry_fu_res; // 保存的执行结果
 	wire[31:0] rob_prep_rtr_entry_pc; // 指令对应的PC
 	wire[31:0] rob_prep_rtr_entry_nxt_pc; // 指令对应的下一有效PC
 	wire[1:0] rob_prep_rtr_entry_b_inst_res; // B指令执行结果
@@ -1431,33 +1815,26 @@ module panda_risc_v_core #(
 	wire[1:0] rob_prep_rtr_entry_csr_rw_upd_type; // CSR更新类型
 	wire[31:0] rob_prep_rtr_entry_csr_rw_upd_mask_v; // CSR更新掩码或更新值
 	// BRU结果
-	wire[IBUS_TID_WIDTH-1:0] s_bru_o_tid; // 指令ID
-	wire[31:0] s_bru_o_pc; // 当前PC地址
-	wire[31:0] s_bru_o_nxt_pc; // 下一有效PC地址
-	wire[1:0] s_bru_o_b_inst_res; // B指令执行结果
-	wire[1:0] s_bru_o_org_2bit_sat_cnt; // 原来的2bit饱和计数器
-	wire[15:0] s_bru_o_bhr; // BHR
-	wire s_bru_o_valid;
+	wire[IBUS_TID_WIDTH-1:0] s_bru_o_to_rob_tid; // 指令ID
+	wire[1:0] s_bru_o_to_rob_b_inst_res; // B指令执行结果
+	wire s_bru_o_to_rob_valid;
 	// 退休阶段ROB记录广播
 	wire rob_rtr_bdcst_vld; // 广播有效
 	wire rob_rtr_bdcst_excpt_proc_grant; // 异常处理许可
 	
-	assign s_bru_o_tid = m_bru_o_tid;
-	assign s_bru_o_pc = m_bru_o_pc;
-	assign s_bru_o_nxt_pc = m_bru_o_nxt_pc;
-	assign s_bru_o_b_inst_res = m_bru_o_b_inst_res;
-	assign s_bru_o_org_2bit_sat_cnt = m_bru_o_org_2bit_sat_cnt;
-	assign s_bru_o_bhr = m_bru_o_bhr;
-	assign s_bru_o_valid = m_bru_o_valid;
+	assign s_bru_o_to_rob_tid = m_bru_o_tid;
+	assign s_bru_o_to_rob_b_inst_res = m_bru_o_b_inst_res;
+	assign s_bru_o_to_rob_valid = m_bru_o_valid;
 	
 	panda_risc_v_rob #(
 		.IBUS_TID_WIDTH(IBUS_TID_WIDTH),
-		.FU_ID_WIDTH(FU_ID_WIDTH),
+		.FU_ID_WIDTH(3),
 		.ROB_ENTRY_N(ROB_ENTRY_N),
 		.CSR_RW_RCD_SLOTS_N(CSR_RW_RCD_SLOTS_N),
-		.LSN_FU_N(LSN_FU_N),
-		.FU_RES_WIDTH(FU_RES_WIDTH),
-		.FU_ERR_WIDTH(FU_ERR_WIDTH),
+		.FU_LSN_LATENCY((EN_OUT_OF_ORDER_ISSUE == "true") ? 1:0),
+		.LSN_FU_N((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5),
+		.FU_RES_WIDTH(32),
+		.FU_ERR_WIDTH(3),
 		.LSU_FU_ID(LSU_FU_ID),
 		.AUTO_CANCEL_SYNC_ERR_ENTRY(AUTO_CANCEL_SYNC_ERR_ENTRY),
 		.SIM_DELAY(SIM_DELAY)
@@ -1470,6 +1847,8 @@ module panda_risc_v_core #(
 		.rob_empty_n(),
 		.rob_csr_rw_inst_allowed(rob_csr_rw_inst_allowed),
 		.rob_has_ls_inst(),
+		.rob_entry_id_to_be_written(rob_entry_id_to_be_written),
+		.rob_entry_age_tbit_to_be_written(rob_entry_age_tbit_to_be_written),
 		
 		.rob_sng_cancel_vld(1'b0),
 		.rob_sng_cancel_tid({IBUS_TID_WIDTH{1'b0}}),
@@ -1514,13 +1893,17 @@ module panda_risc_v_core #(
 		.fu_res_data(fu_res_data),
 		.fu_res_err(fu_res_err),
 		
-		.s_bru_o_tid(s_bru_o_tid),
-		.s_bru_o_pc(s_bru_o_pc),
-		.s_bru_o_nxt_pc(s_bru_o_nxt_pc),
-		.s_bru_o_b_inst_res(s_bru_o_b_inst_res),
-		.s_bru_o_org_2bit_sat_cnt(s_bru_o_org_2bit_sat_cnt),
-		.s_bru_o_bhr(s_bru_o_bhr),
-		.s_bru_o_valid(s_bru_o_valid),
+		.s_bru_o_tid(s_bru_o_to_rob_tid),
+		.s_bru_o_b_inst_res(s_bru_o_to_rob_b_inst_res),
+		.s_bru_o_valid(s_bru_o_to_rob_valid),
+		
+		.saving_csr_rw_msg_upd_mask_v(saving_csr_rw_msg_upd_mask_v),
+		.saving_csr_rw_msg_rob_entry_id(saving_csr_rw_msg_rob_entry_id),
+		.saving_csr_rw_msg_vld(saving_csr_rw_msg_vld),
+		
+		.on_upd_rob_field_nxt_pc(on_upd_rob_field_nxt_pc),
+		.inst_id_of_upd_rob_field_nxt_pc(inst_id_of_upd_rob_field_nxt_pc),
+		.rob_field_nxt_pc(rob_field_nxt_pc),
 		
 		.wr_mem_permitted_flag(wr_mem_permitted_flag),
 		.init_mem_bus_tr_store_inst_tid(init_mem_bus_tr_store_inst_tid),
@@ -1539,6 +1922,8 @@ module panda_risc_v_core #(
 		.rob_luc_bdcst_is_b_inst(rob_luc_bdcst_is_b_inst),
 		.rob_luc_bdcst_pc(rob_luc_bdcst_pc),
 		.rob_luc_bdcst_nxt_pc(rob_luc_bdcst_nxt_pc),
+		.rob_luc_bdcst_org_2bit_sat_cnt(rob_luc_bdcst_org_2bit_sat_cnt),
+		.rob_luc_bdcst_bhr(rob_luc_bdcst_bhr),
 		
 		.rob_rtr_bdcst_vld(rob_rtr_bdcst_vld)
 	);
@@ -1547,7 +1932,7 @@ module panda_risc_v_core #(
 	panda_risc_v_commit #(
 		.DEBUG_ROM_ADDR(DEBUG_ROM_ADDR),
 		.DEBUG_SUPPORTED(DEBUG_SUPPORTED),
-		.FU_RES_WIDTH(FU_RES_WIDTH),
+		.FU_RES_WIDTH(32),
 		.GHR_WIDTH(GHR_WIDTH),
 		.BHR_WIDTH(BHR_WIDTH),
 		.SIM_DELAY(SIM_DELAY)
@@ -1562,6 +1947,9 @@ module panda_risc_v_core #(
 		.rob_clr(rob_clr),
 		.lsu_clr_wr_mem_buf(clr_wr_mem_buf),
 		.cancel_lsu_subseq_perph_access(cancel_subseq_perph_access),
+		
+		.clr_iq0(clr_iq0),
+		.clr_iq1(clr_iq1),
 		
 		.rob_prep_rtr_entry_vld(rob_prep_rtr_entry_vld),
 		.rob_prep_rtr_entry_saved(rob_prep_rtr_entry_saved),
@@ -1629,7 +2017,7 @@ module panda_risc_v_core #(
 	
 	/** 写回单元 **/
 	panda_risc_v_wbck #(
-		.FU_RES_WIDTH(FU_RES_WIDTH)
+		.FU_RES_WIDTH(32)
 	)wr_bck(
 		.rob_prep_rtr_entry_rd_id(rob_prep_rtr_entry_rd_id),
 		.rob_prep_rtr_entry_is_csr_rw_inst(rob_prep_rtr_entry_is_csr_rw_inst),

@@ -37,7 +37,7 @@ SOFTWARE.
 无
 
 作者: 陈家耀
-日期: 2025/06/22
+日期: 2026/02/13
 ********************************************************************/
 
 
@@ -75,36 +75,50 @@ module panda_risc_v_if_regs #(
 	localparam integer STAGE_REGS_PAYLOAD_WIDTH = 128 + 99 + IBUS_TID_WIDTH + 1;
 	
 	/** 段寄存器 **/
-	reg[STAGE_REGS_PAYLOAD_WIDTH-1:0] stage_regs_payload;
-	reg stage_regs_valid;
+	wire on_flush_rst; // 正在进行流水线冲刷
+	reg[STAGE_REGS_PAYLOAD_WIDTH-1:0] stage_regs_payload; // 暂存的负载数据
+	reg stage_regs_latched; // 负载已暂存(标志)
 	
-	assign s_if_regs_ready = (~(sys_reset_req | flush_req)) & ((~stage_regs_valid) | m_if_regs_ready);
+	assign s_if_regs_ready = 
+		(~on_flush_rst) & 
+		(~stage_regs_latched);
 	
-	assign {
-		m_if_regs_data, 
-		m_if_regs_msg, 
-		m_if_regs_id, 
-		m_if_regs_is_first_inst_after_rst
-	} = stage_regs_payload;
-	assign m_if_regs_valid = (~(sys_reset_req | flush_req)) & stage_regs_valid;
+	assign {m_if_regs_data, m_if_regs_msg, m_if_regs_id, m_if_regs_is_first_inst_after_rst} = 
+		stage_regs_latched ? 
+			stage_regs_payload:
+			{s_if_regs_data, s_if_regs_msg, s_if_regs_id, s_if_regs_is_first_inst_after_rst}; // 将负载数据直接旁路出去
+	assign m_if_regs_valid = 
+		(~on_flush_rst) & 
+		(stage_regs_latched | s_if_regs_valid);
 	
+	assign on_flush_rst = sys_reset_req | flush_req;
+	
+	// 暂存的负载数据
 	always @(posedge aclk)
 	begin
-		if(s_if_regs_valid & s_if_regs_ready)
+		if((~on_flush_rst) & (~stage_regs_latched) & s_if_regs_valid & (~m_if_regs_ready))
 			stage_regs_payload <= # SIM_DELAY {
-				s_if_regs_data, 
-				s_if_regs_msg, 
-				s_if_regs_id, 
+				s_if_regs_data,
+				s_if_regs_msg,
+				s_if_regs_id,
 				s_if_regs_is_first_inst_after_rst
 			};
 	end
 	
+	// 负载已暂存(标志)
 	always @(posedge aclk or negedge aresetn)
 	begin
 		if(~aresetn)
-			stage_regs_valid <= 1'b0;
-		else if((sys_reset_req | flush_req) | ((~stage_regs_valid) | m_if_regs_ready))
-			stage_regs_valid <= # SIM_DELAY (~(sys_reset_req | flush_req)) & s_if_regs_valid;
+			stage_regs_latched <= 1'b0;
+		else if(
+			on_flush_rst | 
+			(
+				stage_regs_latched ? 
+					m_if_regs_ready:
+					(s_if_regs_valid & (~m_if_regs_ready))
+			)
+		)
+			stage_regs_latched <= # SIM_DELAY (~(sys_reset_req | flush_req)) & (~stage_regs_latched);
 	end
 	
 endmodule

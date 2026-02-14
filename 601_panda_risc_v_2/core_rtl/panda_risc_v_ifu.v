@@ -261,7 +261,7 @@ module panda_risc_v_ifu #(
 				.aresetn(aresetn),
 				
 				.sys_reset_req(sys_reset_req),
-				.flush_req(flush_req | ifu_exclusive_flush_req),
+				.flush_req(flush_req),
 				
 				.s_if_regs_data(s_if_regs_data),
 				.s_if_regs_msg(s_if_regs_msg),

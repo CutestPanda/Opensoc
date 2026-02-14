@@ -51,7 +51,7 @@ SOFTWARE.
 REQ/GRANT
 
 作者: 陈家耀
-日期: 2026/02/05
+日期: 2026/02/11
 ********************************************************************/
 
 
@@ -76,6 +76,10 @@ module panda_risc_v_commit #(
 	output wire rob_clr, // 清空ROB(指示)
 	output wire lsu_clr_wr_mem_buf, // 清空LSU写存储器缓存区
 	output wire cancel_lsu_subseq_perph_access, // 取消LSU后续外设访问
+	
+	// 发射队列清空控制
+	output wire clr_iq0, // 清空发射队列#0(指示)
+	output wire clr_iq1, // 清空发射队列#1(指示)
 	
 	// 准备退休的ROB项
 	input wire rob_prep_rtr_entry_vld, // 有效标志
@@ -507,6 +511,9 @@ module panda_risc_v_commit #(
 	assign rob_clr = flush_pending;
 	assign lsu_clr_wr_mem_buf = flush_pending;
 	assign cancel_lsu_subseq_perph_access = flush_pending;
+	
+	assign clr_iq0 = flush_pending;
+	assign clr_iq1 = flush_pending;
 	
 	assign rob_rtr_bdcst_vld = 
 		rob_prep_rtr_entry_vld & (
