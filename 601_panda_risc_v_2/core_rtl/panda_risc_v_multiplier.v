@@ -127,18 +127,23 @@ module panda_risc_v_multiplier #(
 	);
 	
 	/** 乘法结果 **/
-	wire[31:0] mul_res_s0_data; // 计算结果
+	wire[63:0] mul_res_s0_data; // 计算结果
 	wire[4:0] mul_res_s0_rd_id; // RD索引
 	wire[inst_id_width-1:0] mul_res_s0_inst_id; // 指令编号
+	wire mul_res_s0_word_sel; // 字选择
 	wire mul_res_s0_valid;
 	wire mul_res_s0_ready;
-	reg[31:0] mul_res_s1_data; // 计算结果
+	reg[63:0] mul_res_s1_data; // 计算结果
 	reg[4:0] mul_res_s1_rd_id; // RD索引
 	reg[inst_id_width-1:0] mul_res_s1_inst_id; // 指令编号
+	reg mul_res_s1_word_sel; // 字选择
 	reg mul_res_s1_valid;
 	wire mul_res_s1_ready;
 	
-	assign m_mul_res_data = mul_res_s1_data;
+	assign m_mul_res_data = 
+		mul_res_s1_word_sel ? 
+			mul_res_s1_data[63:32]:
+			mul_res_s1_data[31:0];
 	assign m_mul_res_rd_id = mul_res_s1_rd_id;
 	assign m_mul_res_inst_id = mul_res_s1_inst_id;
 	assign m_mul_res_valid = mul_res_s1_valid;
@@ -163,6 +168,12 @@ module panda_risc_v_multiplier #(
 	begin
 		if(mul_res_s0_valid & mul_res_s0_ready)
 			mul_res_s1_inst_id <= # simulation_delay mul_res_s0_inst_id;
+	end
+	// 字选择
+	always @(posedge clk)
+	begin
+		if(mul_res_s0_valid & mul_res_s0_ready)
+			mul_res_s1_word_sel <= # simulation_delay mul_res_s0_word_sel;
 	end
 	
 	// 乘法结果有效指示
@@ -248,11 +259,13 @@ module panda_risc_v_multiplier #(
 	reg[16:0] mul_low_17_latched;
 	wire signed[64:0] mul_res;
 	
-	assign mul_res_s0_data = mul_in_buf_dout[MUL_IN_MSG_RES_SEL] ? 
-		((sgn_period_mul == "true") ? sgn_prd_mul_res[63:32]:mul_res[63:32]):
-		((sgn_period_mul == "true") ? sgn_prd_mul_res[31:0]:mul_res[31:0]);
+	assign mul_res_s0_data = 
+		(sgn_period_mul == "true") ? 
+			sgn_prd_mul_res[63:0]:
+			mul_res[63:0];
 	assign mul_res_s0_rd_id = mul_in_buf_dout[MUL_IN_MSG_RD_ID+4:MUL_IN_MSG_RD_ID];
 	assign mul_res_s0_inst_id = mul_in_buf_dout[MUL_IN_MSG_INST_ID+inst_id_width-1:MUL_IN_MSG_INST_ID];
+	assign mul_res_s0_word_sel = mul_in_buf_dout[MUL_IN_MSG_RES_SEL];
 	
 	assign accum_in = 
 	    ({48{accum_proc_onehot[0]}} & {29'd0, mul_18_18_out_res[35:17]}) | 
