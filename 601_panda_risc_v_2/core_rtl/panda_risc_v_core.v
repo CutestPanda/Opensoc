@@ -815,9 +815,12 @@ module panda_risc_v_core #(
 	wire clr_iq0; // 清空发射队列#0(指示)
 	wire clr_iq1; // 清空发射队列#1(指示)
 	// 读存储器结果快速旁路
-	wire on_get_instant_rd_mem_res;
-	wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten;
-	wire[31:0] data_of_instant_rd_mem_res_gotten;
+	wire on_get_instant_rd_mem_res_s0;
+	wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten_s0;
+	wire[31:0] data_of_instant_rd_mem_res_gotten_s0;
+	wire on_get_instant_rd_mem_res_s1;
+	wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten_s1;
+	wire[31:0] data_of_instant_rd_mem_res_gotten_s1;
 	// LSU状态
 	wire has_buffered_wr_mem_req; // 存在已缓存的写存储器请求(标志)
 	wire has_processing_perph_access_req; // 存在处理中的外设访问请求(标志)
@@ -982,7 +985,6 @@ module panda_risc_v_core #(
 				.IQ1_ENTRY_N(IQ1_ENTRY_N),
 				.AGE_TAG_WIDTH(clogb2(ROB_ENTRY_N-1)+1+1),
 				.LSN_FU_N((EN_OUT_OF_ORDER_ISSUE == "true") ? 6:5),
-				.LSU_FU_ID(LSU_FU_ID),
 				.IQ1_LOW_LA_LSU_LSN_OPT_LEVEL(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL),
 				.EN_LOW_LA_BRC_PRDT_FAILURE_PROC(EN_LOW_LA_BRC_PRDT_FAILURE_PROC),
 				.IQ0_OTHER_PAYLOAD_WIDTH(64),
@@ -996,9 +998,12 @@ module panda_risc_v_core #(
 				.clr_iq0(clr_iq0),
 				.clr_iq1(clr_iq1),
 				
-				.on_get_instant_rd_mem_res(on_get_instant_rd_mem_res),
-				.inst_id_of_instant_rd_mem_res_gotten(inst_id_of_instant_rd_mem_res_gotten),
-				.data_of_instant_rd_mem_res_gotten(data_of_instant_rd_mem_res_gotten),
+				.on_get_instant_rd_mem_res_s0(on_get_instant_rd_mem_res_s0),
+				.inst_id_of_instant_rd_mem_res_gotten_s0(inst_id_of_instant_rd_mem_res_gotten_s0),
+				.data_of_instant_rd_mem_res_gotten_s0(data_of_instant_rd_mem_res_gotten_s0),
+				.on_get_instant_rd_mem_res_s1(on_get_instant_rd_mem_res_s1),
+				.inst_id_of_instant_rd_mem_res_gotten_s1(inst_id_of_instant_rd_mem_res_gotten_s1),
+				.data_of_instant_rd_mem_res_gotten_s1(data_of_instant_rd_mem_res_gotten_s1),
 				
 				.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
 				.has_processing_perph_access_req(has_processing_perph_access_req),
@@ -1794,9 +1799,12 @@ module panda_risc_v_core #(
 		.init_perph_bus_tr_ls_inst_tid(init_perph_bus_tr_ls_inst_tid),
 		.cancel_subseq_perph_access(cancel_subseq_perph_access),
 		
-		.on_get_instant_rd_mem_res(on_get_instant_rd_mem_res),
-		.inst_id_of_instant_rd_mem_res_gotten(inst_id_of_instant_rd_mem_res_gotten),
-		.data_of_instant_rd_mem_res_gotten(data_of_instant_rd_mem_res_gotten),
+		.on_get_instant_rd_mem_res_s0(on_get_instant_rd_mem_res_s0),
+		.inst_id_of_instant_rd_mem_res_gotten_s0(inst_id_of_instant_rd_mem_res_gotten_s0),
+		.data_of_instant_rd_mem_res_gotten_s0(data_of_instant_rd_mem_res_gotten_s0),
+		.on_get_instant_rd_mem_res_s1(on_get_instant_rd_mem_res_s1),
+		.inst_id_of_instant_rd_mem_res_gotten_s1(inst_id_of_instant_rd_mem_res_gotten_s1),
+		.data_of_instant_rd_mem_res_gotten_s1(data_of_instant_rd_mem_res_gotten_s1),
 		
 		.has_buffered_wr_mem_req(has_buffered_wr_mem_req),
 		.has_processing_perph_access_req(has_processing_perph_access_req),

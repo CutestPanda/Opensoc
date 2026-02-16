@@ -61,7 +61,6 @@ module panda_risc_v_issue_queue #(
 	parameter integer IQ1_ENTRY_N = 4, // 发射队列#1条目数(2 | 4 | 8 | 16)
 	parameter integer AGE_TAG_WIDTH = 4, // 年龄标识的位宽(必须>=2)
 	parameter integer LSN_FU_N = 6, // 要监听结果的执行单元的个数(必须在范围[1, 16]内)
-	parameter integer LSU_FU_ID = 2, // LSU的执行单元ID
 	parameter integer IQ1_LOW_LA_LSU_LSN_OPT_LEVEL = 1, // 发射队列#1对LSU结果的低时延监听(优化等级)(0 | 1 | 2)
 	parameter EN_LOW_LA_BRC_PRDT_FAILURE_PROC = "true", // 是否启用低时延的分支预测失败处理
 	parameter integer IQ0_OTHER_PAYLOAD_WIDTH = 128, // 发射队列#0其他负载数据的位宽
@@ -78,9 +77,12 @@ module panda_risc_v_issue_queue #(
 	input wire clr_iq1, // 清空发射队列#1(指示)
 	
 	// 读存储器结果快速旁路
-	input wire on_get_instant_rd_mem_res,
-	input wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten,
-	input wire[31:0] data_of_instant_rd_mem_res_gotten,
+	input wire on_get_instant_rd_mem_res_s0,
+	input wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten_s0,
+	input wire[31:0] data_of_instant_rd_mem_res_gotten_s0,
+	input wire on_get_instant_rd_mem_res_s1,
+	input wire[IBUS_TID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten_s1,
+	input wire[31:0] data_of_instant_rd_mem_res_gotten_s1,
 	
 	// LSU状态
 	input wire has_buffered_wr_mem_req, // 存在已缓存的写存储器请求(标志)
@@ -1279,16 +1281,13 @@ module panda_risc_v_issue_queue #(
 				) | 
 				(
 					(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 1) & 
-					fu_res_vld[LSU_FU_ID] & 
-					(
-						fu_res_tid[IBUS_TID_WIDTH*LSU_FU_ID+(IBUS_TID_WIDTH-1):IBUS_TID_WIDTH*LSU_FU_ID] == 
-							iq1_table_op1_lsn_inst_id[iq1_entry_i]
-					)
+					on_get_instant_rd_mem_res_s1 & 
+					(inst_id_of_instant_rd_mem_res_gotten_s1 == iq1_table_op1_lsn_inst_id[iq1_entry_i])
 				) | 
 				(
 					(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 2) & 
-					on_get_instant_rd_mem_res & 
-					(inst_id_of_instant_rd_mem_res_gotten == iq1_table_op1_lsn_inst_id[iq1_entry_i])
+					on_get_instant_rd_mem_res_s0 & 
+					(inst_id_of_instant_rd_mem_res_gotten_s0 == iq1_table_op1_lsn_inst_id[iq1_entry_i])
 				);
 			assign iq1_op2_instant_rdy_flag[iq1_entry_i] = 
 				iq1_table_op2_rdy_flag[iq1_entry_i] | 
@@ -1298,16 +1297,13 @@ module panda_risc_v_issue_queue #(
 				) | 
 				(
 					(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 1) & 
-					fu_res_vld[LSU_FU_ID] & 
-					(
-						fu_res_tid[IBUS_TID_WIDTH*LSU_FU_ID+(IBUS_TID_WIDTH-1):IBUS_TID_WIDTH*LSU_FU_ID] == 
-							iq1_table_op2_lsn_inst_id[iq1_entry_i]
-					)
+					on_get_instant_rd_mem_res_s1 & 
+					(inst_id_of_instant_rd_mem_res_gotten_s1 == iq1_table_op2_lsn_inst_id[iq1_entry_i])
 				) | 
 				(
 					(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 2) & 
-					on_get_instant_rd_mem_res & 
-					(inst_id_of_instant_rd_mem_res_gotten == iq1_table_op2_lsn_inst_id[iq1_entry_i])
+					on_get_instant_rd_mem_res_s0 & 
+					(inst_id_of_instant_rd_mem_res_gotten_s0 == iq1_table_op2_lsn_inst_id[iq1_entry_i])
 				);
 			assign iq1_instant_op1[iq1_entry_i] = 
 				iq1_table_op1_rdy_flag[iq1_entry_i] ? 
@@ -1316,31 +1312,25 @@ module panda_risc_v_issue_queue #(
 						(
 							(
 								(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 1) & 
-								fu_res_vld[LSU_FU_ID] & 
-								(
-									fu_res_tid[IBUS_TID_WIDTH*LSU_FU_ID+(IBUS_TID_WIDTH-1):IBUS_TID_WIDTH*LSU_FU_ID] == 
-										iq1_table_op1_lsn_inst_id[iq1_entry_i]
-								)
+								on_get_instant_rd_mem_res_s1 & 
+								(inst_id_of_instant_rd_mem_res_gotten_s1 == iq1_table_op1_lsn_inst_id[iq1_entry_i])
 							) | 
 							(
 								(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 2) & 
-								on_get_instant_rd_mem_res & 
-								(inst_id_of_instant_rd_mem_res_gotten == iq1_table_op1_lsn_inst_id[iq1_entry_i])
+								on_get_instant_rd_mem_res_s0 & 
+								(inst_id_of_instant_rd_mem_res_gotten_s0 == iq1_table_op1_lsn_inst_id[iq1_entry_i])
 							)
 						) ? 
 							(
 								(
 									(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL <= 1) | 
 									(
-										fu_res_vld[LSU_FU_ID] & 
-										(
-											fu_res_tid[IBUS_TID_WIDTH*LSU_FU_ID+(IBUS_TID_WIDTH-1):IBUS_TID_WIDTH*LSU_FU_ID] == 
-												iq1_table_op1_lsn_inst_id[iq1_entry_i]
-										)
+										on_get_instant_rd_mem_res_s1 & 
+										(inst_id_of_instant_rd_mem_res_gotten_s1 == iq1_table_op1_lsn_inst_id[iq1_entry_i])
 									)
 								) ? 
-									fu_res_data[32*LSU_FU_ID+31:32*LSU_FU_ID]:
-									data_of_instant_rd_mem_res_gotten[31:0]
+									data_of_instant_rd_mem_res_gotten_s1[31:0]:
+									data_of_instant_rd_mem_res_gotten_s0[31:0]
 							):
 							fu_res_data_r[iq1_table_op1_lsn_fuid[iq1_entry_i]]
 					);
@@ -1351,31 +1341,25 @@ module panda_risc_v_issue_queue #(
 						(
 							(
 								(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 1) & 
-								fu_res_vld[LSU_FU_ID] & 
-								(
-									fu_res_tid[IBUS_TID_WIDTH*LSU_FU_ID+(IBUS_TID_WIDTH-1):IBUS_TID_WIDTH*LSU_FU_ID] == 
-										iq1_table_op2_lsn_inst_id[iq1_entry_i]
-								)
+								on_get_instant_rd_mem_res_s1 & 
+								(inst_id_of_instant_rd_mem_res_gotten_s1 == iq1_table_op2_lsn_inst_id[iq1_entry_i])
 							) | 
 							(
 								(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL >= 2) & 
-								on_get_instant_rd_mem_res & 
-								(inst_id_of_instant_rd_mem_res_gotten == iq1_table_op2_lsn_inst_id[iq1_entry_i])
+								on_get_instant_rd_mem_res_s0 & 
+								(inst_id_of_instant_rd_mem_res_gotten_s0 == iq1_table_op2_lsn_inst_id[iq1_entry_i])
 							)
 						) ? 
 							(
 								(
 									(IQ1_LOW_LA_LSU_LSN_OPT_LEVEL <= 1) | 
 									(
-										fu_res_vld[LSU_FU_ID] & 
-										(
-											fu_res_tid[IBUS_TID_WIDTH*LSU_FU_ID+(IBUS_TID_WIDTH-1):IBUS_TID_WIDTH*LSU_FU_ID] == 
-												iq1_table_op2_lsn_inst_id[iq1_entry_i]
-										)
+										on_get_instant_rd_mem_res_s1 & 
+										(inst_id_of_instant_rd_mem_res_gotten_s1 == iq1_table_op2_lsn_inst_id[iq1_entry_i])
 									)
 								) ? 
-									fu_res_data[32*LSU_FU_ID+31:32*LSU_FU_ID]:
-									data_of_instant_rd_mem_res_gotten[31:0]
+									data_of_instant_rd_mem_res_gotten_s1[31:0]:
+									data_of_instant_rd_mem_res_gotten_s0[31:0]
 							):
 							fu_res_data_r[iq1_table_op2_lsn_fuid[iq1_entry_i]]
 					);

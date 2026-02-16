@@ -166,9 +166,12 @@ module panda_risc_v_lsu #(
 	input wire m_axi_perph_wready,
 	
 	// 读存储器结果快速旁路
-	output wire on_get_instant_rd_mem_res,
-	output wire[INST_ID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten,
-	output wire[31:0] data_of_instant_rd_mem_res_gotten,
+	output wire on_get_instant_rd_mem_res_s0,
+	output wire[INST_ID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten_s0,
+	output wire[31:0] data_of_instant_rd_mem_res_gotten_s0,
+	output wire on_get_instant_rd_mem_res_s1,
+	output wire[INST_ID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten_s1,
+	output wire[31:0] data_of_instant_rd_mem_res_gotten_s1,
 	
 	// LSU状态
 	output wire has_buffered_wr_mem_req, // 存在已缓存的写存储器请求(标志)
@@ -2212,24 +2215,43 @@ module panda_risc_v_lsu #(
 	endgenerate
 	
 	/** 读存储器结果快速旁路 **/
+	wire[3:0] instant_rd_mem_modified_byte_mask;
+	wire[31:0] instant_rd_mem_modified_byte_data;
 	wire[31:0] instant_rd_mem_res_algn;
 	wire[31:0] instant_rd_mem_res_final;
+	wire[31:0] instant_rd_mem_res_merged_org;
+	wire[31:0] instant_rd_mem_res_merged_algn;
+	wire[31:0] instant_rd_mem_res_merged_final;
+	reg on_get_instant_rd_mem_res_s1_r;
+	reg[INST_ID_WIDTH-1:0] inst_id_of_instant_rd_mem_res_gotten_s1_r;
+	reg[31:0] data_of_instant_rd_mem_res_gotten_s1_r;
 	
-	assign on_get_instant_rd_mem_res = 
+	assign on_get_instant_rd_mem_res_s0 = 
 		on_complete_rd_mem_trans & 
-		// 说明: 为了降低组合逻辑延迟, 只将写存储器缓存检查无冲突的读存储器结果旁路出去
-		(~(|(
-			(
-				(EN_LOW_LATENCY_RD_MEM_ACCESS >= 2) & 
-				on_return_wr_mem_buf_check_res & (req_id_of_wr_mem_buf_check_res == req_id_of_completed_rd_mem_trans_w)
-			) ? 
-				merging_mask_of_wr_mem_buf_check_res:
-				ls_req_table_byte_mask[req_id_of_completed_rd_mem_trans_w]
-		)));
-	assign inst_id_of_instant_rd_mem_res_gotten = 
+		(~(|instant_rd_mem_modified_byte_mask)); // 说明: 为了降低组合逻辑延迟, 只将写存储器缓存检查无冲突的读存储器结果旁路出去
+	assign inst_id_of_instant_rd_mem_res_gotten_s0 = 
 		ls_req_table_inst_id[req_id_of_completed_rd_mem_trans_w];
-	assign data_of_instant_rd_mem_res_gotten = 
+	assign data_of_instant_rd_mem_res_gotten_s0 = 
 		instant_rd_mem_res_final;
+	
+	assign on_get_instant_rd_mem_res_s1 = on_get_instant_rd_mem_res_s1_r;
+	assign inst_id_of_instant_rd_mem_res_gotten_s1 = inst_id_of_instant_rd_mem_res_gotten_s1_r;
+	assign data_of_instant_rd_mem_res_gotten_s1 = data_of_instant_rd_mem_res_gotten_s1_r;
+	
+	assign instant_rd_mem_modified_byte_mask = 
+		(
+			(EN_LOW_LATENCY_RD_MEM_ACCESS >= 2) & 
+			on_return_wr_mem_buf_check_res & (req_id_of_wr_mem_buf_check_res == req_id_of_completed_rd_mem_trans_w)
+		) ? 
+			merging_mask_of_wr_mem_buf_check_res:
+			ls_req_table_byte_mask[req_id_of_completed_rd_mem_trans_w];
+	assign instant_rd_mem_modified_byte_data = 
+		(
+			(EN_LOW_LATENCY_RD_MEM_ACCESS >= 2) & 
+			on_return_wr_mem_buf_check_res & (req_id_of_wr_mem_buf_check_res == req_id_of_completed_rd_mem_trans_w)
+		) ? 
+			merging_data_of_wr_mem_buf_check_res:
+			ls_req_table_merging_data[req_id_of_completed_rd_mem_trans_w];
 	
 	assign instant_rd_mem_res_algn = 
 		rdata_of_completed_rd_mem_trans_w >> {rd_mem_ls_addr_for_pos_prcs[1:0], 3'b000};
@@ -2239,5 +2261,52 @@ module panda_risc_v_lsu #(
 		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_WORD}} & instant_rd_mem_res_algn[31:0]) | 
 		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_BYTE_UNSIGNED}} & {24'd0, instant_rd_mem_res_algn[7:0]}) | 
 		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD_UNSIGNED}} & {16'd0, instant_rd_mem_res_algn[15:0]});
+	
+	assign instant_rd_mem_res_merged_org[31:24] = 
+		instant_rd_mem_modified_byte_mask[3] ? 
+			instant_rd_mem_modified_byte_data[31:24]:
+			rdata_of_completed_rd_mem_trans_w[31:24];
+	assign instant_rd_mem_res_merged_org[23:16] = 
+		instant_rd_mem_modified_byte_mask[2] ? 
+			instant_rd_mem_modified_byte_data[23:16]:
+			rdata_of_completed_rd_mem_trans_w[23:16];
+	assign instant_rd_mem_res_merged_org[15:8] = 
+		instant_rd_mem_modified_byte_mask[1] ? 
+			instant_rd_mem_modified_byte_data[15:8]:
+			rdata_of_completed_rd_mem_trans_w[15:8];
+	assign instant_rd_mem_res_merged_org[7:0] = 
+		instant_rd_mem_modified_byte_mask[0] ? 
+			instant_rd_mem_modified_byte_data[7:0]:
+			rdata_of_completed_rd_mem_trans_w[7:0];
+	
+	assign instant_rd_mem_res_merged_algn = 
+		instant_rd_mem_res_merged_org >> {rd_mem_ls_addr_for_pos_prcs[1:0], 3'b000};
+	assign instant_rd_mem_res_merged_final = 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_BYTE}} & {{24{instant_rd_mem_res_merged_algn[7]}}, instant_rd_mem_res_merged_algn[7:0]}) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD}} & {{16{instant_rd_mem_res_merged_algn[15]}}, instant_rd_mem_res_merged_algn[15:0]}) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_WORD}} & instant_rd_mem_res_merged_algn[31:0]) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_BYTE_UNSIGNED}} & {24'd0, instant_rd_mem_res_merged_algn[7:0]}) | 
+		({32{rd_mem_ls_type_for_pos_prcs == LS_TYPE_HALF_WORD_UNSIGNED}} & {16'd0, instant_rd_mem_res_merged_algn[15:0]});
+	
+	always @(posedge aclk or negedge aresetn)
+	begin
+		if(~aresetn)
+			on_get_instant_rd_mem_res_s1_r <= 1'b0;
+		else
+			on_get_instant_rd_mem_res_s1_r <= # SIM_DELAY 
+				on_complete_rd_mem_trans;
+	end
+	
+	always @(posedge aclk)
+	begin
+		if(on_complete_rd_mem_trans)
+		begin
+			inst_id_of_instant_rd_mem_res_gotten_s1_r <= # SIM_DELAY 
+				ls_req_table_inst_id[req_id_of_completed_rd_mem_trans_w];
+			
+			data_of_instant_rd_mem_res_gotten_s1_r <= # SIM_DELAY 
+				instant_rd_mem_res_merged_final;
+		end
+	end
 	
 endmodule
