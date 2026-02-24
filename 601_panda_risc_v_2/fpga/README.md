@@ -9,6 +9,7 @@
 - vivado工程/panda_soc_test_v9.zip  
 - vivado工程/panda_soc_test_v10.zip  
 - vivado工程/panda_soc_test_v11.zip  
+- vivado工程/panda_soc_test_v12.zip  
 
 ### panda_soc_test_v7
 #### <center>存储映射表</center>
@@ -49,3 +50,10 @@
 
 存储映射和外部中断同panda_soc_test_v7。  
 从这个版本开始支持乱序发射。  
+
+### panda_soc_test_v12
+
+存储映射和外部中断同panda_soc_test_v7。  
+从这个版本开始支持DCache。  
+在本例程中，CPU的数据总线经由DCache缓存后接入DDR3。  
+
