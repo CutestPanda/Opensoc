@@ -58,7 +58,7 @@ AXI MASTER(READ ONLY)
 AXIS MASTER
 
 作者: 陈家耀
-日期: 2026/02/19
+日期: 2026/02/25
 ********************************************************************/
 
 
@@ -587,7 +587,7 @@ module dcache_ctrl #(
 		(pending_for_rd_nxt_lv_mem_tr_flag & rd_data_blk_found_in_wbuf_flag) | // 使用从写缓存里找到的数据块
 		(m_axi_rvalid & m_axi_rready); // 使用读下级存储器(AXI主机)返回的数据
 	assign cache_line_index_to_be_written = 
-		addr_for_rd_nxt_lv_mem[clogb2(CACHE_ENTRY_N*CACHE_LINE_DATA_N*CACHE_DATA_WIDTH/8-1):clogb2(CACHE_LINE_DATA_N*CACHE_DATA_WIDTH/8)] | 
+		(addr_for_rd_nxt_lv_mem[31:clogb2(CACHE_LINE_DATA_N*CACHE_DATA_WIDTH/8)] & (CACHE_ENTRY_N - 1)) | 
 		32'h0000_0000;
 	assign cache_line_data_ofs_to_be_written = 
 		nxt_lv_mem_rdata_id_to_be_transmitted[clogb2(CACHE_LINE_DATA_N-1):0] | 
@@ -689,7 +689,10 @@ module dcache_ctrl #(
 	begin
 		if(~aresetn)
 			nxt_lv_mem_rdata_id_to_be_transmitted <= 0;
-		else if((CACHE_LINE_DATA_N > 1) & on_wr_cache_line)
+		else if(
+			(CACHE_LINE_DATA_N > 1) & 
+			on_wr_cache_line
+		)
 			nxt_lv_mem_rdata_id_to_be_transmitted <= # SIM_DELAY 
 				nxt_lv_mem_rdata_id_to_be_transmitted + 1'b1;
 	end
@@ -723,7 +726,8 @@ module dcache_ctrl #(
 	// 准备置入写缓存的缓存行
 	genvar inserting_wbuf_data_id;
 	generate
-		for(inserting_wbuf_data_id = 0;inserting_wbuf_data_id < CACHE_LINE_DATA_N;inserting_wbuf_data_id = inserting_wbuf_data_id + 1)
+		for(inserting_wbuf_data_id = 0;inserting_wbuf_data_id < CACHE_LINE_DATA_N;
+			inserting_wbuf_data_id = inserting_wbuf_data_id + 1)
 		begin:inserting_wbuf_blk
 			assign m_wbuf_axis_data[(inserting_wbuf_data_id+1)*CACHE_DATA_WIDTH-1:inserting_wbuf_data_id*CACHE_DATA_WIDTH] = 
 				/*
@@ -758,7 +762,8 @@ module dcache_ctrl #(
 			loading_cache_data_id_for_inserting_wbuf <= 1;
 		else if((~transmitting_cache_line_to_wbuf_flag) & on_load_cache_data_for_inserting_wbuf)
 			loading_cache_data_id_for_inserting_wbuf <= # SIM_DELAY 
-				(loading_cache_data_id_for_inserting_wbuf << 1) | (loading_cache_data_id_for_inserting_wbuf >> (CACHE_LINE_DATA_N-1));
+				(loading_cache_data_id_for_inserting_wbuf << 1) | 
+				(loading_cache_data_id_for_inserting_wbuf >> (CACHE_LINE_DATA_N-1));
 	end
 	
 	// 正在将缓存行送入写缓存(标志)
@@ -825,7 +830,7 @@ module dcache_ctrl #(
 	
 	assign m_wbuf_axis_data[32+CACHE_LINE_DATA_N*CACHE_DATA_WIDTH-1:CACHE_LINE_DATA_N*CACHE_DATA_WIDTH] = 
 		rd_tag_mem_dout_real_addr[cache_line_wid_to_be_replaced & (CACHE_WAY_N - 1)] & 
-		(CACHE_LINE_DATA_N*CACHE_DATA_WIDTH/8 - 1);
+		(~(CACHE_LINE_DATA_N * CACHE_DATA_WIDTH / 8 - 1));
 	
 	assign hot_tb_en = tag_mem_rd_res_vld;
 	assign hot_tb_upd_en = 1'b1;
