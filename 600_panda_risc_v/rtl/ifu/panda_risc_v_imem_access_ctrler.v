@@ -78,6 +78,7 @@ module panda_risc_v_imem_access_ctrler #(
 	
 	// 预译码输入
 	output wire[31:0] now_inst, // 当前的指令
+	output wire[1:0] now_err_code, // 当前的错误类型
 	// 预译码结果
 	input wire is_jalr_inst, // 是否JALR指令
 	input wire illegal_inst, // 非法指令(标志)
@@ -179,7 +180,6 @@ module panda_risc_v_imem_access_ctrler #(
 	// 取指结果握手条件: (~if_res_buf_clr) & if_res_buf_empty_n & if_res_ready
 	assign if_res_valid = (~if_res_buf_clr) & if_res_buf_empty_n;
 	
-	assign if_res_buf_wen = vld_inst_gotten; // 断言: 取指结果缓存区写使能有效时必定非满!
 	assign if_res_buf_ren = if_res_ready;
 	assign if_res_buf_clr = rst_req | flush_req;
 	assign if_res_buf_full_n = ~if_res_buf_store_n[4];
@@ -230,11 +230,11 @@ module panda_risc_v_imem_access_ctrler #(
 						// 取指附加信息(4bit)
 						to_jump, 
 						illegal_inst, 
-						imem_access_resp_err, 
+						now_err_code, 
 						// 打包的预译码信息(64bit)
 						pre_decoding_msg_packeted, 
 						// 取到的指令(32bit)
-						imem_access_resp_rdata
+						now_inst
 					};
 			end
 		end
@@ -255,6 +255,7 @@ module panda_risc_v_imem_access_ctrler #(
 	reg common_imem_access_req_pending; // 待发起的普通IMEM访问请求标志
 	wire now_inst_vld; // 当前指令有效
 	reg[31:0] inst_latched; // 锁存的指令
+	reg[1:0] err_code_latched; // 锁存的错误类型
 	reg[31:0] flush_addr_latched; // 锁存的冲刷地址
 	reg[2:0] processing_imem_access_req_n; // 滞外的IMEM访问请求(已发起但后级未取走指令的访问请求)个数
 	wire[2:0] processing_imem_access_req_n_with_rst_flush; // 考虑复位/冲刷后的滞外的IMEM访问请求个数
@@ -290,6 +291,7 @@ module panda_risc_v_imem_access_ctrler #(
 	assign now_pc = pc_regs;
 	
 	assign now_inst = common_imem_access_req_pending ? inst_latched:imem_access_resp_rdata;
+	assign now_err_code = common_imem_access_req_pending ? err_code_latched:imem_access_resp_err;
 	
 	assign vld_inst_gotten = imem_access_resp_valid & 
 		(~(to_rst | to_flush | inst_suppress_buf_regs[inst_suppress_buf_rptr])); // 当前指令可能被镇压
@@ -407,6 +409,12 @@ module panda_risc_v_imem_access_ctrler #(
 	begin
 		if(imem_access_resp_valid)
 			inst_latched <= # simulation_delay imem_access_resp_rdata;
+	end
+	// 锁存的错误类型
+	always @(posedge clk)
+	begin
+		if(imem_access_resp_valid)
+			err_code_latched <= # simulation_delay imem_access_resp_err;
 	end
 	// 锁存的冲刷地址
 	always @(posedge clk)
@@ -549,6 +557,10 @@ module panda_risc_v_imem_access_ctrler #(
 	reg jalr_baseaddr_latched_flag; // JALR指令基址已锁存(标志)
 	reg[31:0] jalr_baseaddr_latched; // 锁存的JALR指令基址
 	
+	assign if_res_buf_wen = 
+		(vld_inst_gotten & ((~is_jalr_inst) | jalr_allow)) | 
+		(common_imem_access_req_pending & is_jalr_inst & jalr_allow);
+	
 	assign rs1_v = jalr_baseaddr_latched_flag ? jalr_baseaddr_latched:jalr_baseaddr_v;
 	
 	assign jalr_allow = jalr_baseaddr_vld | jalr_baseaddr_latched_flag;
@@ -577,8 +589,8 @@ module panda_risc_v_imem_access_ctrler #(
 		(if_res_buf_store_n[2] & (processing_imem_access_req_n != 3'b010)) | 
 		(if_res_buf_store_n[3] & (processing_imem_access_req_n != 3'b011));
 	
-	assign dpc_trace_enter_ifq_inst = imem_access_resp_rdata;
-	assign dpc_trace_enter_ifq_rd_id = imem_access_resp_rdata[11:7];
+	assign dpc_trace_enter_ifq_inst = now_inst;
+	assign dpc_trace_enter_ifq_rd_id = now_inst[11:7];
 	assign dpc_trace_enter_ifq_rd_vld = pre_decoding_msg_packeted[PRE_DCD_MSG_RD_VLD_SID];
 	assign dpc_trace_enter_ifq_is_long_inst = 
 		pre_decoding_msg_packeted[PRE_DCD_MSG_IS_LOAD_INST_SID] | 

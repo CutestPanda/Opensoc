@@ -235,7 +235,7 @@ module panda_risc_v_data_dpc_monitor #(
 	wire[dpc_trace_inst_n-1:0] dcd_rs2_raw_dpc_check_res_vec; // 译码阶段RS2的RAW相关性检查结果向量
 	wire[dpc_trace_inst_n-1:0] dsptc_waw_dpc_check_res_vec; // 派遣阶段WAW相关性检查结果向量
 	
-	assign imem_access_rs1_raw_dpc = (|imem_access_rs1_raw_dpc_check_res_vec) | has_processing_imem_access_req;
+	assign imem_access_rs1_raw_dpc = |imem_access_rs1_raw_dpc_check_res_vec;
 	assign dcd_rs1_raw_dpc = |dcd_rs1_raw_dpc_check_res_vec;
 	assign dcd_rs2_raw_dpc = |dcd_rs2_raw_dpc_check_res_vec;
 	assign dsptc_rd_waw_dpc = |dsptc_waw_dpc_check_res_vec;
