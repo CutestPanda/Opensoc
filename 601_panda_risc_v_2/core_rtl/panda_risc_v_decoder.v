@@ -412,10 +412,12 @@ module panda_risc_v_decoder(
 	
 	assign actual_bta = 
 		(
-			brc_jump_baseaddr_sel_rs1 ? 
-				rs1_v:
-				pc_of_inst
-		) + brc_jump_ofs;
+			(
+				brc_jump_baseaddr_sel_rs1 ? 
+					rs1_v:
+					pc_of_inst
+			) + brc_jump_ofs
+		) & {31'h7fff_ffff, ~is_jalr_inst};
 	assign brc_jump_baseaddr_sel_rs1 = is_jalr_inst;
 	
 	assign brc_jump_ofs = {

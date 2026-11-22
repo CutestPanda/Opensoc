@@ -16,6 +16,9 @@ comp: $(MODELSIM_LIB_DIR_TAG) $(MODELSIM_WORK_DIR_TAG)
 sim:
 	$(MODELSIM_PATH)/vsim.exe -c -do "do {modelsim_simulate.do}" -l $(SIM_LOG)
 
+sim_view:
+	$(MODELSIM_PATH)/vsim.exe -do "vsim -voptargs=+acc xil_defaultlib.tb_isa_test"
+
 $(MODELSIM_LIB_DIR_TAG):
 	mkdir modelsim_lib
 	echo tag > modelsim_lib/tag.txt

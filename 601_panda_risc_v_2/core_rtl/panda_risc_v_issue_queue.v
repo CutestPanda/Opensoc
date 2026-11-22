@@ -1003,10 +1003,12 @@ module panda_risc_v_issue_queue #(
 		) ? 
 			// JAL指令或B指令的分支目标地址 = PC + 偏移量
 			iq1_table_other_payload[iq1_confirming_brc_inst_entry_id][IQ1_OTHER_PAYLOAD_FIELD_ACTUAL_BTA+31:IQ1_OTHER_PAYLOAD_FIELD_ACTUAL_BTA]:
-			// JALR的分支目标地址 = RS1 + 偏移量
+			// JALR的分支目标地址 = RS1 + 偏移量, lsb清零
 			(
-				iq1_instant_op1[iq1_confirming_brc_inst_entry_id] + 
-				iq1_table_other_payload[iq1_confirming_brc_inst_entry_id][IQ1_OTHER_PAYLOAD_FIELD_BRC_JUMP_OFS+31:IQ1_OTHER_PAYLOAD_FIELD_BRC_JUMP_OFS]
+				(
+					iq1_instant_op1[iq1_confirming_brc_inst_entry_id] + 
+					iq1_table_other_payload[iq1_confirming_brc_inst_entry_id][IQ1_OTHER_PAYLOAD_FIELD_BRC_JUMP_OFS+31:IQ1_OTHER_PAYLOAD_FIELD_BRC_JUMP_OFS]
+				) & 32'hffff_fffe
 			);
 	assign iq1_actual_brc_direction_of_confirming_brc_inst_rdy = 
 		// JAL指令或JALR指令必定是跳转的

@@ -229,7 +229,7 @@ module panda_risc_v_bru #(
 		如果当前有正在等待的冲刷请求, 则不会接受需要冲刷的输入(分支预测失败、FENCE.I指令、调试模式下的EBREAK指令)
 		后级(交付)镇压时, 接受或不接受输入都是无所谓的, 因为后级此时通常是发生了异常/中断/调试, 这个时候肯定也是要冲刷CPU前端
 	*/
-	assign s_bru_i_ready = rst_bru | (~bru_flush_pending) | (~need_flush);
+	assign s_bru_i_ready = rst_bru | (bru_flush_pending ? bru_flush_grant:(~need_flush));
 	
 	assign need_flush = (~prdt_success) | is_fence_i_inst | (in_dbg_mode & is_ebreak_inst);
 	assign flush_addr_cur = 

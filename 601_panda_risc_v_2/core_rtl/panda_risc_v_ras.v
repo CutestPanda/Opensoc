@@ -97,6 +97,16 @@ module panda_risc_v_ras #(
 	wire ras_full; // RAS满标志
 	reg[RAS_ENTRY_WIDTH-1:0] ras_query_addr_r; // RAS查询结果(输出寄存器)
 	
+	// 仅用于仿真
+	integer RAS_INIT_I;
+	initial
+	begin
+		for(RAS_INIT_I = 0;RAS_INIT_I < RAS_ENTRY_N;RAS_INIT_I = RAS_INIT_I + 1)
+		begin
+			ras_reg_file[RAS_INIT_I] = {RAS_ENTRY_WIDTH{1'b0}};
+		end
+	end
+	
 	assign ras_pop_addr = 
 		ras_reg_file[
 			ras_empty ? 
