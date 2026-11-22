@@ -218,7 +218,7 @@ module panda_risc_v_sim #(
 		.aresetn(sys_resetn),
 		
 		.sys_reset_req(sys_reset_req),
-		.rst_pc(32'h8000_0000),
+		.rst_pc(32'h0000_0000),
 		
 		.m_axi_imem_araddr(m_axi_imem_araddr),
 		.m_axi_imem_arburst(m_axi_imem_arburst),
